@@ -79,3 +79,19 @@ func (s *Service) ApproveExemptRequest(ctx context.Context, chatID, userID, mess
 func (s *Service) RejectExemptRequest(ctx context.Context, chatID, userID int64, messageID int) error {
 	return s.repo.RejectExemptRequest(ctx, chatID, userID, messageID)
 }
+
+func (s *Service) AddAdmin(ctx context.Context, chatID int64, userID int64) error {
+	return s.repo.AddAdmin(ctx, chatID, userID)
+}
+
+func (s *Service) RemoveAdmin(ctx context.Context, chatID int64, userID int64) error {
+	return s.repo.RemoveAdmin(ctx, chatID, userID)
+}
+
+func (s *Service) GetAdmins(ctx context.Context, chatID int64) ([]model.ChatAdmin, error) {
+	return s.repo.GetAdmins(ctx, chatID)
+}
+
+func (s *Service) IsAdmin(ctx context.Context, chatID int64, userID int64) (bool, error) {
+	return s.repo.IsAdmin(ctx, chatID, userID)
+}

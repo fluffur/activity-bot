@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	AddChatAdmin(ctx context.Context, arg AddChatAdminParams) error
 	AddExemptRequest(ctx context.Context, arg AddExemptRequestParams) error
 	ApproveExemptRequest(ctx context.Context, arg ApproveExemptRequestParams) error
 	ChatExemptUsers(ctx context.Context, chatID int64) ([]ChatExemptUsersRow, error)
@@ -19,12 +20,15 @@ type Querier interface {
 	EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemberExistsParams) error
 	EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) error
 	ExemptChatMember(ctx context.Context, arg ExemptChatMemberParams) error
+	GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdminsRow, error)
 	GetChatMember(ctx context.Context, arg GetChatMemberParams) (ChatMember, error)
 	GetExemptRequest(ctx context.Context, arg GetExemptRequestParams) (ExemptRequest, error)
 	GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams) (Chat, error)
 	GetUser(ctx context.Context, id int64) (User, error)
 	GetUserByUsername(ctx context.Context, username pgtype.Text) (User, error)
+	IsChatAdmin(ctx context.Context, arg IsChatAdminParams) (bool, error)
 	RejectExemptRequest(ctx context.Context, arg RejectExemptRequestParams) error
+	RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error
 	RemoveChatMemberExempt(ctx context.Context, arg RemoveChatMemberExemptParams) error
 	UpdateChatNorm(ctx context.Context, arg UpdateChatNormParams) error
 	WeeklyMessageReport(ctx context.Context, arg WeeklyMessageReportParams) ([]WeeklyMessageReportRow, error)

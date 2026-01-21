@@ -70,3 +70,28 @@ UPDATE chat_members
 SET exempt_until = null
 WHERE user_id = $1
   AND chat_id = $2;
+
+-- name: AddChatAdmin :exec
+INSERT INTO chat_admins(chat_id, user_id)
+VALUES ($1, $2)
+ON CONFLICT DO NOTHING;
+
+-- name: RemoveChatAdmin :exec
+DELETE FROM chat_admins
+WHERE chat_id = $1
+  AND user_id = $2;
+
+-- name: GetChatAdmins :many
+SELECT u.id, u.username, u.first_name, u.last_name, ca.created_at
+FROM chat_admins ca
+         JOIN users u ON u.id = ca.user_id
+WHERE ca.chat_id = $1
+ORDER BY ca.created_at;
+
+-- name: IsChatAdmin :one
+SELECT EXISTS(
+    SELECT 1
+    FROM chat_admins
+    WHERE chat_id = $1
+      AND user_id = $2
+);

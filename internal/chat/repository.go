@@ -21,4 +21,9 @@ type Repository interface {
 	ApproveExemptWithTx(ctx context.Context, request model.ExemptRequest) error
 	RejectExemptRequest(ctx context.Context, chatID, userID int64, messageID int) error
 	GetExemptRequest(ctx context.Context, chatID, userID int64, messageID int) (model.ExemptRequest, error)
+
+	AddAdmin(ctx context.Context, chatID int64, userID int64) error
+	RemoveAdmin(ctx context.Context, chatID int64, userID int64) error
+	GetAdmins(ctx context.Context, chatID int64) ([]model.ChatAdmin, error)
+	IsAdmin(ctx context.Context, chatID int64, userID int64) (bool, error)
 }

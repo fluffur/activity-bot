@@ -11,6 +11,22 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const addChatAdmin = `-- name: AddChatAdmin :exec
+INSERT INTO chat_admins(chat_id, user_id)
+VALUES ($1, $2)
+ON CONFLICT DO NOTHING
+`
+
+type AddChatAdminParams struct {
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	UserID int64 `db:"user_id" json:"userId"`
+}
+
+func (q *Queries) AddChatAdmin(ctx context.Context, arg AddChatAdminParams) error {
+	_, err := q.db.Exec(ctx, addChatAdmin, arg.ChatID, arg.UserID)
+	return err
+}
+
 const chatExemptUsers = `-- name: ChatExemptUsers :many
 SELECT cm.user_id,
        u.username,
@@ -109,6 +125,48 @@ func (q *Queries) ExemptChatMember(ctx context.Context, arg ExemptChatMemberPara
 	return err
 }
 
+const getChatAdmins = `-- name: GetChatAdmins :many
+SELECT u.id, u.username, u.first_name, u.last_name, ca.created_at
+FROM chat_admins ca
+         JOIN users u ON u.id = ca.user_id
+WHERE ca.chat_id = $1
+ORDER BY ca.created_at
+`
+
+type GetChatAdminsRow struct {
+	ID        int64              `db:"id" json:"id"`
+	Username  pgtype.Text        `db:"username" json:"username"`
+	FirstName pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName  pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+}
+
+func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdminsRow, error) {
+	rows, err := q.db.Query(ctx, getChatAdmins, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetChatAdminsRow{}
+	for rows.Next() {
+		var i GetChatAdminsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.FirstName,
+			&i.LastName,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getChatMember = `-- name: GetChatMember :one
 SELECT chat_id, user_id, joined_at, exempt_until
 FROM chat_members
@@ -150,6 +208,43 @@ func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams
 	var i Chat
 	err := row.Scan(&i.ID, &i.WeeklyNorm)
 	return i, err
+}
+
+const isChatAdmin = `-- name: IsChatAdmin :one
+SELECT EXISTS(
+    SELECT 1
+    FROM chat_admins
+    WHERE chat_id = $1
+      AND user_id = $2
+)
+`
+
+type IsChatAdminParams struct {
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	UserID int64 `db:"user_id" json:"userId"`
+}
+
+func (q *Queries) IsChatAdmin(ctx context.Context, arg IsChatAdminParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isChatAdmin, arg.ChatID, arg.UserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const removeChatAdmin = `-- name: RemoveChatAdmin :exec
+DELETE FROM chat_admins
+WHERE chat_id = $1
+  AND user_id = $2
+`
+
+type RemoveChatAdminParams struct {
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	UserID int64 `db:"user_id" json:"userId"`
+}
+
+func (q *Queries) RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error {
+	_, err := q.db.Exec(ctx, removeChatAdmin, arg.ChatID, arg.UserID)
+	return err
 }
 
 const removeChatMemberExempt = `-- name: RemoveChatMemberExempt :exec

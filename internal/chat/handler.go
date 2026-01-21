@@ -188,7 +188,12 @@ func (h *Handler) ExemptMember(ctx context.Context, b *bot.Bot, update *models.U
 		return
 	}
 
-	if senderMember.Owner == nil {
+	isAdmin, err := h.service.IsAdmin(ctx, update.Message.Chat.ID, update.Message.From.ID)
+	if err != nil {
+		log.Println("Check admin error", err)
+	}
+
+	if senderMember.Owner == nil && !isAdmin {
 		if err := h.createExemptRequest(ctx, b, update, targetUserID, u, date); err != nil {
 			log.Println("Failed to create exempt request", err)
 			h.AnswerMessage(ctx, b, update, "Не удалось создать заявку")
@@ -410,7 +415,6 @@ func (h *Handler) extractTargetUser(ctx context.Context, update *models.Update, 
 			return e.User.ID, restArg, true, nil
 		} else if e.Type == "mention" {
 			username := textRunes[e.Offset : e.Offset+e.Length]
-			// remove @
 			u, err := h.userService.GetUserByUsername(ctx, string(username[1:]))
 			if err != nil {
 				return 0, "", false, err
@@ -433,5 +437,111 @@ func (h *Handler) checkOwnerOrAdmin(ctx context.Context, b *bot.Bot, update *mod
 		log.Printf("Failed to get chat member for owner check: %v", err)
 		return false
 	}
-	return member.Owner != nil
+	if member.Owner != nil {
+		return true
+	}
+
+	isAdmin, err := h.service.IsAdmin(ctx, chatID, userID)
+	if err != nil {
+		log.Printf("Failed to check db admin: %v", err)
+		return false
+	}
+	return isAdmin
+}
+
+func (h *Handler) AddAdmin(ctx context.Context, b *bot.Bot, update *models.Update) {
+	member, err := b.GetChatMember(ctx, &bot.GetChatMemberParams{
+		ChatID: update.Message.Chat.ID,
+		UserID: update.Message.From.ID,
+	})
+	if err != nil {
+		h.AnswerMessage(ctx, b, update, "Не удалось проверить ваши права")
+		return
+	}
+	if member.Owner == nil {
+		h.AnswerMessage(ctx, b, update, "Только создатель чата может добавлять администраторов бота")
+		return
+	}
+
+	targetUserID, _, found, err := h.extractTargetUser(ctx, update, "")
+	if err != nil {
+		h.AnswerMessage(ctx, b, update, "Не удалось найти пользователя")
+		return
+	}
+	if !found {
+		h.AnswerMessage(ctx, b, update, "Пользователь не найден")
+		return
+	}
+
+	if err := h.service.AddAdmin(ctx, update.Message.Chat.ID, targetUserID); err != nil {
+		h.AnswerMessage(ctx, b, update, "Не удалось добавить администратора")
+		return
+	}
+
+	u, err := h.userService.GetUser(ctx, targetUserID)
+	name := "пользователя"
+	if err == nil {
+		name = html.EscapeString(u.FirstName)
+	}
+
+	h.AnswerMessage(ctx, b, update, fmt.Sprintf("Пользователь <a href=\"tg://user?id=%d\">%s</a> назначен администратором бота", targetUserID, name))
+}
+
+func (h *Handler) RemoveAdmin(ctx context.Context, b *bot.Bot, update *models.Update) {
+	member, err := b.GetChatMember(ctx, &bot.GetChatMemberParams{
+		ChatID: update.Message.Chat.ID,
+		UserID: update.Message.From.ID,
+	})
+	if err != nil {
+		h.AnswerMessage(ctx, b, update, "Не удалось проверить ваши права")
+		return
+	}
+	if member.Owner == nil {
+		h.AnswerMessage(ctx, b, update, "Только создатель чата может удалять администраторов бота")
+		return
+	}
+
+	targetUserID, _, found, err := h.extractTargetUser(ctx, update, "")
+	if err != nil {
+		h.AnswerMessage(ctx, b, update, "Не удалось найти пользователя")
+		return
+	}
+	if !found {
+		h.AnswerMessage(ctx, b, update, "Пользователь не найден")
+		return
+	}
+
+	if err := h.service.RemoveAdmin(ctx, update.Message.Chat.ID, targetUserID); err != nil {
+		h.AnswerMessage(ctx, b, update, "Не удалось удалить администратора")
+		return
+	}
+
+	u, err := h.userService.GetUser(ctx, targetUserID)
+	name := "пользователя"
+	if err == nil {
+		name = html.EscapeString(u.FirstName)
+	}
+
+	h.AnswerMessage(ctx, b, update, fmt.Sprintf("Пользователь <a href=\"tg://user?id=%d\">%s</a> удалён из администраторов бота", targetUserID, name))
+}
+
+func (h *Handler) ShowAdmins(ctx context.Context, b *bot.Bot, update *models.Update) {
+	admins, err := h.service.GetAdmins(ctx, update.Message.Chat.ID)
+	if err != nil {
+		h.AnswerMessage(ctx, b, update, "Не удалось получить список администраторов")
+		return
+	}
+
+	if len(admins) == 0 {
+		h.AnswerMessage(ctx, b, update, "Список администраторов пуст")
+		return
+	}
+
+	var sb strings.Builder
+	sb.WriteString("👮 Администраторы бота:\n")
+	for _, admin := range admins {
+		sb.WriteString(fmt.Sprintf("\n<a href=\"tg://user?id=%d\">%s</a> (с %s)", admin.UserID, html.EscapeString(admin.DisplayName), admin.CreatedAt.Format("02.01.2006")))
+	}
+
+	h.AnswerMessage(ctx, b, update, sb.String())
 }

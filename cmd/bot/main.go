@@ -57,6 +57,10 @@ func main() {
 
 	endExemptRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?-\s*(рест|rest|рэст)(?:\s+.*)?$`)
 
+	addAdminRe := regexp.MustCompile(`(?i)^(?:[!/.+]\s*)?(админ|admin)(?:\s+|$)(.*)$`)
+	removeAdminRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?-\s*(админ|admin)(?:\s+.*)?$`)
+	showAdminsRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?(админы|admins)\s*$`)
+
 	chatH := chat.NewHandler(chatService, userService, chat.NewDateParser(), setNormRe, setExemptRe)
 	ensureMemberExistsMW := middleware.NewEnsureMemberExists(chatRepo, userRepo, cfg.DefaultWeeklyNorm)
 
@@ -69,7 +73,12 @@ func main() {
 
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showExemptRe, chatH.ShowMemberExempt, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setExemptRe, chatH.ExemptMember, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setExemptRe, chatH.ExemptMember, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, endExemptRe, chatH.EndMemberExempt, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, addAdminRe, chatH.AddAdmin, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, removeAdminRe, chatH.RemoveAdmin, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showAdminsRe, chatH.ShowAdmins, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 
 	b.RegisterHandlerRegexp(bot.HandlerTypeCallbackQueryData, regexp.MustCompile(`^approve:\d+:\d+$`), chatH.ApproveExemptRequest, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeCallbackQueryData, regexp.MustCompile(`^reject:\d+:\d+$`), chatH.RejectExemptRequest, middleware.OnlyGroups, ensureMemberExistsMW.Handle)

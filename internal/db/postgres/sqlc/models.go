@@ -59,6 +59,12 @@ type Chat struct {
 	WeeklyNorm int32 `db:"weekly_norm" json:"weeklyNorm"`
 }
 
+type ChatAdmin struct {
+	ChatID    int64              `db:"chat_id" json:"chatId"`
+	UserID    int64              `db:"user_id" json:"userId"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+}
+
 type ChatMember struct {
 	ChatID      int64              `db:"chat_id" json:"chatId"`
 	UserID      int64              `db:"user_id" json:"userId"`
