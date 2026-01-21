@@ -55,6 +55,29 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (mo
 	return mapUser(u), nil
 }
 
+func (r *UserRepository) UpsertUsers(ctx context.Context, users []model.User) error {
+	ids := make([]int64, len(users))
+	usernames := make([]string, len(users))
+	firstNames := make([]string, len(users))
+	lastNames := make([]string, len(users))
+
+	for i, u := range users {
+		ids[i] = u.ID
+		if u.Username != nil {
+			usernames[i] = *u.Username
+		}
+		firstNames[i] = u.FirstName
+		lastNames[i] = u.LastName
+	}
+
+	return r.queries.UpsertUsers(ctx, db.UpsertUsersParams{
+		Ids:        ids,
+		Usernames:  usernames,
+		FirstNames: firstNames,
+		LastNames:  lastNames,
+	})
+}
+
 func mapUser(u db.User) model.User {
 	nu := model.User{
 		ID: u.ID,

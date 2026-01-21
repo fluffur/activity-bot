@@ -17,7 +17,15 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) Message(ctx context.Context, b *bot.Bot, update *models.Update) {
-	log.Println(update.Message.Text)
+	log.Println("s")
+	as, err := b.GetChatAdministrators(ctx, &bot.GetChatAdministratorsParams{
+		ChatID: update.Message.Chat.ID,
+	})
+	if err != nil {
+		log.Println(err)
+	} else {
+		log.Println(as[2].Administrator.CustomTitle)
+	}
 	if err := h.service.Save(ctx, update.Message.Chat.ID, update.Message.From); err != nil {
 		log.Println("Error", err)
 		return

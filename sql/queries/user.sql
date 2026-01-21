@@ -14,3 +14,13 @@ WHERE id = $1;
 SELECT *
 FROM users
 WHERE username = $1;
+
+-- name: UpsertUsers :exec
+INSERT INTO users(id, username, first_name, last_name)
+SELECT unnest(@ids::bigint[]),
+       unnest(@usernames::text[]),
+       unnest(@first_names::text[]),
+       unnest(@last_names::text[])
+ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
+                               first_name = EXCLUDED.first_name,
+                               last_name  = EXCLUDED.last_name;

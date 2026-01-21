@@ -73,3 +73,31 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username pgtype.Text) (
 	)
 	return i, err
 }
+
+const upsertUsers = `-- name: UpsertUsers :exec
+INSERT INTO users(id, username, first_name, last_name)
+SELECT unnest($1::bigint[]),
+       unnest($2::text[]),
+       unnest($3::text[]),
+       unnest($4::text[])
+ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
+                               first_name = EXCLUDED.first_name,
+                               last_name  = EXCLUDED.last_name
+`
+
+type UpsertUsersParams struct {
+	Ids        []int64  `db:"ids" json:"ids"`
+	Usernames  []string `db:"usernames" json:"usernames"`
+	FirstNames []string `db:"first_names" json:"firstNames"`
+	LastNames  []string `db:"last_names" json:"lastNames"`
+}
+
+func (q *Queries) UpsertUsers(ctx context.Context, arg UpsertUsersParams) error {
+	_, err := q.db.Exec(ctx, upsertUsers,
+		arg.Ids,
+		arg.Usernames,
+		arg.FirstNames,
+		arg.LastNames,
+	)
+	return err
+}

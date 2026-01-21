@@ -542,6 +542,53 @@ func (h *Handler) ShowAdmins(ctx context.Context, b *bot.Bot, update *models.Upd
 	for _, admin := range admins {
 		sb.WriteString(fmt.Sprintf("\n<a href=\"tg://user?id=%d\">%s</a> (с %s)", admin.UserID, html.EscapeString(admin.DisplayName), admin.CreatedAt.Format("02.01.2006")))
 	}
+}
 
-	h.AnswerMessage(ctx, b, update, sb.String())
+func (h *Handler) UpdateChat(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if !h.checkOwnerOrAdmin(ctx, b, update, update.Message.Chat.ID, update.Message.From.ID) {
+		h.AnswerMessage(ctx, b, update, "Команда доступна только создателю или пользователю с ролью администратор в боте")
+		return
+	}
+
+	admins, err := b.GetChatAdministrators(ctx, &bot.GetChatAdministratorsParams{
+		ChatID: update.Message.Chat.ID,
+	})
+	if err != nil {
+		log.Println("Get chat administrators error", err)
+		h.AnswerMessage(ctx, b, update, "Не удалось получить список администраторов чата")
+		return
+	}
+
+	users := make([]model.User, 0, len(admins))
+	for _, admin := range admins {
+		var chatUser *models.User
+		if admin.Administrator != nil {
+			chatUser = &admin.Administrator.User
+		} else if admin.Owner != nil {
+			chatUser = admin.Owner.User
+		} else {
+			chatUser = nil
+		}
+		if chatUser == nil {
+			continue
+		}
+
+		if chatUser.IsBot {
+			continue
+		}
+		users = append(users, model.User{
+			ID:        chatUser.ID,
+			FirstName: chatUser.FirstName,
+			LastName:  chatUser.LastName,
+			Username:  &chatUser.Username,
+		})
+	}
+
+	if err := h.service.UpdateChatMembers(ctx, update.Message.Chat.ID, users); err != nil {
+		log.Println("Update chat members error", err)
+		h.AnswerMessage(ctx, b, update, "Не удалось обновить данные чата")
+		return
+	}
+
+	h.AnswerMessage(ctx, b, update, fmt.Sprintf("Чат обновлён. Найдено %d участников", len(users)))
 }

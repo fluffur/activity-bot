@@ -36,6 +36,10 @@ func (m *EnsureMemberExists) Handle(next bot.HandlerFunc) bot.HandlerFunc {
 			mes = update.CallbackQuery.Message.Message
 			u = &update.CallbackQuery.From
 		}
+		if u.IsBot {
+			next(ctx, b, update)
+			return
+		}
 
 		if err := m.userRepo.EnsureExists(ctx, u.ID, u.Username, u.FirstName, u.LastName); err != nil {
 			log.Println("Failed ensure user exists", err)

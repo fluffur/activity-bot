@@ -2,17 +2,19 @@ package chat
 
 import (
 	"activity-bot/internal/model"
+	"activity-bot/internal/user"
 	"context"
 	"time"
 )
 
 type Service struct {
 	repo              Repository
+	userRepo          user.Repository
 	defaultWeeklyNorm int32
 }
 
-func NewService(repo Repository, defaultWeeklyNorm int32) *Service {
-	return &Service{repo, defaultWeeklyNorm}
+func NewService(repo Repository, userRepo user.Repository, defaultWeeklyNorm int32) *Service {
+	return &Service{repo, userRepo, defaultWeeklyNorm}
 }
 
 func (s *Service) GetNorm(ctx context.Context, chatID int64) (int32, error) {
@@ -94,4 +96,15 @@ func (s *Service) GetAdmins(ctx context.Context, chatID int64) ([]model.ChatAdmi
 
 func (s *Service) IsAdmin(ctx context.Context, chatID int64, userID int64) (bool, error) {
 	return s.repo.IsAdmin(ctx, chatID, userID)
+}
+
+func (s *Service) UpdateChatMembers(ctx context.Context, chatID int64, admins []model.User) error {
+	if err := s.userRepo.UpsertUsers(ctx, admins); err != nil {
+		return err
+	}
+	userIDs := make([]int64, len(admins))
+	for i, u := range admins {
+		userIDs[i] = u.ID
+	}
+	return s.repo.UpsertChatMembers(ctx, chatID, userIDs)
 }

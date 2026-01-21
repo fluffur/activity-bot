@@ -9,6 +9,7 @@ import (
 type Repository interface {
 	EnsureExists(ctx context.Context, c model.Chat) error
 	EnsureMemberExists(ctx context.Context, chatID int64, userID int64) error
+	UpsertChatMembers(ctx context.Context, chatID int64, userIDs []int64) error
 	GetOrCreate(ctx context.Context, c model.Chat) (model.Chat, error)
 	SetNorm(ctx context.Context, chatID int64, norm int) error
 	GetChatExemptUsers(ctx context.Context, chatID int64) ([]model.ExemptMember, error)

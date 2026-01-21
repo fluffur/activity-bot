@@ -21,9 +21,14 @@ func OnlyGroups(next bot.HandlerFunc) bot.HandlerFunc {
 }
 
 func OnlyGroupsMatch(update *models.Update) bool {
-	m := update.Message
-	if m == nil {
+	var m *models.Message
+
+	if update.Message != nil {
+		m = update.Message
+	} else if update.CallbackQuery != nil {
 		m = update.CallbackQuery.Message.Message
+	} else {
+		return false
 	}
 
 	return m != nil &&

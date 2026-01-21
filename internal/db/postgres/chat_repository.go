@@ -34,6 +34,13 @@ func (r *ChatRepository) EnsureMemberExists(ctx context.Context, chatID int64, u
 	})
 }
 
+func (r *ChatRepository) UpsertChatMembers(ctx context.Context, chatID int64, userIDs []int64) error {
+	return r.queries.UpsertChatMembers(ctx, db.UpsertChatMembersParams{
+		ChatID:  chatID,
+		UserIds: userIDs,
+	})
+}
+
 func (r *ChatRepository) GetOrCreate(ctx context.Context, c model.Chat) (model.Chat, error) {
 	resultChat, err := r.queries.GetOrCreateChat(ctx, db.GetOrCreateChatParams{
 		ID:         c.ID,

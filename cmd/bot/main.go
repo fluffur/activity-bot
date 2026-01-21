@@ -46,7 +46,7 @@ func main() {
 	chatRepo := postgres.NewChatRepository(queries, pool)
 	userRepo := postgres.NewUserRepository(queries)
 	msgService := message.NewService(msgRepo, userRepo, chatRepo, cfg.DefaultWeeklyNorm)
-	chatService := chat.NewService(chatRepo, cfg.DefaultWeeklyNorm)
+	chatService := chat.NewService(chatRepo, userRepo, cfg.DefaultWeeklyNorm)
 	userService := user.NewService(userRepo)
 	messageH := message.NewHandler(msgService)
 
@@ -60,6 +60,7 @@ func main() {
 	addAdminRe := regexp.MustCompile(`(?i)^(?:[!/.+]\s*)?(админ|admin)(?:\s+|$)(.*)$`)
 	removeAdminRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?-\s*(админ|admin)(?:\s+.*)?$`)
 	showAdminsRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?(админы|admins)\s*$`)
+	updateChatRe := regexp.MustCompile(`(?i)^(?:[!/.+]\s*)?(обновить\s+чат|update\s+chat)\s*$`)
 
 	chatH := chat.NewHandler(chatService, userService, chat.NewDateParser(), setNormRe, setExemptRe)
 	ensureMemberExistsMW := middleware.NewEnsureMemberExists(chatRepo, userRepo, cfg.DefaultWeeklyNorm)
@@ -73,12 +74,13 @@ func main() {
 
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showExemptRe, chatH.ShowMemberExempt, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setExemptRe, chatH.ExemptMember, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setExemptRe, chatH.ExemptMember, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, endExemptRe, chatH.EndMemberExempt, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, addAdminRe, chatH.AddAdmin, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, removeAdminRe, chatH.RemoveAdmin, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showAdminsRe, chatH.ShowAdmins, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, updateChatRe, chatH.UpdateChat, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 
 	b.RegisterHandlerRegexp(bot.HandlerTypeCallbackQueryData, regexp.MustCompile(`^approve:\d+:\d+$`), chatH.ApproveExemptRequest, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeCallbackQueryData, regexp.MustCompile(`^reject:\d+:\d+$`), chatH.RejectExemptRequest, middleware.OnlyGroups, ensureMemberExistsMW.Handle)

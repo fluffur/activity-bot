@@ -95,3 +95,8 @@ SELECT EXISTS(
     WHERE chat_id = $1
       AND user_id = $2
 );
+-- name: UpsertChatMembers :exec
+INSERT INTO chat_members(chat_id, user_id)
+SELECT @chat_id,
+       unnest(@user_ids::bigint[])
+ON CONFLICT DO NOTHING;

@@ -280,6 +280,23 @@ func (q *Queries) UpdateChatNorm(ctx context.Context, arg UpdateChatNormParams) 
 	return err
 }
 
+const upsertChatMembers = `-- name: UpsertChatMembers :exec
+INSERT INTO chat_members(chat_id, user_id)
+SELECT $1,
+       unnest($2::bigint[])
+ON CONFLICT DO NOTHING
+`
+
+type UpsertChatMembersParams struct {
+	ChatID  int64   `db:"chat_id" json:"chatId"`
+	UserIds []int64 `db:"user_ids" json:"userIds"`
+}
+
+func (q *Queries) UpsertChatMembers(ctx context.Context, arg UpsertChatMembersParams) error {
+	_, err := q.db.Exec(ctx, upsertChatMembers, arg.ChatID, arg.UserIds)
+	return err
+}
+
 const weeklyMessageReport = `-- name: WeeklyMessageReport :many
 SELECT cm.user_id,
        u.username,

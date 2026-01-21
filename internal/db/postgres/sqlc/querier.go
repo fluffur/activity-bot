@@ -31,6 +31,8 @@ type Querier interface {
 	RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error
 	RemoveChatMemberExempt(ctx context.Context, arg RemoveChatMemberExemptParams) error
 	UpdateChatNorm(ctx context.Context, arg UpdateChatNormParams) error
+	UpsertChatMembers(ctx context.Context, arg UpsertChatMembersParams) error
+	UpsertUsers(ctx context.Context, arg UpsertUsersParams) error
 	WeeklyMessageReport(ctx context.Context, arg WeeklyMessageReportParams) ([]WeeklyMessageReportRow, error)
 }
 

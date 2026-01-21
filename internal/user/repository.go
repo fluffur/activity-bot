@@ -9,4 +9,5 @@ type Repository interface {
 	EnsureExists(ctx context.Context, id int64, username, firstName, lastName string) error
 	Get(ctx context.Context, id int64) (model.User, error)
 	GetByUsername(ctx context.Context, username string) (model.User, error)
+	UpsertUsers(ctx context.Context, users []model.User) error
 }
