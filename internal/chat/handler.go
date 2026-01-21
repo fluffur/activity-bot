@@ -112,7 +112,7 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 
 	for _, r := range report {
 		name := html.EscapeString(r.DisplayName)
-		line := fmt.Sprintf(`<a href="tg://user?id=%d">%s</a> (%d сообщений)`, r.UserID, name, r.MessagesCount)
+		line := fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a> (%d сообщений)`, r.UserID, name, r.MessagesCount)
 
 		if r.NormDone {
 			passed = append(passed, line)
@@ -130,7 +130,7 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 			untilText = "неизвестно"
 		}
 
-		line := fmt.Sprintf(`<a href="tg://user?id=%d">%s</a> до %s`, r.UserID, name, untilText)
+		line := fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a> до %s`, r.UserID, name, untilText)
 		rest = append(rest, line)
 	}
 
@@ -667,7 +667,7 @@ func (h *Handler) ShowRoles(ctx context.Context, b *bot.Bot, update *models.Upda
 		if err == nil {
 			name = html.EscapeString(u.FirstName)
 		}
-		sb.WriteString(fmt.Sprintf("\n<a href=\"tg://user?id=%d\">%s</a>: <b>%s</b>", m.UserID, name, html.EscapeString(m.CustomTitle)))
+		sb.WriteString(fmt.Sprintf("\n<a href=\"tg://openmessage?user_id=%d\">%s</a>: <b>%s</b>", m.UserID, name, html.EscapeString(m.CustomTitle)))
 	}
 
 	h.AnswerMessage(ctx, b, update, sb.String())
