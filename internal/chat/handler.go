@@ -64,6 +64,10 @@ func (h *Handler) SetNorm(ctx context.Context, b *bot.Bot, update *models.Update
 }
 
 func (h *Handler) ShowWeeklyReport(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if _, err := h.updateChatMembers(ctx, b, update.Message.Chat.ID); err != nil {
+		log.Println("Auto-update chat members error", err)
+	}
+
 	report, err := h.service.GetMemberStats(ctx, update.Message.Chat.ID)
 	if err != nil {
 		log.Println("Get member stats error", err)
@@ -550,13 +554,22 @@ func (h *Handler) UpdateChat(ctx context.Context, b *bot.Bot, update *models.Upd
 		return
 	}
 
+	count, err := h.updateChatMembers(ctx, b, update.Message.Chat.ID)
+	if err != nil {
+		log.Println("Update chat members error", err)
+		h.AnswerMessage(ctx, b, update, "Не удалось обновить данные чата")
+		return
+	}
+
+	h.AnswerMessage(ctx, b, update, fmt.Sprintf("Чат обновлён. Найдено %d участников", count))
+}
+
+func (h *Handler) updateChatMembers(ctx context.Context, b *bot.Bot, chatID int64) (int, error) {
 	admins, err := b.GetChatAdministrators(ctx, &bot.GetChatAdministratorsParams{
-		ChatID: update.Message.Chat.ID,
+		ChatID: chatID,
 	})
 	if err != nil {
-		log.Println("Get chat administrators error", err)
-		h.AnswerMessage(ctx, b, update, "Не удалось получить список администраторов чата")
-		return
+		return 0, err
 	}
 
 	users := make([]model.User, 0, len(admins))
@@ -584,11 +597,8 @@ func (h *Handler) UpdateChat(ctx context.Context, b *bot.Bot, update *models.Upd
 		})
 	}
 
-	if err := h.service.UpdateChatMembers(ctx, update.Message.Chat.ID, users); err != nil {
-		log.Println("Update chat members error", err)
-		h.AnswerMessage(ctx, b, update, "Не удалось обновить данные чата")
-		return
+	if err := h.service.UpdateChatMembers(ctx, chatID, users); err != nil {
+		return 0, err
 	}
-
-	h.AnswerMessage(ctx, b, update, fmt.Sprintf("Чат обновлён. Найдено %d участников", len(users)))
+	return len(users), nil
 }
