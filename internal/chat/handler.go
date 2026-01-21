@@ -94,7 +94,7 @@ func (h *Handler) ShowWeeklyReport(ctx context.Context, b *bot.Bot, update *mode
 	}
 
 	text := formatWeeklyReport(report, exemptMembers)
-	h.AnswerMessage(ctx, b, update, text)
+	h.AnswerMessage(ctx, b, update, text+"\n\nКонец отчёта")
 }
 
 func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers []model.ExemptMember) string {
