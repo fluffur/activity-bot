@@ -12,12 +12,16 @@ type Handler struct {
 }
 
 func (h *Handler) AnswerMessage(ctx context.Context, b *bot.Bot, update *models.Update, text string) {
+	isLinkPreviewDisabled := true
 	if _, err := b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:              update.Message.Chat.ID,
-		Text:                text,
-		ParseMode:           "HTML",
-		DisableNotification: true,
+		ChatID:    update.Message.Chat.ID,
+		Text:      text,
+		ParseMode: "HTML",
+		LinkPreviewOptions: &models.LinkPreviewOptions{
+			IsDisabled: &isLinkPreviewDisabled,
+		},
 	}); err != nil {
+
 		log.Println("Answer message error", err)
 		return
 	}
