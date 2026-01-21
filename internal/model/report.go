@@ -6,7 +6,7 @@ import (
 
 type WeeklyMessageReportMember struct {
 	UserID        int64
-	DisplayName   string
+	FullName      string
 	MessagesCount int32
 	WeeklyNorm    int32
 	NormDone      bool
@@ -15,7 +15,7 @@ type WeeklyMessageReportMember struct {
 
 type ExemptMember struct {
 	UserID      int64
-	DisplayName string
+	FullName    string
 	ExemptUntil time.Time
 	Username    *string
 }

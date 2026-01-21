@@ -254,12 +254,9 @@ func mapChatMember(m db.ChatMember) model.ChatMember {
 }
 
 func mapChatExemptUsersRow(row db.ChatExemptUsersRow) model.ExemptMember {
-	displayName := row.Username.String
-	if displayName == "" {
-		displayName = row.FirstName.String
-		if row.LastName.Valid {
-			displayName += " " + row.LastName.String
-		}
+	fullName := row.FirstName.String
+	if row.LastName.Valid {
+		fullName += " " + row.LastName.String
 	}
 	var username *string
 	if row.Username.Valid {
@@ -267,19 +264,16 @@ func mapChatExemptUsersRow(row db.ChatExemptUsersRow) model.ExemptMember {
 	}
 	return model.ExemptMember{
 		UserID:      row.UserID,
-		DisplayName: displayName,
+		FullName:    fullName,
 		ExemptUntil: row.ExemptUntil.Time,
 		Username:    username,
 	}
 }
 
 func mapWeeklyReportRow(row db.WeeklyMessageReportRow) model.WeeklyMessageReportMember {
-	displayName := row.Username.String
-	if displayName == "" {
-		displayName = row.FirstName.String
-		if row.LastName.Valid {
-			displayName += " " + row.LastName.String
-		}
+	fullName := row.FirstName.String
+	if row.LastName.Valid {
+		fullName += " " + row.LastName.String
 	}
 	var username *string
 	if row.Username.Valid {
@@ -288,7 +282,7 @@ func mapWeeklyReportRow(row db.WeeklyMessageReportRow) model.WeeklyMessageReport
 
 	return model.WeeklyMessageReportMember{
 		UserID:        row.UserID,
-		DisplayName:   displayName,
+		FullName:      fullName,
 		MessagesCount: int32(row.MessagesCount),
 		WeeklyNorm:    row.WeeklyNorm,
 		NormDone:      row.NormDone,
