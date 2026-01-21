@@ -131,3 +131,11 @@ func (s *Service) ProcessLeftMember(ctx context.Context, chatID int64, userID in
 
 	return member.CustomTitle, nil
 }
+
+func (s *Service) GetMemberRole(ctx context.Context, chatID int64, userID int64) (string, error) {
+	member, err := s.repo.GetMember(ctx, chatID, userID)
+	if err != nil {
+		return "", err
+	}
+	return member.CustomTitle, nil
+}

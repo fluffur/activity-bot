@@ -664,11 +664,7 @@ func (h *Handler) ShowRoles(ctx context.Context, b *bot.Bot, update *models.Upda
 }
 
 func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if !h.checkOwnerOrAdmin(ctx, b, update, update.Message.Chat.ID, update.Message.From.ID) {
-		h.AnswerMessage(ctx, b, update, "Команда доступна только администраторам")
-		return
-	}
-
+	// Remove command from text to get args
 	args := h.setRoleRe.ReplaceAllString(update.Message.Text, "")
 	args = strings.TrimSpace(args)
 
@@ -678,12 +674,45 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 		return
 	}
 	if !found {
-		log.Printf("SetRole: User not found. Args: '%s', ReplyToMessage: %v", args, update.Message.ReplyToMessage)
-		h.AnswerMessage(ctx, b, update, "Пользователь не найден")
-		return
+		// Default to self if no role title provided
+		if role == "" {
+			targetUserID = update.Message.From.ID
+		} else {
+			h.AnswerMessage(ctx, b, update, "Вы не указали кому хотите выдать роль. Укажите @mention или ответьте на сообщение.")
+			return
+		}
 	}
 
 	role = strings.TrimSpace(role)
+
+	// Case 1: Just show the role (no title provided)
+	if role == "" {
+		mTitle, err := h.service.GetMemberRole(ctx, update.Message.Chat.ID, targetUserID)
+		if err != nil {
+			h.AnswerMessage(ctx, b, update, "Не удалось получить роль пользователя")
+			return
+		}
+
+		u, err := h.userService.GetUser(ctx, targetUserID)
+		name := "Пользователь"
+		if err == nil {
+			name = html.EscapeString(u.FirstName)
+		}
+
+		if mTitle == "" {
+			h.AnswerMessage(ctx, b, update, fmt.Sprintf("У пользователя <a href=\"tg://user?id=%d\">%s</a> нет роли", targetUserID, name))
+		} else {
+			h.AnswerMessage(ctx, b, update, fmt.Sprintf("Роль пользователя <a href=\"tg://user?id=%d\">%s</a>: <b>%s</b>", targetUserID, name, html.EscapeString(mTitle)))
+		}
+		return
+	}
+
+	// Case 2: Set the role (title provided) - Check Admin permissions
+	if !h.checkOwnerOrAdmin(ctx, b, update, update.Message.Chat.ID, update.Message.From.ID) {
+		h.AnswerMessage(ctx, b, update, "Команда изменения ролей доступна только администраторам")
+		return
+	}
+
 	if len(role) > 16 {
 		h.AnswerMessage(ctx, b, update, "Слишком длинная роль (максимум 16 символов)")
 		return
