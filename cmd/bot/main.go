@@ -15,7 +15,9 @@ import (
 	"github.com/go-telegram/bot/models"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"regexp"
@@ -110,5 +112,26 @@ func main() {
 		ensureMemberExistsMW.Handle,
 	)
 
-	b.Start(ctx)
+	if cfg.WebhookURL != "" {
+		_, err = b.SetWebhook(ctx, &bot.SetWebhookParams{
+			URL:         cfg.WebhookURL,
+			SecretToken: cfg.WebhookSecretToken,
+		})
+		if err != nil {
+			log.Fatal("SetWebhook failed:", err)
+		}
+
+		go func() {
+			addr := fmt.Sprintf(":%d", cfg.HTTPPort)
+			log.Printf("Starting webhook server on %s", addr)
+			if err := http.ListenAndServe(addr, b.WebhookHandler()); err != nil {
+				log.Fatal("Webhook server failed:", err)
+			}
+		}()
+	} else {
+		log.Println("Starting bot in long polling mode")
+		go b.Start(ctx)
+	}
+
+	<-ctx.Done()
 }
