@@ -1,0 +1,33 @@
+package postgres
+
+import (
+	db "activity-bot/internal/db/postgres/sqlc"
+	"activity-bot/internal/model"
+	"context"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
+type MessageRepository struct {
+	queries db.Querier
+}
+
+func NewMessageRepository(queries db.Querier) *MessageRepository {
+	return &MessageRepository{queries}
+}
+
+func (r *MessageRepository) Save(ctx context.Context, m model.Message) error {
+	if _, err := r.queries.CreateMessage(ctx, db.CreateMessageParams{
+		ChatID: m.ChatID,
+		UserID: m.UserID,
+		CreatedAt: pgtype.Timestamptz{
+			Time:  time.Now(),
+			Valid: true,
+		},
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}

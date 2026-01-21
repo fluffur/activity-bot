@@ -1,0 +1,12 @@
+package user
+
+import (
+	"activity-bot/internal/model"
+	"context"
+)
+
+type Repository interface {
+	EnsureExists(ctx context.Context, id int64, username, firstName, lastName string) error
+	Get(ctx context.Context, id int64) (model.User, error)
+	GetByUsername(ctx context.Context, username string) (model.User, error)
+}
