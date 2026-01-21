@@ -65,10 +65,10 @@ func main() {
 
 	showNormRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?(норма|norm|quota)\s*$`)
 	showReportRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?(отчёт|отчет|report)\s*$`)
-	showRolesRe := regexp.MustCompile(`^!(роли|roles)$`)
-	setRoleRe := regexp.MustCompile(`^!(роль|setrole)`)
+	showRolesRe := regexp.MustCompile(`(?i)^!(роли|roles)$`)
+	setRoleRe := regexp.MustCompile(`(?i)^!(роль|setrole)`)
 
-	chatH := chat.NewHandler(chatService, userService, chat.NewDateParser(), setNormRe, setExemptRe)
+	chatH := chat.NewHandler(chatService, userService, chat.NewDateParser(), setNormRe, setExemptRe, setRoleRe)
 	ensureMemberExistsMW := middleware.NewEnsureMemberExists(chatRepo, userRepo, cfg.DefaultWeeklyNorm)
 
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, regexp.MustCompile("^/start"), helpH.Start)

@@ -24,10 +24,11 @@ type Handler struct {
 	dateParser  *DateParser
 	setNormRe   *regexp.Regexp
 	setExemptRe *regexp.Regexp
+	setRoleRe   *regexp.Regexp
 }
 
-func NewHandler(service *Service, userService *user.Service, dateParser *DateParser, setNormRe, setExemptRe *regexp.Regexp) *Handler {
-	return &Handler{base.Handler{}, service, userService, dateParser, setNormRe, setExemptRe}
+func NewHandler(service *Service, userService *user.Service, dateParser *DateParser, setNormRe, setExemptRe, setRoleRe *regexp.Regexp) *Handler {
+	return &Handler{base.Handler{}, service, userService, dateParser, setNormRe, setExemptRe, setRoleRe}
 }
 
 func (h *Handler) ShowNorm(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -407,8 +408,16 @@ func (h *Handler) RejectExemptRequest(ctx context.Context, b *bot.Bot, update *m
 }
 
 func (h *Handler) extractTargetUser(ctx context.Context, update *models.Update, args string) (int64, string, bool, error) {
-	if update.Message.ReplyToMessage != nil {
-		return update.Message.ReplyToMessage.From.ID, args, true, nil
+	var userID *int64
+
+	if update.Message.ReplyToMessage != nil && update.Message.ReplyToMessage.From != nil {
+		userID = &update.Message.ReplyToMessage.From.ID
+	} else if update.Message.ExternalReply != nil && update.Message.ExternalReply.Origin.MessageOriginUser != nil {
+		userID = &update.Message.ExternalReply.Origin.MessageOriginUser.SenderUser.ID
+	}
+
+	if userID != nil {
+		return *userID, args, true, nil
 	}
 
 	textRunes := []rune(update.Message.Text)
@@ -660,8 +669,8 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 		return
 	}
 
-	args := strings.TrimSpace(strings.Replace(update.Message.Text, "!роль", "", 1))
-	args = strings.TrimSpace(strings.Replace(args, "!setrole", "", 1))
+	args := h.setRoleRe.ReplaceAllString(update.Message.Text, "")
+	args = strings.TrimSpace(args)
 
 	targetUserID, role, found, err := h.extractTargetUser(ctx, update, args)
 	if err != nil {
@@ -669,6 +678,7 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 		return
 	}
 	if !found {
+		log.Printf("SetRole: User not found. Args: '%s', ReplyToMessage: %v", args, update.Message.ReplyToMessage)
 		h.AnswerMessage(ctx, b, update, "Пользователь не найден")
 		return
 	}
