@@ -43,6 +43,11 @@ func (h *Handler) ShowNorm(ctx context.Context, b *bot.Bot, update *models.Updat
 }
 
 func (h *Handler) SetNorm(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if !h.checkOwnerOrAdmin(ctx, b, update, update.Message.Chat.ID, update.Message.From.ID) {
+		h.AnswerMessage(ctx, b, update, "Команда установки нормы доступна только создателю чата и администраторам бота")
+		return
+	}
+
 	text := update.Message.Text
 	matches := h.setNormRe.FindStringSubmatch(text)
 	if len(matches) < 3 {
