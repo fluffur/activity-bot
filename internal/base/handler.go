@@ -13,9 +13,10 @@ type Handler struct {
 
 func (h *Handler) AnswerMessage(ctx context.Context, b *bot.Bot, update *models.Update, text string) {
 	if _, err := b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:    update.Message.Chat.ID,
-		Text:      text,
-		ParseMode: "HTML",
+		ChatID:              update.Message.Chat.ID,
+		Text:                text,
+		ParseMode:           "HTML",
+		DisableNotification: true,
 	}); err != nil {
 		log.Println("Answer message error", err)
 		return
