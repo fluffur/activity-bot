@@ -75,6 +75,22 @@ func (q *Queries) ChatExemptUsers(ctx context.Context, chatID int64) ([]ChatExem
 	return items, nil
 }
 
+const deleteChatMember = `-- name: DeleteChatMember :exec
+DELETE FROM chat_members
+WHERE chat_id = $1
+  AND user_id = $2
+`
+
+type DeleteChatMemberParams struct {
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	UserID int64 `db:"user_id" json:"userId"`
+}
+
+func (q *Queries) DeleteChatMember(ctx context.Context, arg DeleteChatMemberParams) error {
+	_, err := q.db.Exec(ctx, deleteChatMember, arg.ChatID, arg.UserID)
+	return err
+}
+
 const ensureChatExists = `-- name: EnsureChatExists :exec
 INSERT INTO chats(id, weekly_norm)
 VALUES ($1, $2)
@@ -168,7 +184,7 @@ func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdm
 }
 
 const getChatMember = `-- name: GetChatMember :one
-SELECT chat_id, user_id, joined_at, exempt_until
+SELECT chat_id, user_id, joined_at, exempt_until, custom_title
 FROM chat_members
 WHERE chat_id = $1
   AND user_id = $2
@@ -187,8 +203,52 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (C
 		&i.UserID,
 		&i.JoinedAt,
 		&i.ExemptUntil,
+		&i.CustomTitle,
 	)
 	return i, err
+}
+
+const getChatMembersWithTitles = `-- name: GetChatMembersWithTitles :many
+SELECT cm.user_id, cm.custom_title, u.first_name, u.last_name, u.username
+FROM chat_members cm
+JOIN users u ON cm.user_id = u.id
+WHERE cm.chat_id = $1
+  AND cm.custom_title IS NOT NULL
+  AND cm.custom_title <> ''
+`
+
+type GetChatMembersWithTitlesRow struct {
+	UserID      int64       `db:"user_id" json:"userId"`
+	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
+	FirstName   pgtype.Text `db:"first_name" json:"firstName"`
+	LastName    pgtype.Text `db:"last_name" json:"lastName"`
+	Username    pgtype.Text `db:"username" json:"username"`
+}
+
+func (q *Queries) GetChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetChatMembersWithTitlesRow, error) {
+	rows, err := q.db.Query(ctx, getChatMembersWithTitles, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetChatMembersWithTitlesRow{}
+	for rows.Next() {
+		var i GetChatMembersWithTitlesRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.CustomTitle,
+			&i.FirstName,
+			&i.LastName,
+			&i.Username,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getOrCreateChat = `-- name: GetOrCreateChat :one
@@ -264,6 +324,24 @@ func (q *Queries) RemoveChatMemberExempt(ctx context.Context, arg RemoveChatMemb
 	return err
 }
 
+const updateChatMemberTitle = `-- name: UpdateChatMemberTitle :exec
+UPDATE chat_members
+SET custom_title = $1
+WHERE chat_id = $2
+  AND user_id = $3
+`
+
+type UpdateChatMemberTitleParams struct {
+	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
+	ChatID      int64       `db:"chat_id" json:"chatId"`
+	UserID      int64       `db:"user_id" json:"userId"`
+}
+
+func (q *Queries) UpdateChatMemberTitle(ctx context.Context, arg UpdateChatMemberTitleParams) error {
+	_, err := q.db.Exec(ctx, updateChatMemberTitle, arg.CustomTitle, arg.ChatID, arg.UserID)
+	return err
+}
+
 const updateChatNorm = `-- name: UpdateChatNorm :exec
 UPDATE chats
 SET weekly_norm = $1
@@ -281,19 +359,20 @@ func (q *Queries) UpdateChatNorm(ctx context.Context, arg UpdateChatNormParams) 
 }
 
 const upsertChatMembers = `-- name: UpsertChatMembers :exec
-INSERT INTO chat_members(chat_id, user_id)
-SELECT $1,
-       unnest($2::bigint[])
-ON CONFLICT DO NOTHING
+INSERT INTO chat_members(chat_id, user_id, custom_title)
+SELECT $1, UNNEST($2::BIGINT[]), UNNEST($3::TEXT[])
+ON CONFLICT (chat_id, user_id) DO UPDATE SET
+    custom_title = EXCLUDED.custom_title
 `
 
 type UpsertChatMembersParams struct {
-	ChatID  int64   `db:"chat_id" json:"chatId"`
-	UserIds []int64 `db:"user_ids" json:"userIds"`
+	ChatID       int64    `db:"chat_id" json:"chatId"`
+	UserIds      []int64  `db:"user_ids" json:"userIds"`
+	CustomTitles []string `db:"custom_titles" json:"customTitles"`
 }
 
 func (q *Queries) UpsertChatMembers(ctx context.Context, arg UpsertChatMembersParams) error {
-	_, err := q.db.Exec(ctx, upsertChatMembers, arg.ChatID, arg.UserIds)
+	_, err := q.db.Exec(ctx, upsertChatMembers, arg.ChatID, arg.UserIds, arg.CustomTitles)
 	return err
 }
 

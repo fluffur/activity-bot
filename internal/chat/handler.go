@@ -572,13 +572,17 @@ func (h *Handler) updateChatMembers(ctx context.Context, b *bot.Bot, chatID int6
 		return 0, err
 	}
 
-	users := make([]model.User, 0, len(admins))
+	members := make([]ChatMemberUpdate, 0, len(admins))
 	for _, admin := range admins {
 		var chatUser *models.User
+		var customTitle string
+
 		if admin.Administrator != nil {
 			chatUser = &admin.Administrator.User
+			customTitle = admin.Administrator.CustomTitle
 		} else if admin.Owner != nil {
 			chatUser = admin.Owner.User
+			customTitle = admin.Owner.CustomTitle
 		} else {
 			chatUser = nil
 		}
@@ -589,16 +593,153 @@ func (h *Handler) updateChatMembers(ctx context.Context, b *bot.Bot, chatID int6
 		if chatUser.IsBot {
 			continue
 		}
-		users = append(users, model.User{
-			ID:        chatUser.ID,
-			FirstName: chatUser.FirstName,
-			LastName:  chatUser.LastName,
-			Username:  &chatUser.Username,
+		members = append(members, ChatMemberUpdate{
+			User: model.User{
+				ID:        chatUser.ID,
+				FirstName: chatUser.FirstName,
+				LastName:  chatUser.LastName,
+				Username:  &chatUser.Username,
+			},
+			CustomTitle: customTitle,
 		})
 	}
 
-	if err := h.service.UpdateChatMembers(ctx, chatID, users); err != nil {
+	if err := h.service.UpdateChatMembers(ctx, chatID, members); err != nil {
 		return 0, err
 	}
-	return len(users), nil
+	return len(members), nil
+}
+
+func (h *Handler) OnLeftMember(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if update.Message == nil || update.Message.LeftChatMember == nil {
+		return
+	}
+
+	leftMember := update.Message.LeftChatMember
+	title, err := h.service.ProcessLeftMember(ctx, update.Message.Chat.ID, leftMember.ID)
+	if err != nil {
+		log.Println("Process left member error", err)
+		return
+	}
+
+	if title != "" {
+		h.AnswerMessage(ctx, b, update, fmt.Sprintf("🕊 <a href=\"tg://user?id=%d\">%s</a> (<b>%s</b>) покинул нас...", leftMember.ID, html.EscapeString(leftMember.FirstName), html.EscapeString(title)))
+	}
+}
+
+func (h *Handler) ShowRoles(ctx context.Context, b *bot.Bot, update *models.Update) {
+	members, err := h.service.GetRoles(ctx, update.Message.Chat.ID)
+	if err != nil {
+		log.Println()
+		h.AnswerMessage(ctx, b, update, "Не удалось получить список ролей")
+		return
+	}
+
+	if len(members) == 0 {
+		h.AnswerMessage(ctx, b, update, "В чате нет установленных ролей")
+		return
+	}
+
+	var sb strings.Builder
+	sb.WriteString("🎭 Роли участников:\n")
+	for _, m := range members {
+		u, err := h.userService.GetUser(ctx, m.UserID)
+		name := "Пользователь"
+		if err == nil {
+			name = html.EscapeString(u.FirstName)
+		}
+		sb.WriteString(fmt.Sprintf("\n<a href=\"tg://user?id=%d\">%s</a>: <b>%s</b>", m.UserID, name, html.EscapeString(m.CustomTitle)))
+	}
+
+	h.AnswerMessage(ctx, b, update, sb.String())
+}
+
+func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if !h.checkOwnerOrAdmin(ctx, b, update, update.Message.Chat.ID, update.Message.From.ID) {
+		h.AnswerMessage(ctx, b, update, "Команда доступна только администраторам")
+		return
+	}
+
+	args := strings.TrimSpace(strings.Replace(update.Message.Text, "!роль", "", 1))
+	args = strings.TrimSpace(strings.Replace(args, "!setrole", "", 1))
+
+	targetUserID, role, found, err := h.extractTargetUser(ctx, update, args)
+	if err != nil {
+		h.AnswerMessage(ctx, b, update, "Не удалось найти пользователя")
+		return
+	}
+	if !found {
+		h.AnswerMessage(ctx, b, update, "Пользователь не найден")
+		return
+	}
+
+	role = strings.TrimSpace(role)
+	if len(role) > 16 {
+		h.AnswerMessage(ctx, b, update, "Слишком длинная роль (максимум 16 символов)")
+		return
+	}
+
+	member, err := b.GetChatMember(ctx, &bot.GetChatMemberParams{
+		ChatID: update.Message.Chat.ID,
+		UserID: targetUserID,
+	})
+	if err != nil {
+		h.AnswerMessage(ctx, b, update, "Не удалось получить информацию о пользователе")
+		return
+	}
+
+	if member.Owner != nil {
+		h.AnswerMessage(ctx, b, update, "Нельзя изменить роль создателя чата")
+		return
+	}
+
+	if member.Administrator != nil {
+		if !member.Administrator.CanBeEdited {
+			h.AnswerMessage(ctx, b, update, "Я не могу изменить этого администратора (он назначен другим админом)")
+			return
+		}
+		if _, err := b.SetChatAdministratorCustomTitle(ctx, &bot.SetChatAdministratorCustomTitleParams{
+			ChatID:      update.Message.Chat.ID,
+			UserID:      targetUserID,
+			CustomTitle: role,
+		}); err != nil {
+			log.Println("Telegram set custom title error", err)
+			h.AnswerMessage(ctx, b, update, "Не удалось изменить роль в Telegram")
+			return
+		}
+	} else if member.Member != nil || member.Restricted != nil {
+		if ok, err := b.PromoteChatMember(ctx, &bot.PromoteChatMemberParams{
+			ChatID:          update.Message.Chat.ID,
+			UserID:          targetUserID,
+			CanPinMessages:  true,
+			CanPostMessages: true,
+			CanEditMessages: true,
+		}); err != nil || !ok {
+			log.Println("Telegram promote error", err)
+			h.AnswerMessage(ctx, b, update, "Не удалось назначить пользователя администратором. Проверьте права бота.")
+			return
+		}
+
+		if _, err := b.SetChatAdministratorCustomTitle(ctx, &bot.SetChatAdministratorCustomTitleParams{
+			ChatID:      update.Message.Chat.ID,
+			UserID:      targetUserID,
+			CustomTitle: role,
+		}); err != nil {
+			log.Println("Telegram set custom title after promote error", err)
+			h.AnswerMessage(ctx, b, update, "Пользователь назначен администратором, но не удалось установить роль")
+			return
+		}
+
+	} else {
+		h.AnswerMessage(ctx, b, update, "Пользователь не является участником чата")
+		return
+	}
+
+	if err := h.service.SetMemberTitle(ctx, update.Message.Chat.ID, targetUserID, role); err != nil {
+		log.Println("DB set custom title error", err)
+		h.AnswerMessage(ctx, b, update, "Роль в Telegram изменена, но не удалось сохранить в базе данных")
+		return
+	}
+
+	h.AnswerMessage(ctx, b, update, fmt.Sprintf("Роль пользователя обновлена на: <b>%s</b>", html.EscapeString(role)))
 }

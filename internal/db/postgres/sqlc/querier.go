@@ -16,12 +16,14 @@ type Querier interface {
 	ApproveExemptRequest(ctx context.Context, arg ApproveExemptRequestParams) error
 	ChatExemptUsers(ctx context.Context, chatID int64) ([]ChatExemptUsersRow, error)
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
+	DeleteChatMember(ctx context.Context, arg DeleteChatMemberParams) error
 	EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) error
 	EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemberExistsParams) error
 	EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) error
 	ExemptChatMember(ctx context.Context, arg ExemptChatMemberParams) error
 	GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdminsRow, error)
 	GetChatMember(ctx context.Context, arg GetChatMemberParams) (ChatMember, error)
+	GetChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetChatMembersWithTitlesRow, error)
 	GetExemptRequest(ctx context.Context, arg GetExemptRequestParams) (ExemptRequest, error)
 	GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams) (Chat, error)
 	GetUser(ctx context.Context, id int64) (User, error)
@@ -30,6 +32,7 @@ type Querier interface {
 	RejectExemptRequest(ctx context.Context, arg RejectExemptRequestParams) error
 	RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error
 	RemoveChatMemberExempt(ctx context.Context, arg RemoveChatMemberExemptParams) error
+	UpdateChatMemberTitle(ctx context.Context, arg UpdateChatMemberTitleParams) error
 	UpdateChatNorm(ctx context.Context, arg UpdateChatNormParams) error
 	UpsertChatMembers(ctx context.Context, arg UpsertChatMembersParams) error
 	UpsertUsers(ctx context.Context, arg UpsertUsersParams) error

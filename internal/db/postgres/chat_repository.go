@@ -34,10 +34,18 @@ func (r *ChatRepository) EnsureMemberExists(ctx context.Context, chatID int64, u
 	})
 }
 
-func (r *ChatRepository) UpsertChatMembers(ctx context.Context, chatID int64, userIDs []int64) error {
+func (r *ChatRepository) UpsertChatMembers(ctx context.Context, chatID int64, users []chat.ChatMemberUpdate) error {
+	userIDs := make([]int64, len(users))
+	customTitles := make([]string, len(users))
+	for i, u := range users {
+		userIDs[i] = u.User.ID
+		customTitles[i] = u.CustomTitle
+	}
+
 	return r.queries.UpsertChatMembers(ctx, db.UpsertChatMembersParams{
-		ChatID:  chatID,
-		UserIds: userIDs,
+		ChatID:       chatID,
+		UserIds:      userIDs,
+		CustomTitles: customTitles,
 	})
 }
 
@@ -169,7 +177,7 @@ func (r *ChatRepository) GetMember(ctx context.Context, chatID int64, userID int
 		return model.ChatMember{}, err
 	}
 
-	return mapMember(m), nil
+	return mapChatMember(m), nil
 }
 
 func (r *ChatRepository) RemoveMemberExempt(ctx context.Context, chatID int64, userID int64) error {
@@ -231,16 +239,18 @@ func mapExemptRequest(er db.ExemptRequest) model.ExemptRequest {
 	}
 }
 
-func mapMember(m db.ChatMember) model.ChatMember {
-	result := model.ChatMember{
-		ChatID: m.ChatID,
-		UserID: m.UserID,
-	}
+func mapChatMember(m db.ChatMember) model.ChatMember {
+	var exemptUntil *time.Time
 	if m.ExemptUntil.Valid {
-		result.ExemptUntil = &m.ExemptUntil.Time
+		t := m.ExemptUntil.Time
+		exemptUntil = &t
 	}
-
-	return result
+	return model.ChatMember{
+		ChatID:      m.ChatID,
+		UserID:      m.UserID,
+		ExemptUntil: exemptUntil,
+		CustomTitle: m.CustomTitle.String,
+	}
 }
 
 func mapChatExemptUsersRow(row db.ChatExemptUsersRow) model.ExemptMember {
@@ -274,6 +284,39 @@ func mapWeeklyReportRow(row db.WeeklyMessageReportRow) model.WeeklyMessageReport
 		WeeklyNorm:    row.WeeklyNorm,
 		NormDone:      row.NormDone,
 	}
+}
+func (r *ChatRepository) GetMembersWithTitles(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
+	members, err := r.queries.GetChatMembersWithTitles(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]model.ChatMember, len(members))
+	for i, m := range members {
+		res[i] = model.ChatMember{
+			ChatID:      chatID,
+			UserID:      m.UserID,
+			CustomTitle: m.CustomTitle.String,
+		}
+	}
+	return res, nil
+}
+
+func (r *ChatRepository) UpdateMemberTitle(ctx context.Context, chatID int64, userID int64, title string) error {
+	return r.queries.UpdateChatMemberTitle(ctx, db.UpdateChatMemberTitleParams{
+		ChatID: chatID,
+		UserID: userID,
+		CustomTitle: pgtype.Text{
+			String: title,
+			Valid:  true,
+		},
+	})
+}
+
+func (r *ChatRepository) DeleteMember(ctx context.Context, chatID int64, userID int64) error {
+	return r.queries.DeleteChatMember(ctx, db.DeleteChatMemberParams{
+		ChatID: chatID,
+		UserID: userID,
+	})
 }
 
 func mapChat(c db.Chat) model.Chat {

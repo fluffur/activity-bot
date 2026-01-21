@@ -11,6 +11,7 @@ type ChatMember struct {
 	ChatID      int64
 	UserID      int64
 	ExemptUntil *time.Time
+	CustomTitle string
 }
 
 func NewChat(id int64, weeklyNorm int32) Chat {

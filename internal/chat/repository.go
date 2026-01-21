@@ -9,13 +9,16 @@ import (
 type Repository interface {
 	EnsureExists(ctx context.Context, c model.Chat) error
 	EnsureMemberExists(ctx context.Context, chatID int64, userID int64) error
-	UpsertChatMembers(ctx context.Context, chatID int64, userIDs []int64) error
+	UpsertChatMembers(ctx context.Context, chatID int64, users []ChatMemberUpdate) error
 	GetOrCreate(ctx context.Context, c model.Chat) (model.Chat, error)
 	SetNorm(ctx context.Context, chatID int64, norm int) error
 	GetChatExemptUsers(ctx context.Context, chatID int64) ([]model.ExemptMember, error)
 	GetWeeklyReport(ctx context.Context, chatID int64) ([]model.WeeklyMessageReportMember, error)
 	ExemptMember(ctx context.Context, chatID int64, userID int64, exemptUntil time.Time) error
 	GetMember(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error)
+	GetMembersWithTitles(ctx context.Context, chatID int64) ([]model.ChatMember, error)
+	UpdateMemberTitle(ctx context.Context, chatID int64, userID int64, title string) error
+	DeleteMember(ctx context.Context, chatID int64, userID int64) error
 	RemoveMemberExempt(ctx context.Context, chatID int64, userID int64) error
 	AddExemptRequest(ctx context.Context, request model.ExemptRequest) error
 	ApproveExemptRequest(ctx context.Context, chatID, userID int64, messageID int) error

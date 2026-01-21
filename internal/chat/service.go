@@ -98,13 +98,36 @@ func (s *Service) IsAdmin(ctx context.Context, chatID int64, userID int64) (bool
 	return s.repo.IsAdmin(ctx, chatID, userID)
 }
 
-func (s *Service) UpdateChatMembers(ctx context.Context, chatID int64, admins []model.User) error {
-	if err := s.userRepo.UpsertUsers(ctx, admins); err != nil {
+func (s *Service) UpdateChatMembers(ctx context.Context, chatID int64, members []ChatMemberUpdate) error {
+	users := make([]model.User, len(members))
+	for i, m := range members {
+		users[i] = m.User
+	}
+
+	if err := s.userRepo.UpsertUsers(ctx, users); err != nil {
 		return err
 	}
-	userIDs := make([]int64, len(admins))
-	for i, u := range admins {
-		userIDs[i] = u.ID
+
+	return s.repo.UpsertChatMembers(ctx, chatID, members)
+}
+
+func (s *Service) SetMemberTitle(ctx context.Context, chatID int64, userID int64, title string) error {
+	return s.repo.UpdateMemberTitle(ctx, chatID, userID, title)
+}
+
+func (s *Service) GetRoles(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
+	return s.repo.GetMembersWithTitles(ctx, chatID)
+}
+
+func (s *Service) ProcessLeftMember(ctx context.Context, chatID int64, userID int64) (string, error) {
+	member, err := s.repo.GetMember(ctx, chatID, userID)
+	if err != nil {
+		return "", err
 	}
-	return s.repo.UpsertChatMembers(ctx, chatID, userIDs)
+
+	if err := s.repo.DeleteMember(ctx, chatID, userID); err != nil {
+		return "", err
+	}
+
+	return member.CustomTitle, nil
 }

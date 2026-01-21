@@ -12,6 +12,7 @@ import (
 	"context"
 
 	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"log"
@@ -62,15 +63,20 @@ func main() {
 	showAdminsRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?(админы|admins)\s*$`)
 	updateChatRe := regexp.MustCompile(`(?i)^(?:[!/.+]\s*)?(обновить\s+чат|update\s+chat)\s*$`)
 
+	showNormRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?(норма|norm|quota)\s*$`)
+	showReportRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?(отчёт|отчет|report)\s*$`)
+	showRolesRe := regexp.MustCompile(`^!(роли|roles)$`)
+	setRoleRe := regexp.MustCompile(`^!(роль|setrole)`)
+
 	chatH := chat.NewHandler(chatService, userService, chat.NewDateParser(), setNormRe, setExemptRe)
 	ensureMemberExistsMW := middleware.NewEnsureMemberExists(chatRepo, userRepo, cfg.DefaultWeeklyNorm)
 
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, regexp.MustCompile("^/start"), helpH.Start)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, regexp.MustCompile("^/help"), helpH.Help)
 
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, regexp.MustCompile(`(?i)^(?:[!/.]\s*)?(норма|norm|quota)\s*$`), chatH.ShowNorm, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showNormRe, chatH.ShowNorm, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setNormRe, chatH.SetNorm, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, regexp.MustCompile(`(?i)^(?:[!/.]\s*)?(отчёт|отчет|report)\s*$`), chatH.ShowWeeklyReport, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showReportRe, chatH.ShowWeeklyReport, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showExemptRe, chatH.ShowMemberExempt, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setExemptRe, chatH.ExemptMember, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
@@ -82,10 +88,27 @@ func main() {
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showAdminsRe, chatH.ShowAdmins, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, updateChatRe, chatH.UpdateChat, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showRolesRe, chatH.ShowRoles, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setRoleRe, chatH.SetRole, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+
 	b.RegisterHandlerRegexp(bot.HandlerTypeCallbackQueryData, regexp.MustCompile(`^approve:\d+:\d+$`), chatH.ApproveExemptRequest, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeCallbackQueryData, regexp.MustCompile(`^reject:\d+:\d+$`), chatH.RejectExemptRequest, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 
-	b.RegisterHandlerMatchFunc(middleware.OnlyGroupsMatch, messageH.Message, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerMatchFunc(
+		func(update *models.Update) bool {
+			return update.Message != nil && (update.Message.Chat.Type == "group" || update.Message.Chat.Type == "supergroup")
+		},
+		func(ctx context.Context, b *bot.Bot, update *models.Update) {
+			if update.Message.LeftChatMember != nil {
+				chatH.OnLeftMember(ctx, b, update)
+				return
+			}
+			if update.Message.Text != "" {
+				messageH.Message(ctx, b, update)
+			}
+		},
+		ensureMemberExistsMW.Handle,
+	)
 
 	b.Start(ctx)
 }
