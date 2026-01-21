@@ -723,8 +723,8 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 		return
 	}
 
-	if len(role) > 16 {
-		h.AnswerMessage(ctx, b, update, "Слишком длинная роль (максимум 16 символов)")
+	if len(role) > 32 {
+		h.AnswerMessage(ctx, b, update, "Слишком длинная роль (максимум 32 символа)")
 		return
 	}
 
