@@ -261,10 +261,15 @@ func mapChatExemptUsersRow(row db.ChatExemptUsersRow) model.ExemptMember {
 			displayName += " " + row.LastName.String
 		}
 	}
+	var username *string
+	if row.Username.Valid {
+		username = &row.Username.String
+	}
 	return model.ExemptMember{
 		UserID:      row.UserID,
 		DisplayName: displayName,
 		ExemptUntil: row.ExemptUntil.Time,
+		Username:    username,
 	}
 }
 
@@ -276,6 +281,10 @@ func mapWeeklyReportRow(row db.WeeklyMessageReportRow) model.WeeklyMessageReport
 			displayName += " " + row.LastName.String
 		}
 	}
+	var username *string
+	if row.Username.Valid {
+		username = &row.Username.String
+	}
 
 	return model.WeeklyMessageReportMember{
 		UserID:        row.UserID,
@@ -283,6 +292,7 @@ func mapWeeklyReportRow(row db.WeeklyMessageReportRow) model.WeeklyMessageReport
 		MessagesCount: int32(row.MessagesCount),
 		WeeklyNorm:    row.WeeklyNorm,
 		NormDone:      row.NormDone,
+		Username:      username,
 	}
 }
 func (r *ChatRepository) GetMembersWithTitles(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
