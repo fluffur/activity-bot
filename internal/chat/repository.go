@@ -11,8 +11,8 @@ type Repository interface {
 	EnsureMemberExists(ctx context.Context, chatID int64, userID int64) error
 	GetOrCreate(ctx context.Context, c model.Chat) (model.Chat, error)
 	SetNorm(ctx context.Context, chatID int64, norm int) error
-	GetChatExemptUsers(ctx context.Context, chatID int64) ([]model.ExemptUsersRow, error)
-	GetWeeklyReport(ctx context.Context, chatID int64) ([]model.WeeklyMessageReportRow, error)
+	GetChatExemptUsers(ctx context.Context, chatID int64) ([]model.ExemptMember, error)
+	GetWeeklyReport(ctx context.Context, chatID int64) ([]model.WeeklyMessageReportMember, error)
 	ExemptMember(ctx context.Context, chatID int64, userID int64, exemptUntil time.Time) error
 	GetMember(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error)
 	RemoveMemberExempt(ctx context.Context, chatID int64, userID int64) error

@@ -28,11 +28,11 @@ func (s *Service) SetNorm(ctx context.Context, chatID int64, norm int) error {
 	return s.repo.SetNorm(ctx, chatID, norm)
 }
 
-func (s *Service) GetMemberStats(ctx context.Context, chatID int64) ([]model.WeeklyMessageReportRow, error) {
+func (s *Service) GetMemberStats(ctx context.Context, chatID int64) ([]model.WeeklyMessageReportMember, error) {
 	return s.repo.GetWeeklyReport(ctx, chatID)
 }
 
-func (s *Service) GetExemptMembers(ctx context.Context, chatID int64) ([]model.ExemptUsersRow, error) {
+func (s *Service) GetExemptMembers(ctx context.Context, chatID int64) ([]model.ExemptMember, error) {
 	return s.repo.GetChatExemptUsers(ctx, chatID)
 }
 

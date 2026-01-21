@@ -77,13 +77,13 @@ func (r *ChatRepository) SetNorm(ctx context.Context, chatID int64, norm int) er
 	})
 }
 
-func (r *ChatRepository) GetChatExemptUsers(ctx context.Context, chatID int64) ([]model.ExemptUsersRow, error) {
+func (r *ChatRepository) GetChatExemptUsers(ctx context.Context, chatID int64) ([]model.ExemptMember, error) {
 	rows, err := r.queries.ChatExemptUsers(ctx, chatID)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]model.ExemptUsersRow, len(rows))
+	result := make([]model.ExemptMember, len(rows))
 	for i, row := range rows {
 		result[i] = mapChatExemptUsersRow(row)
 	}
@@ -116,7 +116,7 @@ func (r *ChatRepository) ApproveExemptWithTx(ctx context.Context, request model.
 	})
 }
 
-func (r *ChatRepository) GetWeeklyReport(ctx context.Context, chatID int64) ([]model.WeeklyMessageReportRow, error) {
+func (r *ChatRepository) GetWeeklyReport(ctx context.Context, chatID int64) ([]model.WeeklyMessageReportMember, error) {
 	now := time.Now()
 	weekday := int(now.Weekday())
 	daysSinceMonday := (weekday + 6) % 7
@@ -134,7 +134,7 @@ func (r *ChatRepository) GetWeeklyReport(ctx context.Context, chatID int64) ([]m
 		return nil, err
 	}
 
-	result := make([]model.WeeklyMessageReportRow, len(rows))
+	result := make([]model.WeeklyMessageReportMember, len(rows))
 	for i, row := range rows {
 		result[i] = mapWeeklyReportRow(row)
 	}
@@ -236,7 +236,7 @@ func mapMember(m db.ChatMember) model.ChatMember {
 	return result
 }
 
-func mapChatExemptUsersRow(row db.ChatExemptUsersRow) model.ExemptUsersRow {
+func mapChatExemptUsersRow(row db.ChatExemptUsersRow) model.ExemptMember {
 	displayName := row.Username.String
 	if displayName == "" {
 		displayName = row.FirstName.String
@@ -244,14 +244,14 @@ func mapChatExemptUsersRow(row db.ChatExemptUsersRow) model.ExemptUsersRow {
 			displayName += " " + row.LastName.String
 		}
 	}
-	return model.ExemptUsersRow{
+	return model.ExemptMember{
 		UserID:      row.UserID,
 		DisplayName: displayName,
 		ExemptUntil: row.ExemptUntil.Time,
 	}
 }
 
-func mapWeeklyReportRow(row db.WeeklyMessageReportRow) model.WeeklyMessageReportRow {
+func mapWeeklyReportRow(row db.WeeklyMessageReportRow) model.WeeklyMessageReportMember {
 	displayName := row.Username.String
 	if displayName == "" {
 		displayName = row.FirstName.String
@@ -260,7 +260,7 @@ func mapWeeklyReportRow(row db.WeeklyMessageReportRow) model.WeeklyMessageReport
 		}
 	}
 
-	return model.WeeklyMessageReportRow{
+	return model.WeeklyMessageReportMember{
 		UserID:        row.UserID,
 		DisplayName:   displayName,
 		MessagesCount: int32(row.MessagesCount),

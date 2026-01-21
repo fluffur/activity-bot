@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type WeeklyMessageReportRow struct {
+type WeeklyMessageReportMember struct {
 	UserID        int64
 	DisplayName   string
 	MessagesCount int32
@@ -12,7 +12,7 @@ type WeeklyMessageReportRow struct {
 	NormDone      bool
 }
 
-type ExemptUsersRow struct {
+type ExemptMember struct {
 	UserID      int64
 	DisplayName string
 	ExemptUntil time.Time
