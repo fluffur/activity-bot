@@ -60,7 +60,7 @@ func main() {
 
 	addAdminRe := regexp.MustCompile(`(?i)^(?:[!/.+]\s*)?(админ|admin)(?:\s+|$)(.*)$`)
 	removeAdminRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?-\s*(админ|admin)(?:\s+.*)?$`)
-	showAdminsRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?(админы|admins)\s*$`)
+	showAdminsRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?(админы|admins|адмы)(?:\s+.*)?$`)
 	updateChatRe := regexp.MustCompile(`(?i)^(?:[!/.+]\s*)?(обновить\s+чат|update\s+chat)\s*$`)
 
 	showNormRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?(норма|norm|quota)\s*$`)
@@ -78,14 +78,14 @@ func main() {
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setNormRe, chatH.SetNorm, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showReportRe, chatH.ShowWeeklyReport, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showExemptRe, chatH.ShowMemberExempt, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setExemptRe, chatH.ExemptMember, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showExemptRe, chatH.ShowMemberExempt, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, endExemptRe, chatH.EndMemberExempt, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showAdminsRe, chatH.ShowAdmins, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, addAdminRe, chatH.AddAdmin, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, removeAdminRe, chatH.RemoveAdmin, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showAdminsRe, chatH.ShowAdmins, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, updateChatRe, chatH.UpdateChat, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
 
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showRolesRe, chatH.ShowRoles, middleware.OnlyGroups, ensureMemberExistsMW.Handle)

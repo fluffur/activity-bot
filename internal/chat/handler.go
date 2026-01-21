@@ -177,6 +177,10 @@ func (h *Handler) ExemptMember(ctx context.Context, b *bot.Bot, update *models.U
 
 	date, ok := h.dateParser.Parse(restArg)
 	if !ok {
+		if restArg == "" {
+			h.ShowMemberExempt(ctx, b, update)
+			return
+		}
 		h.AnswerMessage(ctx, b, update,
 			"Не понял формат. Примеры:\n+рест 12.01\n+рест 2 недели\n+рест месяц",
 		)
@@ -555,6 +559,7 @@ func (h *Handler) ShowAdmins(ctx context.Context, b *bot.Bot, update *models.Upd
 	for _, admin := range admins {
 		sb.WriteString(fmt.Sprintf("\n<a href=\"tg://user?id=%d\">%s</a> (с %s)", admin.UserID, html.EscapeString(admin.DisplayName), admin.CreatedAt.Format("02.01.2006")))
 	}
+	h.AnswerMessage(ctx, b, update, sb.String())
 }
 
 func (h *Handler) UpdateChat(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -709,7 +714,7 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 
 	// Case 2: Set the role (title provided) - Check Admin permissions
 	if !h.checkOwnerOrAdmin(ctx, b, update, update.Message.Chat.ID, update.Message.From.ID) {
-		h.AnswerMessage(ctx, b, update, "Команда изменения ролей доступна только администраторам")
+		h.AnswerMessage(ctx, b, update, "Команда изменения ролей доступна только создателю чата и администраторам бота")
 		return
 	}
 

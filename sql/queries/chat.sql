@@ -37,9 +37,9 @@ SELECT cm.user_id,
        u.username,
        u.first_name,
        u.last_name,
-       COUNT(*)                    AS messages_count,
+       COUNT(m.chat_id)            AS messages_count,
        c.weekly_norm,
-       (COUNT(*) >= c.weekly_norm) AS norm_done
+       (COUNT(m.chat_id) >= c.weekly_norm) AS norm_done
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
