@@ -296,8 +296,15 @@ func (r *ChatRepository) GetMembersWithTitles(ctx context.Context, chatID int64)
 	}
 	res := make([]model.ChatMember, len(members))
 	for i, m := range members {
+		var username *string
+		if m.Username.Valid {
+			username = &m.Username.String
+		}
+
 		res[i] = model.ChatMember{
 			ChatID:      chatID,
+			Username:    username,
+			FirstName:   m.FirstName.String,
 			UserID:      m.UserID,
 			CustomTitle: m.CustomTitle.String,
 		}

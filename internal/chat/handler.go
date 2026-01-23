@@ -115,7 +115,7 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 		log.Println(name)
 		var line string
 		if r.Username != nil {
-			line = fmt.Sprintf(`<a href="https://t.me/%s">%s</a> (%d сообщений)`, *r.Username, name, r.MessagesCount)
+			line = fmt.Sprintf(`<a href="https://t.me/%s">%s</a> (%d)`, *r.Username, name, r.MessagesCount)
 		} else {
 			line = fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a> (%d сообщений)`, r.UserID, name, r.MessagesCount)
 		}
@@ -660,7 +660,6 @@ func (h *Handler) OnLeftMember(ctx context.Context, b *bot.Bot, update *models.U
 func (h *Handler) ShowRoles(ctx context.Context, b *bot.Bot, update *models.Update) {
 	members, err := h.service.GetRoles(ctx, update.Message.Chat.ID)
 	if err != nil {
-		log.Println()
 		h.AnswerMessage(ctx, b, update, "Не удалось получить список ролей")
 		return
 	}
@@ -673,19 +672,17 @@ func (h *Handler) ShowRoles(ctx context.Context, b *bot.Bot, update *models.Upda
 	var sb strings.Builder
 	sb.WriteString("🎭 Роли участников:\n")
 	for _, m := range members {
-		u, err := h.userService.GetUser(ctx, m.UserID)
-		name := "Пользователь"
-		if err == nil {
-			name = html.EscapeString(u.FirstName)
+		if m.Username != nil {
+			sb.WriteString(fmt.Sprintf("\n<a href=\"https://t.me/%s\">%s</a>: <b>%s</b>", *m.Username, m.FirstName, html.EscapeString(m.CustomTitle)))
+		} else {
+			sb.WriteString(fmt.Sprintf("\n<a href=\"tg://openmessage?user_id=%d\">%s</a>: <b>%s</b>", m.UserID, m.FirstName, html.EscapeString(m.CustomTitle)))
 		}
-		sb.WriteString(fmt.Sprintf("\n<a href=\"tg://openmessage?user_id=%d\">%s</a>: <b>%s</b>", m.UserID, name, html.EscapeString(m.CustomTitle)))
 	}
 
 	h.AnswerMessage(ctx, b, update, sb.String())
 }
 
 func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update) {
-	// Remove command from text to get args
 	args := h.setRoleRe.ReplaceAllString(update.Message.Text, "")
 	args = strings.TrimSpace(args)
 
@@ -695,7 +692,6 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 		return
 	}
 	if !found {
-		// Default to self if no role title provided
 		if role == "" {
 			targetUserID = update.Message.From.ID
 		} else {
@@ -706,7 +702,6 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 
 	role = strings.TrimSpace(role)
 
-	// Case 1: Just show the role (no title provided)
 	if role == "" {
 		mTitle, err := h.service.GetMemberRole(ctx, update.Message.Chat.ID, targetUserID)
 		if err != nil {
@@ -728,7 +723,6 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 		return
 	}
 
-	// Case 2: Set the role (title provided) - Check Admin permissions
 	if !h.checkOwnerOrAdmin(ctx, b, update, update.Message.Chat.ID, update.Message.From.ID) {
 		h.AnswerMessage(ctx, b, update, "Команда изменения ролей доступна только создателю чата и администраторам бота")
 		return

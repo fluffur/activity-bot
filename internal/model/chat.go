@@ -9,6 +9,8 @@ type Chat struct {
 
 type ChatMember struct {
 	ChatID      int64
+	Username    *string
+	FirstName   string
 	UserID      int64
 	ExemptUntil *time.Time
 	CustomTitle string
