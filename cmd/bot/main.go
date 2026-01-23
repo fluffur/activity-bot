@@ -144,6 +144,23 @@ func main() {
 			}
 		},
 	)
+	commands := []models.BotCommand{
+		{Command: "help", Description: "Показать список всех команд"},
+		{Command: "stats", Description: "Получить еженедельный отчёт по активности"},
+		{Command: "norm", Description: "Показать текущую норму сообщений"},
+		{Command: "rest", Description: "Показать или поставить рест"},
+		{Command: "role", Description: "Показать или изменить роль пользователя"},
+		{Command: "roles", Description: "Список всех участников с ролями"},
+		{Command: "admins", Description: "Список администраторов бота"},
+	}
+
+	if _, err := b.SetMyCommands(ctx, &bot.SetMyCommandsParams{
+		Commands: commands,
+	}); err != nil {
+		log.Println("Failed to set bot commands:", err)
+	} else {
+		log.Println("Bot commands set successfully")
+	}
 
 	if cfg.WebhookURL != "" {
 		_, err = b.SetWebhook(ctx, &bot.SetWebhookParams{
