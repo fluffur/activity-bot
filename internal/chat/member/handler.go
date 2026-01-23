@@ -51,9 +51,9 @@ func (h *Handler) ListRoles(ctx context.Context, b *bot.Bot, update *models.Upda
 	}
 
 	var sb strings.Builder
-	sb.WriteString("🎭 Роли участников:\n")
-	for _, m := range members {
-		sb.WriteString(fmt.Sprintf("\n%s: <b>%s</b>", helpers.FormatSilentMentionHTML(m.User), html.EscapeString(m.CustomTitle)))
+	sb.WriteString("🎭 Роли всех участников:\n")
+	for i, m := range members {
+		sb.WriteString(fmt.Sprintf("\n%d. %s — %s", i+1, helpers.FormatSilentMentionHTML(m.User), html.EscapeString(m.CustomTitle)))
 	}
 
 	helpers.AnswerMessage(ctx, b, update, sb.String())
@@ -94,7 +94,7 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 		if mTitle == "" {
 			helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("У пользователя %s нет роли", helpers.FormatSilentMentionHTML(targetUser)))
 		} else {
-			helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Роль пользователя %s: <b>%s</b>", helpers.FormatSilentMentionHTML(targetUser), html.EscapeString(mTitle)))
+			helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Роль пользователя %s — %s", helpers.FormatSilentMentionHTML(targetUser), html.EscapeString(mTitle)))
 		}
 		return
 	}
@@ -171,7 +171,7 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 		return
 	}
 
-	helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Роль пользователя обновлена на: <b>%s</b>", html.EscapeString(role)))
+	helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Роль пользователя обновлена на \"%s\"", html.EscapeString(role)))
 }
 
 func (h *Handler) OnLeftMember(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -187,6 +187,6 @@ func (h *Handler) OnLeftMember(ctx context.Context, b *bot.Bot, update *models.U
 	}
 
 	if title != "" {
-		helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("🕊 %s (<b>%s</b>) покинул нас...", helpers.FormatSilentMentionHTML(helpers.MapFromUserToModel(leftMember)), html.EscapeString(title)))
+		helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("🕊 %s в роли \"%s\" покинул нас...", helpers.FormatSilentMentionHTML(helpers.MapFromUserToModel(leftMember)), html.EscapeString(title)))
 	}
 }
