@@ -95,9 +95,10 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 	if len(passed) > 0 {
 		sb.WriteString("\n\n✅ Прошли норму\n")
 		writeNumberedList(&sb, passed)
+		sb.WriteString("\n")
 	}
 	if len(failed) > 0 {
-		sb.WriteString("\n\n❎ Не прошли норму\n")
+		sb.WriteString("\n❎ Не прошли норму\n")
 		writeNumberedList(&sb, failed)
 	}
 	if len(rest) > 0 {
