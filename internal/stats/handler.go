@@ -55,10 +55,6 @@ func (h *Handler) ShowWeeklyReport(ctx context.Context, b *bot.Bot, update *mode
 
 func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers []model.ExemptMember) string {
 	now := time.Now()
-	months := [...]string{
-		"января", "февраля", "марта", "апреля", "мая", "июня",
-		"июля", "августа", "сентября", "октября", "ноября", "декабря",
-	}
 
 	weekday := int(now.Weekday())
 	daysSinceMonday := (weekday + 6) % 7
@@ -72,7 +68,7 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 	var passed, failed, rest []string
 
 	for _, r := range report {
-		line := fmt.Sprintf(`%s (%d)`, helpers.FormatSilentMentionHTML(r.User), r.MessagesCount)
+		line := fmt.Sprintf(`%s: %d`, helpers.FormatSilentMentionHTML(r.User), r.MessagesCount)
 
 		if r.NormDone {
 			passed = append(passed, line)
@@ -84,7 +80,7 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 	for _, r := range exemptMembers {
 		var untilText string
 		if !r.ExemptUntil.IsZero() {
-			untilText = fmt.Sprintf("%d %s %d", r.ExemptUntil.Day(), months[r.ExemptUntil.Month()-1], r.ExemptUntil.Year())
+			untilText = helpers.FormatToHumanDate(r.ExemptUntil)
 		} else {
 			untilText = "неизвестно"
 		}

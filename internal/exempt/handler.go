@@ -99,9 +99,9 @@ func (h *Handler) ExemptMember(ctx context.Context, b *bot.Bot, update *models.U
 	}
 
 	if targetUser.ID == update.Message.From.ID {
-		helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Вы добавлены в рест до %s", date.Format("02.01.2006")))
+		helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Вы добавлены в рест до %s", helpers.FormatToHumanDate(date)))
 	} else {
-		helpers.AnswerMessage(ctx, b, update, fmt.Sprintf(`Пользователь %s добавлен в рест до %s`, helpers.FormatSilentMentionHTML(targetUser), date.Format("02.01.2006")))
+		helpers.AnswerMessage(ctx, b, update, fmt.Sprintf(`Пользователь %s добавлен в рест до %s`, helpers.FormatSilentMentionHTML(targetUser), helpers.FormatToHumanDate(date)))
 	}
 }
 
@@ -124,7 +124,7 @@ func (h *Handler) createExemptRequest(ctx context.Context, b *bot.Bot, update *m
 		Text: fmt.Sprintf(
 			"Для пользователя %s запрошен рест до %s",
 			helpers.FormatSilentMentionHTML(targetUser),
-			date.Format("02.01.2006"),
+			helpers.FormatToHumanDate(date),
 		),
 		ParseMode:   "HTML",
 		ReplyMarkup: kb,
@@ -156,7 +156,7 @@ func (h *Handler) ShowMemberExempt(ctx context.Context, b *bot.Bot, update *mode
 	helpers.AnswerMessage(ctx, b, update,
 		fmt.Sprintf(`Пользователь %s находится в ресте до %s`,
 			helpers.FormatSilentMentionHTML(targetUser),
-			exempt.Format("02.01.2006"),
+			helpers.FormatToHumanDate(*exempt),
 		),
 	)
 }
@@ -251,7 +251,7 @@ func (h *Handler) ApproveExemptRequest(ctx context.Context, b *bot.Bot, update *
 	helpers.EditMessage(ctx, b, update,
 		fmt.Sprintf(`Запрос одобрен. У %s рест до %s`,
 			helpers.FormatSilentMentionHTML(u),
-			exemptRequest.ExemptUntil.Format("02.01.2006"),
+			helpers.FormatToHumanDate(exemptRequest.ExemptUntil),
 		),
 	)
 
