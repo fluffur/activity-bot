@@ -52,7 +52,6 @@ func (h *Handler) ShowWeeklyReport(ctx context.Context, b *bot.Bot, update *mode
 	text := formatWeeklyReport(report, exemptMembers)
 	helpers.AnswerMessage(ctx, b, update, text)
 }
-
 func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers []model.ExemptMember) string {
 	now := time.Now()
 
@@ -63,13 +62,12 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 	sunday := monday.AddDate(0, 0, 6)
 	sunday = time.Date(sunday.Year(), sunday.Month(), sunday.Day(), 23, 59, 59, 0, sunday.Location())
 
-	weekHeader := fmt.Sprintf("📊 Отчёт за неделю: %s — %s", monday.Format("02.01.2006"), sunday.Format("02.01.2006"))
+	weekHeader := fmt.Sprintf("📊 Отчёт за неделю: %s — %s", helpers.FormatToHumanDate(monday), helpers.FormatToHumanDate(sunday))
 
 	var passed, failed, rest []string
 
 	for _, r := range report {
-		line := fmt.Sprintf(`%s %d`, helpers.FormatSilentMentionHTML(r.User), r.MessagesCount)
-
+		line := fmt.Sprintf("%s — %d сообщений", helpers.FormatSilentMentionHTML(r.User), r.MessagesCount)
 		if r.NormDone {
 			passed = append(passed, line)
 		} else {
@@ -84,27 +82,32 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 		} else {
 			untilText = "неизвестно"
 		}
-
-		line := fmt.Sprintf(`%s до %s`, helpers.FormatSilentMentionHTML(r.User), untilText)
+		line := fmt.Sprintf("%s до %s", helpers.FormatSilentMentionHTML(r.User), untilText)
 		rest = append(rest, line)
 	}
 
 	var sb strings.Builder
-	sb.WriteString(weekHeader)
+	sb.WriteString(weekHeader + "\n\n")
 
+	sb.WriteString("✅ Прошли норму\n")
 	if len(passed) > 0 {
-		sb.WriteString("\n\n✅ Прошли норму\n")
 		writeNumberedList(&sb, passed)
-		sb.WriteString("\n")
+	} else {
+		sb.WriteString("—\n")
 	}
+
+	sb.WriteString("\n❎ Не прошли норму\n")
 	if len(failed) > 0 {
-		sb.WriteString("\n❎ Не прошли норму\n")
 		writeNumberedList(&sb, failed)
-		sb.WriteString("\n")
+	} else {
+		sb.WriteString("—\n")
 	}
+
+	sb.WriteString("\n💛 Рест\n")
 	if len(rest) > 0 {
-		sb.WriteString("\n💛 Рест\n")
 		writeNumberedList(&sb, rest)
+	} else {
+		sb.WriteString("—\n")
 	}
 
 	return sb.String()
