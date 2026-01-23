@@ -117,7 +117,7 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 		if r.Username != nil {
 			line = fmt.Sprintf(`<a href="https://t.me/%s">%s</a> (%d)`, *r.Username, name, r.MessagesCount)
 		} else {
-			line = fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a> (%d сообщений)`, r.UserID, name, r.MessagesCount)
+			line = fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a> (%d)`, r.UserID, name, r.MessagesCount)
 		}
 
 		if r.NormDone {
