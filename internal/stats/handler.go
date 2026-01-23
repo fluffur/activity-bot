@@ -68,7 +68,7 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 	var passed, failed, rest []string
 
 	for _, r := range report {
-		line := fmt.Sprintf(`%s: %d`, helpers.FormatSilentMentionHTML(r.User), r.MessagesCount)
+		line := fmt.Sprintf(`%s %d`, helpers.FormatSilentMentionHTML(r.User), r.MessagesCount)
 
 		if r.NormDone {
 			passed = append(passed, line)
