@@ -1,0 +1,38 @@
+name: Deploy Activity Bot
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Deploy to VDS
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: ${{ secrets.VDS_USER }}
+          key: ${{ secrets.VDS_SSH_KEY }}
+          script: |
+            echo "Starting deployment..."
+            cd /root/activity-bot
+
+            echo "Pull latest code..."
+            git fetch --all
+            git reset --hard origin/master
+
+            echo "Build Docker images..."
+            docker-compose -f docker-compose.prod.yml build
+
+            echo "Run migrations..."
+            docker-compose -f docker-compose.prod.yml run --rm bot ./migrate
+
+            echo "Start containers..."
+            docker-compose -f docker-compose.prod.yml up -d
+
+            echo "Deployment finished!"
