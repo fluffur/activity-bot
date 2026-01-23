@@ -12,13 +12,12 @@ ON CONFLICT(chat_id, user_id) DO UPDATE SET custom_title = chat_members.custom_t
 RETURNING *;
 
 
-
 -- name: GetChatMember :one
 SELECT *
 FROM chat_members
+         JOIN users ON users.id = user_id
 WHERE chat_id = $1
   AND user_id = $2;
-
 
 
 -- name: GetChatMembersWithTitles :many

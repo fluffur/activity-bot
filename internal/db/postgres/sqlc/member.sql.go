@@ -54,8 +54,9 @@ func (q *Queries) EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemb
 }
 
 const getChatMember = `-- name: GetChatMember :one
-SELECT chat_id, user_id, joined_at, exempt_until, custom_title
+SELECT chat_id, user_id, joined_at, exempt_until, custom_title, id, username, first_name, last_name, created_at
 FROM chat_members
+         JOIN users ON users.id = user_id
 WHERE chat_id = $1
   AND user_id = $2
 `
@@ -65,15 +66,33 @@ type GetChatMemberParams struct {
 	UserID int64 `db:"user_id" json:"userId"`
 }
 
-func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (ChatMember, error) {
+type GetChatMemberRow struct {
+	ChatID      int64              `db:"chat_id" json:"chatId"`
+	UserID      int64              `db:"user_id" json:"userId"`
+	JoinedAt    pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	ExemptUntil pgtype.Timestamptz `db:"exempt_until" json:"exemptUntil"`
+	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
+	ID          int64              `db:"id" json:"id"`
+	Username    pgtype.Text        `db:"username" json:"username"`
+	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+}
+
+func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (GetChatMemberRow, error) {
 	row := q.db.QueryRow(ctx, getChatMember, arg.ChatID, arg.UserID)
-	var i ChatMember
+	var i GetChatMemberRow
 	err := row.Scan(
 		&i.ChatID,
 		&i.UserID,
 		&i.JoinedAt,
 		&i.ExemptUntil,
 		&i.CustomTitle,
+		&i.ID,
+		&i.Username,
+		&i.FirstName,
+		&i.LastName,
+		&i.CreatedAt,
 	)
 	return i, err
 }

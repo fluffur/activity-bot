@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/user"
 	"context"
+	"errors"
 	"fmt"
 	"html"
 	"log"
@@ -57,11 +58,7 @@ func (h *Handler) ListRoles(ctx context.Context, b *bot.Bot, update *models.Upda
 	var sb strings.Builder
 	sb.WriteString("🎭 Роли участников:\n")
 	for _, m := range members {
-		if m.Username != nil {
-			sb.WriteString(fmt.Sprintf("\n<a href=\"https://t.me/%s\">%s</a>: <b>%s</b>", *m.Username, m.FirstName, html.EscapeString(m.CustomTitle)))
-		} else {
-			sb.WriteString(fmt.Sprintf("\n<a href=\"tg://openmessage?user_id=%d\">%s</a>: <b>%s</b>", m.UserID, m.FirstName, html.EscapeString(m.CustomTitle)))
-		}
+		sb.WriteString(fmt.Sprintf("\n%s: <b>%s</b>", helpers.FormatSilentMentionHTML(m.User), html.EscapeString(m.CustomTitle)))
 	}
 
 	helpers.AnswerMessage(ctx, b, update, sb.String())
@@ -71,39 +68,38 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 	args := h.setRoleRe.ReplaceAllString(update.Message.Text, "")
 	args = strings.TrimSpace(args)
 
-	targetUserID, role, found, err := helpers.ExtractTargetUser(ctx, h.userService, update, args)
+	targetUser, role, err := helpers.ExtractTargetUser(ctx, h.userService, update, args)
 	if err != nil {
-		helpers.AnswerMessage(ctx, b, update, "Не удалось найти пользователя")
-		return
-	}
-	if !found {
+		if !errors.Is(err, helpers.ErrUserNotSpecified) {
+			helpers.AnswerMessage(ctx, b, update, "Не удалось найти пользователя")
+			return
+		}
 		if role == "" {
-			targetUserID = update.Message.From.ID
+			targetUser, err = h.userService.GetUser(ctx, update.Message.From.ID)
+			if err != nil {
+				helpers.AnswerMessage(ctx, b, update, "Пользователь не найден, введите !обновить чат")
+				return
+			}
 		} else {
 			helpers.AnswerMessage(ctx, b, update, "Вы не указали кому хотите выдать роль. Укажите @mention или ответьте на сообщение.")
 			return
 		}
+
 	}
 
 	role = strings.TrimSpace(role)
 
 	if role == "" {
-		mTitle, err := h.service.GetMemberTitle(ctx, update.Message.Chat.ID, targetUserID)
+		mTitle, err := h.service.GetMemberTitle(ctx, update.Message.Chat.ID, targetUser.ID)
 		if err != nil {
 			helpers.AnswerMessage(ctx, b, update, "Не удалось получить роль пользователя")
 			return
 		}
 
-		u, err := h.userService.GetUser(ctx, targetUserID)
-		name := "Пользователь"
-		if err == nil {
-			name = html.EscapeString(u.FirstName)
-		}
-
 		if mTitle == "" {
-			helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("У пользователя <a href=\"tg://user?id=%d\">%s</a> нет роли", targetUserID, name))
+			helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("У пользователя %s нет роли", helpers.FormatSilentMentionHTML(targetUser)))
 		} else {
-			helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Роль пользователя <a href=\"tg://user?id=%d\">%s</a>: <b>%s</b>", targetUserID, name, html.EscapeString(mTitle)))
+			helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Роль пользователя %s: <b>%s</b>", helpers.FormatSilentMentionHTML(targetUser), html.EscapeString(mTitle)))
 		}
 		return
 	}
@@ -120,7 +116,7 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 
 	member, err := b.GetChatMember(ctx, &bot.GetChatMemberParams{
 		ChatID: update.Message.Chat.ID,
-		UserID: targetUserID,
+		UserID: targetUser.ID,
 	})
 	if err != nil {
 		helpers.AnswerMessage(ctx, b, update, "Не удалось получить информацию о пользователе")
@@ -139,7 +135,7 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 		}
 		if _, err := b.SetChatAdministratorCustomTitle(ctx, &bot.SetChatAdministratorCustomTitleParams{
 			ChatID:      update.Message.Chat.ID,
-			UserID:      targetUserID,
+			UserID:      targetUser.ID,
 			CustomTitle: role,
 		}); err != nil {
 			log.Println("Telegram set custom title error", err)
@@ -149,7 +145,7 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 	} else if member.Member != nil || member.Restricted != nil {
 		if ok, err := b.PromoteChatMember(ctx, &bot.PromoteChatMemberParams{
 			ChatID:          update.Message.Chat.ID,
-			UserID:          targetUserID,
+			UserID:          targetUser.ID,
 			CanPinMessages:  true,
 			CanPostMessages: true,
 			CanEditMessages: true,
@@ -161,7 +157,7 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 
 		if _, err := b.SetChatAdministratorCustomTitle(ctx, &bot.SetChatAdministratorCustomTitleParams{
 			ChatID:      update.Message.Chat.ID,
-			UserID:      targetUserID,
+			UserID:      targetUser.ID,
 			CustomTitle: role,
 		}); err != nil {
 			log.Println("Telegram set custom title after promote error", err)
@@ -174,7 +170,7 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 		return
 	}
 
-	if err := h.service.SetMemberTitle(ctx, update.Message.Chat.ID, targetUserID, role); err != nil {
+	if err := h.service.SetMemberTitle(ctx, update.Message.Chat.ID, targetUser.ID, role); err != nil {
 		log.Println("DB set custom title error", err)
 		helpers.AnswerMessage(ctx, b, update, "Роль в Telegram изменена, но не удалось сохранить в базе данных")
 		return
@@ -196,6 +192,6 @@ func (h *Handler) OnLeftMember(ctx context.Context, b *bot.Bot, update *models.U
 	}
 
 	if title != "" {
-		helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("🕊 <a href=\"tg://user?id=%d\">%s</a> (<b>%s</b>) покинул нас...", leftMember.ID, html.EscapeString(leftMember.FirstName), html.EscapeString(title)))
+		helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("🕊 %s (<b>%s</b>) покинул нас...", helpers.FormatSilentMentionHTML(helpers.MapFromUserToModel(leftMember)), html.EscapeString(title)))
 	}
 }

@@ -8,6 +8,6 @@ import (
 type Repository interface {
 	Add(ctx context.Context, chatID int64, userID int64) error
 	Remove(ctx context.Context, chatID int64, userID int64) error
-	GetFromChat(ctx context.Context, chatID int64) ([]model.ChatAdmin, error)
+	GetFromChat(ctx context.Context, chatID int64) ([]model.User, error)
 	IsAdmin(ctx context.Context, chatID int64, userID int64) (bool, error)
 }

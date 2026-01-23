@@ -5,17 +5,13 @@ import (
 )
 
 type WeeklyMessageReportMember struct {
-	UserID        int64
-	FullName      string
+	User          User
 	MessagesCount int32
 	WeeklyNorm    int32
 	NormDone      bool
-	Username      *string
 }
 
 type ExemptMember struct {
-	UserID      int64
-	FullName    string
+	User        User
 	ExemptUntil time.Time
-	Username    *string
 }

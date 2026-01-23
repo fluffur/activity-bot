@@ -59,10 +59,13 @@ func (r *MemberRepository) GetWithCustomTitles(ctx context.Context, chatID int64
 		}
 
 		res[i] = model.ChatMember{
-			ChatID:      chatID,
-			Username:    username,
-			FirstName:   m.FirstName.String,
-			UserID:      m.UserID,
+			ChatID: chatID,
+			User: model.User{
+				Username:  username,
+				FirstName: m.FirstName.String,
+				LastName:  m.LastName.String,
+				ID:        m.UserID,
+			},
 			CustomTitle: m.CustomTitle.String,
 		}
 	}
@@ -93,7 +96,7 @@ func (r *MemberRepository) Get(ctx context.Context, chatID int64, userID int64) 
 		return model.ChatMember{}, err
 	}
 
-	return mapChatMember(m), nil
+	return mapChatMemberRow(m), nil
 }
 
 func (r *MemberRepository) Remove(ctx context.Context, chatID int64, userID int64) error {
@@ -123,7 +126,30 @@ func mapChatMember(m db.ChatMember) model.ChatMember {
 	}
 	return model.ChatMember{
 		ChatID:      m.ChatID,
-		UserID:      m.UserID,
+		User:        model.User{ID: m.UserID},
+		ExemptUntil: exemptUntil,
+		CustomTitle: m.CustomTitle.String,
+	}
+}
+
+func mapChatMemberRow(m db.GetChatMemberRow) model.ChatMember {
+	var exemptUntil *time.Time
+	if m.ExemptUntil.Valid {
+		t := m.ExemptUntil.Time
+		exemptUntil = &t
+	}
+	var username *string
+	if m.Username.Valid {
+		username = &m.Username.String
+	}
+	return model.ChatMember{
+		ChatID: m.ChatID,
+		User: model.User{
+			ID:        m.UserID,
+			FirstName: m.FirstName.String,
+			LastName:  m.LastName.String,
+			Username:  username,
+		},
 		ExemptUntil: exemptUntil,
 		CustomTitle: m.CustomTitle.String,
 	}

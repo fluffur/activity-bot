@@ -7,7 +7,6 @@ import (
 	"activity-bot/internal/model"
 	"context"
 	"fmt"
-	"html"
 	"log"
 	"strings"
 	"time"
@@ -68,13 +67,7 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 	var passed, failed, rest []string
 
 	for _, r := range report {
-		name := html.EscapeString(r.FullName)
-		var line string
-		if r.Username != nil {
-			line = fmt.Sprintf(`<a href="https://t.me/%s">%s</a> (%d)`, *r.Username, name, r.MessagesCount)
-		} else {
-			line = fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a> (%d)`, r.UserID, name, r.MessagesCount)
-		}
+		line := fmt.Sprintf(`%s (%d)`, helpers.FormatSilentMentionHTML(r.User), r.MessagesCount)
 
 		if r.NormDone {
 			passed = append(passed, line)
@@ -84,7 +77,6 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 	}
 
 	for _, r := range exemptMembers {
-		name := html.EscapeString(r.FullName)
 		var untilText string
 		if !r.ExemptUntil.IsZero() {
 			untilText = r.ExemptUntil.Format("02.01.2006")
@@ -92,12 +84,7 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 			untilText = "неизвестно"
 		}
 
-		var line string
-		if r.Username != nil {
-			line = fmt.Sprintf(`<a href="https://t.me/%s">%s</a> до %s`, *r.Username, name, untilText)
-		} else {
-			line = fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a> до %s`, r.UserID, name, untilText)
-		}
+		line := fmt.Sprintf(`%s до %s`, helpers.FormatSilentMentionHTML(r.User), untilText)
 		rest = append(rest, line)
 	}
 

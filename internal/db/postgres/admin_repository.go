@@ -29,26 +29,22 @@ func (r *AdminRepository) Remove(ctx context.Context, chatID int64, userID int64
 	})
 }
 
-func (r *AdminRepository) GetFromChat(ctx context.Context, chatID int64) ([]model.ChatAdmin, error) {
+func (r *AdminRepository) GetFromChat(ctx context.Context, chatID int64) ([]model.User, error) {
 	rows, err := r.queries.GetChatAdmins(ctx, chatID)
 	if err != nil {
 		return nil, err
 	}
 
-	admins := make([]model.ChatAdmin, len(rows))
+	admins := make([]model.User, len(rows))
 	for i, row := range rows {
-		displayName := row.Username.String
-		if displayName == "" {
-			displayName = row.FirstName.String
-			if row.LastName.Valid {
-				displayName += " " + row.LastName.String
-			}
+		var username *string
+		if row.Username.Valid {
+			username = &row.Username.String
 		}
-
-		admins[i] = model.ChatAdmin{
-			UserID:      row.ID,
-			DisplayName: displayName,
-			CreatedAt:   row.CreatedAt.Time,
+		admins[i] = model.User{
+			ID:        row.ID,
+			FirstName: row.FirstName.String,
+			Username:  username,
 		}
 	}
 	return admins, nil

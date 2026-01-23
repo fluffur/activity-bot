@@ -8,17 +8,8 @@ type Chat struct {
 }
 
 type ChatMember struct {
+	User        User
 	ChatID      int64
-	Username    *string
-	FirstName   string
-	UserID      int64
 	ExemptUntil *time.Time
 	CustomTitle string
-}
-
-func NewChat(id int64, weeklyNorm int32) Chat {
-	return Chat{
-		ID:         id,
-		WeeklyNorm: weeklyNorm,
-	}
 }

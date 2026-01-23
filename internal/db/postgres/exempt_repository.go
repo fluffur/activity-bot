@@ -183,9 +183,12 @@ func mapChatExemptUsersRow(row db.ChatExemptUsersRow) model.ExemptMember {
 		username = &row.Username.String
 	}
 	return model.ExemptMember{
-		UserID:      row.UserID,
-		FullName:    fullName,
+		User: model.User{
+			ID:        row.UserID,
+			FirstName: row.FirstName.String,
+			LastName:  row.LastName.String,
+			Username:  username,
+		},
 		ExemptUntil: row.ExemptUntil.Time,
-		Username:    username,
 	}
 }

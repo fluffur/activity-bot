@@ -5,7 +5,6 @@ import (
 	"activity-bot/internal/user"
 	"context"
 	"fmt"
-	"html"
 	"strings"
 
 	"github.com/go-telegram/bot"
@@ -35,28 +34,17 @@ func (h *Handler) AddAdmin(ctx context.Context, b *bot.Bot, update *models.Updat
 		return
 	}
 
-	targetUserID, _, found, err := helpers.ExtractTargetUser(ctx, h.userService, update, "")
+	targetUser, _, err := helpers.ExtractTargetUser(ctx, h.userService, update, "")
 	if err != nil {
 		helpers.AnswerMessage(ctx, b, update, "Не удалось найти пользователя")
 		return
 	}
-	if !found {
-		helpers.AnswerMessage(ctx, b, update, "Пользователь не найден")
-		return
-	}
-
-	if err := h.service.AddAdmin(ctx, update.Message.Chat.ID, targetUserID); err != nil {
+	if err := h.service.AddAdmin(ctx, update.Message.Chat.ID, targetUser.ID); err != nil {
 		helpers.AnswerMessage(ctx, b, update, "Не удалось добавить администратора")
 		return
 	}
 
-	u, err := h.userService.GetUser(ctx, targetUserID)
-	name := "пользователя"
-	if err == nil {
-		name = html.EscapeString(u.FirstName)
-	}
-
-	helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Пользователь <a href=\"tg://user?id=%d\">%s</a> назначен администратором бота", targetUserID, name))
+	helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Пользователь %s назначен администратором бота", helpers.FormatSilentMentionHTML(targetUser)))
 }
 
 func (h *Handler) RemoveAdmin(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -73,28 +61,18 @@ func (h *Handler) RemoveAdmin(ctx context.Context, b *bot.Bot, update *models.Up
 		return
 	}
 
-	targetUserID, _, found, err := helpers.ExtractTargetUser(ctx, h.userService, update, "")
+	targetUser, _, err := helpers.ExtractTargetUser(ctx, h.userService, update, "")
 	if err != nil {
 		helpers.AnswerMessage(ctx, b, update, "Не удалось найти пользователя")
 		return
 	}
-	if !found {
-		helpers.AnswerMessage(ctx, b, update, "Пользователь не найден")
-		return
-	}
 
-	if err := h.service.RemoveAdmin(ctx, update.Message.Chat.ID, targetUserID); err != nil {
+	if err := h.service.RemoveAdmin(ctx, update.Message.Chat.ID, targetUser.ID); err != nil {
 		helpers.AnswerMessage(ctx, b, update, "Не удалось удалить администратора")
 		return
 	}
 
-	u, err := h.userService.GetUser(ctx, targetUserID)
-	name := "пользователя"
-	if err == nil {
-		name = html.EscapeString(u.FirstName)
-	}
-
-	helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Пользователь <a href=\"tg://user?id=%d\">%s</a> удалён из администраторов бота", targetUserID, name))
+	helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Пользователь %s удалён из администраторов бота", helpers.FormatSilentMentionHTML(targetUser)))
 }
 
 func (h *Handler) ListAdmins(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -111,8 +89,8 @@ func (h *Handler) ListAdmins(ctx context.Context, b *bot.Bot, update *models.Upd
 
 	var sb strings.Builder
 	sb.WriteString("👮 Администраторы бота:\n")
-	for _, admin := range admins {
-		sb.WriteString(fmt.Sprintf("\n<a href=\"tg://user?id=%d\">%s</a> (с %s)", admin.UserID, html.EscapeString(admin.DisplayName), admin.CreatedAt.Format("02.01.2006")))
+	for i, admin := range admins {
+		sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, helpers.FormatSilentMentionHTML(admin)))
 	}
 	helpers.AnswerMessage(ctx, b, update, sb.String())
 }

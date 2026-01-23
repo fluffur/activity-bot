@@ -21,7 +21,7 @@ func (s *Service) RemoveAdmin(ctx context.Context, chatID int64, userID int64) e
 	return s.repo.Remove(ctx, chatID, userID)
 }
 
-func (s *Service) GetAdmins(ctx context.Context, chatID int64) ([]model.ChatAdmin, error) {
+func (s *Service) GetAdmins(ctx context.Context, chatID int64) ([]model.User, error) {
 	return s.repo.GetFromChat(ctx, chatID)
 }
 

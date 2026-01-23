@@ -63,7 +63,7 @@ FROM chat_members cm
 WHERE cm.chat_id = $1
   AND cm.exempt_until IS NOT NULL
   AND cm.exempt_until >= now()
-ORDER BY cm.exempt_until ASC
+ORDER BY cm.exempt_until
 `
 
 type ChatExemptUsersRow struct {

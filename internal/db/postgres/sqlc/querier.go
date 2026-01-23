@@ -22,7 +22,7 @@ type Querier interface {
 	EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) (User, error)
 	ExemptChatMember(ctx context.Context, arg ExemptChatMemberParams) error
 	GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdminsRow, error)
-	GetChatMember(ctx context.Context, arg GetChatMemberParams) (ChatMember, error)
+	GetChatMember(ctx context.Context, arg GetChatMemberParams) (GetChatMemberRow, error)
 	GetChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetChatMembersWithTitlesRow, error)
 	GetExemptRequest(ctx context.Context, arg GetExemptRequestParams) (ExemptRequest, error)
 	GetMemberCustomTitle(ctx context.Context, arg GetMemberCustomTitleParams) (pgtype.Text, error)

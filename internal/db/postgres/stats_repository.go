@@ -45,21 +45,19 @@ func (r *StatsRepository) GetWeeklyReport(ctx context.Context, chatID int64) ([]
 }
 
 func mapWeeklyReportRow(row db.WeeklyMessageReportRow) model.WeeklyMessageReportMember {
-	fullName := row.FirstName.String
-	if row.LastName.Valid {
-		fullName += " " + row.LastName.String
-	}
 	var username *string
 	if row.Username.Valid {
 		username = &row.Username.String
 	}
 
 	return model.WeeklyMessageReportMember{
-		UserID:        row.UserID,
-		FullName:      fullName,
+		User: model.User{
+			ID:        row.UserID,
+			FirstName: row.FirstName.String,
+			Username:  username,
+		},
 		MessagesCount: int32(row.MessagesCount),
 		WeeklyNorm:    row.WeeklyNorm,
 		NormDone:      row.NormDone,
-		Username:      username,
 	}
 }
