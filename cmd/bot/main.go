@@ -88,8 +88,8 @@ func main() {
 	messageH := message.NewHandler(msgService)
 	ensureMemberExistsMW := middleware.NewEnsureMemberExists(chatService, userService, memberService)
 
-	b.RegisterHandler(bot.HandlerTypeMessageText, "start", bot.MatchTypeCommand, helpHandler.Start)
-	b.RegisterHandler(bot.HandlerTypeMessageText, "help", bot.MatchTypeCommand, helpHandler.Help)
+	b.RegisterHandler(bot.HandlerTypeMessageText, "start", bot.MatchTypeCommandStartOnly, helpHandler.Start)
+	b.RegisterHandler(bot.HandlerTypeMessageText, "help", bot.MatchTypeCommandStartOnly, helpHandler.Help)
 
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showNormRe, chatHandler.ShowNorm)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setNormRe, chatHandler.SetNorm, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
