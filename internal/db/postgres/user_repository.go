@@ -3,6 +3,7 @@ package postgres
 import (
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/model"
+	"activity-bot/internal/user"
 	"context"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -12,12 +13,12 @@ type UserRepository struct {
 	queries db.Querier
 }
 
-func NewUserRepository(queries db.Querier) *UserRepository {
+func NewUserRepository(queries db.Querier) user.Repository {
 	return &UserRepository{queries}
 }
 
-func (r *UserRepository) EnsureExists(ctx context.Context, id int64, username, firstName, lastName string) error {
-	return r.queries.EnsureUserExists(ctx, db.EnsureUserExistsParams{
+func (r *UserRepository) Ensure(ctx context.Context, id int64, username, firstName, lastName string) (model.User, error) {
+	u, err := r.queries.EnsureUserExists(ctx, db.EnsureUserExistsParams{
 		ID: id,
 		Username: pgtype.Text{
 			String: username,
@@ -32,6 +33,11 @@ func (r *UserRepository) EnsureExists(ctx context.Context, id int64, username, f
 			Valid:  lastName != "",
 		},
 	})
+	if err != nil {
+		return model.User{}, err
+	}
+
+	return mapUser(u), nil
 }
 
 func (r *UserRepository) Get(ctx context.Context, id int64) (model.User, error) {

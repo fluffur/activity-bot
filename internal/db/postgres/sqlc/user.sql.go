@@ -11,12 +11,13 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const ensureUserExists = `-- name: EnsureUserExists :exec
+const ensureUserExists = `-- name: EnsureUserExists :one
 INSERT INTO users(id, username, first_name, last_name)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (id) DO UPDATE SET username   = $2,
                                first_name = $3,
                                last_name  = $4
+RETURNING id, username, first_name, last_name, created_at
 `
 
 type EnsureUserExistsParams struct {
@@ -26,14 +27,22 @@ type EnsureUserExistsParams struct {
 	LastName  pgtype.Text `db:"last_name" json:"lastName"`
 }
 
-func (q *Queries) EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) error {
-	_, err := q.db.Exec(ctx, ensureUserExists,
+func (q *Queries) EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) (User, error) {
+	row := q.db.QueryRow(ctx, ensureUserExists,
 		arg.ID,
 		arg.Username,
 		arg.FirstName,
 		arg.LastName,
 	)
-	return err
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.FirstName,
+		&i.LastName,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const getUser = `-- name: GetUser :one

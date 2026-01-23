@@ -1,9 +1,10 @@
--- name: EnsureUserExists :exec
+-- name: EnsureUserExists :one
 INSERT INTO users(id, username, first_name, last_name)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (id) DO UPDATE SET username   = $2,
                                first_name = $3,
-                               last_name  = $4;
+                               last_name  = $4
+RETURNING *;
 
 -- name: GetUser :one
 SELECT *

@@ -20,3 +20,7 @@ func (s *Service) GetUser(ctx context.Context, id int64) (model.User, error) {
 func (s *Service) GetUserByUsername(ctx context.Context, username string) (model.User, error) {
 	return s.repo.GetByUsername(ctx, username)
 }
+
+func (s *Service) EnsureUserExists(ctx context.Context, id int64, username, firstName, lastName string) (model.User, error) {
+	return s.repo.Ensure(ctx, id, username, firstName, lastName)
+}

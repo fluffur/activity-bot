@@ -40,3 +40,68 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 	)
 	return i, err
 }
+
+const weeklyMessageReport = `-- name: WeeklyMessageReport :many
+SELECT cm.user_id,
+       u.username,
+       u.first_name,
+       u.last_name,
+       COUNT(m.chat_id)                    AS messages_count,
+       c.weekly_norm,
+       (COUNT(m.chat_id) >= c.weekly_norm) AS norm_done
+FROM chat_members cm
+         JOIN chats c ON c.id = cm.chat_id
+         JOIN users u ON u.id = cm.user_id
+         LEFT JOIN messages m
+                   ON m.chat_id = cm.chat_id
+                       AND m.user_id = cm.user_id
+                       AND m.created_at >= $1
+                       AND m.created_at < $1 + interval '7 days'
+WHERE cm.chat_id = $2
+  AND (cm.exempt_until IS NULL OR cm.exempt_until < now())
+GROUP BY cm.user_id, u.username, u.first_name, u.last_name, c.weekly_norm
+ORDER BY messages_count DESC
+`
+
+type WeeklyMessageReportParams struct {
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	ChatID    int64              `db:"chat_id" json:"chatId"`
+}
+
+type WeeklyMessageReportRow struct {
+	UserID        int64       `db:"user_id" json:"userId"`
+	Username      pgtype.Text `db:"username" json:"username"`
+	FirstName     pgtype.Text `db:"first_name" json:"firstName"`
+	LastName      pgtype.Text `db:"last_name" json:"lastName"`
+	MessagesCount int64       `db:"messages_count" json:"messagesCount"`
+	WeeklyNorm    int32       `db:"weekly_norm" json:"weeklyNorm"`
+	NormDone      bool        `db:"norm_done" json:"normDone"`
+}
+
+func (q *Queries) WeeklyMessageReport(ctx context.Context, arg WeeklyMessageReportParams) ([]WeeklyMessageReportRow, error) {
+	rows, err := q.db.Query(ctx, weeklyMessageReport, arg.CreatedAt, arg.ChatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WeeklyMessageReportRow{}
+	for rows.Next() {
+		var i WeeklyMessageReportRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.Username,
+			&i.FirstName,
+			&i.LastName,
+			&i.MessagesCount,
+			&i.WeeklyNorm,
+			&i.NormDone,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

@@ -1,0 +1,121 @@
+package stats
+
+import (
+	"activity-bot/internal/chat/member"
+	"activity-bot/internal/exempt"
+	"activity-bot/internal/helpers"
+	"activity-bot/internal/model"
+	"context"
+	"fmt"
+	"html"
+	"log"
+	"strings"
+	"time"
+
+	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
+)
+
+type Handler struct {
+	service       *Service
+	exemptService *exempt.Service
+	memberService *member.Service
+}
+
+func NewHandler(service *Service, exemptService *exempt.Service, memberService *member.Service) *Handler {
+	return &Handler{service, exemptService, memberService}
+}
+
+func (h *Handler) ShowWeeklyReport(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if _, err := helpers.UpdateChatMembers(ctx, b, h.memberService, update.Message.Chat.ID); err != nil {
+		log.Println("Auto-update chat members error", err)
+	}
+
+	report, err := h.service.GetMemberStats(ctx, update.Message.Chat.ID)
+	if err != nil {
+		log.Println("Get member stats error", err)
+		helpers.AnswerMessage(ctx, b, update, "Не удалось получить отчёт")
+		return
+	}
+
+	exemptMembers, err := h.exemptService.GetExemptMembers(ctx, update.Message.Chat.ID)
+	if err != nil {
+		log.Println("Get exempt members error", err)
+		helpers.AnswerMessage(ctx, b, update, "Не удалось получить отчёт")
+		return
+	}
+
+	if len(report) == 0 && len(exemptMembers) == 0 {
+		helpers.AnswerMessage(ctx, b, update, "Нет данных для отчёта на эту неделю")
+		return
+	}
+
+	text := formatWeeklyReport(report, exemptMembers)
+	helpers.AnswerMessage(ctx, b, update, text)
+}
+
+func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers []model.ExemptMember) string {
+	now := time.Now()
+	weekday := int(now.Weekday())
+	daysSinceMonday := (weekday + 6) % 7
+	monday := now.AddDate(0, 0, -daysSinceMonday)
+	monday = time.Date(monday.Year(), monday.Month(), monday.Day(), 0, 0, 0, 0, monday.Location())
+	sunday := monday.AddDate(0, 0, 6)
+	sunday = time.Date(sunday.Year(), sunday.Month(), sunday.Day(), 23, 59, 59, 0, sunday.Location())
+
+	weekHeader := fmt.Sprintf("📊 Отчёт за неделю: %s — %s", monday.Format("02.01.2006"), sunday.Format("02.01.2006"))
+
+	var passed, failed, rest []string
+
+	for _, r := range report {
+		name := html.EscapeString(r.FullName)
+		var line string
+		if r.Username != nil {
+			line = fmt.Sprintf(`<a href="https://t.me/%s">%s</a> (%d)`, *r.Username, name, r.MessagesCount)
+		} else {
+			line = fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a> (%d)`, r.UserID, name, r.MessagesCount)
+		}
+
+		if r.NormDone {
+			passed = append(passed, line)
+		} else {
+			failed = append(failed, line)
+		}
+	}
+
+	for _, r := range exemptMembers {
+		name := html.EscapeString(r.FullName)
+		var untilText string
+		if !r.ExemptUntil.IsZero() {
+			untilText = r.ExemptUntil.Format("02.01.2006")
+		} else {
+			untilText = "неизвестно"
+		}
+
+		var line string
+		if r.Username != nil {
+			line = fmt.Sprintf(`<a href="https://t.me/%s">%s</a> до %s`, *r.Username, name, untilText)
+		} else {
+			line = fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a> до %s`, r.UserID, name, untilText)
+		}
+		rest = append(rest, line)
+	}
+
+	var sb strings.Builder
+	sb.WriteString(weekHeader)
+
+	if len(passed) > 0 {
+		sb.WriteString("\n✅ Прошли норму\n")
+		sb.WriteString(strings.Join(passed, "\n"))
+	}
+	if len(failed) > 0 {
+		sb.WriteString("\n\n❎ Не прошли норму\n")
+		sb.WriteString(strings.Join(failed, "\n"))
+	}
+	if len(rest) > 0 {
+		sb.WriteString("\n\n💛 Рест\n")
+		sb.WriteString(strings.Join(rest, "\n"))
+	}
+
+	return sb.String()
+}

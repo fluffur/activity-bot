@@ -1,4 +1,4 @@
-package base
+package helpers
 
 import (
 	"context"
@@ -8,10 +8,7 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-type Handler struct {
-}
-
-func (h *Handler) AnswerMessage(ctx context.Context, b *bot.Bot, update *models.Update, text string) {
+func AnswerMessage(ctx context.Context, b *bot.Bot, update *models.Update, text string) {
 	isLinkPreviewDisabled := true
 	if _, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    update.Message.Chat.ID,
@@ -27,7 +24,7 @@ func (h *Handler) AnswerMessage(ctx context.Context, b *bot.Bot, update *models.
 	}
 }
 
-func (h *Handler) AnswerCallback(ctx context.Context, b *bot.Bot, update *models.Update, text string) {
+func AnswerCallback(ctx context.Context, b *bot.Bot, update *models.Update, text string) {
 	if _, err := b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
 		Text:            text,
@@ -37,7 +34,7 @@ func (h *Handler) AnswerCallback(ctx context.Context, b *bot.Bot, update *models
 	}
 }
 
-func (h *Handler) EditMessage(ctx context.Context, b *bot.Bot, update *models.Update, text string) {
+func EditMessage(ctx context.Context, b *bot.Bot, update *models.Update, text string) {
 	var m *models.Message
 	if update.Message != nil {
 		m = update.Message

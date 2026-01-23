@@ -2,6 +2,7 @@ package postgres
 
 import (
 	db "activity-bot/internal/db/postgres/sqlc"
+	"activity-bot/internal/message"
 	"activity-bot/internal/model"
 	"context"
 	"time"
@@ -13,7 +14,7 @@ type MessageRepository struct {
 	queries db.Querier
 }
 
-func NewMessageRepository(queries db.Querier) *MessageRepository {
+func NewMessageRepository(queries db.Querier) message.Repository {
 	return &MessageRepository{queries}
 }
 

@@ -52,6 +52,72 @@ func (q *Queries) ApproveExemptRequest(ctx context.Context, arg ApproveExemptReq
 	return err
 }
 
+const chatExemptUsers = `-- name: ChatExemptUsers :many
+SELECT cm.user_id,
+       u.username,
+       u.first_name,
+       u.last_name,
+       cm.exempt_until
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = $1
+  AND cm.exempt_until IS NOT NULL
+  AND cm.exempt_until >= now()
+ORDER BY cm.exempt_until ASC
+`
+
+type ChatExemptUsersRow struct {
+	UserID      int64              `db:"user_id" json:"userId"`
+	Username    pgtype.Text        `db:"username" json:"username"`
+	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
+	ExemptUntil pgtype.Timestamptz `db:"exempt_until" json:"exemptUntil"`
+}
+
+func (q *Queries) ChatExemptUsers(ctx context.Context, chatID int64) ([]ChatExemptUsersRow, error) {
+	rows, err := q.db.Query(ctx, chatExemptUsers, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ChatExemptUsersRow{}
+	for rows.Next() {
+		var i ChatExemptUsersRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.Username,
+			&i.FirstName,
+			&i.LastName,
+			&i.ExemptUntil,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const exemptChatMember = `-- name: ExemptChatMember :exec
+UPDATE chat_members
+SET exempt_until = $1
+WHERE chat_id = $2
+  AND user_id = $3
+`
+
+type ExemptChatMemberParams struct {
+	ExemptUntil pgtype.Timestamptz `db:"exempt_until" json:"exemptUntil"`
+	ChatID      int64              `db:"chat_id" json:"chatId"`
+	UserID      int64              `db:"user_id" json:"userId"`
+}
+
+func (q *Queries) ExemptChatMember(ctx context.Context, arg ExemptChatMemberParams) error {
+	_, err := q.db.Exec(ctx, exemptChatMember, arg.ExemptUntil, arg.ChatID, arg.UserID)
+	return err
+}
+
 const getExemptRequest = `-- name: GetExemptRequest :one
 SELECT chat_id, user_id, requested_at, exempt_until, status, message_id
 FROM exempt_requests
@@ -96,5 +162,22 @@ type RejectExemptRequestParams struct {
 
 func (q *Queries) RejectExemptRequest(ctx context.Context, arg RejectExemptRequestParams) error {
 	_, err := q.db.Exec(ctx, rejectExemptRequest, arg.ChatID, arg.UserID, arg.MessageID)
+	return err
+}
+
+const removeChatMemberExempt = `-- name: RemoveChatMemberExempt :exec
+UPDATE chat_members
+SET exempt_until = null
+WHERE user_id = $1
+  AND chat_id = $2
+`
+
+type RemoveChatMemberExemptParams struct {
+	UserID int64 `db:"user_id" json:"userId"`
+	ChatID int64 `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) RemoveChatMemberExempt(ctx context.Context, arg RemoveChatMemberExemptParams) error {
+	_, err := q.db.Exec(ctx, removeChatMemberExempt, arg.UserID, arg.ChatID)
 	return err
 }

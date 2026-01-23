@@ -1,4 +1,4 @@
-package chat
+package exempt
 
 import (
 	"regexp"

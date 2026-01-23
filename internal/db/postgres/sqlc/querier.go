@@ -17,14 +17,15 @@ type Querier interface {
 	ChatExemptUsers(ctx context.Context, chatID int64) ([]ChatExemptUsersRow, error)
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
 	DeleteChatMember(ctx context.Context, arg DeleteChatMemberParams) error
-	EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) error
-	EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemberExistsParams) error
-	EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) error
+	EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (Chat, error)
+	EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemberExistsParams) (ChatMember, error)
+	EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) (User, error)
 	ExemptChatMember(ctx context.Context, arg ExemptChatMemberParams) error
 	GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdminsRow, error)
 	GetChatMember(ctx context.Context, arg GetChatMemberParams) (ChatMember, error)
 	GetChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetChatMembersWithTitlesRow, error)
 	GetExemptRequest(ctx context.Context, arg GetExemptRequestParams) (ExemptRequest, error)
+	GetMemberCustomTitle(ctx context.Context, arg GetMemberCustomTitleParams) (pgtype.Text, error)
 	GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams) (Chat, error)
 	GetUser(ctx context.Context, id int64) (User, error)
 	GetUserByUsername(ctx context.Context, username pgtype.Text) (User, error)

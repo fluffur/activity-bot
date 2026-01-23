@@ -1,7 +1,7 @@
 package help
 
 import (
-	"activity-bot/internal/base"
+	"activity-bot/internal/helpers"
 	"context"
 
 	"github.com/go-telegram/bot"
@@ -9,15 +9,14 @@ import (
 )
 
 type Handler struct {
-	base.Handler
 }
 
 func NewHandler() *Handler {
-	return &Handler{base.Handler{}}
+	return &Handler{}
 }
 
 func (h *Handler) Start(ctx context.Context, b *bot.Bot, update *models.Update) {
-	h.AnswerMessage(ctx, b, update, "Привет! Я могу следить за еженедельной нормой сообщений в группе. Добавь меня в группу или введи команду /help.")
+	helpers.AnswerMessage(ctx, b, update, "Привет! Я могу следить за еженедельной нормой сообщений в группе. Добавь меня в группу или введи команду /help.")
 }
 
 func (h *Handler) Help(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -53,5 +52,5 @@ func (h *Handler) Help(ctx context.Context, b *bot.Bot, update *models.Update) {
 • /норма 150
 • !обновить чат`
 
-	h.AnswerMessage(ctx, b, update, helpText)
+	helpers.AnswerMessage(ctx, b, update, helpText)
 }

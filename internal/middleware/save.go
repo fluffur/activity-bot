@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"activity-bot/internal/chat"
-	"activity-bot/internal/model"
+	"activity-bot/internal/chat/member"
 	"activity-bot/internal/user"
 	"context"
 	"log"
@@ -12,17 +12,13 @@ import (
 )
 
 type EnsureMemberExists struct {
-	chatRepo          chat.Repository
-	userRepo          user.Repository
-	defaultWeeklyNorm int32
+	chatService   *chat.Service
+	userService   *user.Service
+	memberService *member.Service
 }
 
-func NewEnsureMemberExists(chatRepo chat.Repository, userRepo user.Repository, defaultWeeklyNorm int32) *EnsureMemberExists {
-	return &EnsureMemberExists{
-		chatRepo:          chatRepo,
-		userRepo:          userRepo,
-		defaultWeeklyNorm: defaultWeeklyNorm,
-	}
+func NewEnsureMemberExists(chatService *chat.Service, userService *user.Service, memberService *member.Service) *EnsureMemberExists {
+	return &EnsureMemberExists{chatService, userService, memberService}
 }
 
 func (m *EnsureMemberExists) Handle(next bot.HandlerFunc) bot.HandlerFunc {
@@ -41,17 +37,17 @@ func (m *EnsureMemberExists) Handle(next bot.HandlerFunc) bot.HandlerFunc {
 			return
 		}
 
-		if err := m.userRepo.EnsureExists(ctx, u.ID, u.Username, u.FirstName, u.LastName); err != nil {
+		if _, err := m.userService.EnsureUserExists(ctx, u.ID, u.Username, u.FirstName, u.LastName); err != nil {
 			log.Println("Failed ensure user exists", err)
 			return
 		}
 
-		if err := m.chatRepo.EnsureExists(ctx, model.NewChat(mes.Chat.ID, m.defaultWeeklyNorm)); err != nil {
+		if _, err := m.chatService.EnsureChatExists(ctx, mes.Chat.ID); err != nil {
 			log.Println("Failed ensure chat exists", err)
 			return
 		}
 
-		if err := m.chatRepo.EnsureMemberExists(ctx, mes.Chat.ID, u.ID); err != nil {
+		if _, err := m.memberService.EnsureMemberExists(ctx, mes.Chat.ID, u.ID); err != nil {
 			log.Println("Failed ensure chat member exists", err)
 			return
 		}
