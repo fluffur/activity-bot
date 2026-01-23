@@ -85,30 +85,36 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 		line := fmt.Sprintf("%s до %s", helpers.FormatSilentMentionHTML(r.User), untilText)
 		rest = append(rest, line)
 	}
+	var totalMessages int32 = 0
+	for _, r := range report {
+		totalMessages += r.MessagesCount
+	}
 
 	var sb strings.Builder
 	sb.WriteString(weekHeader + "\n\n")
 
-	sb.WriteString("✅ Прошли норму\n")
+	sb.WriteString("✅ Прошли норму 🌟\n")
 	if len(passed) > 0 {
 		writeNumberedList(&sb, passed)
 	} else {
 		sb.WriteString("—\n")
 	}
 
-	sb.WriteString("\n❎ Не прошли норму\n")
+	sb.WriteString("\n❌ Не прошли норму ⚠️ \n")
 	if len(failed) > 0 {
 		writeNumberedList(&sb, failed)
 	} else {
 		sb.WriteString("—\n")
 	}
 
-	sb.WriteString("\n💛 Рест\n")
+	sb.WriteString("\n💤 Рест\n")
 	if len(rest) > 0 {
 		writeNumberedList(&sb, rest)
 	} else {
 		sb.WriteString("—\n")
 	}
+
+	sb.WriteString(fmt.Sprintf("\n📝 Всего сообщений: %d\n", totalMessages))
 
 	return sb.String()
 }
