@@ -28,11 +28,6 @@ func NewHandler(service *Service, userService *user.Service, adminService *admin
 }
 
 func (h *Handler) UpdateMembersList(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if !helpers.CheckOwnerOrAdmin(ctx, b, h.adminService, update.Message.Chat.ID, update.Message.From.ID) {
-		helpers.AnswerMessage(ctx, b, update, "Команда доступна только создателю или пользователю с ролью администратор в боте")
-		return
-	}
-
 	count, err := helpers.UpdateChatMembers(ctx, b, h.service, update.Message.Chat.ID)
 	if err != nil {
 		log.Println("Update chat members error", err)

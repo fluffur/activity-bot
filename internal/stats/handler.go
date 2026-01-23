@@ -55,6 +55,11 @@ func (h *Handler) ShowWeeklyReport(ctx context.Context, b *bot.Bot, update *mode
 
 func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers []model.ExemptMember) string {
 	now := time.Now()
+	months := [...]string{
+		"января", "февраля", "марта", "апреля", "мая", "июня",
+		"июля", "августа", "сентября", "октября", "ноября", "декабря",
+	}
+
 	weekday := int(now.Weekday())
 	daysSinceMonday := (weekday + 6) % 7
 	monday := now.AddDate(0, 0, -daysSinceMonday)
@@ -79,7 +84,7 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 	for _, r := range exemptMembers {
 		var untilText string
 		if !r.ExemptUntil.IsZero() {
-			untilText = r.ExemptUntil.Format("02.01.2006")
+			untilText = fmt.Sprintf("%d %s %d", r.ExemptUntil.Day(), months[r.ExemptUntil.Month()-1], r.ExemptUntil.Year())
 		} else {
 			untilText = "неизвестно"
 		}
@@ -93,16 +98,22 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 
 	if len(passed) > 0 {
 		sb.WriteString("\n✅ Прошли норму\n")
-		sb.WriteString(strings.Join(passed, "\n"))
+		writeNumberedList(&sb, passed)
 	}
 	if len(failed) > 0 {
 		sb.WriteString("\n\n❎ Не прошли норму\n")
-		sb.WriteString(strings.Join(failed, "\n"))
+		writeNumberedList(&sb, failed)
 	}
 	if len(rest) > 0 {
-		sb.WriteString("\n\n💛 Рест\n")
-		sb.WriteString(strings.Join(rest, "\n"))
+		sb.WriteString("\n💛 Рест\n")
+		writeNumberedList(&sb, rest)
 	}
 
 	return sb.String()
+}
+
+func writeNumberedList(sb *strings.Builder, items []string) {
+	for i, item := range items {
+		sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, item))
+	}
 }

@@ -9,6 +9,7 @@ import (
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/exempt"
 	"activity-bot/internal/help"
+	"activity-bot/internal/helpers"
 	"activity-bot/internal/message"
 	"activity-bot/internal/middleware"
 	"activity-bot/internal/stats"
@@ -124,6 +125,24 @@ func main() {
 			}
 		},
 		ensureMemberExistsMW.Handle,
+	)
+
+	b.RegisterHandlerMatchFunc(
+		func(update *models.Update) bool {
+			return update.MyChatMember != nil
+		},
+		func(ctx context.Context, b *bot.Bot, update *models.Update) {
+			chatID := update.MyChatMember.Chat.ID
+
+			if update.MyChatMember.NewChatMember.Administrator != nil {
+				count, err := helpers.UpdateChatMembers(ctx, b, memberService, chatID)
+				if err != nil {
+					log.Println("Failed to update chat members on join:", err)
+					return
+				}
+				log.Printf("Updated chat %d members on bot join, total %d members\n", chatID, count)
+			}
+		},
 	)
 
 	if cfg.WebhookURL != "" {
