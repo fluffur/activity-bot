@@ -19,6 +19,11 @@ jobs:
           username: ${{ secrets.VDS_USER }}
           key: ${{ secrets.VDS_SSH_KEY }}
           script: |
+            echo "Creating database backup..."
+            TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+            docker exec activity_db pg_dump -U postgres activity > /root/activity-bot/backups/activity_$TIMESTAMP.sql
+            echo "Backup saved as activity_$TIMESTAMP.sql"
+                  
             echo "Starting deployment..."
             cd /root/activity-bot
 
