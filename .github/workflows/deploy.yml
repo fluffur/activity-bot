@@ -36,12 +36,12 @@ jobs:
             git reset --hard origin/master
 
             echo "Build Docker images..."
-            docker compose build
+            docker compose -f docker-compose.prod.yml build
 
             echo "Run migrations..."
-            docker compose run --rm app ./migrate
+            docker compose -f docker-compose.prod.yml run --rm app ./migrate
 
             echo "Start containers..."
-            docker compose up -d
+            docker compose -f docker-compose.prod.yml up -d
 
             echo "Deployment finished!"
