@@ -32,6 +32,11 @@ func (m *EnsureMemberExists) Handle(next bot.HandlerFunc) bot.HandlerFunc {
 			mes = update.CallbackQuery.Message.Message
 			u = &update.CallbackQuery.From
 		}
+		if mes.Chat.Type == "private" {
+			next(ctx, b, update)
+			return
+		}
+
 		if u.IsBot {
 			next(ctx, b, update)
 			return

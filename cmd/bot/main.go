@@ -9,7 +9,7 @@ import (
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/exempt"
 	"activity-bot/internal/help"
-	"activity-bot/internal/helpers"
+	"activity-bot/internal/match"
 	"activity-bot/internal/message"
 	"activity-bot/internal/middleware"
 	"activity-bot/internal/stats"
@@ -17,7 +17,6 @@ import (
 	"context"
 
 	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"fmt"
@@ -37,10 +36,6 @@ func main() {
 		log.Fatal("Config load failed:", err)
 	}
 
-	b, err := bot.New(cfg.BotToken)
-	if err != nil {
-		log.Fatal("Bot init failed:", err)
-	}
 	pool, err := pgxpool.New(ctx, cfg.DBDSN)
 	if err != nil {
 		log.Fatal("Pool init failed:", err)
@@ -82,94 +77,42 @@ func main() {
 	exemptHandler := exempt.NewHandler(exemptService, userService, adminService, exempt.NewDateParser(), setExemptRe)
 	memberHandler := member.NewHandler(memberService, userService, adminService, setRoleRe)
 	statsHandler := stats.NewHandler(statsService, exemptService, memberService)
-
 	helpHandler := help.NewHandler()
+	messageHandler := message.NewHandler(msgService)
 
-	messageH := message.NewHandler(msgService)
-	ensureMemberExistsMW := middleware.NewEnsureMemberExists(chatService, userService, memberService)
+	b, err := bot.New(cfg.BotToken,
+		bot.WithMiddlewares(middleware.NewEnsureMemberExists(chatService, userService, memberService).Handle),
+	)
+	if err != nil {
+		log.Fatal("Bot init failed:", err)
+	}
 
 	b.RegisterHandler(bot.HandlerTypeMessageText, "start", bot.MatchTypeCommandStartOnly, helpHandler.Start)
 	b.RegisterHandler(bot.HandlerTypeMessageText, "help", bot.MatchTypeCommandStartOnly, helpHandler.Help)
 
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showNormRe, chatHandler.ShowNorm)
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setNormRe, chatHandler.SetNorm, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showReportRe, statsHandler.ShowWeeklyReport, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setNormRe, chatHandler.SetNorm, middleware.OnlyGroups)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showReportRe, statsHandler.ShowWeeklyReport, middleware.OnlyGroups)
 
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setExemptRe, exemptHandler.ExemptMember, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showExemptRe, exemptHandler.ShowMemberExempt, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setExemptRe, exemptHandler.ExemptMember, middleware.OnlyGroups)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showExemptRe, exemptHandler.ShowMemberExempt, middleware.OnlyGroups)
 
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, endExemptRe, exemptHandler.EndMemberExempt, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, endExemptRe, exemptHandler.EndMemberExempt, middleware.OnlyGroups)
 
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showAdminsRe, adminHandler.ListAdmins, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, addAdminRe, adminHandler.AddAdmin, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, removeAdminRe, adminHandler.RemoveAdmin, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, updateChatRe, memberHandler.UpdateMembersList, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showAdminsRe, adminHandler.ListAdmins, middleware.OnlyGroups)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, addAdminRe, adminHandler.AddAdmin, middleware.OnlyGroups)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, removeAdminRe, adminHandler.RemoveAdmin, middleware.OnlyGroups)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, updateChatRe, memberHandler.UpdateMembersList, middleware.OnlyGroups)
 
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showRolesRe, memberHandler.ListRoles, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setRoleRe, memberHandler.SetRole, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showRolesRe, memberHandler.ListRoles, middleware.OnlyGroups)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setRoleRe, memberHandler.SetRole, middleware.OnlyGroups)
 
-	b.RegisterHandlerRegexp(bot.HandlerTypeCallbackQueryData, regexp.MustCompile(`^approve:\d+:\d+$`), exemptHandler.ApproveExemptRequest, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
-	b.RegisterHandlerRegexp(bot.HandlerTypeCallbackQueryData, regexp.MustCompile(`^reject:\d+:\d+$`), exemptHandler.RejectExemptRequest, middleware.OnlyGroups, ensureMemberExistsMW.Handle)
+	b.RegisterHandlerRegexp(bot.HandlerTypeCallbackQueryData, regexp.MustCompile(`^approve:\d+:\d+$`), exemptHandler.ApproveExemptRequest, middleware.OnlyGroups)
+	b.RegisterHandlerRegexp(bot.HandlerTypeCallbackQueryData, regexp.MustCompile(`^reject:\d+:\d+$`), exemptHandler.RejectExemptRequest, middleware.OnlyGroups)
 
-	b.RegisterHandlerMatchFunc(
-		func(update *models.Update) bool {
-			return update.Message != nil && (update.Message.Chat.Type == "group" || update.Message.Chat.Type == "supergroup")
-		},
-		func(ctx context.Context, b *bot.Bot, update *models.Update) {
-			if update.Message.LeftChatMember != nil {
-				memberHandler.OnLeftMember(ctx, b, update)
-				return
-			}
-			if update.Message.Text != "" {
-				messageH.Message(ctx, b, update)
-			}
-		},
-		ensureMemberExistsMW.Handle,
-	)
-
-	b.RegisterHandlerMatchFunc(
-		func(update *models.Update) bool {
-			return update.MyChatMember != nil
-		},
-		func(ctx context.Context, b *bot.Bot, update *models.Update) {
-			chatID := update.MyChatMember.Chat.ID
-
-			if update.MyChatMember.NewChatMember.Administrator != nil {
-				count, err := helpers.UpdateChatMembers(ctx, b, memberService, chatID)
-				if err != nil {
-					log.Println("Failed to update chat members on join:", err)
-					return
-				}
-				log.Printf("Updated chat %d members on bot join, total %d members\n", chatID, count)
-			}
-		},
-	)
-	b.RegisterHandlerMatchFunc(
-		func(update *models.Update) bool {
-			return update.Message != nil
-		},
-		func(ctx context.Context, b *bot.Bot, update *models.Update) {
-			log.Println("Message text:", update.Message.Text)
-		},
-	)
-
-	commands := []models.BotCommand{
-		{Command: "help", Description: "Показать список всех команд"},
-		{Command: "stats", Description: "Получить еженедельный отчёт по активности"},
-		{Command: "norm", Description: "Показать текущую норму сообщений"},
-		{Command: "rest", Description: "Показать или поставить рест"},
-		{Command: "role", Description: "Показать или изменить роль пользователя"},
-		{Command: "roles", Description: "Список всех участников с ролями"},
-		{Command: "admins", Description: "Список администраторов бота"},
-	}
-
-	if _, err := b.SetMyCommands(ctx, &bot.SetMyCommandsParams{
-		Commands: commands,
-	}); err != nil {
-		log.Println("Failed to set bot commands:", err)
-	} else {
-		log.Println("Bot commands set successfully")
-	}
+	b.RegisterHandlerMatchFunc(match.LeftMember, memberHandler.OnLeftMember, middleware.OnlyGroups)
+	b.RegisterHandlerMatchFunc(match.PromotedToAdministrator, memberHandler.OnBotPromote, middleware.OnlyGroups)
+	b.RegisterHandlerMatchFunc(match.Message, messageHandler.Message, middleware.OnlyGroups)
 
 	if cfg.WebhookURL != "" {
 		log.Printf("Setting up webhook at %s", cfg.WebhookURL+"/telegram/webhook")

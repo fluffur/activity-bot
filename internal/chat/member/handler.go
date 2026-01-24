@@ -187,6 +187,17 @@ func (h *Handler) OnLeftMember(ctx context.Context, b *bot.Bot, update *models.U
 	}
 
 	if title != "" {
-		helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("🕊 %s в роли \"%s\" покинул нас...", helpers.FormatSilentMentionHTML(helpers.MapFromUserToModel(leftMember)), html.EscapeString(title)))
+		helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("🕊 %s c ролью \"%s\" покинул нас...", helpers.FormatSilentMentionHTML(helpers.MapFromUserToModel(leftMember)), html.EscapeString(title)))
 	}
+}
+
+func (h *Handler) OnBotPromote(ctx context.Context, b *bot.Bot, update *models.Update) {
+	chatID := update.MyChatMember.Chat.ID
+
+	count, err := helpers.UpdateChatMembers(ctx, b, h.service, chatID)
+	if err != nil {
+		log.Println("Failed to update chat members on join:", err)
+		return
+	}
+	log.Printf("Updated chat %d members on bot join, total %d members\n", chatID, count)
 }
