@@ -19,13 +19,17 @@ jobs:
           username: ${{ secrets.VDS_USER }}
           key: ${{ secrets.VDS_SSH_KEY }}
           script: |
-            echo "Creating database backup..."
-            TIMESTAMP=$(date +'%Y%m%d%H%M%S')
-            docker exec activity_db pg_dump -U postgres activity > /root/activity-bot/backups/activity_$TIMESTAMP.sql
-            echo "Backup saved as activity_$TIMESTAMP.sql"
-                  
             echo "Starting deployment..."
             cd /root/activity-bot
+
+            mkdir -p backups
+
+            find backups -type f -mtime +7 -name "*.sql" -delete
+
+            TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+            echo "Creating database backup..."
+            docker exec activity_db pg_dump -U postgres activity > backups/activity_$TIMESTAMP.sql
+            echo "Backup saved as backups/activity_$TIMESTAMP.sql"
 
             echo "Pull latest code..."
             git fetch --all
@@ -35,7 +39,7 @@ jobs:
             docker compose build
 
             echo "Run migrations..."
-            docker compose run --rm bot ./migrate
+            docker compose run --rm app ./migrate
 
             echo "Start containers..."
             docker compose up -d
