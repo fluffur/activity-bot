@@ -46,6 +46,6 @@ jobs:
             done
 
             echo "Run migrations..."
-            docker compose -f docker-compose.prod.yml exec app ./migrate
+            docker compose -f docker-compose.prod.yml exec app ./migrate up
 
             echo "Deployment finished!"
