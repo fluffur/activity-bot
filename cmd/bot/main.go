@@ -186,10 +186,7 @@ func main() {
 		go func() {
 			addr := fmt.Sprintf(":%d", cfg.HTTPPort)
 			mux := http.NewServeMux()
-			mux.Handle("/telegram/webhook", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				log.Println("Incoming webhook request")
-				b.WebhookHandler().ServeHTTP(w, r)
-			}))
+			mux.Handle("/telegram/webhook", b.WebhookHandler())
 			log.Printf("Starting webhook server on %s", addr)
 			if err := http.ListenAndServe(addr, mux); err != nil {
 				log.Fatal("Webhook server failed:", err)
