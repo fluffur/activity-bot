@@ -181,6 +181,7 @@ func main() {
 		if err != nil {
 			log.Fatal("SetWebhook failed:", err)
 		}
+		go b.StartWebhook(ctx)
 
 		go func() {
 			addr := fmt.Sprintf(":%d", cfg.HTTPPort)
