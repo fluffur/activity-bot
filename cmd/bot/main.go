@@ -163,6 +163,8 @@ func main() {
 	}
 
 	if cfg.WebhookURL != "" {
+		log.Printf("Setting up webhook at %s", cfg.WebhookURL+"/telegram/webhook")
+
 		_, err = b.SetWebhook(ctx, &bot.SetWebhookParams{
 			URL:         cfg.WebhookURL + "/telegram/webhook",
 			SecretToken: cfg.WebhookSecretToken,
