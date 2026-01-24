@@ -164,7 +164,7 @@ func main() {
 
 	if cfg.WebhookURL != "" {
 		_, err = b.SetWebhook(ctx, &bot.SetWebhookParams{
-			URL:         cfg.WebhookURL,
+			URL:         cfg.WebhookURL + "/telegram/webhook",
 			SecretToken: cfg.WebhookSecretToken,
 		})
 		if err != nil {
@@ -173,8 +173,11 @@ func main() {
 
 		go func() {
 			addr := fmt.Sprintf(":%d", cfg.HTTPPort)
+			mux := http.NewServeMux()
+			mux.Handle("/telegram/webhook", b.WebhookHandler())
+
 			log.Printf("Starting webhook server on %s", addr)
-			if err := http.ListenAndServe(addr, b.WebhookHandler()); err != nil {
+			if err := http.ListenAndServe(addr, mux); err != nil {
 				log.Fatal("Webhook server failed:", err)
 			}
 		}()
