@@ -36,14 +36,14 @@ func (h *Handler) ExemptMember(ctx context.Context, b *bot.Bot, update *models.U
 		UserID: update.Message.From.ID,
 	})
 	if err != nil {
-		helpers.AnswerMessage(ctx, b, update, "Не удалось проверить статус пользователя")
+		helpers.SendMessage(ctx, b, update, "Не удалось проверить статус пользователя")
 		return
 	}
 
 	text := update.Message.Text
 	matches := h.setExemptRe.FindStringSubmatch(text)
 	if len(matches) < 2 {
-		helpers.AnswerMessage(ctx, b, update, "Неверный формат команды")
+		helpers.SendMessage(ctx, b, update, "Неверный формат команды")
 		return
 	}
 	args := strings.TrimSpace(matches[2])
@@ -51,13 +51,13 @@ func (h *Handler) ExemptMember(ctx context.Context, b *bot.Bot, update *models.U
 	targetUser, restArg, err := helpers.ExtractTargetUser(ctx, h.userService, update, args)
 	if err != nil {
 		if !errors.Is(err, helpers.ErrUserNotSpecified) {
-			helpers.AnswerMessage(ctx, b, update, "Не удалось найти пользователя")
+			helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 			return
 		}
 
 		targetUser, err = h.userService.GetUser(ctx, update.Message.From.ID)
 		if err != nil {
-			helpers.AnswerMessage(ctx, b, update, "Не удалось установить рест")
+			helpers.SendMessage(ctx, b, update, "Не удалось установить рест")
 			return
 		}
 
@@ -70,13 +70,13 @@ func (h *Handler) ExemptMember(ctx context.Context, b *bot.Bot, update *models.U
 			h.ShowMemberExempt(ctx, b, update)
 			return
 		}
-		helpers.AnswerMessage(ctx, b, update,
+		helpers.SendMessage(ctx, b, update,
 			"Не понял формат. Примеры:\n+рест 12.01\n+рест 2 недели\n+рест месяц",
 		)
 		return
 	}
 	if date.Before(time.Now()) {
-		helpers.AnswerMessage(ctx, b, update, "Нельзя указывать прошедшую дату")
+		helpers.SendMessage(ctx, b, update, "Нельзя указывать прошедшую дату")
 		return
 	}
 
@@ -88,20 +88,20 @@ func (h *Handler) ExemptMember(ctx context.Context, b *bot.Bot, update *models.U
 	if senderMember.Owner == nil && !isAdmin {
 		if err := h.createExemptRequest(ctx, b, update, targetUser, date); err != nil {
 			log.Println("Failed to create exempt request", err)
-			helpers.AnswerMessage(ctx, b, update, "Не удалось создать заявку")
+			helpers.SendMessage(ctx, b, update, "Не удалось создать заявку")
 		}
 		return
 	}
 
 	if err := h.service.ExemptMember(ctx, update.Message.Chat.ID, targetUser.ID, date); err != nil {
-		helpers.AnswerMessage(ctx, b, update, "Не удалось создать рест")
+		helpers.SendMessage(ctx, b, update, "Не удалось создать рест")
 		return
 	}
 
 	if targetUser.ID == update.Message.From.ID {
-		helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Вы добавлены в рест до %s", helpers.FormatToHumanDate(date)))
+		helpers.SendMessage(ctx, b, update, fmt.Sprintf("Вы добавлены в рест до %s", helpers.FormatToHumanDate(date)))
 	} else {
-		helpers.AnswerMessage(ctx, b, update, fmt.Sprintf(`Пользователь %s добавлен в рест до %s`, helpers.FormatSilentMentionHTML(targetUser), helpers.FormatToHumanDate(date)))
+		helpers.SendMessage(ctx, b, update, fmt.Sprintf(`Пользователь %s добавлен в рест до %s`, helpers.Link(targetUser), helpers.FormatToHumanDate(date)))
 	}
 }
 
@@ -123,7 +123,7 @@ func (h *Handler) createExemptRequest(ctx context.Context, b *bot.Bot, update *m
 		ChatID: update.Message.Chat.ID,
 		Text: fmt.Sprintf(
 			"Для пользователя %s запрошен рест до %s",
-			helpers.FormatSilentMentionHTML(targetUser),
+			helpers.Link(targetUser),
 			helpers.FormatToHumanDate(date),
 		),
 		ParseMode:   "HTML",
@@ -136,26 +136,26 @@ func (h *Handler) ShowMemberExempt(ctx context.Context, b *bot.Bot, update *mode
 	targetUser, _, err := helpers.ExtractTargetUser(ctx, h.userService, update, "")
 	if err != nil {
 		if !errors.Is(err, helpers.ErrUserNotSpecified) {
-			helpers.AnswerMessage(ctx, b, update, "Не удалось найти пользователя")
+			helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 			return
 		}
 
 		targetUser, err = h.userService.GetUser(ctx, update.Message.From.ID)
 		if err != nil {
-			helpers.AnswerMessage(ctx, b, update, "Не удалось найти пользователя")
+			helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 			return
 		}
 	}
 
 	exempt, err := h.service.GetMemberExempt(ctx, update.Message.Chat.ID, targetUser.ID)
 	if err != nil || exempt == nil {
-		helpers.AnswerMessage(ctx, b, update, "Пользователь не находится в ресте")
+		helpers.SendMessage(ctx, b, update, "Пользователь не находится в ресте")
 		return
 	}
 
-	helpers.AnswerMessage(ctx, b, update,
+	helpers.SendMessage(ctx, b, update,
 		fmt.Sprintf(`Пользователь %s находится в ресте до %s`,
-			helpers.FormatSilentMentionHTML(targetUser),
+			helpers.Link(targetUser),
 			helpers.FormatToHumanDate(*exempt),
 		),
 	)
@@ -165,12 +165,12 @@ func (h *Handler) EndMemberExempt(ctx context.Context, b *bot.Bot, update *model
 	targetUser, _, err := helpers.ExtractTargetUser(ctx, h.userService, update, "")
 	if err != nil {
 		if !errors.Is(err, helpers.ErrUserNotSpecified) {
-			helpers.AnswerMessage(ctx, b, update, "Не удалось найти пользователя")
+			helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 			return
 		}
 		targetUser, err = h.userService.GetUser(ctx, update.Message.From.ID)
 		if err != nil {
-			helpers.AnswerMessage(ctx, b, update, "Не удалось найти пользователя")
+			helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 			return
 		}
 	}
@@ -180,42 +180,42 @@ func (h *Handler) EndMemberExempt(ctx context.Context, b *bot.Bot, update *model
 		UserID: update.Message.From.ID,
 	})
 	if err != nil {
-		helpers.AnswerMessage(ctx, b, update, "Не удалось проверить вашу роль в чате")
+		helpers.SendMessage(ctx, b, update, "Не удалось проверить вашу роль в чате")
 		return
 	}
 
 	if targetUser.ID != update.Message.From.ID && member.Owner == nil {
-		helpers.AnswerMessage(ctx, b, update, "Вы можете удалить из реста только себя")
+		helpers.SendMessage(ctx, b, update, "Вы можете удалить из реста только себя")
 		return
 	}
 
 	exempt, err := h.service.GetMemberExempt(ctx, update.Message.Chat.ID, targetUser.ID)
 	if err != nil {
 		log.Println("Get member exempt", err)
-		helpers.AnswerMessage(ctx, b, update, "Не удалось проверить рест пользователя")
+		helpers.SendMessage(ctx, b, update, "Не удалось проверить рест пользователя")
 		return
 	}
 	if exempt == nil {
 		if targetUser.ID == update.Message.From.ID {
-			helpers.AnswerMessage(ctx, b, update, "Вы не находитесь в ресте")
+			helpers.SendMessage(ctx, b, update, "Вы не находитесь в ресте")
 		} else {
-			helpers.AnswerMessage(ctx, b, update, "Пользователь не находится в ресте")
+			helpers.SendMessage(ctx, b, update, "Пользователь не находится в ресте")
 
 		}
 		return
 	}
 
 	if err := h.service.EndMemberExempt(ctx, update.Message.Chat.ID, targetUser.ID); err != nil {
-		helpers.AnswerMessage(ctx, b, update, "Не удалось удалить пользователя из реста")
+		helpers.SendMessage(ctx, b, update, "Не удалось удалить пользователя из реста")
 		return
 	}
 
 	if targetUser.ID == update.Message.From.ID {
-		helpers.AnswerMessage(ctx, b, update, "Вы успешно удалены из реста")
+		helpers.SendMessage(ctx, b, update, "Вы успешно удалены из реста")
 	} else {
-		helpers.AnswerMessage(ctx, b, update,
+		helpers.SendMessage(ctx, b, update,
 			fmt.Sprintf(`Пользователь %s успешно удалён из реста`,
-				helpers.FormatSilentMentionHTML(targetUser),
+				helpers.Link(targetUser),
 			),
 		)
 	}
@@ -250,7 +250,7 @@ func (h *Handler) ApproveExemptRequest(ctx context.Context, b *bot.Bot, update *
 
 	helpers.EditMessage(ctx, b, update,
 		fmt.Sprintf(`Запрос одобрен. У %s рест до %s`,
-			helpers.FormatSilentMentionHTML(u),
+			helpers.Link(u),
 			helpers.FormatToHumanDate(exemptRequest.ExemptUntil),
 		),
 	)
@@ -275,7 +275,7 @@ func (h *Handler) RejectExemptRequest(ctx context.Context, b *bot.Bot, update *m
 		return
 	}
 
-	helpers.EditMessage(ctx, b, update, fmt.Sprintf("Запрос на рест для %s отклонён", helpers.FormatSilentMentionHTML(u)))
+	helpers.EditMessage(ctx, b, update, fmt.Sprintf("Запрос на рест для %s отклонён", helpers.Link(u)))
 }
 
 func parseExemptRequestCallbackData(update *models.Update) (fromID int, messageID int, err error) {

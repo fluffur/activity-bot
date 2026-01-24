@@ -26,25 +26,25 @@ func (h *Handler) AddAdmin(ctx context.Context, b *bot.Bot, update *models.Updat
 		UserID: update.Message.From.ID,
 	})
 	if err != nil {
-		helpers.AnswerMessage(ctx, b, update, "Не удалось проверить ваши права")
+		helpers.SendMessage(ctx, b, update, "Не удалось проверить ваши права")
 		return
 	}
 	if member.Owner == nil {
-		helpers.AnswerMessage(ctx, b, update, "Только создатель чата может добавлять администраторов бота")
+		helpers.SendMessage(ctx, b, update, "Только создатель чата может добавлять администраторов бота")
 		return
 	}
 
 	targetUser, _, err := helpers.ExtractTargetUser(ctx, h.userService, update, "")
 	if err != nil {
-		helpers.AnswerMessage(ctx, b, update, "Не удалось найти пользователя")
+		helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 		return
 	}
 	if err := h.service.AddAdmin(ctx, update.Message.Chat.ID, targetUser.ID); err != nil {
-		helpers.AnswerMessage(ctx, b, update, "Не удалось добавить администратора")
+		helpers.SendMessage(ctx, b, update, "Не удалось добавить администратора")
 		return
 	}
 
-	helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Пользователь %s назначен администратором бота", helpers.FormatSilentMentionHTML(targetUser)))
+	helpers.SendMessage(ctx, b, update, fmt.Sprintf("Пользователь %s назначен администратором бота", helpers.Link(targetUser)))
 }
 
 func (h *Handler) RemoveAdmin(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -53,44 +53,44 @@ func (h *Handler) RemoveAdmin(ctx context.Context, b *bot.Bot, update *models.Up
 		UserID: update.Message.From.ID,
 	})
 	if err != nil {
-		helpers.AnswerMessage(ctx, b, update, "Не удалось проверить ваши права")
+		helpers.SendMessage(ctx, b, update, "Не удалось проверить ваши права")
 		return
 	}
 	if member.Owner == nil {
-		helpers.AnswerMessage(ctx, b, update, "Только создатель чата может удалять администраторов бота")
+		helpers.SendMessage(ctx, b, update, "Только создатель чата может удалять администраторов бота")
 		return
 	}
 
 	targetUser, _, err := helpers.ExtractTargetUser(ctx, h.userService, update, "")
 	if err != nil {
-		helpers.AnswerMessage(ctx, b, update, "Не удалось найти пользователя")
+		helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 		return
 	}
 
 	if err := h.service.RemoveAdmin(ctx, update.Message.Chat.ID, targetUser.ID); err != nil {
-		helpers.AnswerMessage(ctx, b, update, "Не удалось удалить администратора")
+		helpers.SendMessage(ctx, b, update, "Не удалось удалить администратора")
 		return
 	}
 
-	helpers.AnswerMessage(ctx, b, update, fmt.Sprintf("Пользователь %s удалён из администраторов бота", helpers.FormatSilentMentionHTML(targetUser)))
+	helpers.SendMessage(ctx, b, update, fmt.Sprintf("Пользователь %s удалён из администраторов бота", helpers.Link(targetUser)))
 }
 
 func (h *Handler) ListAdmins(ctx context.Context, b *bot.Bot, update *models.Update) {
 	admins, err := h.service.GetAdmins(ctx, update.Message.Chat.ID)
 	if err != nil {
-		helpers.AnswerMessage(ctx, b, update, "Не удалось получить список администраторов")
+		helpers.SendMessage(ctx, b, update, "Не удалось получить список администраторов")
 		return
 	}
 
 	if len(admins) == 0 {
-		helpers.AnswerMessage(ctx, b, update, "Список администраторов пуст")
+		helpers.SendMessage(ctx, b, update, "Список администраторов пуст")
 		return
 	}
 
 	var sb strings.Builder
 	sb.WriteString("👮 Администраторы бота:\n")
 	for i, admin := range admins {
-		sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, helpers.FormatSilentMentionHTML(admin)))
+		sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, helpers.Link(admin)))
 	}
-	helpers.AnswerMessage(ctx, b, update, sb.String())
+	helpers.SendMessage(ctx, b, update, sb.String())
 }

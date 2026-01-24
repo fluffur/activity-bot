@@ -16,7 +16,7 @@ func NewHandler() *Handler {
 }
 
 func (h *Handler) Start(ctx context.Context, b *bot.Bot, update *models.Update) {
-	helpers.AnswerMessage(ctx, b, update, "Привет! Я могу следить за еженедельной нормой сообщений в группе. Добавь меня в группу или введи команду /help.")
+	helpers.SendMessage(ctx, b, update, "Привет! Я могу следить за еженедельной нормой сообщений в группе. Добавь меня в группу или введи команду /help.")
 }
 
 func (h *Handler) Help(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -52,5 +52,5 @@ func (h *Handler) Help(ctx context.Context, b *bot.Bot, update *models.Update) {
 💡 Команды поддерживают префиксы !, /, ., + (например: !рест, /норма, .роль)
 `
 
-	helpers.AnswerMessage(ctx, b, update, helpText)
+	helpers.SendMessage(ctx, b, update, helpText)
 }

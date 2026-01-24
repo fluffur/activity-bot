@@ -2,6 +2,7 @@ package main
 
 import (
 	"activity-bot/internal/admin"
+	"activity-bot/internal/call"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chat/member"
 	"activity-bot/internal/config"
@@ -71,6 +72,7 @@ func main() {
 	showReportRe := regexp.MustCompile(`(?i)^(?:[!/.]\s*)?(отчёт|отчет|stats)\s*$`)
 	showRolesRe := regexp.MustCompile(`(?i)^(?:[!/.+]\s*)?(роли|roles)\s*$`)
 	setRoleRe := regexp.MustCompile(`(?i)^(?:[!/.+]\s*)?(роль|setrole)(?:\s+|$)`)
+	callRe := regexp.MustCompile(`(?i)^(?:/call|!калл|калл)(?:\s+(.*))?$`)
 
 	adminHandler := admin.NewHandler(adminService, userService)
 	chatHandler := chat.NewHandler(chatService, adminService, setNormRe)
@@ -79,6 +81,7 @@ func main() {
 	statsHandler := stats.NewHandler(statsService, exemptService, memberService)
 	helpHandler := help.NewHandler()
 	messageHandler := message.NewHandler(msgService)
+	callHandler := call.NewHandler(adminService, callRe)
 
 	b, err := bot.New(cfg.BotToken,
 		bot.WithMiddlewares(middleware.NewEnsureMemberExists(chatService, userService, memberService).Handle),
@@ -90,7 +93,7 @@ func main() {
 	b.RegisterHandler(bot.HandlerTypeMessageText, "start", bot.MatchTypeCommandStartOnly, helpHandler.Start)
 	b.RegisterHandler(bot.HandlerTypeMessageText, "help", bot.MatchTypeCommandStartOnly, helpHandler.Help)
 
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showNormRe, chatHandler.ShowNorm)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showNormRe, chatHandler.ShowNorm, middleware.OnlyGroups)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setNormRe, chatHandler.SetNorm, middleware.OnlyGroups)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showReportRe, statsHandler.ShowWeeklyReport, middleware.OnlyGroups)
 
@@ -106,10 +109,10 @@ func main() {
 
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, showRolesRe, memberHandler.ListRoles, middleware.OnlyGroups)
 	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, setRoleRe, memberHandler.SetRole, middleware.OnlyGroups)
+	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, callRe, callHandler.Call, middleware.OnlyGroups)
 
 	b.RegisterHandlerRegexp(bot.HandlerTypeCallbackQueryData, regexp.MustCompile(`^approve:\d+:\d+$`), exemptHandler.ApproveExemptRequest, middleware.OnlyGroups)
 	b.RegisterHandlerRegexp(bot.HandlerTypeCallbackQueryData, regexp.MustCompile(`^reject:\d+:\d+$`), exemptHandler.RejectExemptRequest, middleware.OnlyGroups)
-
 	b.RegisterHandlerMatchFunc(match.LeftMember, memberHandler.OnLeftMember, middleware.OnlyGroups)
 	b.RegisterHandlerMatchFunc(match.PromotedToAdministrator, memberHandler.OnBotPromote, middleware.OnlyGroups)
 	b.RegisterHandlerMatchFunc(match.Message, messageHandler.Message, middleware.OnlyGroups)

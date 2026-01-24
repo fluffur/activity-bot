@@ -8,7 +8,7 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-func AnswerMessage(ctx context.Context, b *bot.Bot, update *models.Update, text string) {
+func SendMessage(ctx context.Context, b *bot.Bot, update *models.Update, text string) {
 	isLinkPreviewDisabled := true
 	if _, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    update.Message.Chat.ID,

@@ -33,24 +33,24 @@ func (h *Handler) ShowWeeklyReport(ctx context.Context, b *bot.Bot, update *mode
 	report, err := h.service.GetMemberStats(ctx, update.Message.Chat.ID)
 	if err != nil {
 		log.Println("Get member stats error", err)
-		helpers.AnswerMessage(ctx, b, update, "Не удалось получить отчёт")
+		helpers.SendMessage(ctx, b, update, "Не удалось получить отчёт")
 		return
 	}
 
 	exemptMembers, err := h.exemptService.GetExemptMembers(ctx, update.Message.Chat.ID)
 	if err != nil {
 		log.Println("Get exempt members error", err)
-		helpers.AnswerMessage(ctx, b, update, "Не удалось получить отчёт")
+		helpers.SendMessage(ctx, b, update, "Не удалось получить отчёт")
 		return
 	}
 
 	if len(report) == 0 && len(exemptMembers) == 0 {
-		helpers.AnswerMessage(ctx, b, update, "Нет данных для отчёта на эту неделю")
+		helpers.SendMessage(ctx, b, update, "Нет данных для отчёта на эту неделю")
 		return
 	}
 
 	text := formatWeeklyReport(report, exemptMembers)
-	helpers.AnswerMessage(ctx, b, update, text)
+	helpers.SendMessage(ctx, b, update, text)
 }
 func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers []model.ExemptMember) string {
 	now := time.Now()
@@ -67,7 +67,7 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 	var passed, failed, rest []string
 
 	for _, r := range report {
-		line := fmt.Sprintf("%s — %d сообщений", helpers.FormatSilentMentionHTML(r.User), r.MessagesCount)
+		line := fmt.Sprintf("%s — %d сообщений", helpers.Link(r.User), r.MessagesCount)
 		if r.NormDone {
 			passed = append(passed, line)
 		} else {
@@ -82,7 +82,7 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 		} else {
 			untilText = "неизвестно"
 		}
-		line := fmt.Sprintf("%s до %s", helpers.FormatSilentMentionHTML(r.User), untilText)
+		line := fmt.Sprintf("%s до %s", helpers.Link(r.User), untilText)
 		rest = append(rest, line)
 	}
 	var totalMessages int32 = 0
