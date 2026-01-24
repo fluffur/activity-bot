@@ -144,6 +144,15 @@ func main() {
 			}
 		},
 	)
+	b.RegisterHandlerMatchFunc(
+		func(update *models.Update) bool {
+			return update.Message != nil
+		},
+		func(ctx context.Context, b *bot.Bot, update *models.Update) {
+			log.Println("Message text:", update.Message.Text)
+		},
+	)
+
 	commands := []models.BotCommand{
 		{Command: "help", Description: "Показать список всех команд"},
 		{Command: "stats", Description: "Получить еженедельный отчёт по активности"},
