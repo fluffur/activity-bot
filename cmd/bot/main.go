@@ -17,6 +17,7 @@ import (
 	"activity-bot/internal/stats"
 	"activity-bot/internal/user"
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -185,19 +186,42 @@ func main() {
 	dp.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))
 	dp.AddHandler(handlers.NewMyChatMember(chatmember.NewStatus("administrator"), memberHandler.OnBotPromote))
 
-	err = updater.StartPolling(b, &ext.PollingOpts{
-		DropPendingUpdates: true,
-		GetUpdatesOpts: &gotgbot.GetUpdatesOpts{
-			Timeout: 9,
-			RequestOpts: &gotgbot.RequestOpts{
-				Timeout: time.Second * 10,
+	if cfg.WebhookURL != "" {
+		webhookOpts := ext.WebhookOpts{
+			ListenAddr:  fmt.Sprintf("0.0.0.0:%d", cfg.HTTPPort),
+			SecretToken: cfg.WebhookSecretToken,
+		}
+
+		err = updater.StartWebhook(b, cfg.BotToken, webhookOpts)
+		if err != nil {
+			panic("failed to start webhook: " + err.Error())
+		}
+
+		err = updater.SetAllBotWebhooks(cfg.WebhookURL, &gotgbot.SetWebhookOpts{
+			MaxConnections:     100,
+			DropPendingUpdates: true,
+			SecretToken:        cfg.WebhookSecretToken,
+		})
+		if err != nil {
+			panic("failed to set webhook: " + err.Error())
+		}
+
+		slog.Info("Bot has been started with webhooks", "bot_username", b.User.Username, "url", cfg.WebhookURL, "port", cfg.HTTPPort)
+	} else {
+		err = updater.StartPolling(b, &ext.PollingOpts{
+			DropPendingUpdates: true,
+			GetUpdatesOpts: &gotgbot.GetUpdatesOpts{
+				Timeout: 9,
+				RequestOpts: &gotgbot.RequestOpts{
+					Timeout: time.Second * 10,
+				},
 			},
-		},
-	})
-	if err != nil {
-		panic("failed to start polling: " + err.Error())
+		})
+		if err != nil {
+			panic("failed to start polling: " + err.Error())
+		}
+		slog.Info("Bot has been started with long polling", "bot_username", b.User.Username)
 	}
-	slog.Info("Bot has been started...", "bot_username", b.User.Username)
 
 	updater.Idle()
 }
