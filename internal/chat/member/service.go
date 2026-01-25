@@ -17,15 +17,18 @@ func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Reposit
 	return &Service{repo, chatRepo, userRepo}
 }
 
-func (s *Service) SetMemberTitle(ctx context.Context, chatID int64, userID int64, title string) error {
+func (s *Service) SetMemberTitle(chatID int64, userID int64, title string) error {
+	ctx := context.Background()
 	return s.repo.UpdateCustomTitle(ctx, chatID, userID, title)
 }
 
-func (s *Service) GetMembersWithTitle(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
+func (s *Service) GetMembersWithTitle(chatID int64) ([]model.ChatMember, error) {
+	ctx := context.Background()
 	return s.repo.GetWithCustomTitles(ctx, chatID)
 }
 
-func (s *Service) GetMemberTitle(ctx context.Context, chatID int64, userID int64) (string, error) {
+func (s *Service) GetMemberTitle(chatID int64, userID int64) (string, error) {
+	ctx := context.Background()
 	return s.repo.GetCustomTitle(ctx, chatID, userID)
 }
 
@@ -48,7 +51,8 @@ func (s *Service) UpdateChatMembers(chatID int64, members []model.ChatMemberUpda
 	return s.repo.UpsertChatMembers(ctx, chatID, members)
 }
 
-func (s *Service) ProcessLeftMember(ctx context.Context, chatID int64, userID int64) (string, error) {
+func (s *Service) ProcessLeftMember(chatID int64, userID int64) (string, error) {
+	ctx := context.Background()
 	member, err := s.repo.Get(ctx, chatID, userID)
 	if err != nil {
 		return "", err

@@ -10,6 +10,7 @@ import (
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/exempt"
 	"activity-bot/internal/help"
+	msg "activity-bot/internal/message"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/user"
 	"context"
@@ -21,6 +22,9 @@ import (
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/chatmember"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/message"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -61,6 +65,7 @@ func main() {
 	userRepository := postgres.NewUserRepository(queries)
 	chatRepository := postgres.NewChatRepository(queries)
 	adminRepository := postgres.NewAdminRepository(queries)
+	messageRepository := postgres.NewMessageRepository(queries)
 
 	statsService := stats.NewService(statsRepository)
 	exemptService := exempt.NewService(exemptRepository)
@@ -68,7 +73,7 @@ func main() {
 	userService := user.NewService(userRepository)
 	memberService := member.NewService(memberRepository, chatRepository, userRepository)
 	adminService := admin.NewService(adminRepository)
-
+	messageService := msg.NewService(messageRepository)
 	cb := command.NewBuilder(userService)
 
 	helpHandler := help.NewHandler()
@@ -76,7 +81,8 @@ func main() {
 	chatHandler := chat.NewHandler(chatService, adminService)
 	exemptHandler := exempt.NewHandler(exemptService, userService, adminService, exempt.NewDateParser())
 	adminHandler := admin.NewHandler(adminService, userService)
-
+	messageHandler := msg.NewHandler(messageService)
+	memberHandler := member.NewHandler(memberService, userService, adminService)
 	dp.AddHandler(cb.New("start", helpHandler.Start))
 	dp.AddHandler(cb.New("help", helpHandler.Help))
 	dp.AddHandler(cb.New("stats", statsHandler.ShowStats).
@@ -127,6 +133,32 @@ func main() {
 		SetAliases("-админ", "-admin", "-адм", "-модер", "-mod").
 		SetTriggers("/", ".", "!", "+", ""),
 	)
+
+	dp.AddHandler(cb.New("обновить чат", memberHandler.UpdateMembersList).
+		SetAliases("update chat", "update"),
+	)
+
+	dp.AddHandler(cb.New("роль", memberHandler.ShowRole).
+		SetAliases("role", "title"),
+	)
+
+	dp.AddHandler(cb.New("роль", memberHandler.SetRole).
+		SetAliases("role", "title").
+		SetTriggers("/", ".", "!", "+").
+		AllowArgs(true).
+		SetMaxArgs(1),
+	)
+
+	dp.AddHandler(cb.New("роли", memberHandler.ListRoles).
+		SetAliases("roles", "titles"),
+	)
+
+	dp.AddHandler(handlers.NewMessage(message.Text, messageHandler.Message))
+	dp.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))
+	dp.AddHandler(handlers.NewMyChatMember(
+		chatmember.NewStatus("administrator"), memberHandler.OnBotPromote),
+	)
+
 	err = updater.StartPolling(b, &ext.PollingOpts{
 		DropPendingUpdates: true,
 		GetUpdatesOpts: &gotgbot.GetUpdatesOpts{

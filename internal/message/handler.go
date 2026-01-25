@@ -1,11 +1,10 @@
 package message
 
 import (
-	"context"
 	"log"
 
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type Handler struct {
@@ -16,9 +15,10 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service}
 }
 
-func (h *Handler) Message(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if err := h.service.Save(ctx, update.Message.Chat.ID, update.Message.From); err != nil {
+func (h *Handler) Message(b *gotgbot.Bot, ctx *ext.Context) error {
+	if err := h.service.Save(ctx.EffectiveChat.Id, ctx.EffectiveUser.Id); err != nil {
 		log.Println("Error", err)
-		return
+		return err
 	}
+	return nil
 }
