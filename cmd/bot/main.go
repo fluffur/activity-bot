@@ -94,17 +94,20 @@ func main() {
 
 	dp.AddHandler(cb.New("exempt", exemptHandler.Show).
 		SetAliases("рест", "rest", "рэст").
+		FallbackToSender(true).
 		SetTriggers("/", ".", "!", "+"),
 	)
 
 	dp.AddHandler(cb.New("exempt", exemptHandler.Set).
 		SetAliases("рест", "rest", "рэст").
+		FallbackToSender(true).
 		SetTriggers("/", ".", "!", "+").
 		AllowArgs(true).
 		SetMaxArgs(1),
 	)
 
 	dp.AddHandler(cb.New("-exempt", exemptHandler.End).
+		FallbackToSender(true).
 		SetAliases("-рест", "-rest", "-рэст").
 		SetTriggers("/", ".", "!", ""),
 	)

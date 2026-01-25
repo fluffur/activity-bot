@@ -29,29 +29,36 @@ func (b *Builder) New(c string, r Response, aliases ...string) Command {
 }
 
 type Command struct {
-	Command         string
-	Triggers        []string
-	Aliases         []string
-	Response        Response
-	MaxArgs         int
-	userService     UserService
-	allowArgs       bool
-	requireTriggers bool
+	Command          string
+	Triggers         []string
+	Aliases          []string
+	Response         Response
+	MaxArgs          int
+	userService      UserService
+	allowArgs        bool
+	requireTriggers  bool
+	fallbackToSender bool
 }
 
 func NewCommand(c string, r Response, service UserService, aliases ...string) Command {
 	return Command{
-		Command:         strings.ToLower(c),
-		Triggers:        []string{"/", "!", ".", ""},
-		Aliases:         aliases,
-		Response:        r,
-		userService:     service,
-		requireTriggers: true,
+		Command:          strings.ToLower(c),
+		Triggers:         []string{"/", "!", ".", ""},
+		Aliases:          aliases,
+		Response:         r,
+		userService:      service,
+		requireTriggers:  true,
+		fallbackToSender: false,
 	}
 }
 
 func (c Command) RequireTriggers(require bool) Command {
 	c.requireTriggers = require
+	return c
+}
+
+func (c Command) FallbackToSender(fallback bool) Command {
+	c.fallbackToSender = fallback
 	return c
 }
 
@@ -86,14 +93,15 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	return false
 }
 func (c Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
-	return c.Response(b, ctx, c.parseArgs(b, ctx.Message))
+	return c.Response(b, ctx, c.parseArgs(b, ctx))
 }
 
 func (c Command) ensureUser(u *gotgbot.User) (model.User, error) {
 	return c.userService.EnsureUserExists(u.Id, u.Username, u.FirstName, u.LastName)
 
 }
-func (c Command) parseArgs(b *gotgbot.Bot, msg *gotgbot.Message) *Context {
+func (c Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
+	msg := ctx.Message
 	text := msg.GetText()
 	textRunes := []rune(text)
 
@@ -136,6 +144,15 @@ func (c Command) parseArgs(b *gotgbot.Bot, msg *gotgbot.Message) *Context {
 				log.Println("Ensure user from username mention exists", err)
 			}
 			removeRanges = append(removeRanges, [2]int{start, end})
+		}
+	}
+
+	if c.fallbackToSender && len(usersMap) == 0 {
+		u, err := c.userService.EnsureUserExists(ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
+		if err != nil {
+			log.Println("Show EnsureUserExists failed", err)
+		} else {
+			usersMap[u.ID] = &u
 		}
 	}
 

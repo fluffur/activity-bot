@@ -31,19 +31,7 @@ func NewHandler(service *Service, userService *user.Service, adminService *admin
 }
 
 func (h *Handler) Set(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-
-	var targetUser *model.User
-	if len(cctx.Users) < 1 {
-		u, err := h.userService.EnsureUserExists(ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
-		if err != nil {
-			log.Println("Show EnsureUserExists failed", err)
-			return err
-		}
-		targetUser = &u
-
-	} else {
-		targetUser = cctx.Users[0]
-	}
+	targetUser := cctx.Users[0]
 
 	if len(cctx.Args) < 1 {
 		_, err := ctx.EffectiveMessage.Reply(b, "Вы забыли указать срок реста, попробуйте написать +рест 2 недели в ответ пользователю", nil)
@@ -115,18 +103,7 @@ func (h *Handler) createExemptRequest(b *gotgbot.Bot, ctx *ext.Context, targetUs
 }
 
 func (h *Handler) Show(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	var targetUser *model.User
-	if len(cctx.Users) < 1 {
-		u, err := h.userService.EnsureUserExists(ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
-		if err != nil {
-			log.Println("Show EnsureUserExists failed", err)
-			return err
-		}
-		targetUser = &u
-
-	} else {
-		targetUser = cctx.Users[0]
-	}
+	targetUser := cctx.Users[0]
 
 	exempt, err := h.service.GetMemberExempt(ctx.EffectiveChat.Id, targetUser.ID)
 	if err != nil || exempt == nil {
@@ -152,17 +129,7 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 }
 
 func (h *Handler) End(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	var targetUser *model.User
-	if len(cctx.Users) < 1 {
-		u, err := h.userService.EnsureUserExists(ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
-		if err != nil {
-			log.Println("Show EnsureUserExists failed", err)
-			return err
-		}
-		targetUser = &u
-	} else {
-		targetUser = cctx.Users[0]
-	}
+	targetUser := cctx.Users[0]
 
 	if targetUser.ID != ctx.EffectiveUser.Id && !helpers.IsSenderAdmin(b, ctx, h.adminService) {
 		_, err := ctx.EffectiveMessage.Reply(b, "Вы можете удалить из реста только себя", nil)
