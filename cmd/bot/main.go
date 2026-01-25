@@ -2,6 +2,7 @@ package main
 
 import (
 	"activity-bot/internal/admin"
+	"activity-bot/internal/call"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chat/member"
 	"activity-bot/internal/command"
@@ -83,6 +84,7 @@ func main() {
 	adminHandler := admin.NewHandler(adminService, userService)
 	messageHandler := msg.NewHandler(messageService)
 	memberHandler := member.NewHandler(memberService, userService, adminService)
+	callHandler := call.NewHandler(adminService)
 	dp.AddHandler(cb.New("start", helpHandler.Start))
 	dp.AddHandler(cb.New("help", helpHandler.Help))
 	dp.AddHandler(cb.New("stats", statsHandler.ShowStats).
@@ -151,6 +153,12 @@ func main() {
 
 	dp.AddHandler(cb.New("роли", memberHandler.ListRoles).
 		SetAliases("roles", "titles"),
+	)
+
+	dp.AddHandler(cb.New("call", callHandler.Call).
+		SetAliases("калл", "колл").
+		AllowArgs(true).
+		SetMaxArgs(1),
 	)
 
 	dp.AddHandler(handlers.NewMessage(message.Text, messageHandler.Message))
