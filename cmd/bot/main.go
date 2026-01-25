@@ -12,15 +12,13 @@ import (
 	"activity-bot/internal/exempt"
 	"activity-bot/internal/filters"
 	"activity-bot/internal/help"
+	"activity-bot/internal/logger"
 	msg "activity-bot/internal/message"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/user"
 	"context"
 	"log/slog"
 	"time"
-
-	"log"
-	"os"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
@@ -39,7 +37,7 @@ func main() {
 		panic("Config load failed: " + err.Error())
 	}
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger.Init(cfg.Debug)
 
 	b, err := gotgbot.NewBot(cfg.BotToken, &gotgbot.BotOpts{})
 	if err != nil {
@@ -55,7 +53,7 @@ func main() {
 
 	dp := ext.NewDispatcher(&ext.DispatcherOpts{
 		Error: func(b *gotgbot.Bot, ctx *ext.Context, err error) ext.DispatcherAction {
-			log.Println("an error occurred while handling update:", err.Error())
+			slog.Error("an error occurred while handling update", "error", err)
 			return ext.DispatcherActionNoop
 		},
 		MaxRoutines: ext.DefaultMaxRoutines,
@@ -199,7 +197,7 @@ func main() {
 	if err != nil {
 		panic("failed to start polling: " + err.Error())
 	}
-	logger.Info("Bot has been started...", "bot_username", b.User.Username)
+	slog.Info("Bot has been started...", "bot_username", b.User.Username)
 
 	updater.Idle()
 }

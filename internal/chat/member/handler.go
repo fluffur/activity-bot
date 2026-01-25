@@ -7,7 +7,7 @@ import (
 	"activity-bot/internal/user"
 	"fmt"
 	"html"
-	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -27,7 +27,7 @@ func NewHandler(service *Service, userService *user.Service, adminService *admin
 func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
 	count, err := UpdateChatMembers(b, h.service, ctx.EffectiveChat.Id)
 	if err != nil {
-		log.Println("Update chat members error", err)
+		slog.Error("failed to update chat members", "chat_id", ctx.EffectiveChat.Id, "error", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось обновить данные чата", nil)
 		return err
 	}
@@ -39,7 +39,7 @@ func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *ext.Context, _ *command
 func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
 	members, err := h.service.GetMembersWithTitle(ctx.EffectiveChat.Id)
 	if err != nil {
-		log.Println("Exists members error", err)
+		slog.Error("failed to get members with titles", "chat_id", ctx.EffectiveChat.Id, "error", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить список ролей", nil)
 		return err
 	}
@@ -99,7 +99,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 			return err
 		}
 		if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, targetUser.ID, role, nil); err != nil {
-			log.Println("Telegram set custom title error", err)
+			slog.Error("failed to set custom title in Telegram", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 			_, err := ctx.EffectiveMessage.Reply(b, "Не удалось изменить роль в Telegram", nil)
 
 			return err
@@ -110,13 +110,13 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 			CanPostMessages: true,
 			CanEditMessages: true,
 		}); err != nil || !ok {
-			log.Println("Telegram promote error", err)
+			slog.Error("failed to promote member in Telegram", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 			_, err := ctx.EffectiveMessage.Reply(b, "Не удалось назначить пользователя администратором. Проверьте права бота.", nil)
 			return err
 		}
 
 		if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, targetUser.ID, role, nil); err != nil {
-			log.Println("Telegram set custom title error", err)
+			slog.Error("failed to set custom title for new administrator in Telegram", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 			_, err := ctx.EffectiveMessage.Reply(b, "Пользовтель назначен администратором, но не удалось изменить роль", nil)
 
 			return err
@@ -129,7 +129,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 	}
 
 	if err := h.service.SetMemberTitle(ctx.EffectiveChat.Id, targetUser.ID, role); err != nil {
-		log.Println("DB set custom title error", err)
+		slog.Error("failed to set custom title in DB", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Роль в Telegram изменена, но не удалось сохранить у бота, можно попробовать !обновить чат", nil)
 
 		return err
@@ -154,7 +154,7 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Conte
 	targetUser := cctx.Users[0]
 	mTitle, err := h.service.GetMemberTitle(ctx.EffectiveChat.Id, targetUser.ID)
 	if err != nil {
-		log.Println("DB get custom title error", err)
+		slog.Error("failed to get custom title from DB", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось получить роль пользователя", nil)
 		return err
 	}
@@ -184,9 +184,9 @@ func (h *Handler) OnJoinMember(_ *gotgbot.Bot, ctx *ext.Context) error {
 		if u.IsBot {
 			continue
 		}
-		log.Println("Joined member", u.Id)
+		slog.Info("member joined", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id)
 		if _, err := h.service.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName); err != nil {
-			log.Println("Process left member error", err)
+			slog.Error("failed to ensure joined member exists", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id, "error", err)
 			return err
 		}
 	}
@@ -200,12 +200,12 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 		return nil
 	}
 	if _, err := h.service.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName); err != nil {
-		log.Println("Ensure member exists error", err)
+		slog.Error("failed to ensure left member exists", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id, "error", err)
 		return err
 	}
 	title, err := h.service.ProcessLeftMember(ctx.EffectiveChat.Id, u.Id)
 	if err != nil {
-		log.Println("Process left member error", err)
+		slog.Error("failed to process left member", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id, "error", err)
 		return err
 	}
 
@@ -224,9 +224,9 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 func (h *Handler) OnBotPromote(b *gotgbot.Bot, ctx *ext.Context) error {
 	count, err := UpdateChatMembers(b, h.service, ctx.EffectiveChat.Id)
 	if err != nil {
-		log.Println("Failed to update chat members on join:", err)
+		slog.Error("failed to update chat members on bot promote", "chat_id", ctx.EffectiveChat.Id, "error", err)
 		return err
 	}
-	log.Printf("Updated chat %d members on bot join, total %d members\n", ctx.EffectiveChat.Id, count)
+	slog.Info("updated chat members on bot join", "chat_id", ctx.EffectiveChat.Id, "count", count)
 	return nil
 }

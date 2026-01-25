@@ -5,7 +5,7 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/user"
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -29,7 +29,7 @@ func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Conte
 
 	targetUser := cctx.Users[0]
 	if err := h.service.AddAdmin(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
-		log.Println("AddAdmin AddAdmin", err)
+		slog.Error("failed to add admin", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось добавить администратора", nil)
 		return err
 	}
@@ -54,7 +54,7 @@ func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Co
 
 	isAdmin, err := h.service.IsAdmin(ctx.EffectiveChat.Id, targetUser.ID)
 	if err != nil {
-		log.Println("RemoveAdmin IsAdmin", err)
+		slog.Error("failed to check admin status", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось проверить статус пользователя", nil)
 
 		return err
@@ -67,7 +67,7 @@ func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Co
 	}
 
 	if err := h.service.RemoveAdmin(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
-		log.Println("RemoveAdmin", err)
+		slog.Error("failed to remove admin", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 		_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s удалён из администраторов бота", helpers.Link(*targetUser)), nil)
 
 		return err
@@ -86,7 +86,7 @@ func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Co
 func (h *Handler) ListAdmins(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
 	admins, err := h.service.GetAdmins(ctx.EffectiveChat.Id)
 	if err != nil {
-		log.Println("ListAdmins GetAdmins", err)
+		slog.Error("failed to list admins", "chat_id", ctx.EffectiveChat.Id, "error", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить список администраторов", nil)
 		return err
 	}

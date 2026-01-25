@@ -9,7 +9,7 @@ import (
 	"activity-bot/internal/user"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -60,7 +60,7 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) e
 	}
 
 	if err := h.service.ExemptMember(ctx.EffectiveChat.Id, targetUser.ID, date); err != nil {
-		log.Println("Set", err)
+		slog.Error("failed to exempt member", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось создать рест", nil)
 		return err
 	}
@@ -101,9 +101,9 @@ func (h *Handler) createExemptRequest(b *gotgbot.Bot, ctx *ext.Context, targetUs
 		return err
 	}
 
-	log.Println(msg.MessageId)
+	slog.Info("exempt requested", "message_id", msg.MessageId)
 	if err := h.service.CreateExemptRequest(ctx.EffectiveChat.Id, targetUser.ID, msg.MessageId, date); err != nil {
-		log.Println("CreateExemptRequest", err)
+		slog.Error("failed to create exempt request", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "message_id", msg.MessageId, "error", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось создать заявку", nil)
 
 		return err
@@ -158,7 +158,7 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) e
 
 	exempt, err := h.service.GetMemberExempt(ctx.EffectiveChat.Id, targetUser.ID)
 	if err != nil {
-		log.Println("Exists member exempt", err)
+		slog.Error("failed to check member exempt status", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось проверить рест пользователя", nil)
 		return err
 	}
@@ -200,7 +200,7 @@ func (h *Handler) ApproveExemptRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 	fromID, err := parseExemptRequestCallbackData(ctx.CallbackQuery.Data)
 	exemptRequest, err := h.service.GetExemptRequest(ctx.EffectiveChat.Id, fromID, ctx.EffectiveMessage.MessageId)
 	if err != nil {
-		log.Println("Exempt request not found", err)
+		slog.Error("exempt request not found during approval", "chat_id", ctx.EffectiveChat.Id, "user_id", fromID, "message_id", ctx.EffectiveMessage.MessageId, "error", err)
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не найден запрос на рест",
 		})
@@ -216,7 +216,7 @@ func (h *Handler) ApproveExemptRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 	}
 
 	if err := h.service.ApproveExemptRequest(ctx.EffectiveChat.Id, fromID, ctx.EffectiveMessage.MessageId, exemptRequest.ExemptUntil); err != nil {
-		log.Println("Failed to approve exempt request", err)
+		slog.Error("failed to approve exempt request", "chat_id", ctx.EffectiveChat.Id, "user_id", fromID, "message_id", ctx.EffectiveMessage.MessageId, "error", err)
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не удалось одобрить запрос",
 		})
@@ -224,7 +224,7 @@ func (h *Handler) ApproveExemptRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 	}
 	u, err := h.userService.GetUser(fromID)
 	if err != nil {
-		log.Println("ApproveExemptRequest GetUser", err)
+		slog.Error("failed to get user during exempt approval", "user_id", fromID, "error", err)
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не удалось найти пользователя",
 		})
@@ -247,7 +247,7 @@ func (h *Handler) RejectExemptRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 	fromID, err := parseExemptRequestCallbackData(ctx.CallbackQuery.Data)
 	exemptRequest, err := h.service.GetExemptRequest(ctx.EffectiveChat.Id, fromID, ctx.EffectiveMessage.MessageId)
 	if err != nil {
-		log.Println("Exempt request not found", err)
+		slog.Error("exempt request not found during rejection", "chat_id", ctx.EffectiveChat.Id, "user_id", fromID, "message_id", ctx.EffectiveMessage.MessageId, "error", err)
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не найден запрос на рест",
 		})
@@ -261,7 +261,7 @@ func (h *Handler) RejectExemptRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 
 	}
-	log.Println(ctx.EffectiveMessage.MessageId)
+	slog.Info("rejecting exempt request", "message_id", ctx.EffectiveMessage.MessageId)
 	if err := h.service.RejectExemptRequest(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id(), ctx.EffectiveMessage.MessageId); err != nil {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не удалось отклонить запрос",

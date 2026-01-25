@@ -12,6 +12,7 @@ type Config struct {
 	WebhookURL         string `env:"WEBHOOK_URL"`
 	WebhookSecretToken string `env:"WEBHOOK_SECRET_TOKEN"`
 	HTTPPort           int    `env:"HTTP_PORT" envDefault:"8080"`
+	Debug              bool   `env:"DEBUG" envDefault:"false"`
 }
 
 func Load() (Config, error) {

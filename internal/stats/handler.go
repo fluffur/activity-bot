@@ -7,7 +7,7 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -27,12 +27,12 @@ func NewHandler(service *Service, exemptService *exempt.Service, memberService *
 
 func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
 	if _, err := member.UpdateChatMembers(b, h.memberService, ctx.EffectiveChat.Id); err != nil {
-		log.Println("Auto-update chat members error", err)
+		slog.Warn("failed to auto-update chat members in stats", "chat_id", ctx.EffectiveChat.Id, "error", err)
 	}
 
 	report, err := h.service.GetMemberStats(ctx.EffectiveChat.Id)
 	if err != nil {
-		log.Println("Exists member stats error", err)
+		slog.Error("failed to get member stats for report", "chat_id", ctx.EffectiveChat.Id, "error", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить отчёт", nil)
 		return err
 
@@ -40,7 +40,7 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context
 
 	exemptMembers, err := h.exemptService.GetExemptMembers(ctx.EffectiveChat.Id)
 	if err != nil {
-		log.Println("Exists exempt members error", err)
+		slog.Error("failed to get exempt members for report", "chat_id", ctx.EffectiveChat.Id, "error", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить отчёт", nil)
 		return err
 	}
