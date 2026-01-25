@@ -56,3 +56,17 @@ func (r *AdminRepository) IsAdmin(ctx context.Context, chatID int64, userID int6
 		UserID: userID,
 	})
 }
+
+func (r *AdminRepository) IsCreator(ctx context.Context, chatID int64, userID int64) (bool, error) {
+	return r.queries.IsChatCreator(ctx, db.IsChatCreatorParams{
+		ChatID: chatID,
+		UserID: userID,
+	})
+}
+
+func (r *AdminRepository) GetRole(ctx context.Context, chatID int64, userID int64) (string, error) {
+	return r.queries.GetChatMemberRole(ctx, db.GetChatMemberRoleParams{
+		ChatID: chatID,
+		UserID: userID,
+	})
+}

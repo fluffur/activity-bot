@@ -72,6 +72,7 @@ func (r *MemberRepository) FindByChatID(ctx context.Context, chatID int64) ([]mo
 			ChatID:      chatID,
 			ExemptUntil: exemptUntil,
 			CustomTitle: m.CustomTitle.String,
+			Role:        m.Role,
 		}
 	}
 
@@ -99,6 +100,7 @@ func (r *MemberRepository) GetWithCustomTitles(ctx context.Context, chatID int64
 				ID:        m.UserID,
 			},
 			CustomTitle: m.CustomTitle.String,
+			Role:        m.Role,
 		}
 	}
 	return res, nil
@@ -107,15 +109,18 @@ func (r *MemberRepository) GetWithCustomTitles(ctx context.Context, chatID int64
 func (r *MemberRepository) UpsertChatMembers(ctx context.Context, chatID int64, users []model.ChatMemberUpdate) error {
 	userIDs := make([]int64, len(users))
 	customTitles := make([]string, len(users))
+	roles := make([]string, len(users))
 	for i, u := range users {
 		userIDs[i] = u.User.ID
 		customTitles[i] = u.CustomTitle
+		roles[i] = u.Role
 	}
 
-	return r.queries.UpsertChatMembers(ctx, db.UpsertChatMembersParams{
+	return r.queries.UpsertChatMembersWithRole(ctx, db.UpsertChatMembersWithRoleParams{
 		ChatID:       chatID,
 		UserIds:      userIDs,
 		CustomTitles: customTitles,
+		Roles:        roles,
 	})
 }
 
@@ -138,10 +143,37 @@ func (r *MemberRepository) Remove(ctx context.Context, chatID int64, userID int6
 	})
 }
 
-func (r *MemberRepository) EnsureExists(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error) {
+func (r *MemberRepository) EnsureExists(ctx context.Context, chatID int64, userID int64, role string) (model.ChatMember, error) {
 	m, err := r.queries.EnsureChatMemberExists(ctx, db.EnsureChatMemberExistsParams{
 		ChatID: chatID,
 		UserID: userID,
+		Role:   role,
+	})
+	if err != nil {
+		return model.ChatMember{}, err
+	}
+
+	return mapChatMember(m), nil
+}
+
+func (r *MemberRepository) EnsureFull(ctx context.Context, chatID int64, userID int64, role string, firstName, lastName string, username string, weeklyNorm int32) (model.ChatMember, error) {
+	m, err := r.queries.EnsureMemberFull(ctx, db.EnsureMemberFullParams{
+		Role:       role,
+		ChatID:     chatID,
+		WeeklyNorm: weeklyNorm,
+		UserID:     userID,
+		Username: pgtype.Text{
+			String: username,
+			Valid:  username != "",
+		},
+		FirstName: pgtype.Text{
+			String: firstName,
+			Valid:  firstName != "",
+		},
+		LastName: pgtype.Text{
+			String: lastName,
+			Valid:  lastName != "",
+		},
 	})
 	if err != nil {
 		return model.ChatMember{}, err
@@ -161,6 +193,7 @@ func mapChatMember(m db.ChatMember) model.ChatMember {
 		User:        model.User{ID: m.UserID},
 		ExemptUntil: exemptUntil,
 		CustomTitle: m.CustomTitle.String,
+		Role:        m.Role,
 	}
 }
 
@@ -184,5 +217,6 @@ func mapChatMemberRow(m db.GetChatMemberRow) model.ChatMember {
 		},
 		ExemptUntil: exemptUntil,
 		CustomTitle: m.CustomTitle.String,
+		Role:        m.Role,
 	}
 }

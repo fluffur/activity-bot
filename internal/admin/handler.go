@@ -22,6 +22,11 @@ func NewHandler(service *Service, userService *user.Service) *Handler {
 }
 
 func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	if len(cctx.Users) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота. Попробуйте упомянуть его через ответ на сообщение или дождитесь, пока он напишет что-нибудь.", nil)
+		return err
+	}
+
 	targetUser := cctx.Users[0]
 	if err := h.service.AddAdmin(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
 		log.Println("AddAdmin AddAdmin", err)
@@ -40,8 +45,9 @@ func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Conte
 }
 
 func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	if len(cctx.Users) < 1 {
-		return nil
+	if len(cctx.Users) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота.", nil)
+		return err
 	}
 
 	targetUser := cctx.Users[0]

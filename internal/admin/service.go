@@ -32,3 +32,13 @@ func (s *Service) IsAdmin(chatID int64, userID int64) (bool, error) {
 	ctx := context.Background()
 	return s.repo.IsAdmin(ctx, chatID, userID)
 }
+
+func (s *Service) IsCreator(chatID int64, userID int64) (bool, error) {
+	ctx := context.Background()
+	return s.repo.IsCreator(ctx, chatID, userID)
+}
+
+func (s *Service) GetRole(chatID int64, userID int64) (string, error) {
+	ctx := context.Background()
+	return s.repo.GetRole(ctx, chatID, userID)
+}

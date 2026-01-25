@@ -32,6 +32,7 @@ func UpdateChatMembers(b *gotgbot.Bot, service ChatMemberService, chatID int64) 
 				Username:  &chatUser.User.Username,
 			},
 			CustomTitle: chatUser.CustomTitle,
+			Role:        admin.GetStatus(),
 		})
 	}
 

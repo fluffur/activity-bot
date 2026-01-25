@@ -11,28 +11,33 @@ func IsSenderAdmin(b *gotgbot.Bot, ctx *ext.Context, adminService AdminService) 
 	return IsUserAdmin(b, adminService, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
 }
 
-func IsSenderCreator(b *gotgbot.Bot, ctx *ext.Context) bool {
-	return IsUserCreator(b, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+func IsSenderCreator(b *gotgbot.Bot, ctx *ext.Context, adminService AdminService) bool {
+	return IsUserCreator(b, adminService, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
 }
 
 func IsUserAdmin(b *gotgbot.Bot, adminService AdminService, chatID, userID int64) bool {
-	if IsUserCreator(b, chatID, userID) {
+	if IsUserCreator(b, adminService, chatID, userID) {
 		return true
 	}
+
 	isAdmin, err := adminService.IsAdmin(chatID, userID)
 	if err != nil {
-		log.Println("IsAdmin", err)
-
+		log.Println("IsBotAdmin check failed", err)
 		return false
 	}
 
 	return isAdmin
 }
 
-func IsUserCreator(b *gotgbot.Bot, chatID, userID int64) bool {
+func IsUserCreator(b *gotgbot.Bot, adminService AdminService, chatID, userID int64) bool {
+	role, err := adminService.GetRole(chatID, userID)
+	if err == nil {
+		return role == "creator"
+	}
+
 	senderMember, err := b.GetChatMember(chatID, userID, nil)
 	if err != nil {
-		log.Println("GetChatMember", err)
+		log.Println("GetChatMember fallback check failed", err)
 		return false
 	}
 

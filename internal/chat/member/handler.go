@@ -66,6 +66,11 @@ func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context
 }
 
 func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	if len(cctx.Users) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота. Попробуйте упомянуть его через ответ на сообщение или дождитесь, пока он напишет что-нибудь.", nil)
+		return err
+	}
+
 	role := cctx.Args[0]
 	targetUser := cctx.Users[0]
 
@@ -141,6 +146,11 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 }
 
 func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	if len(cctx.Users) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота.", nil)
+		return err
+	}
+
 	targetUser := cctx.Users[0]
 	mTitle, err := h.service.GetMemberTitle(ctx.EffectiveChat.Id, targetUser.ID)
 	if err != nil {
@@ -186,8 +196,11 @@ func (h *Handler) OnJoinMember(_ *gotgbot.Bot, ctx *ext.Context) error {
 
 func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 	u := ctx.Message.LeftChatMember
+	if u.IsBot {
+		return nil
+	}
 	if _, err := h.service.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName); err != nil {
-		log.Println("Process left member error", err)
+		log.Println("Ensure member exists error", err)
 		return err
 	}
 	title, err := h.service.ProcessLeftMember(ctx.EffectiveChat.Id, u.Id)

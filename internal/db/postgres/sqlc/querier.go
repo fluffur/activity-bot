@@ -19,10 +19,12 @@ type Querier interface {
 	DeleteChatMember(ctx context.Context, arg DeleteChatMemberParams) error
 	EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (Chat, error)
 	EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemberExistsParams) (ChatMember, error)
+	EnsureMemberFull(ctx context.Context, arg EnsureMemberFullParams) (ChatMember, error)
 	EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) (User, error)
 	ExemptChatMember(ctx context.Context, arg ExemptChatMemberParams) error
 	GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdminsRow, error)
 	GetChatMember(ctx context.Context, arg GetChatMemberParams) (GetChatMemberRow, error)
+	GetChatMemberRole(ctx context.Context, arg GetChatMemberRoleParams) (string, error)
 	GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMembersRow, error)
 	GetChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetChatMembersWithTitlesRow, error)
 	GetExemptRequest(ctx context.Context, arg GetExemptRequestParams) (ExemptRequest, error)
@@ -31,12 +33,13 @@ type Querier interface {
 	GetUser(ctx context.Context, id int64) (User, error)
 	GetUserByUsername(ctx context.Context, username pgtype.Text) (User, error)
 	IsChatAdmin(ctx context.Context, arg IsChatAdminParams) (bool, error)
+	IsChatCreator(ctx context.Context, arg IsChatCreatorParams) (bool, error)
 	RejectExemptRequest(ctx context.Context, arg RejectExemptRequestParams) error
 	RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error
 	RemoveChatMemberExempt(ctx context.Context, arg RemoveChatMemberExemptParams) error
 	UpdateChatMemberTitle(ctx context.Context, arg UpdateChatMemberTitleParams) error
 	UpdateChatNorm(ctx context.Context, arg UpdateChatNormParams) error
-	UpsertChatMembers(ctx context.Context, arg UpsertChatMembersParams) error
+	UpsertChatMembersWithRole(ctx context.Context, arg UpsertChatMembersWithRoleParams) error
 	UpsertUsers(ctx context.Context, arg UpsertUsersParams) error
 	WeeklyMessageReport(ctx context.Context, arg WeeklyMessageReportParams) ([]WeeklyMessageReportRow, error)
 }

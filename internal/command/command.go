@@ -114,7 +114,7 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 }
 func (c Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 	if c.requireCreator {
-		if !common.IsSenderCreator(b, ctx) {
+		if !common.IsSenderCreator(b, ctx, c.adminService) {
 			_, err := ctx.EffectiveMessage.Reply(b, "Только создатель может выполнить эту команду", nil)
 			return err
 		}

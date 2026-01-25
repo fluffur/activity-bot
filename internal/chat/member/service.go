@@ -42,13 +42,13 @@ func (s *Service) GetChatMembers(chatID int64) ([]model.ChatMember, error) {
 func (s *Service) UpdateChatMembers(chatID int64, members []model.ChatMemberUpdate) error {
 	ctx := context.Background()
 
+	if _, err := s.chatRepo.Ensure(ctx, model.Chat{ID: chatID, WeeklyNorm: s.defaultWeeklyNorm}); err != nil {
+		return err
+	}
+
 	users := make([]model.User, len(members))
 	for i, m := range members {
 		users[i] = m.User
-	}
-
-	if _, err := s.chatRepo.Ensure(ctx, model.Chat{chatID, 100}); err != nil {
-		return err
 	}
 
 	if err := s.userRepo.UpsertUsers(ctx, users); err != nil {
@@ -75,13 +75,5 @@ func (s *Service) ProcessLeftMember(chatID int64, userID int64) (string, error) 
 func (s *Service) EnsureMemberExists(chatID int64, userID int64, username, firstName, lastName string) (model.ChatMember, error) {
 	ctx := context.Background()
 
-	if _, err := s.chatRepo.Ensure(ctx, model.Chat{ID: chatID, WeeklyNorm: s.defaultWeeklyNorm}); err != nil {
-		return model.ChatMember{}, err
-	}
-
-	if _, err := s.userRepo.Ensure(ctx, userID, username, firstName, lastName); err != nil {
-		return model.ChatMember{}, err
-	}
-
-	return s.repo.EnsureExists(ctx, chatID, userID)
+	return s.repo.EnsureFull(ctx, chatID, userID, "administrator", firstName, lastName, username, s.defaultWeeklyNorm)
 }

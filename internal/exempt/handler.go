@@ -30,6 +30,11 @@ func NewHandler(service *Service, userService *user.Service, adminService *admin
 }
 
 func (h *Handler) Set(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	if len(cctx.Users) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота. Попробуйте упомянуть его через ответ на сообщение или дождитесь, пока он напишет что-нибудь.", nil)
+		return err
+	}
+
 	targetUser := cctx.Users[0]
 
 	if len(cctx.Args) < 1 {
@@ -108,6 +113,11 @@ func (h *Handler) createExemptRequest(b *gotgbot.Bot, ctx *ext.Context, targetUs
 }
 
 func (h *Handler) Show(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	if len(cctx.Users) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота.", nil)
+		return err
+	}
+
 	targetUser := cctx.Users[0]
 
 	exempt, err := h.service.GetMemberExempt(ctx.EffectiveChat.Id, targetUser.ID)
@@ -134,6 +144,11 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 }
 
 func (h *Handler) End(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	if len(cctx.Users) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота.", nil)
+		return err
+	}
+
 	targetUser := cctx.Users[0]
 
 	if targetUser.ID != ctx.EffectiveUser.Id && !common.IsSenderAdmin(b, ctx, h.adminService) {
