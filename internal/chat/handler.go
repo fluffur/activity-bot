@@ -2,60 +2,54 @@ package chat
 
 import (
 	"activity-bot/internal/admin"
-	"activity-bot/internal/helpers"
-	"context"
+	"activity-bot/internal/command"
 	"fmt"
 	"log"
-	"regexp"
 	"strconv"
 
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type Handler struct {
 	service      *Service
 	adminService *admin.Service
-	setNormRe    *regexp.Regexp
 }
 
-func NewHandler(service *Service, adminService *admin.Service, setNormRe *regexp.Regexp) *Handler {
-	return &Handler{service, adminService, setNormRe}
+func NewHandler(service *Service, adminService *admin.Service) *Handler {
+	return &Handler{service, adminService}
 }
 
-func (h *Handler) ShowNorm(ctx context.Context, b *bot.Bot, update *models.Update) {
-	norm, err := h.service.GetNorm(ctx, update.Message.Chat.ID)
+func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
+	norm, err := h.service.GetNorm(ctx.EffectiveChat.Id)
 	if err != nil {
-		helpers.SendMessage(ctx, b, update, "Не удалось отправить норму чата")
 		log.Println("Failed to show chat norm", err)
-		return
+		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось отправить норму чата", nil)
+
+		return err
 	}
 
-	helpers.SendMessage(ctx, b, update, fmt.Sprintf("Норма чата: %d сообщений", norm))
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Норма чата: %d сообщений", norm), nil)
+
+	return err
 }
 
-func (h *Handler) SetNorm(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if !helpers.CheckOwnerOrAdmin(ctx, b, h.adminService, update.Message.Chat.ID, update.Message.From.ID) {
-		helpers.SendMessage(ctx, b, update, "Команда установки нормы доступна только создателю чата и администраторам бота")
-		return
-	}
-
-	matches := h.setNormRe.FindStringSubmatch(update.Message.Text)
-	if len(matches) < 3 {
-		helpers.SendMessage(ctx, b, update, "Неверный формат команды")
-		return
-	}
-	norm, err := strconv.Atoi(matches[2])
+func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	norm, err := strconv.Atoi(cctx.Args[0])
 	if err != nil {
-		helpers.SendMessage(ctx, b, update, "Норма должна быть числом")
-		return
+		_, err = ctx.EffectiveMessage.Reply(b, "Норма должна быть числом", nil)
+
+		return err
 	}
 
-	if err := h.service.SetNorm(ctx, update.Message.Chat.ID, norm); err != nil {
-		helpers.SendMessage(ctx, b, update, "Не удалось установить норму чата")
+	if err := h.service.SetNorm(ctx.EffectiveChat.Id, norm); err != nil {
 		log.Println("Failed to set chat norm", err)
-		return
+		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось установить норму чата", nil)
+
+		return err
 	}
 
-	helpers.SendMessage(ctx, b, update, "Новая норма чата установлена")
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Установлена новая норма чата: %d", norm), nil)
+
+	return err
 }

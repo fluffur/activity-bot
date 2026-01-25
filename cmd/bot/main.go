@@ -1,6 +1,8 @@
 package main
 
 import (
+	"activity-bot/internal/admin"
+	"activity-bot/internal/chat"
 	"activity-bot/internal/chat/member"
 	"activity-bot/internal/command"
 	"activity-bot/internal/config"
@@ -49,32 +51,45 @@ func main() {
 	memberRepository := postgres.NewMemberRepository(queries)
 	userRepository := postgres.NewUserRepository(queries)
 	chatRepository := postgres.NewChatRepository(queries)
-	//adminRepository := postgres.NewAdminRepository(queries)
+	adminRepository := postgres.NewAdminRepository(queries)
 
 	statsService := stats.NewService(statsRepository)
 	exemptService := exempt.NewService(exemptRepository)
+	chatService := chat.NewService(chatRepository, cfg.DefaultWeeklyNorm)
 	userService := user.NewService(userRepository)
 	memberService := member.NewService(memberRepository, chatRepository, userRepository)
-	//adminService := admin.NewService(adminRepository)
+	adminService := admin.NewService(adminRepository)
 
 	helpHandler := help.NewHandler()
 	statsHandler := stats.NewHandler(statsService, exemptService, memberService)
-	dispatcher := ext.NewDispatcher(&ext.DispatcherOpts{
+	chatHandler := chat.NewHandler(chatService, adminService)
+
+	dp := ext.NewDispatcher(&ext.DispatcherOpts{
 		Error: func(b *gotgbot.Bot, ctx *ext.Context, err error) ext.DispatcherAction {
 			log.Println("an error occurred while handling update:", err.Error())
 			return ext.DispatcherActionNoop
 		},
 		MaxRoutines: ext.DefaultMaxRoutines,
 	})
-	updater := ext.NewUpdater(dispatcher, &ext.UpdaterOpts{})
+	updater := ext.NewUpdater(dp, &ext.UpdaterOpts{})
 	cb := command.NewBuilder(userService)
 
-	dispatcher.AddHandler(cb.NewCommand("start", helpHandler.Start))
-	dispatcher.AddHandler(cb.NewCommand("help", helpHandler.Help))
-	dispatcher.AddHandler(
-		cb.NewCommand("отчет", statsHandler.ShowWeeklyReport, "отчёт", "stats").SetMaxArgs(1),
+	dp.AddHandler(cb.NewCommand("start", helpHandler.Start))
+	dp.AddHandler(cb.NewCommand("help", helpHandler.Help))
+	dp.AddHandler(cb.NewCommand("stats", statsHandler.ShowStats).
+		SetAliases("отчёт", "отчет").
+		SetMaxArgs(1),
+	)
+	dp.AddHandler(cb.NewCommand("norm", chatHandler.ShowNorm).
+		SetAliases("норма", "quota").
+		SetMaxArgs(0),
 	)
 
+	dp.AddHandler(cb.NewCommand("norm", chatHandler.ShowNorm).
+		SetAliases("норма", "quota").
+		SetTriggers([]rune("/.!+")).
+		SetMaxArgs(1),
+	)
 	err = updater.StartPolling(b, &ext.PollingOpts{
 		DropPendingUpdates: true,
 		GetUpdatesOpts: &gotgbot.GetUpdatesOpts{
