@@ -37,6 +37,7 @@ func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context)
 func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
 	norm, err := strconv.Atoi(cctx.Args[0])
 	if err != nil {
+		log.Println("Failed to set chat norm", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Норма должна быть числом", nil)
 
 		return err

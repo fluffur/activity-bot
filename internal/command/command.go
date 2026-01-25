@@ -36,6 +36,7 @@ type Command struct {
 	Response    Response
 	MaxArgs     int
 	userService UserService
+	allowArgs   bool
 }
 
 func NewCommand(c string, r Response, service UserService, aliases ...string) Command {
@@ -46,6 +47,11 @@ func NewCommand(c string, r Response, service UserService, aliases ...string) Co
 		Response:    r,
 		userService: service,
 	}
+}
+
+func (c Command) AllowArgs(allow bool) Command {
+	c.allowArgs = allow
+	return c
 }
 
 func (c Command) SetMaxArgs(maxArgs int) Command {
@@ -171,37 +177,33 @@ func (c Command) Name() string {
 }
 
 func (c Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
-	ents := msg.GetEntities()
-	if len(ents) != 0 && ents[0].Offset == 0 && ents[0].Type != "bot_command" {
+	text := msg.GetText()
+	if text == "" {
 		return false
 	}
 
-	text := msg.GetText()
-
-	var cmd string
 	for _, t := range c.Triggers {
-		if r, _ := utf8.DecodeRuneInString(text); r != t {
+		r, _ := utf8.DecodeRuneInString(text)
+		if r != t {
 			continue
 		}
 
-		split := strings.Split(strings.ToLower(strings.Fields(text)[0]), "@")
-		if len(split) > 1 && split[1] != strings.ToLower(b.User.Username) {
-			return false
-		}
-		cmd = split[0][1:]
-		break
-	}
-	if cmd == "" {
-		return false
-	}
+		for _, cName := range append([]string{c.Command}, c.Aliases...) {
+			fullCmd := string(t) + strings.ToLower(cName)
+			fullCmdWithBot := fullCmd + "@" + strings.ToLower(b.User.Username)
 
-	if cmd == c.Command {
-		return true
-	}
+			if strings.HasPrefix(strings.ToLower(text), fullCmd) || strings.HasPrefix(strings.ToLower(text), fullCmdWithBot) {
+				rest := text[len(fullCmd):]
+				if strings.HasPrefix(strings.ToLower(rest), "@"+strings.ToLower(b.User.Username)) {
+					rest = rest[len(b.User.Username)+1:] // убираем @username
+				}
+				rest = strings.TrimSpace(rest)
 
-	for _, alias := range c.Aliases {
-		if cmd == strings.ToLower(alias) {
-			return true
+				if !c.allowArgs && len(rest) > 0 {
+					return false
+				}
+				return true
+			}
 		}
 	}
 

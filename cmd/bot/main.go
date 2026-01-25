@@ -81,13 +81,13 @@ func main() {
 		SetMaxArgs(1),
 	)
 	dp.AddHandler(cb.NewCommand("norm", chatHandler.ShowNorm).
-		SetAliases("норма", "quota").
-		SetMaxArgs(0),
+		SetAliases("норма", "quota"),
 	)
 
-	dp.AddHandler(cb.NewCommand("norm", chatHandler.ShowNorm).
+	dp.AddHandler(cb.NewCommand("norm", chatHandler.SetNorm).
 		SetAliases("норма", "quota").
 		SetTriggers([]rune("/.!+")).
+		AllowArgs(true).
 		SetMaxArgs(1),
 	)
 	err = updater.StartPolling(b, &ext.PollingOpts{
