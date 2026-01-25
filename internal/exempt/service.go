@@ -19,11 +19,13 @@ func (s *Service) GetExemptMembers(chatID int64) ([]model.ExemptMember, error) {
 	return s.repo.GetFromChat(ctx, chatID)
 }
 
-func (s *Service) ExemptMember(ctx context.Context, chatID int64, userID int64, exemptUntil time.Time) error {
+func (s *Service) ExemptMember(chatID int64, userID int64, exemptUntil time.Time) error {
+	ctx := context.Background()
 	return s.repo.Exempt(ctx, chatID, userID, exemptUntil)
 }
 
-func (s *Service) GetMemberExempt(ctx context.Context, chatID int64, userID int64) (*time.Time, error) {
+func (s *Service) GetMemberExempt(chatID int64, userID int64) (*time.Time, error) {
+	ctx := context.Background()
 	return s.repo.Get(ctx, chatID, userID)
 }
 
@@ -31,7 +33,8 @@ func (s *Service) EndMemberExempt(ctx context.Context, chatID int64, userID int6
 	return s.repo.Remove(ctx, chatID, userID)
 }
 
-func (s *Service) CreateExemptRequest(ctx context.Context, chatID, userID, messageID int64, exemptUntil time.Time) error {
+func (s *Service) CreateExemptRequest(chatID, userID, messageID int64, exemptUntil time.Time) error {
+	ctx := context.Background()
 	return s.repo.AddRequest(ctx, model.ExemptRequest{
 		ChatID:      chatID,
 		UserID:      userID,

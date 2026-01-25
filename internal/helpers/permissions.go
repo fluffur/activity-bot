@@ -8,7 +8,7 @@ import (
 )
 
 type AdminService interface {
-	IsAdmin(ctx context.Context, chatID, userID int64) (bool, error)
+	IsAdmin(chatID, userID int64) (bool, error)
 }
 
 func CheckOwnerOrAdmin(ctx context.Context, b *bot.Bot, adminService AdminService, chatID, userID int64) bool {
@@ -24,7 +24,7 @@ func CheckOwnerOrAdmin(ctx context.Context, b *bot.Bot, adminService AdminServic
 		return true
 	}
 
-	isAdmin, err := adminService.IsAdmin(ctx, chatID, userID)
+	isAdmin, err := adminService.IsAdmin(chatID, userID)
 	if err != nil {
 		log.Printf("Failed to check db admin: %v", err)
 		return false

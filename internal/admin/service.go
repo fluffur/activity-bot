@@ -25,6 +25,7 @@ func (s *Service) GetAdmins(ctx context.Context, chatID int64) ([]model.User, er
 	return s.repo.GetFromChat(ctx, chatID)
 }
 
-func (s *Service) IsAdmin(ctx context.Context, chatID int64, userID int64) (bool, error) {
+func (s *Service) IsAdmin(chatID int64, userID int64) (bool, error) {
+	ctx := context.Background()
 	return s.repo.IsAdmin(ctx, chatID, userID)
 }

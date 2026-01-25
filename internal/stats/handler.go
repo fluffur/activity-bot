@@ -26,8 +26,6 @@ func NewHandler(service *Service, exemptService *exempt.Service, memberService *
 }
 
 func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	log.Println(cctx.Args, len(cctx.Args))
-	log.Println(cctx.Users, len(cctx.Users))
 	if _, err := helpers.UpdateChatMembers(b, h.memberService, ctx.EffectiveChat.Id); err != nil {
 		log.Println("Auto-update chat members error", err)
 	}

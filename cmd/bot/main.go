@@ -63,6 +63,7 @@ func main() {
 	helpHandler := help.NewHandler()
 	statsHandler := stats.NewHandler(statsService, exemptService, memberService)
 	chatHandler := chat.NewHandler(chatService, adminService)
+	exemptHandler := exempt.NewHandler(exemptService, userService, adminService, exempt.NewDateParser())
 
 	dp := ext.NewDispatcher(&ext.DispatcherOpts{
 		Error: func(b *gotgbot.Bot, ctx *ext.Context, err error) ext.DispatcherAction {
@@ -74,22 +75,35 @@ func main() {
 	updater := ext.NewUpdater(dp, &ext.UpdaterOpts{})
 	cb := command.NewBuilder(userService)
 
-	dp.AddHandler(cb.NewCommand("start", helpHandler.Start))
-	dp.AddHandler(cb.NewCommand("help", helpHandler.Help))
-	dp.AddHandler(cb.NewCommand("stats", statsHandler.ShowStats).
+	dp.AddHandler(cb.New("start", helpHandler.Start))
+	dp.AddHandler(cb.New("help", helpHandler.Help))
+	dp.AddHandler(cb.New("stats", statsHandler.ShowStats).
 		SetAliases("отчёт", "отчет").
 		SetMaxArgs(1),
 	)
-	dp.AddHandler(cb.NewCommand("norm", chatHandler.ShowNorm).
+	dp.AddHandler(cb.New("norm", chatHandler.ShowNorm).
 		SetAliases("норма", "quota"),
 	)
 
-	dp.AddHandler(cb.NewCommand("norm", chatHandler.SetNorm).
+	dp.AddHandler(cb.New("norm", chatHandler.SetNorm).
 		SetAliases("норма", "quota").
 		SetTriggers([]rune("/.!+")).
 		AllowArgs(true).
 		SetMaxArgs(1),
 	)
+
+	dp.AddHandler(cb.New("exempt", exemptHandler.ShowMemberExempt).
+		SetAliases("рест", "rest", "рэст").
+		SetTriggers([]rune("/.!+")),
+	)
+
+	dp.AddHandler(cb.New("exempt", exemptHandler.ExemptMember).
+		SetAliases("рест", "rest", "рэст").
+		SetTriggers([]rune("/.!+")).
+		AllowArgs(true).
+		SetMaxArgs(1),
+	)
+
 	err = updater.StartPolling(b, &ext.PollingOpts{
 		DropPendingUpdates: true,
 		GetUpdatesOpts: &gotgbot.GetUpdatesOpts{

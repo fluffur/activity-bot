@@ -25,7 +25,7 @@ func NewBuilder(us UserService) *Builder {
 	}
 }
 
-func (b *Builder) NewCommand(c string, r Response, aliases ...string) Command {
+func (b *Builder) New(c string, r Response, aliases ...string) Command {
 	return NewCommand(c, r, b.userService, aliases...)
 }
 
@@ -94,7 +94,7 @@ func (c Command) parseArgs(b *gotgbot.Bot, msg *gotgbot.Message) *Context {
 	usersMap := make(map[int64]*model.User)
 	removeRanges := make([][2]int, 0)
 
-	if msg.ReplyToMessage != nil && msg.ReplyToMessage.From != nil {
+	if msg.ReplyToMessage != nil && msg.ReplyToMessage.From != nil && !msg.ReplyToMessage.From.IsBot {
 		u, err := c.ensureUser(msg.ReplyToMessage.From)
 		if err == nil {
 			usersMap[u.ID] = &u
