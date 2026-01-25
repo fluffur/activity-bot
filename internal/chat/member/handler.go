@@ -185,20 +185,19 @@ func (h *Handler) OnJoinMember(_ *gotgbot.Bot, ctx *ext.Context) error {
 }
 
 func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
-	leftMember := ctx.EffectiveSender
-	u := leftMember.User
+	u := ctx.Message.LeftChatMember
 	if _, err := h.service.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName); err != nil {
 		log.Println("Process left member error", err)
 		return err
 	}
-	title, err := h.service.ProcessLeftMember(ctx.EffectiveChat.Id, leftMember.Id())
+	title, err := h.service.ProcessLeftMember(ctx.EffectiveChat.Id, u.Id)
 	if err != nil {
 		log.Println("Process left member error", err)
 		return err
 	}
 
 	if title != "" {
-		_, err = b.SendMessage(ctx.EffectiveChat.Id, fmt.Sprintf("🕊 %s c ролью \"%s\" покинул нас...", helpers.Link(helpers.MapUser(leftMember.User)), html.EscapeString(title)), &gotgbot.SendMessageOpts{
+		_, err = b.SendMessage(ctx.EffectiveChat.Id, fmt.Sprintf("🕊 %s c ролью \"%s\" покинул нас...", helpers.Link(helpers.MapUser(u)), html.EscapeString(title)), &gotgbot.SendMessageOpts{
 			ParseMode: gotgbot.ParseModeHTML,
 			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 				IsDisabled: true,
