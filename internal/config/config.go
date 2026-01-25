@@ -10,6 +10,7 @@ type Config struct {
 	DBDSN              string `env:"DB_DSN"`
 	DefaultWeeklyNorm  int32  `env:"DEFAULT_WEEKLY_NORM" envDefault:"100"`
 	WebhookURL         string `env:"WEBHOOK_URL"`
+	WebhookPath        string `env:"WEBHOOK_PATH" envDefault:"telegram/webhook"`
 	WebhookSecretToken string `env:"WEBHOOK_SECRET_TOKEN"`
 	HTTPPort           int    `env:"HTTP_PORT" envDefault:"8080"`
 	Debug              bool   `env:"DEBUG" envDefault:"false"`

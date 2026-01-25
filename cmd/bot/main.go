@@ -192,7 +192,7 @@ func main() {
 			SecretToken: cfg.WebhookSecretToken,
 		}
 
-		err = updater.StartWebhook(b, cfg.BotToken, webhookOpts)
+		err = updater.StartWebhook(b, cfg.WebhookPath, webhookOpts)
 		if err != nil {
 			panic("failed to start webhook: " + err.Error())
 		}
