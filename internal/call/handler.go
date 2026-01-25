@@ -82,7 +82,7 @@ func (h *Handler) Call(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 		var sb strings.Builder
 
-		if i == 0 && message != "" {
+		if message != "" {
 			sb.WriteString(fmt.Sprintf("%s\n\n", message))
 		}
 
