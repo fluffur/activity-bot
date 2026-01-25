@@ -46,6 +46,15 @@ func main() {
 
 	queries := db.New(pool)
 
+	dp := ext.NewDispatcher(&ext.DispatcherOpts{
+		Error: func(b *gotgbot.Bot, ctx *ext.Context, err error) ext.DispatcherAction {
+			log.Println("an error occurred while handling update:", err.Error())
+			return ext.DispatcherActionNoop
+		},
+		MaxRoutines: ext.DefaultMaxRoutines,
+	})
+	updater := ext.NewUpdater(dp, &ext.UpdaterOpts{})
+
 	statsRepository := postgres.NewStatsRepository(queries)
 	exemptRepository := postgres.NewExemptRepository(queries, pool)
 	memberRepository := postgres.NewMemberRepository(queries)
@@ -60,20 +69,13 @@ func main() {
 	memberService := member.NewService(memberRepository, chatRepository, userRepository)
 	adminService := admin.NewService(adminRepository)
 
+	cb := command.NewBuilder(userService)
+
 	helpHandler := help.NewHandler()
 	statsHandler := stats.NewHandler(statsService, exemptService, memberService)
 	chatHandler := chat.NewHandler(chatService, adminService)
 	exemptHandler := exempt.NewHandler(exemptService, userService, adminService, exempt.NewDateParser())
-
-	dp := ext.NewDispatcher(&ext.DispatcherOpts{
-		Error: func(b *gotgbot.Bot, ctx *ext.Context, err error) ext.DispatcherAction {
-			log.Println("an error occurred while handling update:", err.Error())
-			return ext.DispatcherActionNoop
-		},
-		MaxRoutines: ext.DefaultMaxRoutines,
-	})
-	updater := ext.NewUpdater(dp, &ext.UpdaterOpts{})
-	cb := command.NewBuilder(userService)
+	adminHandler := admin.NewHandler(adminService, userService)
 
 	dp.AddHandler(cb.New("start", helpHandler.Start))
 	dp.AddHandler(cb.New("help", helpHandler.Help))
@@ -112,6 +114,19 @@ func main() {
 		SetTriggers("/", ".", "!", ""),
 	)
 
+	dp.AddHandler(cb.New("admins", adminHandler.ListAdmins).
+		SetAliases("админы", "админчики", "адмы", "модеры", "mods"),
+	)
+
+	dp.AddHandler(cb.New("администратор", adminHandler.AddAdmin).
+		SetAliases("админ", "admin", "адм", "модер").
+		SetTriggers("/", ".", "!", "+"),
+	)
+
+	dp.AddHandler(cb.New("-администратор", adminHandler.RemoveAdmin).
+		SetAliases("-админ", "-admin", "-адм", "-модер", "-mod").
+		SetTriggers("/", ".", "!", "+", ""),
+	)
 	err = updater.StartPolling(b, &ext.PollingOpts{
 		DropPendingUpdates: true,
 		GetUpdatesOpts: &gotgbot.GetUpdatesOpts{
