@@ -1,8 +1,15 @@
 package command
 
 import (
+	"activity-bot/internal/model"
+
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-type Response func(b *gotgbot.Bot, ctx *ext.Context, args []string) error
+type Context struct {
+	Args  []string
+	Users []*model.User
+}
+
+type Response func(b *gotgbot.Bot, ctx *ext.Context, cctx *Context) error

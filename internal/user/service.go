@@ -17,10 +17,12 @@ func (s *Service) GetUser(ctx context.Context, id int64) (model.User, error) {
 	return s.repo.Get(ctx, id)
 }
 
-func (s *Service) GetUserByUsername(ctx context.Context, username string) (model.User, error) {
+func (s *Service) GetUserByUsername(username string) (model.User, error) {
+	ctx := context.Background()
 	return s.repo.GetByUsername(ctx, username)
 }
 
-func (s *Service) EnsureUserExists(ctx context.Context, id int64, username, firstName, lastName string) (model.User, error) {
+func (s *Service) EnsureUserExists(id int64, username, firstName, lastName string) (model.User, error) {
+	ctx := context.Background()
 	return s.repo.Ensure(ctx, id, username, firstName, lastName)
 }

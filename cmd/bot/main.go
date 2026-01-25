@@ -70,7 +70,7 @@ func main() {
 	dispatcher.AddHandler(command.NewCommand("start", helpHandler.Start))
 	dispatcher.AddHandler(command.NewCommand("help", helpHandler.Help))
 	dispatcher.AddHandler(
-		command.NewCommand("отчет", statsHandler.ShowWeeklyReport, "отчёт", "stats"),
+		command.NewCommand("отчет", statsHandler.ShowWeeklyReport, "отчёт", "stats").SetMaxArgs(1),
 	)
 
 	err = updater.StartPolling(b, &ext.PollingOpts{

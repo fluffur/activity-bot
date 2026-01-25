@@ -1,6 +1,8 @@
 package command
 
 import (
+	"activity-bot/internal/model"
+	"log"
 	"strings"
 	"unicode/utf8"
 
@@ -8,20 +10,41 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-type Command struct {
-	Command  string
-	Triggers []rune
-	Aliases  []string
-	Response Response
-	MaxArgs  int
+type UserService interface {
+	GetUserByUsername(username string) (model.User, error)
+	EnsureUserExists(id int64, username, firstName, lastName string) (model.User, error)
 }
 
-func NewCommand(c string, r Response, aliases ...string) Command {
+type Builder struct {
+	userService UserService
+}
+
+func NewBuilder(us UserService) *Builder {
+	return &Builder{
+		userService: us,
+	}
+}
+
+func (b *Builder) NewCommand(c string, r Response, aliases ...string) Command {
+	return NewCommand(c, r, b.userService, aliases...)
+}
+
+type Command struct {
+	Command     string
+	Triggers    []rune
+	Aliases     []string
+	Response    Response
+	MaxArgs     int
+	userService UserService
+}
+
+func NewCommand(c string, r Response, service UserService, aliases ...string) Command {
 	return Command{
-		Command:  strings.ToLower(c),
-		Triggers: []rune("/!."),
-		Aliases:  aliases,
-		Response: r,
+		Command:     strings.ToLower(c),
+		Triggers:    []rune("/!."),
+		Aliases:     aliases,
+		Response:    r,
+		userService: service,
 	}
 }
 
@@ -51,69 +74,89 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	return false
 }
 func (c Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
-	return c.Response(b, ctx, c.parseArgs(ctx.Message))
+	args, user := c.parseArgs(ctx.Message)
+
+	return c.Response(b, ctx, user, args)
 }
 
-func (c Command) parseArgs(msg *gotgbot.Message) []string {
+func (c Command) ensureUser(u *gotgbot.User) (model.User, error) {
+	return c.userService.EnsureUserExists(u.Id, u.Username, u.FirstName, u.LastName)
+
+}
+
+func (c Command) parseArgs(msg *gotgbot.Message) ([]string, *model.User) {
 	text := msg.GetText()
 	textRunes := []rune(text)
-	lower := strings.ToLower(text)
 
-	var rest string
+	var targetUser *model.User
+
 	if msg.ReplyToMessage != nil && msg.ReplyToMessage.From != nil {
-		rest = strings.TrimSpace(text)
-	} else {
-		restRunes := textRunes
-		for _, e := range msg.Entities {
-			if e.Type == "text_mention" || e.User != nil || e.Type == "mention" {
-				start := int(e.Offset)
-				end := start + int(e.Length)
-				if start >= 0 && end <= len(restRunes) {
-					restRunes = append(restRunes[:start], restRunes[end:]...)
-				}
+		u, err := c.ensureUser(msg.ReplyToMessage.From)
+		if err == nil {
+			targetUser = &u
+		} else {
+			log.Println("Failed to ensure user", err)
+		}
+	}
+
+	restRunes := textRunes
+	for _, e := range msg.Entities {
+		start := int(e.Offset)
+		end := start + int(e.Length)
+
+		if e.Type == "text_mention" && e.User != nil && targetUser == nil {
+			u, err := c.ensureUser(e.User)
+			if err == nil {
+				targetUser = &u
+			} else {
+				log.Println("Failed to ensure user", err)
+
 			}
 		}
-		rest = strings.TrimSpace(string(restRunes))
+		if (e.Type == "mention") && targetUser == nil {
+			username := string(restRunes[start+1 : end])
+			u, err := c.userService.GetUserByUsername(username)
+			if err == nil {
+				targetUser = &u
+			} else {
+				log.Println("Failed to get user", err)
+
+			}
+		}
+
+		if start >= 0 && end <= len(restRunes) {
+			restRunes = append(restRunes[:start], restRunes[end:]...)
+		}
 	}
+	rest := strings.TrimSpace(string(restRunes))
 
 	commands := append([]string{c.Command}, c.Aliases...)
 	for _, t := range c.Triggers {
 		for _, cmd := range commands {
 			fullCmd := string(t) + strings.ToLower(cmd)
-			if !strings.HasPrefix(lower, fullCmd) {
-				continue
-			}
-
-			restRunes := []rune(rest)
 			if strings.HasPrefix(strings.ToLower(rest), fullCmd) {
-				restRunes = restRunes[len([]rune(fullCmd)):]
-				rest = strings.TrimSpace(string(restRunes))
-			}
-			if rest == "" {
-				return nil
-			}
+				rest = strings.TrimSpace(string([]rune(rest)[len([]rune(fullCmd)):]))
 
-			if c.MaxArgs <= 0 {
-				return strings.Fields(rest)
+				// 4. делим на аргументы
+				if c.MaxArgs <= 0 {
+					return strings.Fields(rest), targetUser
+				}
+				words := strings.Fields(rest)
+				if len(words) <= c.MaxArgs {
+					return []string{rest}, targetUser
+				}
+				args := make([]string, 0, c.MaxArgs)
+				for i := 0; i < c.MaxArgs-1; i++ {
+					args = append(args, words[i])
+				}
+				last := strings.Join(words[c.MaxArgs-1:], " ")
+				args = append(args, last)
+				return args, targetUser
 			}
-
-			words := strings.Fields(rest)
-			if len(words) <= c.MaxArgs {
-				return []string{rest}
-			}
-
-			args := make([]string, 0, c.MaxArgs)
-			for i := 0; i < c.MaxArgs-1; i++ {
-				args = append(args, words[i])
-			}
-			last := strings.Join(words[c.MaxArgs-1:], " ")
-			args = append(args, last)
-
-			return args
 		}
 	}
 
-	return nil
+	return []string{}, targetUser
 }
 
 func (c Command) Name() string {
