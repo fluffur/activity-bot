@@ -127,12 +127,12 @@ func main() {
 		SetAliases("рест", "rest", "рэст").
 		FallbackToSender().
 		OnlyGroups().
-		SetTriggers("/", ".", "!", "+"),
+		SetTriggers("/", ".", "!", "+", ""),
 	)
 	dp.AddHandler(cb.New("exempt", exemptHandler.Set).
 		SetAliases("рест", "rest", "рэст").
 		FallbackToSender().
-		SetTriggers("/", ".", "!", "+").
+		SetTriggers("/", ".", "!", "+", "").
 		AllowArgs().
 		OnlyGroups().
 		SetMaxArgs(1),
