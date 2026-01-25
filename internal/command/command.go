@@ -51,49 +51,69 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	return false
 }
 func (c Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
-	return c.Response(b, ctx, c.parseArgs(ctx.Message.GetText()))
+	return c.Response(b, ctx, c.parseArgs(ctx.Message))
 }
 
-func (c Command) parseArgs(text string) []string {
-	var args []string
+func (c Command) parseArgs(msg *gotgbot.Message) []string {
+	text := msg.GetText()
+	textRunes := []rune(text)
 	lower := strings.ToLower(text)
-	textRunes := []rune(lower)
+
+	var rest string
+	if msg.ReplyToMessage != nil && msg.ReplyToMessage.From != nil {
+		rest = strings.TrimSpace(text)
+	} else {
+		restRunes := textRunes
+		for _, e := range msg.Entities {
+			if e.Type == "text_mention" || e.User != nil || e.Type == "mention" {
+				start := int(e.Offset)
+				end := start + int(e.Length)
+				if start >= 0 && end <= len(restRunes) {
+					restRunes = append(restRunes[:start], restRunes[end:]...)
+				}
+			}
+		}
+		rest = strings.TrimSpace(string(restRunes))
+	}
 
 	commands := append([]string{c.Command}, c.Aliases...)
-
 	for _, t := range c.Triggers {
 		for _, cmd := range commands {
 			fullCmd := string(t) + strings.ToLower(cmd)
-
 			if !strings.HasPrefix(lower, fullCmd) {
 				continue
 			}
 
-			rest := strings.TrimSpace(string(textRunes[len(fullCmd):]))
+			restRunes := []rune(rest)
+			if strings.HasPrefix(strings.ToLower(rest), fullCmd) {
+				restRunes = restRunes[len([]rune(fullCmd)):]
+				rest = strings.TrimSpace(string(restRunes))
+			}
 			if rest == "" {
-				return args
+				return nil
+			}
+
+			if c.MaxArgs <= 0 {
+				return strings.Fields(rest)
 			}
 
 			words := strings.Fields(rest)
-
-			if c.MaxArgs <= 0 {
-				return words
-			}
-
 			if len(words) <= c.MaxArgs {
 				return []string{rest}
 			}
 
-			head := words[:len(words)-c.MaxArgs+1]
-			tail := words[len(words)-c.MaxArgs+1:]
-
-			args = append(args, strings.Join(append(head, tail...), " "))
+			args := make([]string, 0, c.MaxArgs)
+			for i := 0; i < c.MaxArgs-1; i++ {
+				args = append(args, words[i])
+			}
+			last := strings.Join(words[c.MaxArgs-1:], " ")
+			args = append(args, last)
 
 			return args
 		}
 	}
 
-	return args
+	return nil
 }
 
 func (c Command) Name() string {
