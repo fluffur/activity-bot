@@ -2,6 +2,7 @@ package command
 
 import (
 	"activity-bot/internal/model"
+	"log"
 	"strings"
 	"unicode/utf8"
 
@@ -85,72 +86,84 @@ func (c Command) parseArgs(msg *gotgbot.Message) *Context {
 	textRunes := []rune(text)
 
 	usersMap := make(map[int64]*model.User)
+	removeRanges := make([][2]int, 0)
 
 	if msg.ReplyToMessage != nil && msg.ReplyToMessage.From != nil {
 		u, err := c.ensureUser(msg.ReplyToMessage.From)
 		if err == nil {
 			usersMap[u.ID] = &u
+		} else {
+			log.Println("Ensure user from reply exists", err)
 		}
 	}
 
-	restRunes := textRunes
 	for _, e := range msg.Entities {
 		start := int(e.Offset)
 		end := start + int(e.Length)
-
-		if e.Type == "text_mention" && e.User != nil {
-			u, err := c.ensureUser(e.User)
-			if err == nil {
-				usersMap[u.ID] = &u
-			}
+		if start < 0 || end > len(textRunes) {
+			continue
 		}
 
-		if e.Type == "mention" {
-			username := string(restRunes[start+1 : end]) // пропускаем @
+		switch e.Type {
+		case "text_mention":
+			if e.User != nil {
+				u, err := c.ensureUser(e.User)
+				if err == nil {
+					usersMap[u.ID] = &u
+				} else {
+					log.Println("Ensure user from mention exists", err)
+
+				}
+				removeRanges = append(removeRanges, [2]int{start, end})
+			}
+		case "mention":
+			username := string(textRunes[start+1 : end])
 			u, err := c.userService.GetUserByUsername(username)
 			if err == nil {
 				usersMap[u.ID] = &u
-			}
-		}
+			} else {
+				log.Println("Ensure user from username mention exists", err)
 
-		if start >= 0 && end <= len(restRunes) {
-			restRunes = append(restRunes[:start], restRunes[end:]...)
+			}
+			removeRanges = append(removeRanges, [2]int{start, end})
 		}
 	}
 
-	rest := strings.TrimSpace(string(restRunes))
+	if len(removeRanges) > 0 {
+		for i := len(removeRanges) - 1; i >= 0; i-- {
+			r := removeRanges[i]
+			textRunes = append(textRunes[:r[0]], textRunes[r[1]:]...)
+		}
+	}
+
+	rest := strings.TrimSpace(string(textRunes))
+
+commandsLoop:
+	for _, t := range c.Triggers {
+		for _, cmd := range append([]string{c.Command}, c.Aliases...) {
+			fullCmd := string(t) + strings.ToLower(cmd)
+			if strings.HasPrefix(strings.ToLower(rest), fullCmd) {
+				rest = strings.TrimSpace(rest[len(fullCmd):])
+				break commandsLoop
+			}
+		}
+	}
+
+	words := strings.Fields(rest)
+	if c.MaxArgs > 0 && len(words) > c.MaxArgs {
+		last := strings.Join(words[c.MaxArgs-1:], " ")
+		words = append(words[:c.MaxArgs-1], last)
+	}
 
 	users := make([]*model.User, 0, len(usersMap))
 	for _, u := range usersMap {
 		users = append(users, u)
 	}
 
-	commands := append([]string{c.Command}, c.Aliases...)
-	for _, t := range c.Triggers {
-		for _, cmd := range commands {
-			fullCmd := string(t) + strings.ToLower(cmd)
-			if strings.HasPrefix(strings.ToLower(rest), fullCmd) {
-				rest = strings.TrimSpace(string([]rune(rest)[len([]rune(fullCmd)):]))
-
-				if c.MaxArgs <= 0 {
-					return &Context{strings.Fields(rest), users}
-				}
-				words := strings.Fields(rest)
-				if len(words) <= c.MaxArgs {
-					return &Context{[]string{rest}, users}
-				}
-				args := make([]string, 0, c.MaxArgs)
-				for i := 0; i < c.MaxArgs-1; i++ {
-					args = append(args, words[i])
-				}
-				last := strings.Join(words[c.MaxArgs-1:], " ")
-				args = append(args, last)
-				return &Context{args, users}
-			}
-		}
+	return &Context{
+		Args:  words,
+		Users: users,
 	}
-
-	return &Context{[]string{}, users}
 }
 
 func (c Command) Name() string {
