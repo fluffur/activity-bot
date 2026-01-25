@@ -185,7 +185,7 @@ func (c Command) Name() string {
 }
 
 func (c Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
-	text := strings.ToLower(msg.GetText())
+	text := strings.ToLower(removeMentions(msg))
 	if text == "" {
 		return false
 	}
@@ -199,11 +199,13 @@ func (c Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
 			fullCmd := trigger + strings.ToLower(cName)
 			fullCmdWithBot := fullCmd + "@" + strings.ToLower(b.User.Username)
 
-			if strings.HasPrefix(strings.ToLower(text), fullCmd) || strings.HasPrefix(strings.ToLower(text), fullCmdWithBot) {
+			if strings.HasPrefix(text, fullCmd) || strings.HasPrefix(text, fullCmdWithBot) {
 				rest := text[len(fullCmd):]
-				if strings.HasPrefix(strings.ToLower(rest), "@"+strings.ToLower(b.User.Username)) {
-					rest = rest[len(b.User.Username)+1:] // убираем @username
+
+				if strings.HasPrefix(rest, "@"+strings.ToLower(b.User.Username)) {
+					rest = rest[len(b.User.Username)+1:]
 				}
+
 				rest = strings.TrimSpace(rest)
 
 				if !c.allowArgs && len(rest) > 0 {
@@ -215,4 +217,31 @@ func (c Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
 	}
 
 	return false
+}
+
+func removeMentions(msg *gotgbot.Message) string {
+	text := msg.GetText()
+	textRunes := []rune(text)
+
+	removeRanges := make([][2]int, 0)
+
+	for _, e := range msg.Entities {
+		start := int(e.Offset)
+		end := start + int(e.Length)
+		if start < 0 || end > len(textRunes) {
+			continue
+		}
+
+		switch e.Type {
+		case "mention", "text_mention":
+			removeRanges = append(removeRanges, [2]int{start, end})
+		}
+	}
+
+	for i := len(removeRanges) - 1; i >= 0; i-- {
+		r := removeRanges[i]
+		textRunes = append(textRunes[:r[0]], textRunes[r[1]:]...)
+	}
+
+	return strings.TrimSpace(string(textRunes))
 }
