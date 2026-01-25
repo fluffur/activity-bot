@@ -97,6 +97,57 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 	return i, err
 }
 
+const getChatMembers = `-- name: GetChatMembers :many
+SELECT chat_id, user_id, joined_at, exempt_until, custom_title, id, username, first_name, last_name, created_at
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = $1
+`
+
+type GetChatMembersRow struct {
+	ChatID      int64              `db:"chat_id" json:"chatId"`
+	UserID      int64              `db:"user_id" json:"userId"`
+	JoinedAt    pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	ExemptUntil pgtype.Timestamptz `db:"exempt_until" json:"exemptUntil"`
+	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
+	ID          int64              `db:"id" json:"id"`
+	Username    pgtype.Text        `db:"username" json:"username"`
+	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+}
+
+func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMembersRow, error) {
+	rows, err := q.db.Query(ctx, getChatMembers, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetChatMembersRow{}
+	for rows.Next() {
+		var i GetChatMembersRow
+		if err := rows.Scan(
+			&i.ChatID,
+			&i.UserID,
+			&i.JoinedAt,
+			&i.ExemptUntil,
+			&i.CustomTitle,
+			&i.ID,
+			&i.Username,
+			&i.FirstName,
+			&i.LastName,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getChatMembersWithTitles = `-- name: GetChatMembersWithTitles :many
 SELECT cm.user_id, cm.custom_title, u.first_name, u.last_name, u.username
 FROM chat_members cm

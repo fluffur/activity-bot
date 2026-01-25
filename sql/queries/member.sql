@@ -19,6 +19,11 @@ FROM chat_members
 WHERE chat_id = $1
   AND user_id = $2;
 
+-- name: GetChatMembers :many
+SELECT *
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = @chat_id;
 
 -- name: GetChatMembersWithTitles :many
 SELECT cm.user_id, cm.custom_title, u.first_name, u.last_name, u.username

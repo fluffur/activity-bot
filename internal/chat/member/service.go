@@ -33,6 +33,12 @@ func (s *Service) GetMemberTitle(chatID int64, userID int64) (string, error) {
 	return s.repo.GetCustomTitle(ctx, chatID, userID)
 }
 
+func (s *Service) GetChatMembers(chatID int64) ([]model.ChatMember, error) {
+	ctx := context.Background()
+
+	return s.repo.FindByChatID(ctx, chatID)
+}
+
 func (s *Service) UpdateChatMembers(chatID int64, members []model.ChatMemberUpdate) error {
 	ctx := context.Background()
 

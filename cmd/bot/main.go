@@ -84,9 +84,9 @@ func main() {
 	chatHandler := chat.NewHandler(chatService, adminService)
 	exemptHandler := exempt.NewHandler(exemptService, userService, adminService, exempt.NewDateParser())
 	adminHandler := admin.NewHandler(adminService, userService)
-	messageHandler := msg.NewHandler(messageService)
+	messageHandler := msg.NewHandler(messageService, memberService)
 	memberHandler := member.NewHandler(memberService, userService, adminService)
-	callHandler := call.NewHandler(adminService)
+	callHandler := call.NewHandler(adminService, memberService)
 
 	dp.AddHandler(cb.New("start", helpHandler.Start))
 	dp.AddHandler(cb.New("help", helpHandler.Help))
@@ -153,6 +153,7 @@ func main() {
 
 	dp.AddHandler(cb.New("обновить чат", memberHandler.UpdateMembersList).
 		OnlyGroups().
+		RequireAdmin().
 		SetAliases("update chat", "update"),
 	)
 
@@ -177,6 +178,7 @@ func main() {
 		SetAliases("калл", "колл").
 		AllowArgs().
 		OnlyGroups().
+		RequireAdmin().
 		SetMaxArgs(1),
 	)
 

@@ -2,8 +2,10 @@ package call
 
 import (
 	"activity-bot/internal/admin"
+	"activity-bot/internal/chat/member"
 	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
+	"activity-bot/internal/model"
 	"fmt"
 	"log"
 	"math/rand"
@@ -23,17 +25,24 @@ var emojis = []string{
 }
 
 type Handler struct {
-	adminService *admin.Service
+	adminService  *admin.Service
+	memberService *member.Service
 }
 
-func NewHandler(adminService *admin.Service) *Handler {
-	return &Handler{adminService}
+func NewHandler(adminService *admin.Service, memberService *member.Service) *Handler {
+	return &Handler{adminService, memberService}
 }
 
 func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
 	var message string
 	if len(cctx.Args) != 0 {
 		message = cctx.Args[0]
+	}
+
+	dbMembers, err := h.memberService.GetChatMembers(ctx.EffectiveChat.Id)
+	if err != nil {
+		log.Println("GetChatMembers", err)
+
 	}
 
 	admins, err := b.GetChatAdministrators(ctx.EffectiveChat.Id, nil)
@@ -43,13 +52,15 @@ func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 		return err
 	}
 
-	var users []gotgbot.User
+	var tgUsers []gotgbot.User
 	for _, a := range admins {
 		if a.GetUser().IsBot {
 			continue
 		}
-		users = append(users, a.GetUser())
+		tgUsers = append(tgUsers, a.GetUser())
 	}
+
+	users := mergeUsers(dbMembers, tgUsers)
 
 	for i := 0; i < len(users); i += mentionsPerMessage {
 		end := i + mentionsPerMessage
@@ -65,7 +76,7 @@ func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 
 		for _, user := range users[i:end] {
 			emoji := emojis[rand.Intn(len(emojis))]
-			sb.WriteString(fmt.Sprintf("%s ", helpers.Mention(helpers.MapUser(&user), emoji)))
+			sb.WriteString(fmt.Sprintf("%s ", helpers.Mention(user, emoji)))
 		}
 
 		photos := ctx.EffectiveMessage.Photo
@@ -91,4 +102,37 @@ func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 	}
 
 	return nil
+}
+
+func mergeUsers(dbMembers []model.ChatMember, tgUsers []gotgbot.User) []model.User {
+	usersMap := make(map[int64]model.User)
+
+	for _, m := range dbMembers {
+		usersMap[m.User.ID] = m.User
+	}
+
+	for _, u := range tgUsers {
+		if u.IsBot {
+			continue
+		}
+
+		var username *string
+		if u.Username != "" {
+			username = &u.Username
+		}
+
+		usersMap[u.Id] = model.User{
+			ID:        u.Id,
+			FirstName: u.FirstName,
+			LastName:  u.LastName,
+			Username:  username,
+		}
+	}
+
+	result := make([]model.User, 0, len(usersMap))
+	for _, u := range usersMap {
+		result = append(result, u)
+	}
+
+	return result
 }

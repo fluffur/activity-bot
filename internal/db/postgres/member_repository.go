@@ -46,6 +46,38 @@ func (r *MemberRepository) UpdateCustomTitle(ctx context.Context, chatID int64, 
 
 }
 
+func (r *MemberRepository) FindByChatID(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
+	members, err := r.queries.GetChatMembers(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]model.ChatMember, len(members))
+	for i, m := range members {
+		var exemptUntil *time.Time
+		var username *string
+		if m.Username.Valid {
+			username = &m.Username.String
+		}
+		if m.ExemptUntil.Valid {
+			exemptUntil = &m.ExemptUntil.Time
+		}
+		result[i] = model.ChatMember{
+			User: model.User{
+				ID:        m.UserID,
+				FirstName: m.FirstName.String,
+				LastName:  m.LastName.String,
+				Username:  username,
+			},
+			ChatID:      chatID,
+			ExemptUntil: exemptUntil,
+			CustomTitle: m.CustomTitle.String,
+		}
+	}
+
+	return result, nil
+}
+
 func (r *MemberRepository) GetWithCustomTitles(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
 	members, err := r.queries.GetChatMembersWithTitles(ctx, chatID)
 	if err != nil {
