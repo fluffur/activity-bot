@@ -127,7 +127,6 @@ func main() {
 	dp.AddHandler(cb.New("newbie", chatHandler.ShowNewbieThreshold).
 		SetAliases("новичок", "newbies", "новички", "нью", "ньюхи").
 		SetTriggers("/", ".", "!", "+", "").
-		RequireAdmin().
 		OnlyGroups(),
 	)
 
