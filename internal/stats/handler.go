@@ -32,7 +32,7 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context
 
 	report, err := h.service.GetMemberStats(ctx.EffectiveChat.Id)
 	if err != nil {
-		log.Println("Get member stats error", err)
+		log.Println("Exists member stats error", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить отчёт", nil)
 		return err
 
@@ -40,7 +40,7 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context
 
 	exemptMembers, err := h.exemptService.GetExemptMembers(ctx.EffectiveChat.Id)
 	if err != nil {
-		log.Println("Get exempt members error", err)
+		log.Println("Exists exempt members error", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить отчёт", nil)
 		return err
 	}

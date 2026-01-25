@@ -3,6 +3,7 @@ package exempt
 import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/command"
+	"activity-bot/internal/common"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
@@ -49,7 +50,7 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) e
 		return err
 	}
 
-	if !admin.IsSenderAdmin(b, ctx, h.adminService) {
+	if !common.IsSenderAdmin(b, ctx, h.adminService) {
 		return h.createExemptRequest(b, ctx, targetUser, date)
 	}
 
@@ -135,14 +136,14 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 func (h *Handler) End(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
 	targetUser := cctx.Users[0]
 
-	if targetUser.ID != ctx.EffectiveUser.Id && !admin.IsSenderAdmin(b, ctx, h.adminService) {
+	if targetUser.ID != ctx.EffectiveUser.Id && !common.IsSenderAdmin(b, ctx, h.adminService) {
 		_, err := ctx.EffectiveMessage.Reply(b, "Вы можете удалить из реста только себя", nil)
 		return err
 	}
 
 	exempt, err := h.service.GetMemberExempt(ctx.EffectiveChat.Id, targetUser.ID)
 	if err != nil {
-		log.Println("Get member exempt", err)
+		log.Println("Exists member exempt", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось проверить рест пользователя", nil)
 		return err
 	}

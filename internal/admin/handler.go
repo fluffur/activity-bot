@@ -40,7 +40,25 @@ func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Conte
 }
 
 func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	if len(cctx.Users) < 1 {
+		return nil
+	}
+
 	targetUser := cctx.Users[0]
+
+	isAdmin, err := h.service.IsAdmin(ctx.EffectiveChat.Id, targetUser.ID)
+	if err != nil {
+		log.Println("RemoveAdmin IsAdmin", err)
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось проверить статус пользователя", nil)
+
+		return err
+	}
+
+	if !isAdmin {
+		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не является администратором", nil)
+
+		return err
+	}
 
 	if err := h.service.RemoveAdmin(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
 		log.Println("RemoveAdmin", err)
@@ -49,7 +67,7 @@ func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Co
 		return err
 	}
 
-	_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s удалён из администраторов бота", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s удалён из администраторов бота", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 			IsDisabled: true,

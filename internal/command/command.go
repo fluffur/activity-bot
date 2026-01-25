@@ -1,6 +1,7 @@
 package command
 
 import (
+	"activity-bot/internal/common"
 	"activity-bot/internal/model"
 	"log"
 	"strings"
@@ -9,23 +10,17 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-type UserService interface {
-	GetUserByUsername(username string) (model.User, error)
-	EnsureUserExists(id int64, username, firstName, lastName string) (model.User, error)
-}
-
 type Builder struct {
-	userService UserService
+	userService  common.UserService
+	adminService common.AdminService
 }
 
-func NewBuilder(us UserService) *Builder {
-	return &Builder{
-		userService: us,
-	}
+func NewBuilder(userService common.UserService, adminService common.AdminService) *Builder {
+	return &Builder{userService, adminService}
 }
 
 func (b *Builder) New(c string, r Response, aliases ...string) Command {
-	return NewCommand(c, r, b.userService, aliases...)
+	return NewCommand(c, r, b.userService, b.adminService, aliases...)
 }
 
 type Command struct {
@@ -34,21 +29,27 @@ type Command struct {
 	Aliases          []string
 	Response         Response
 	MaxArgs          int
-	userService      UserService
+	requireAdmin     bool
+	requireCreator   bool
 	allowArgs        bool
 	requireTriggers  bool
 	fallbackToSender bool
+
+	userService  common.UserService
+	adminService common.AdminService
 }
 
-func NewCommand(c string, r Response, service UserService, aliases ...string) Command {
+func NewCommand(c string, r Response, userService common.UserService, adminService common.AdminService, aliases ...string) Command {
 	return Command{
 		Command:          strings.ToLower(c),
 		Triggers:         []string{"/", "!", ".", ""},
 		Aliases:          aliases,
 		Response:         r,
-		userService:      service,
 		requireTriggers:  true,
 		fallbackToSender: false,
+
+		userService:  userService,
+		adminService: adminService,
 	}
 }
 
@@ -57,13 +58,23 @@ func (c Command) RequireTriggers(require bool) Command {
 	return c
 }
 
-func (c Command) FallbackToSender(fallback bool) Command {
-	c.fallbackToSender = fallback
+func (c Command) RequireAdmin() Command {
+	c.requireAdmin = true
 	return c
 }
 
-func (c Command) AllowArgs(allow bool) Command {
-	c.allowArgs = allow
+func (c Command) RequireCreator() Command {
+	c.requireCreator = true
+	return c
+}
+
+func (c Command) FallbackToSender() Command {
+	c.fallbackToSender = true
+	return c
+}
+
+func (c Command) AllowArgs() Command {
+	c.allowArgs = true
 	return c
 }
 
@@ -93,6 +104,20 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	return false
 }
 func (c Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
+	if c.requireCreator {
+		if !common.IsSenderCreator(b, ctx) {
+			_, err := ctx.EffectiveMessage.Reply(b, "Только создатель может выполнить эту команду", nil)
+			return err
+		}
+	}
+
+	if c.requireAdmin {
+		if !common.IsSenderAdmin(b, ctx, c.adminService) {
+			_, err := ctx.EffectiveMessage.Reply(b, "Только создатель и администраторы могут выполнить эту команду", nil)
+			return err
+		}
+	}
+
 	return c.Response(b, ctx, c.parseArgs(b, ctx))
 }
 

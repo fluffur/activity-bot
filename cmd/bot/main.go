@@ -76,7 +76,7 @@ func main() {
 	memberService := member.NewService(memberRepository, chatRepository, userRepository)
 	adminService := admin.NewService(adminRepository)
 	messageService := msg.NewService(messageRepository)
-	cb := command.NewBuilder(userService)
+	cb := command.NewBuilder(userService, adminService)
 
 	helpHandler := help.NewHandler()
 	statsHandler := stats.NewHandler(statsService, exemptService, memberService)
@@ -101,24 +101,25 @@ func main() {
 	dp.AddHandler(cb.New("norm", chatHandler.SetNorm).
 		SetAliases("норма", "quota").
 		SetTriggers("/", ".", "!", "+").
-		AllowArgs(true).
+		AllowArgs().
+		RequireAdmin().
 		SetMaxArgs(1),
 	)
 
 	dp.AddHandler(cb.New("exempt", exemptHandler.Show).
 		SetAliases("рест", "rest", "рэст").
-		FallbackToSender(true).
+		FallbackToSender().
 		SetTriggers("/", ".", "!", "+"),
 	)
 	dp.AddHandler(cb.New("exempt", exemptHandler.Set).
 		SetAliases("рест", "rest", "рэст").
-		FallbackToSender(true).
+		FallbackToSender().
 		SetTriggers("/", ".", "!", "+").
-		AllowArgs(true).
+		AllowArgs().
 		SetMaxArgs(1),
 	)
 	dp.AddHandler(cb.New("-exempt", exemptHandler.End).
-		FallbackToSender(true).
+		FallbackToSender().
 		SetAliases("-рест", "-rest", "-рэст").
 		SetTriggers("/", ".", "!", ""),
 	)
@@ -133,12 +134,14 @@ func main() {
 
 	dp.AddHandler(cb.New("администратор", adminHandler.AddAdmin).
 		SetAliases("админ", "admin", "адм", "модер").
-		SetTriggers("/", ".", "!", "+"),
+		SetTriggers("/", ".", "!", "+").
+		RequireAdmin(),
 	)
 
 	dp.AddHandler(cb.New("-администратор", adminHandler.RemoveAdmin).
 		SetAliases("-админ", "-admin", "-адм", "-модер", "-mod").
-		SetTriggers("/", ".", "!", "+", ""),
+		SetTriggers("/", ".", "!", "+", "").
+		RequireCreator(),
 	)
 
 	dp.AddHandler(cb.New("обновить чат", memberHandler.UpdateMembersList).
@@ -152,7 +155,7 @@ func main() {
 	dp.AddHandler(cb.New("роль", memberHandler.SetRole).
 		SetAliases("role", "title").
 		SetTriggers("/", ".", "!", "+").
-		AllowArgs(true).
+		AllowArgs().
 		SetMaxArgs(1),
 	)
 
@@ -162,7 +165,7 @@ func main() {
 
 	dp.AddHandler(cb.New("call", callHandler.Call).
 		SetAliases("калл", "колл").
-		AllowArgs(true).
+		AllowArgs().
 		SetMaxArgs(1),
 	)
 

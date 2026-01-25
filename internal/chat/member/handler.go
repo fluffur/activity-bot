@@ -39,7 +39,7 @@ func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *ext.Context, _ *command
 func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
 	members, err := h.service.GetMembersWithTitle(ctx.EffectiveChat.Id)
 	if err != nil {
-		log.Println("Get members error", err)
+		log.Println("Exists members error", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить список ролей", nil)
 		return err
 	}
