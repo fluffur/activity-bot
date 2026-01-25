@@ -45,6 +45,20 @@ func main() {
 		panic("failed to create new bot: " + err.Error())
 	}
 
+	_, err = b.SetMyCommands([]gotgbot.BotCommand{
+		{Command: "stats", Description: "📈 Отчёт за неделю"},
+		{Command: "norm", Description: "📊 Норма сообщений"},
+		{Command: "rest", Description: "💤 Статус реста"},
+		{Command: "role", Description: "🎭 Узнать свою роль"},
+		{Command: "roles", Description: "📜 Список всех ролей"},
+		{Command: "admins", Description: "👮 Админы бота"},
+		{Command: "update", Description: "🔄 Обновить данные чата"},
+		{Command: "help", Description: "❓ Помощь"},
+	}, nil)
+	if err != nil {
+		slog.Warn("failed to set bot commands", "error", err)
+	}
+
 	pool, err := pgxpool.New(ctx, cfg.DBDSN)
 	if err != nil {
 		panic("failed to create pool: " + err.Error())
