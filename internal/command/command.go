@@ -80,14 +80,14 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	return false
 }
 func (c Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
-	return c.Response(b, ctx, c.parseArgs(ctx.Message))
+	return c.Response(b, ctx, c.parseArgs(b, ctx.Message))
 }
 
 func (c Command) ensureUser(u *gotgbot.User) (model.User, error) {
 	return c.userService.EnsureUserExists(u.Id, u.Username, u.FirstName, u.LastName)
 
 }
-func (c Command) parseArgs(msg *gotgbot.Message) *Context {
+func (c Command) parseArgs(b *gotgbot.Bot, msg *gotgbot.Message) *Context {
 	text := msg.GetText()
 	textRunes := []rune(text)
 
@@ -118,7 +118,6 @@ func (c Command) parseArgs(msg *gotgbot.Message) *Context {
 					usersMap[u.ID] = &u
 				} else {
 					log.Println("Ensure user from mention exists", err)
-
 				}
 				removeRanges = append(removeRanges, [2]int{start, end})
 			}
@@ -129,17 +128,14 @@ func (c Command) parseArgs(msg *gotgbot.Message) *Context {
 				usersMap[u.ID] = &u
 			} else {
 				log.Println("Ensure user from username mention exists", err)
-
 			}
 			removeRanges = append(removeRanges, [2]int{start, end})
 		}
 	}
 
-	if len(removeRanges) > 0 {
-		for i := len(removeRanges) - 1; i >= 0; i-- {
-			r := removeRanges[i]
-			textRunes = append(textRunes[:r[0]], textRunes[r[1]:]...)
-		}
+	for i := len(removeRanges) - 1; i >= 0; i-- {
+		r := removeRanges[i]
+		textRunes = append(textRunes[:r[0]], textRunes[r[1]:]...)
 	}
 
 	rest := strings.TrimSpace(string(textRunes))
@@ -148,8 +144,14 @@ commandsLoop:
 	for _, t := range c.Triggers {
 		for _, cmd := range append([]string{c.Command}, c.Aliases...) {
 			fullCmd := string(t) + strings.ToLower(cmd)
-			if strings.HasPrefix(strings.ToLower(rest), fullCmd) {
-				rest = strings.TrimSpace(rest[len(fullCmd):])
+			fullCmdWithBot := fullCmd + "@" + strings.ToLower(b.User.Username)
+
+			if strings.HasPrefix(strings.ToLower(rest), fullCmd) || strings.HasPrefix(strings.ToLower(rest), fullCmdWithBot) {
+				if strings.HasPrefix(strings.ToLower(rest), fullCmdWithBot) {
+					rest = strings.TrimSpace(rest[len(fullCmdWithBot):])
+				} else {
+					rest = strings.TrimSpace(rest[len(fullCmd):])
+				}
 				break commandsLoop
 			}
 		}
