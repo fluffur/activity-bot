@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/go-telegram/bot"
 )
 
@@ -30,4 +32,20 @@ func CheckOwnerOrAdmin(ctx context.Context, b *bot.Bot, adminService AdminServic
 		return false
 	}
 	return isAdmin
+}
+
+func IsSenderAdmin(b *gotgbot.Bot, ctx *ext.Context, adminService AdminService) bool {
+	senderMember, err := b.GetChatMember(ctx.EffectiveChat.Id, ctx.EffectiveUser.Id, nil)
+	if err != nil {
+		log.Println("GetChatMember", err)
+		return false
+	}
+	isAdmin, err := adminService.IsAdmin(ctx.EffectiveChat.Id, ctx.EffectiveUser.Id)
+	if err != nil {
+		log.Println("IsAdmin", err)
+
+		return false
+	}
+
+	return senderMember.GetStatus() == "creator" || isAdmin
 }

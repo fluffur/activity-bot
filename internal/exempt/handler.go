@@ -30,14 +30,20 @@ func NewHandler(service *Service, userService *user.Service, adminService *admin
 	return &Handler{service, userService, adminService, dateParser}
 }
 
-func (h *Handler) ExemptMember(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+func (h *Handler) Set(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
 
+	var targetUser *model.User
 	if len(cctx.Users) < 1 {
-		_, err := ctx.EffectiveMessage.Reply(b, "Вы забыли указать пользователя, которому хотите назначить рест", nil)
+		u, err := h.userService.EnsureUserExists(ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
+		if err != nil {
+			log.Println("Show EnsureUserExists failed", err)
+			return err
+		}
+		targetUser = &u
 
-		return err
+	} else {
+		targetUser = cctx.Users[0]
 	}
-	targetUser := cctx.Users[0]
 
 	if len(cctx.Args) < 1 {
 		_, err := ctx.EffectiveMessage.Reply(b, "Вы забыли указать срок реста, попробуйте написать +рест 2 недели в ответ пользователю", nil)
@@ -57,24 +63,12 @@ func (h *Handler) ExemptMember(b *gotgbot.Bot, ctx *ext.Context, cctx *command.C
 		return err
 	}
 
-	senderMember, err := b.GetChatMember(ctx.EffectiveChat.Id, ctx.EffectiveUser.Id, nil)
-	if err != nil {
-		log.Println("GetChatMember", err)
-		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось проверить роль пользователя в чате", nil)
-		return err
-	}
-	isAdmin, err := h.adminService.IsAdmin(ctx.EffectiveChat.Id, ctx.EffectiveUser.Id)
-	if err != nil {
-		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось проверить роль пользователя у бота", nil)
-		return err
-	}
-
-	if senderMember.GetStatus() != "creator" && !isAdmin {
+	if helpers.IsSenderAdmin(b, ctx, h.adminService) {
 		return h.createExemptRequest(b, ctx, targetUser, date)
 	}
 
 	if err := h.service.ExemptMember(ctx.EffectiveChat.Id, targetUser.ID, date); err != nil {
-		log.Println("ExemptMember", err)
+		log.Println("Set", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось создать рест", nil)
 		return err
 	}
@@ -86,7 +80,7 @@ func (h *Handler) ExemptMember(b *gotgbot.Bot, ctx *ext.Context, cctx *command.C
 		text = fmt.Sprintf("Пользователь %s добавлен в рест до %s", helpers.Link(*targetUser), helpers.FormatToHumanDate(date))
 	}
 
-	_, err = ctx.EffectiveMessage.Reply(b, text, &gotgbot.SendMessageOpts{
+	_, err := ctx.EffectiveMessage.Reply(b, text, &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 	})
 	return err
@@ -120,12 +114,12 @@ func (h *Handler) createExemptRequest(b *gotgbot.Bot, ctx *ext.Context, targetUs
 	return err
 }
 
-func (h *Handler) ShowMemberExempt(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+func (h *Handler) Show(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
 	var targetUser *model.User
 	if len(cctx.Users) < 1 {
 		u, err := h.userService.EnsureUserExists(ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
 		if err != nil {
-			log.Println("ShowMemberExempt EnsureUserExists failed", err)
+			log.Println("Show EnsureUserExists failed", err)
 			return err
 		}
 		targetUser = &u
@@ -157,66 +151,63 @@ func (h *Handler) ShowMemberExempt(b *gotgbot.Bot, ctx *ext.Context, cctx *comma
 
 }
 
-//
-//func (h *Handler) EndMemberExempt(ctx context.Context, b *bot.Bot, update *models.Update) {
-//	targetUser, _, err := helpers.ExtractTargetUser(h.userService, update, "")
-//	if err != nil {
-//		if !errors.Is(err, helpers.ErrUserNotSpecified) {
-//			helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
-//			return
-//		}
-//		targetUser, err = h.userService.GetUser(update.Message.From.ID)
-//		if err != nil {
-//			helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
-//			return
-//		}
-//	}
-//
-//	member, err := b.GetChatMember(ctx, &bot.GetChatMemberParams{
-//		ChatID: update.Message.Chat.ID,
-//		UserID: update.Message.From.ID,
-//	})
-//	if err != nil {
-//		helpers.SendMessage(ctx, b, update, "Не удалось проверить вашу роль в чате")
-//		return
-//	}
-//
-//	if targetUser.ID != update.Message.From.ID && member.Owner == nil {
-//		helpers.SendMessage(ctx, b, update, "Вы можете удалить из реста только себя")
-//		return
-//	}
-//
-//	exempt, err := h.service.GetMemberExempt(ctx, update.Message.Chat.ID, targetUser.ID)
-//	if err != nil {
-//		log.Println("Get member exempt", err)
-//		helpers.SendMessage(ctx, b, update, "Не удалось проверить рест пользователя")
-//		return
-//	}
-//	if exempt == nil {
-//		if targetUser.ID == update.Message.From.ID {
-//			helpers.SendMessage(ctx, b, update, "Вы не находитесь в ресте")
-//		} else {
-//			helpers.SendMessage(ctx, b, update, "Пользователь не находится в ресте")
-//
-//		}
-//		return
-//	}
-//
-//	if err := h.service.EndMemberExempt(ctx, update.Message.Chat.ID, targetUser.ID); err != nil {
-//		helpers.SendMessage(ctx, b, update, "Не удалось удалить пользователя из реста")
-//		return
-//	}
-//
-//	if targetUser.ID == update.Message.From.ID {
-//		helpers.SendMessage(ctx, b, update, "Вы успешно удалены из реста")
-//	} else {
-//		helpers.SendMessage(ctx, b, update,
-//			fmt.Sprintf(`Пользователь %s успешно удалён из реста`,
-//				helpers.Link(targetUser),
-//			),
-//		)
-//	}
-//}
+func (h *Handler) End(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	var targetUser *model.User
+	if len(cctx.Users) < 1 {
+		u, err := h.userService.EnsureUserExists(ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
+		if err != nil {
+			log.Println("Show EnsureUserExists failed", err)
+			return err
+		}
+		targetUser = &u
+	} else {
+		targetUser = cctx.Users[0]
+	}
+
+	if targetUser.ID != ctx.EffectiveUser.Id && !helpers.IsSenderAdmin(b, ctx, h.adminService) {
+		_, err := ctx.EffectiveMessage.Reply(b, "Вы можете удалить из реста только себя", nil)
+		return err
+	}
+
+	exempt, err := h.service.GetMemberExempt(ctx.EffectiveChat.Id, targetUser.ID)
+	if err != nil {
+		log.Println("Get member exempt", err)
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось проверить рест пользователя", nil)
+		return err
+	}
+	if exempt == nil {
+		if targetUser.ID == ctx.EffectiveUser.Id {
+			_, err := ctx.EffectiveMessage.Reply(b, "Вы не находитесь в ресте", nil)
+			return err
+		}
+
+		_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s не находится в ресте", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
+			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+				IsDisabled: true,
+			},
+			ParseMode: gotgbot.ParseModeHTML,
+		})
+		return err
+	}
+
+	if err := h.service.EndMemberExempt(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось удалить пользователя из реста", nil)
+		return err
+	}
+
+	if targetUser.ID == ctx.EffectiveUser.Id {
+		_, err := ctx.EffectiveMessage.Reply(b, "Вы успешно удалены из реста", nil)
+		return err
+	}
+
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s успешно удалён из реста", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+		ParseMode: gotgbot.ParseModeHTML,
+	})
+	return err
+}
 
 func (h *Handler) ApproveExemptRequest(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if !helpers.CheckOwnerOrAdmin(ctx, b, h.adminService, update.CallbackQuery.Message.Message.Chat.ID, update.CallbackQuery.From.ID) {

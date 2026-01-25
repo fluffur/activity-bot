@@ -29,7 +29,8 @@ func (s *Service) GetMemberExempt(chatID int64, userID int64) (*time.Time, error
 	return s.repo.Get(ctx, chatID, userID)
 }
 
-func (s *Service) EndMemberExempt(ctx context.Context, chatID int64, userID int64) error {
+func (s *Service) EndMemberExempt(chatID int64, userID int64) error {
+	ctx := context.Background()
 	return s.repo.Remove(ctx, chatID, userID)
 }
 

@@ -87,21 +87,26 @@ func main() {
 
 	dp.AddHandler(cb.New("norm", chatHandler.SetNorm).
 		SetAliases("норма", "quota").
-		SetTriggers([]rune("/.!+")).
+		SetTriggers("/", ".", "!", "+").
 		AllowArgs(true).
 		SetMaxArgs(1),
 	)
 
-	dp.AddHandler(cb.New("exempt", exemptHandler.ShowMemberExempt).
+	dp.AddHandler(cb.New("exempt", exemptHandler.Show).
 		SetAliases("рест", "rest", "рэст").
-		SetTriggers([]rune("/.!+")),
+		SetTriggers("/", ".", "!", "+"),
 	)
 
-	dp.AddHandler(cb.New("exempt", exemptHandler.ExemptMember).
+	dp.AddHandler(cb.New("exempt", exemptHandler.Set).
 		SetAliases("рест", "rest", "рэст").
-		SetTriggers([]rune("/.!+")).
+		SetTriggers("/", ".", "!", "+").
 		AllowArgs(true).
 		SetMaxArgs(1),
+	)
+
+	dp.AddHandler(cb.New("-exempt", exemptHandler.End).
+		SetAliases("-рест", "-rest", "-рэст").
+		SetTriggers("/", ".", "!", ""),
 	)
 
 	err = updater.StartPolling(b, &ext.PollingOpts{

@@ -4,7 +4,6 @@ import (
 	"activity-bot/internal/model"
 	"log"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
@@ -30,23 +29,30 @@ func (b *Builder) New(c string, r Response, aliases ...string) Command {
 }
 
 type Command struct {
-	Command     string
-	Triggers    []rune
-	Aliases     []string
-	Response    Response
-	MaxArgs     int
-	userService UserService
-	allowArgs   bool
+	Command         string
+	Triggers        []string
+	Aliases         []string
+	Response        Response
+	MaxArgs         int
+	userService     UserService
+	allowArgs       bool
+	requireTriggers bool
 }
 
 func NewCommand(c string, r Response, service UserService, aliases ...string) Command {
 	return Command{
-		Command:     strings.ToLower(c),
-		Triggers:    []rune("/!."),
-		Aliases:     aliases,
-		Response:    r,
-		userService: service,
+		Command:         strings.ToLower(c),
+		Triggers:        []string{"/", "!", ".", ""},
+		Aliases:         aliases,
+		Response:        r,
+		userService:     service,
+		requireTriggers: true,
 	}
+}
+
+func (c Command) RequireTriggers(require bool) Command {
+	c.requireTriggers = require
+	return c
 }
 
 func (c Command) AllowArgs(allow bool) Command {
@@ -59,7 +65,7 @@ func (c Command) SetMaxArgs(maxArgs int) Command {
 	return c
 }
 
-func (c Command) SetTriggers(triggers []rune) Command {
+func (c Command) SetTriggers(triggers ...string) Command {
 	c.Triggers = triggers
 	return c
 }
@@ -179,19 +185,18 @@ func (c Command) Name() string {
 }
 
 func (c Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
-	text := msg.GetText()
+	text := strings.ToLower(msg.GetText())
 	if text == "" {
 		return false
 	}
 
-	for _, t := range c.Triggers {
-		r, _ := utf8.DecodeRuneInString(text)
-		if r != t {
+	for _, trigger := range c.Triggers {
+		if !strings.HasPrefix(text, trigger) {
 			continue
 		}
 
 		for _, cName := range append([]string{c.Command}, c.Aliases...) {
-			fullCmd := string(t) + strings.ToLower(cName)
+			fullCmd := trigger + strings.ToLower(cName)
 			fullCmdWithBot := fullCmd + "@" + strings.ToLower(b.User.Username)
 
 			if strings.HasPrefix(strings.ToLower(text), fullCmd) || strings.HasPrefix(strings.ToLower(text), fullCmdWithBot) {
