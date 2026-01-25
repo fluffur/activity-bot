@@ -1,4 +1,4 @@
-package helpers
+package member
 
 import (
 	"activity-bot/internal/model"

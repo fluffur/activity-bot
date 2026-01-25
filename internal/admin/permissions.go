@@ -1,4 +1,4 @@
-package helpers
+package admin
 
 import (
 	"log"

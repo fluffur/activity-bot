@@ -22,12 +22,6 @@ func NewHandler(service *Service, userService *user.Service) *Handler {
 }
 
 func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	if !helpers.IsSenderAdmin(b, ctx, h.service) {
-		_, err := ctx.EffectiveMessage.Reply(b, "Недостаточно прав", nil)
-
-		return err
-	}
-
 	targetUser := cctx.Users[0]
 	if err := h.service.AddAdmin(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
 		log.Println("AddAdmin AddAdmin", err)

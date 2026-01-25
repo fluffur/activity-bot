@@ -25,7 +25,7 @@ func NewHandler(service *Service, userService *user.Service, adminService *admin
 }
 
 func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
-	count, err := helpers.UpdateChatMembers(b, h.service, ctx.EffectiveChat.Id)
+	count, err := UpdateChatMembers(b, h.service, ctx.EffectiveChat.Id)
 	if err != nil {
 		log.Println("Update chat members error", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось обновить данные чата", nil)
@@ -68,11 +68,6 @@ func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context
 func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
 	role := cctx.Args[0]
 	targetUser := cctx.Users[0]
-
-	if !helpers.IsSenderAdmin(b, ctx, h.adminService) {
-		_, err := ctx.EffectiveMessage.Reply(b, "Команда изменения ролей доступна только создателю чата и администраторам бота", nil)
-		return err
-	}
 
 	if len(role) > 32 {
 		_, err := ctx.EffectiveMessage.Reply(b, "Слишком длинная роль (максимум 32 символа)", nil)
@@ -194,7 +189,7 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 }
 
 func (h *Handler) OnBotPromote(b *gotgbot.Bot, ctx *ext.Context) error {
-	count, err := helpers.UpdateChatMembers(b, h.service, ctx.EffectiveChat.Id)
+	count, err := UpdateChatMembers(b, h.service, ctx.EffectiveChat.Id)
 	if err != nil {
 		log.Println("Failed to update chat members on join:", err)
 		return err

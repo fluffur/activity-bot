@@ -49,7 +49,7 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) e
 		return err
 	}
 
-	if !helpers.IsSenderAdmin(b, ctx, h.adminService) {
+	if !admin.IsSenderAdmin(b, ctx, h.adminService) {
 		return h.createExemptRequest(b, ctx, targetUser, date)
 	}
 
@@ -135,7 +135,7 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 func (h *Handler) End(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
 	targetUser := cctx.Users[0]
 
-	if targetUser.ID != ctx.EffectiveUser.Id && !helpers.IsSenderAdmin(b, ctx, h.adminService) {
+	if targetUser.ID != ctx.EffectiveUser.Id && !admin.IsSenderAdmin(b, ctx, h.adminService) {
 		_, err := ctx.EffectiveMessage.Reply(b, "Вы можете удалить из реста только себя", nil)
 		return err
 	}
