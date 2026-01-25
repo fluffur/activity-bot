@@ -2,17 +2,17 @@ package stats
 
 import (
 	"activity-bot/internal/chat/member"
+	"activity-bot/internal/command"
 	"activity-bot/internal/exempt"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
-	"context"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type Handler struct {
@@ -25,32 +25,38 @@ func NewHandler(service *Service, exemptService *exempt.Service, memberService *
 	return &Handler{service, exemptService, memberService}
 }
 
-func (h *Handler) ShowWeeklyReport(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if _, err := helpers.UpdateChatMembers(ctx, b, h.memberService, update.Message.Chat.ID); err != nil {
+func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
+	if _, err := member.UpdateChatMembers(b, h.memberService, ctx.EffectiveChat.Id); err != nil {
 		log.Println("Auto-update chat members error", err)
 	}
 
-	report, err := h.service.GetMemberStats(ctx, update.Message.Chat.ID)
+	report, err := h.service.GetMemberStats(ctx.EffectiveChat.Id)
 	if err != nil {
-		log.Println("Get member stats error", err)
-		helpers.SendMessage(ctx, b, update, "Не удалось получить отчёт")
-		return
+		log.Println("Exists member stats error", err)
+		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить отчёт", nil)
+		return err
+
 	}
 
-	exemptMembers, err := h.exemptService.GetExemptMembers(ctx, update.Message.Chat.ID)
+	exemptMembers, err := h.exemptService.GetExemptMembers(ctx.EffectiveChat.Id)
 	if err != nil {
-		log.Println("Get exempt members error", err)
-		helpers.SendMessage(ctx, b, update, "Не удалось получить отчёт")
-		return
+		log.Println("Exists exempt members error", err)
+		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить отчёт", nil)
+		return err
 	}
 
 	if len(report) == 0 && len(exemptMembers) == 0 {
-		helpers.SendMessage(ctx, b, update, "Нет данных для отчёта на эту неделю")
-		return
+		_, err = ctx.EffectiveMessage.Reply(b, "Нет данных для отчёта на эту неделю", nil)
+		return err
 	}
 
-	text := formatWeeklyReport(report, exemptMembers)
-	helpers.SendMessage(ctx, b, update, text)
+	_, err = ctx.EffectiveMessage.Reply(b, formatWeeklyReport(report, exemptMembers), &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+	})
+	return err
 }
 func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers []model.ExemptMember) string {
 	now := time.Now()

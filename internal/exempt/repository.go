@@ -14,6 +14,6 @@ type Repository interface {
 	AddRequest(ctx context.Context, request model.ExemptRequest) error
 	ApproveRequest(ctx context.Context, request model.ExemptRequest) error
 	ApproveRequestWithTx(ctx context.Context, request model.ExemptRequest) error
-	RejectRequest(ctx context.Context, chatID, userID int64, messageID int) error
-	GetRequest(ctx context.Context, chatID, userID int64, messageID int) (model.ExemptRequest, error)
+	RejectRequest(ctx context.Context, chatID, userID, messageID int64) error
+	GetRequest(ctx context.Context, chatID, userID, messageID int64) (model.ExemptRequest, error)
 }

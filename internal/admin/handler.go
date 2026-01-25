@@ -1,14 +1,15 @@
 package admin
 
 import (
+	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/user"
-	"context"
 	"fmt"
+	"log"
 	"strings"
 
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type Handler struct {
@@ -20,71 +21,79 @@ func NewHandler(service *Service, userService *user.Service) *Handler {
 	return &Handler{service, userService}
 }
 
-func (h *Handler) AddAdmin(ctx context.Context, b *bot.Bot, update *models.Update) {
-	member, err := b.GetChatMember(ctx, &bot.GetChatMemberParams{
-		ChatID: update.Message.Chat.ID,
-		UserID: update.Message.From.ID,
+func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	if len(cctx.Users) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота. Попробуйте упомянуть его через ответ на сообщение или дождитесь, пока он напишет что-нибудь.", nil)
+		return err
+	}
+
+	targetUser := cctx.Users[0]
+	if err := h.service.AddAdmin(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
+		log.Println("AddAdmin AddAdmin", err)
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось добавить администратора", nil)
+		return err
+	}
+
+	_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s назначен администратором бота", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
 	})
-	if err != nil {
-		helpers.SendMessage(ctx, b, update, "Не удалось проверить ваши права")
-		return
-	}
-	if member.Owner == nil {
-		helpers.SendMessage(ctx, b, update, "Только создатель чата может добавлять администраторов бота")
-		return
-	}
 
-	targetUser, _, err := helpers.ExtractTargetUser(ctx, h.userService, update, "")
-	if err != nil {
-		helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
-		return
-	}
-	if err := h.service.AddAdmin(ctx, update.Message.Chat.ID, targetUser.ID); err != nil {
-		helpers.SendMessage(ctx, b, update, "Не удалось добавить администратора")
-		return
-	}
-
-	helpers.SendMessage(ctx, b, update, fmt.Sprintf("Пользователь %s назначен администратором бота", helpers.Link(targetUser)))
+	return err
 }
 
-func (h *Handler) RemoveAdmin(ctx context.Context, b *bot.Bot, update *models.Update) {
-	member, err := b.GetChatMember(ctx, &bot.GetChatMemberParams{
-		ChatID: update.Message.Chat.ID,
-		UserID: update.Message.From.ID,
+func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	if len(cctx.Users) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота.", nil)
+		return err
+	}
+
+	targetUser := cctx.Users[0]
+
+	isAdmin, err := h.service.IsAdmin(ctx.EffectiveChat.Id, targetUser.ID)
+	if err != nil {
+		log.Println("RemoveAdmin IsAdmin", err)
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось проверить статус пользователя", nil)
+
+		return err
+	}
+
+	if !isAdmin {
+		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не является администратором", nil)
+
+		return err
+	}
+
+	if err := h.service.RemoveAdmin(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
+		log.Println("RemoveAdmin", err)
+		_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s удалён из администраторов бота", helpers.Link(*targetUser)), nil)
+
+		return err
+	}
+
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s удалён из администраторов бота", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
 	})
-	if err != nil {
-		helpers.SendMessage(ctx, b, update, "Не удалось проверить ваши права")
-		return
-	}
-	if member.Owner == nil {
-		helpers.SendMessage(ctx, b, update, "Только создатель чата может удалять администраторов бота")
-		return
-	}
 
-	targetUser, _, err := helpers.ExtractTargetUser(ctx, h.userService, update, "")
-	if err != nil {
-		helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
-		return
-	}
-
-	if err := h.service.RemoveAdmin(ctx, update.Message.Chat.ID, targetUser.ID); err != nil {
-		helpers.SendMessage(ctx, b, update, "Не удалось удалить администратора")
-		return
-	}
-
-	helpers.SendMessage(ctx, b, update, fmt.Sprintf("Пользователь %s удалён из администраторов бота", helpers.Link(targetUser)))
+	return err
 }
 
-func (h *Handler) ListAdmins(ctx context.Context, b *bot.Bot, update *models.Update) {
-	admins, err := h.service.GetAdmins(ctx, update.Message.Chat.ID)
+func (h *Handler) ListAdmins(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
+	admins, err := h.service.GetAdmins(ctx.EffectiveChat.Id)
 	if err != nil {
-		helpers.SendMessage(ctx, b, update, "Не удалось получить список администраторов")
-		return
+		log.Println("ListAdmins GetAdmins", err)
+		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить список администраторов", nil)
+		return err
 	}
 
 	if len(admins) == 0 {
-		helpers.SendMessage(ctx, b, update, "Список администраторов пуст")
-		return
+		_, err = ctx.EffectiveMessage.Reply(b, "Список администраторов пуст", nil)
+		return err
 	}
 
 	var sb strings.Builder
@@ -92,5 +101,12 @@ func (h *Handler) ListAdmins(ctx context.Context, b *bot.Bot, update *models.Upd
 	for i, admin := range admins {
 		sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, helpers.Link(admin)))
 	}
-	helpers.SendMessage(ctx, b, update, sb.String())
+	_, err = ctx.EffectiveMessage.Reply(b, sb.String(), &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+	})
+
+	return err
 }

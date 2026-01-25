@@ -12,4 +12,5 @@ type ChatMember struct {
 	ChatID      int64
 	ExemptUntil *time.Time
 	CustomTitle string
+	Role        string
 }

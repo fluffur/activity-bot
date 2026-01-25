@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"html"
 
-	"github.com/go-telegram/bot/models"
+	"github.com/PaulSonOfLars/gotgbot/v2"
 )
 
 func Link(u model.User) string {
@@ -20,14 +20,14 @@ func Mention(u model.User, value string) string {
 	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, u.ID, value)
 }
 
-func MapUser(f *models.User) model.User {
+func MapUser(f *gotgbot.User) model.User {
 	var username *string
 	if f.Username != "" {
 		username = &f.Username
 	}
 
 	return model.User{
-		ID:        f.ID,
+		ID:        f.Id,
 		FirstName: f.FirstName,
 		LastName:  f.LastName,
 		Username:  username,

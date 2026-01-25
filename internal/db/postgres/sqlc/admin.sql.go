@@ -69,6 +69,25 @@ func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdm
 	return items, nil
 }
 
+const getChatMemberRole = `-- name: GetChatMemberRole :one
+SELECT role
+FROM chat_members
+WHERE chat_id = $1
+  AND user_id = $2
+`
+
+type GetChatMemberRoleParams struct {
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	UserID int64 `db:"user_id" json:"userId"`
+}
+
+func (q *Queries) GetChatMemberRole(ctx context.Context, arg GetChatMemberRoleParams) (string, error) {
+	row := q.db.QueryRow(ctx, getChatMemberRole, arg.ChatID, arg.UserID)
+	var role string
+	err := row.Scan(&role)
+	return role, err
+}
+
 const isChatAdmin = `-- name: IsChatAdmin :one
 SELECT EXISTS(SELECT 1
               FROM chat_admins
@@ -88,6 +107,26 @@ func (q *Queries) IsChatAdmin(ctx context.Context, arg IsChatAdminParams) (bool,
 	return exists, err
 }
 
+const isChatCreator = `-- name: IsChatCreator :one
+SELECT EXISTS(SELECT 1
+              FROM chat_members
+              WHERE chat_id = $1
+                AND user_id = $2
+                AND role = 'creator')
+`
+
+type IsChatCreatorParams struct {
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	UserID int64 `db:"user_id" json:"userId"`
+}
+
+func (q *Queries) IsChatCreator(ctx context.Context, arg IsChatCreatorParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isChatCreator, arg.ChatID, arg.UserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const removeChatAdmin = `-- name: RemoveChatAdmin :exec
 DELETE
 FROM chat_admins
@@ -102,22 +141,5 @@ type RemoveChatAdminParams struct {
 
 func (q *Queries) RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error {
 	_, err := q.db.Exec(ctx, removeChatAdmin, arg.ChatID, arg.UserID)
-	return err
-}
-
-const upsertChatMembers = `-- name: UpsertChatMembers :exec
-INSERT INTO chat_members(chat_id, user_id, custom_title)
-SELECT $1, UNNEST($2::BIGINT[]), UNNEST($3::TEXT[])
-ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = EXCLUDED.custom_title
-`
-
-type UpsertChatMembersParams struct {
-	ChatID       int64    `db:"chat_id" json:"chatId"`
-	UserIds      []int64  `db:"user_ids" json:"userIds"`
-	CustomTitles []string `db:"custom_titles" json:"customTitles"`
-}
-
-func (q *Queries) UpsertChatMembers(ctx context.Context, arg UpsertChatMembersParams) error {
-	_, err := q.db.Exec(ctx, upsertChatMembers, arg.ChatID, arg.UserIds, arg.CustomTitles)
 	return err
 }

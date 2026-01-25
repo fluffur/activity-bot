@@ -114,21 +114,20 @@ func (r *ExemptRepository) ApproveRequestWithTx(ctx context.Context, request mod
 	})
 }
 
-func (r *ExemptRepository) RejectRequest(ctx context.Context, chatID, userID int64, messageID int) error {
-
+func (r *ExemptRepository) RejectRequest(ctx context.Context, chatID, userID, messageID int64) error {
 	return r.queries.RejectExemptRequest(ctx, db.RejectExemptRequestParams{
 		ChatID:    chatID,
 		UserID:    userID,
-		MessageID: int64(messageID),
+		MessageID: messageID,
 	})
 
 }
 
-func (r *ExemptRepository) GetRequest(ctx context.Context, chatID, userID int64, messageID int) (model.ExemptRequest, error) {
+func (r *ExemptRepository) GetRequest(ctx context.Context, chatID, userID, messageID int64) (model.ExemptRequest, error) {
 	er, err := r.queries.GetExemptRequest(ctx, db.GetExemptRequestParams{
 		ChatID:    chatID,
 		UserID:    userID,
-		MessageID: int64(messageID),
+		MessageID: messageID,
 	})
 	if err != nil {
 		return model.ExemptRequest{}, err

@@ -2,52 +2,51 @@ package member
 
 import (
 	"activity-bot/internal/admin"
+	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/user"
-	"context"
-	"errors"
 	"fmt"
 	"html"
 	"log"
-	"regexp"
 	"strings"
 
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type Handler struct {
 	service      *Service
 	userService  *user.Service
 	adminService *admin.Service
-	setRoleRe    *regexp.Regexp
 }
 
-func NewHandler(service *Service, userService *user.Service, adminService *admin.Service, setRoleRe *regexp.Regexp) *Handler {
-	return &Handler{service, userService, adminService, setRoleRe}
+func NewHandler(service *Service, userService *user.Service, adminService *admin.Service) *Handler {
+	return &Handler{service, userService, adminService}
 }
 
-func (h *Handler) UpdateMembersList(ctx context.Context, b *bot.Bot, update *models.Update) {
-	count, err := helpers.UpdateChatMembers(ctx, b, h.service, update.Message.Chat.ID)
+func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
+	count, err := UpdateChatMembers(b, h.service, ctx.EffectiveChat.Id)
 	if err != nil {
 		log.Println("Update chat members error", err)
-		helpers.SendMessage(ctx, b, update, "Не удалось обновить данные чата")
-		return
+		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось обновить данные чата", nil)
+		return err
 	}
 
-	helpers.SendMessage(ctx, b, update, fmt.Sprintf("Чат обновлён. Найдено %d участников", count))
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Чат обновлён. Найдено %d участников", count), nil)
+	return err
 }
 
-func (h *Handler) ListRoles(ctx context.Context, b *bot.Bot, update *models.Update) {
-	members, err := h.service.GetMembersWithTitle(ctx, update.Message.Chat.ID)
+func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
+	members, err := h.service.GetMembersWithTitle(ctx.EffectiveChat.Id)
 	if err != nil {
-		helpers.SendMessage(ctx, b, update, "Не удалось получить список ролей")
-		return
+		log.Println("Exists members error", err)
+		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить список ролей", nil)
+		return err
 	}
 
 	if len(members) == 0 {
-		helpers.SendMessage(ctx, b, update, "В чате нет установленных ролей")
-		return
+		_, err = ctx.EffectiveMessage.Reply(b, "В чате нет установленных ролей", nil)
+		return err
 	}
 
 	var sb strings.Builder
@@ -56,148 +55,178 @@ func (h *Handler) ListRoles(ctx context.Context, b *bot.Bot, update *models.Upda
 		sb.WriteString(fmt.Sprintf("\n%d. %s — %s", i+1, helpers.Link(m.User), html.EscapeString(m.CustomTitle)))
 	}
 
-	helpers.SendMessage(ctx, b, update, sb.String())
+	_, err = ctx.EffectiveMessage.Reply(b, sb.String(), &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+	})
+
+	return err
 }
 
-func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update) {
-	args := h.setRoleRe.ReplaceAllString(update.Message.Text, "")
-	args = strings.TrimSpace(args)
-
-	targetUser, role, err := helpers.ExtractTargetUser(ctx, h.userService, update, args)
-	if err != nil {
-		if !errors.Is(err, helpers.ErrUserNotSpecified) {
-			helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
-			return
-		}
-		if role == "" {
-			targetUser, err = h.userService.GetUser(ctx, update.Message.From.ID)
-			if err != nil {
-				helpers.SendMessage(ctx, b, update, "Пользователь не найден, введите !обновить чат")
-				return
-			}
-		} else {
-			helpers.SendMessage(ctx, b, update, "Вы не указали кому хотите выдать роль. Укажите @mention или ответьте на сообщение.")
-			return
-		}
-
+func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	if len(cctx.Users) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота. Попробуйте упомянуть его через ответ на сообщение или дождитесь, пока он напишет что-нибудь.", nil)
+		return err
 	}
 
-	role = strings.TrimSpace(role)
-
-	if role == "" {
-		mTitle, err := h.service.GetMemberTitle(ctx, update.Message.Chat.ID, targetUser.ID)
-		if err != nil {
-			helpers.SendMessage(ctx, b, update, "Не удалось получить роль пользователя")
-			return
-		}
-
-		if mTitle == "" {
-			helpers.SendMessage(ctx, b, update, fmt.Sprintf("У пользователя %s нет роли", helpers.Link(targetUser)))
-		} else {
-			helpers.SendMessage(ctx, b, update, fmt.Sprintf("Роль пользователя %s — %s", helpers.Link(targetUser), html.EscapeString(mTitle)))
-		}
-		return
-	}
-
-	if !helpers.CheckOwnerOrAdmin(ctx, b, h.adminService, update.Message.Chat.ID, update.Message.From.ID) {
-		helpers.SendMessage(ctx, b, update, "Команда изменения ролей доступна только создателю чата и администраторам бота")
-		return
-	}
+	role := cctx.Args[0]
+	targetUser := cctx.Users[0]
 
 	if len(role) > 32 {
-		helpers.SendMessage(ctx, b, update, "Слишком длинная роль (максимум 32 символа)")
-		return
+		_, err := ctx.EffectiveMessage.Reply(b, "Слишком длинная роль (максимум 32 символа)", nil)
+
+		return err
 	}
 
-	member, err := b.GetChatMember(ctx, &bot.GetChatMemberParams{
-		ChatID: update.Message.Chat.ID,
-		UserID: targetUser.ID,
-	})
+	member, err := b.GetChatMember(ctx.EffectiveChat.Id, targetUser.ID, nil)
 	if err != nil {
-		helpers.SendMessage(ctx, b, update, "Не удалось получить информацию о пользователе")
-		return
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось получить информацию о пользователе", nil)
+
+		return err
 	}
 
-	if member.Owner != nil {
-		helpers.SendMessage(ctx, b, update, "Нельзя изменить роль создателя чата")
-		return
+	if member.GetStatus() == "creator" {
+		_, err := ctx.EffectiveMessage.Reply(b, "Нельзя изменить роль создателя чата", nil)
+		return err
 	}
+	mergedMember := member.MergeChatMember()
 
-	if member.Administrator != nil {
-		if !member.Administrator.CanBeEdited {
-			helpers.SendMessage(ctx, b, update, "Я не могу изменить этого администратора (он назначен другим админом)")
-			return
+	if member.GetStatus() == "administrator" {
+		if !mergedMember.CanBeEdited {
+			_, err := ctx.EffectiveMessage.Reply(b, "Я не могу изменить этого администратора (он назначен другим админом)", nil)
+			return err
 		}
-		if _, err := b.SetChatAdministratorCustomTitle(ctx, &bot.SetChatAdministratorCustomTitleParams{
-			ChatID:      update.Message.Chat.ID,
-			UserID:      targetUser.ID,
-			CustomTitle: role,
-		}); err != nil {
+		if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, targetUser.ID, role, nil); err != nil {
 			log.Println("Telegram set custom title error", err)
-			helpers.SendMessage(ctx, b, update, "Не удалось изменить роль в Telegram")
-			return
+			_, err := ctx.EffectiveMessage.Reply(b, "Не удалось изменить роль в Telegram", nil)
+
+			return err
 		}
-	} else if member.Member != nil || member.Restricted != nil {
-		if ok, err := b.PromoteChatMember(ctx, &bot.PromoteChatMemberParams{
-			ChatID:          update.Message.Chat.ID,
-			UserID:          targetUser.ID,
+	} else if member.GetStatus() == "member" {
+		if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, targetUser.ID, &gotgbot.PromoteChatMemberOpts{
 			CanPinMessages:  true,
 			CanPostMessages: true,
 			CanEditMessages: true,
 		}); err != nil || !ok {
 			log.Println("Telegram promote error", err)
-			helpers.SendMessage(ctx, b, update, "Не удалось назначить пользователя администратором. Проверьте права бота.")
-			return
+			_, err := ctx.EffectiveMessage.Reply(b, "Не удалось назначить пользователя администратором. Проверьте права бота.", nil)
+			return err
 		}
 
-		if _, err := b.SetChatAdministratorCustomTitle(ctx, &bot.SetChatAdministratorCustomTitleParams{
-			ChatID:      update.Message.Chat.ID,
-			UserID:      targetUser.ID,
-			CustomTitle: role,
-		}); err != nil {
-			log.Println("Telegram set custom title after promote error", err)
-			helpers.SendMessage(ctx, b, update, "Пользователь назначен администратором, но не удалось установить роль")
-			return
+		if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, targetUser.ID, role, nil); err != nil {
+			log.Println("Telegram set custom title error", err)
+			_, err := ctx.EffectiveMessage.Reply(b, "Пользовтель назначен администратором, но не удалось изменить роль", nil)
+
+			return err
 		}
 
 	} else {
-		helpers.SendMessage(ctx, b, update, "Пользователь не является участником чата")
-		return
+		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не является полноправным участником чата", nil)
+
+		return err
 	}
 
-	if err := h.service.SetMemberTitle(ctx, update.Message.Chat.ID, targetUser.ID, role); err != nil {
+	if err := h.service.SetMemberTitle(ctx.EffectiveChat.Id, targetUser.ID, role); err != nil {
 		log.Println("DB set custom title error", err)
-		helpers.SendMessage(ctx, b, update, "Роль в Telegram изменена, но не удалось сохранить в базе данных")
-		return
+		_, err := ctx.EffectiveMessage.Reply(b, "Роль в Telegram изменена, но не удалось сохранить у бота, можно попробовать !обновить чат", nil)
+
+		return err
 	}
 
-	helpers.SendMessage(ctx, b, update, fmt.Sprintf("Роль пользователя обновлена на \"%s\"", html.EscapeString(role)))
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Роль пользователя обновлена на \"%s\"", html.EscapeString(role)), &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+	})
+
+	return err
 }
 
-func (h *Handler) OnLeftMember(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if update.Message == nil || update.Message.LeftChatMember == nil {
-		return
+func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	if len(cctx.Users) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота.", nil)
+		return err
 	}
 
-	leftMember := update.Message.LeftChatMember
-	title, err := h.service.ProcessLeftMember(ctx, update.Message.Chat.ID, leftMember.ID)
+	targetUser := cctx.Users[0]
+	mTitle, err := h.service.GetMemberTitle(ctx.EffectiveChat.Id, targetUser.ID)
+	if err != nil {
+		log.Println("DB get custom title error", err)
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось получить роль пользователя", nil)
+		return err
+	}
+
+	if mTitle == "" {
+		_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("У пользователя %s нет роли", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
+			ParseMode: gotgbot.ParseModeHTML,
+			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+				IsDisabled: true,
+			},
+		})
+		return err
+	}
+
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Роль пользователя %s — %s", helpers.Link(*targetUser), html.EscapeString(mTitle)), &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+	})
+	return err
+}
+
+func (h *Handler) OnJoinMember(_ *gotgbot.Bot, ctx *ext.Context) error {
+	joinedMembers := ctx.EffectiveMessage.NewChatMembers
+	for _, u := range joinedMembers {
+		if u.IsBot {
+			continue
+		}
+		log.Println("Joined member", u.Id)
+		if _, err := h.service.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName); err != nil {
+			log.Println("Process left member error", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
+	u := ctx.Message.LeftChatMember
+	if u.IsBot {
+		return nil
+	}
+	if _, err := h.service.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName); err != nil {
+		log.Println("Ensure member exists error", err)
+		return err
+	}
+	title, err := h.service.ProcessLeftMember(ctx.EffectiveChat.Id, u.Id)
 	if err != nil {
 		log.Println("Process left member error", err)
-		return
+		return err
 	}
 
 	if title != "" {
-		helpers.SendMessage(ctx, b, update, fmt.Sprintf("🕊 %s c ролью \"%s\" покинул нас...", helpers.Link(helpers.MapUser(leftMember)), html.EscapeString(title)))
+		_, err = b.SendMessage(ctx.EffectiveChat.Id, fmt.Sprintf("🕊 %s c ролью \"%s\" покинул нас...", helpers.Link(helpers.MapUser(u)), html.EscapeString(title)), &gotgbot.SendMessageOpts{
+			ParseMode: gotgbot.ParseModeHTML,
+			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+				IsDisabled: true,
+			},
+		})
 	}
+
+	return err
 }
 
-func (h *Handler) OnBotPromote(ctx context.Context, b *bot.Bot, update *models.Update) {
-	chatID := update.MyChatMember.Chat.ID
-
-	count, err := helpers.UpdateChatMembers(ctx, b, h.service, chatID)
+func (h *Handler) OnBotPromote(b *gotgbot.Bot, ctx *ext.Context) error {
+	count, err := UpdateChatMembers(b, h.service, ctx.EffectiveChat.Id)
 	if err != nil {
 		log.Println("Failed to update chat members on join:", err)
-		return
+		return err
 	}
-	log.Printf("Updated chat %d members on bot join, total %d members\n", chatID, count)
+	log.Printf("Updated chat %d members on bot join, total %d members\n", ctx.EffectiveChat.Id, count)
+	return nil
 }
