@@ -24,6 +24,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/callbackquery"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/chatmember"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/message"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -85,16 +86,18 @@ func main() {
 	messageHandler := msg.NewHandler(messageService)
 	memberHandler := member.NewHandler(memberService, userService, adminService)
 	callHandler := call.NewHandler(adminService)
+
 	dp.AddHandler(cb.New("start", helpHandler.Start))
 	dp.AddHandler(cb.New("help", helpHandler.Help))
+
 	dp.AddHandler(cb.New("stats", statsHandler.ShowStats).
 		SetAliases("отчёт", "отчет").
 		SetMaxArgs(1),
 	)
+
 	dp.AddHandler(cb.New("norm", chatHandler.ShowNorm).
 		SetAliases("норма", "quota"),
 	)
-
 	dp.AddHandler(cb.New("norm", chatHandler.SetNorm).
 		SetAliases("норма", "quota").
 		SetTriggers("/", ".", "!", "+").
@@ -107,7 +110,6 @@ func main() {
 		FallbackToSender(true).
 		SetTriggers("/", ".", "!", "+"),
 	)
-
 	dp.AddHandler(cb.New("exempt", exemptHandler.Set).
 		SetAliases("рест", "rest", "рэст").
 		FallbackToSender(true).
@@ -115,15 +117,18 @@ func main() {
 		AllowArgs(true).
 		SetMaxArgs(1),
 	)
-
 	dp.AddHandler(cb.New("-exempt", exemptHandler.End).
 		FallbackToSender(true).
 		SetAliases("-рест", "-rest", "-рэст").
 		SetTriggers("/", ".", "!", ""),
 	)
+	dp.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"),
+		exemptHandler.ApproveExemptRequest))
+	dp.AddHandler(handlers.NewCallback(callbackquery.Prefix("reject:"),
+		exemptHandler.RejectExemptRequest))
 
 	dp.AddHandler(cb.New("admins", adminHandler.ListAdmins).
-		SetAliases("админы", "админчики", "адмы", "модеры", "mods"),
+		SetAliases("админы", "админчики", "администраторы", "адмы", "модеры", "mods"),
 	)
 
 	dp.AddHandler(cb.New("администратор", adminHandler.AddAdmin).

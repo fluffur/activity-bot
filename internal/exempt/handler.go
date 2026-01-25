@@ -6,7 +6,7 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
-	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -15,8 +15,6 @@ import (
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
 )
 
 type Handler struct {
@@ -51,7 +49,7 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) e
 		return err
 	}
 
-	if helpers.IsSenderAdmin(b, ctx, h.adminService) {
+	if !helpers.IsSenderAdmin(b, ctx, h.adminService) {
 		return h.createExemptRequest(b, ctx, targetUser, date)
 	}
 
@@ -75,23 +73,17 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) e
 }
 
 func (h *Handler) createExemptRequest(b *gotgbot.Bot, ctx *ext.Context, targetUser *model.User, date time.Time) error {
-	if err := h.service.CreateExemptRequest(ctx.EffectiveChat.Id, targetUser.ID, ctx.EffectiveMessage.MessageId, date); err != nil {
-		log.Println("CreateExemptRequest", err)
-		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось создать заявку", nil)
-
-		return err
-	}
 
 	kb := gotgbot.InlineKeyboardMarkup{
 		InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
 			{
-				{Text: "✅ Одобрить", CallbackData: fmt.Sprintf("approve:%d:%d", targetUser.ID, ctx.EffectiveMessage.MessageId)},
-				{Text: "❌ Отклонить", CallbackData: fmt.Sprintf("reject:%d:%d", targetUser.ID, ctx.EffectiveMessage.MessageId)},
+				{Text: "✅ Одобрить", CallbackData: fmt.Sprintf("approve:%d", targetUser.ID)},
+				{Text: "❌ Отклонить", CallbackData: fmt.Sprintf("reject:%d", targetUser.ID)},
 			},
 		},
 	}
 
-	_, err := b.SendMessage(ctx.EffectiveChat.Id, fmt.Sprintf(
+	msg, err := b.SendMessage(ctx.EffectiveChat.Id, fmt.Sprintf(
 		"Для пользователя %s запрошен рест до %s",
 		helpers.Link(*targetUser),
 		helpers.FormatToHumanDate(date),
@@ -99,6 +91,18 @@ func (h *Handler) createExemptRequest(b *gotgbot.Bot, ctx *ext.Context, targetUs
 		ParseMode:   gotgbot.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
+	if err != nil {
+		return err
+	}
+
+	log.Println(msg.MessageId)
+	if err := h.service.CreateExemptRequest(ctx.EffectiveChat.Id, targetUser.ID, msg.MessageId, date); err != nil {
+		log.Println("CreateExemptRequest", err)
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось создать заявку", nil)
+
+		return err
+	}
+
 	return err
 }
 
@@ -176,78 +180,87 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) e
 	return err
 }
 
-func (h *Handler) ApproveExemptRequest(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if !helpers.CheckOwnerOrAdmin(ctx, b, h.adminService, update.CallbackQuery.Message.Message.Chat.ID, update.CallbackQuery.From.ID) {
-		helpers.AnswerCallback(ctx, b, update, "Кнопка доступна только создателю или пользователю с ролью администратор в боте")
-		return
-	}
-
-	fromID, messageID, err := parseExemptRequestCallbackData(update)
-
-	exemptRequest, err := h.service.GetExemptRequest(ctx, update.CallbackQuery.Message.Message.Chat.ID, fromID, messageID)
+func (h *Handler) ApproveExemptRequest(b *gotgbot.Bot, ctx *ext.Context) error {
+	fromID, err := parseExemptRequestCallbackData(ctx.CallbackQuery.Data)
+	exemptRequest, err := h.service.GetExemptRequest(ctx.EffectiveChat.Id, fromID, ctx.EffectiveMessage.MessageId)
 	if err != nil {
 		log.Println("Exempt request not found", err)
-		helpers.AnswerCallback(ctx, b, update, "Не найден запрос на рест")
-		return
+		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "Не найден запрос на рест",
+		})
+		return err
 	}
 
-	if err := h.service.ApproveExemptRequest(ctx, update.CallbackQuery.Message.Message.Chat.ID, int64(fromID), int64(messageID), exemptRequest.ExemptUntil); err != nil {
+	if err := h.service.ApproveExemptRequest(ctx.EffectiveChat.Id, fromID, ctx.EffectiveMessage.MessageId, exemptRequest.ExemptUntil); err != nil {
 		log.Println("Failed to approve exempt request", err)
-		helpers.AnswerCallback(ctx, b, update, "Не удалось одобрить запрос")
-		return
+		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "Не удалось одобрить запрос",
+		})
+		return err
 	}
-	u, err := h.userService.GetUser(int64(fromID))
+	u, err := h.userService.GetUser(fromID)
 	if err != nil {
-		log.Println(err)
-		helpers.AnswerCallback(ctx, b, update, "Не удалось найти пользователя")
-		return
+		log.Println("ApproveExemptRequest GetUser", err)
+		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "Не удалось найти пользователя",
+		})
+		return err
 	}
 
-	helpers.EditMessage(ctx, b, update,
-		fmt.Sprintf(`Запрос одобрен. У %s рест до %s`,
-			helpers.Link(u),
-			helpers.FormatToHumanDate(exemptRequest.ExemptUntil),
-		),
+	_, _, err = b.EditMessageText(fmt.Sprintf(`Запрос одобрен. У %s рест до %s`,
+		helpers.Link(u),
+		helpers.FormatToHumanDate(exemptRequest.ExemptUntil),
+	), &gotgbot.EditMessageTextOpts{
+		ChatId:    ctx.EffectiveChat.Id,
+		MessageId: ctx.EffectiveMessage.MessageId,
+		ParseMode: gotgbot.ParseModeHTML,
+	})
+
+	return err
+}
+
+func (h *Handler) RejectExemptRequest(b *gotgbot.Bot, ctx *ext.Context) error {
+	log.Println(ctx.EffectiveMessage.MessageId)
+	if err := h.service.RejectExemptRequest(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id(), ctx.EffectiveMessage.MessageId); err != nil {
+		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "Не удалось отклонить запрос",
+		})
+		return err
+	}
+
+	fromID, err := parseExemptRequestCallbackData(ctx.CallbackQuery.Data)
+	u, err := h.userService.GetUser(fromID)
+	if err != nil {
+		_, _, err = b.EditMessageText("Запрос на рест отклонён",
+			&gotgbot.EditMessageTextOpts{
+				ChatId:    ctx.EffectiveChat.Id,
+				MessageId: ctx.EffectiveMessage.MessageId,
+				ParseMode: gotgbot.ParseModeHTML,
+			},
+		)
+
+		return err
+	}
+
+	_, _, err = b.EditMessageText(fmt.Sprintf("Запрос на рест для %s отклонён", helpers.Link(u)),
+		&gotgbot.EditMessageTextOpts{
+			ChatId:    ctx.EffectiveChat.Id,
+			MessageId: ctx.EffectiveMessage.MessageId,
+			ParseMode: gotgbot.ParseModeHTML,
+		},
 	)
 
+	return err
 }
 
-func (h *Handler) RejectExemptRequest(ctx context.Context, b *bot.Bot, update *models.Update) {
-	if !helpers.CheckOwnerOrAdmin(ctx, b, h.adminService, update.CallbackQuery.Message.Message.Chat.ID, update.CallbackQuery.From.ID) {
-		helpers.AnswerCallback(ctx, b, update, "Кнопка доступна только создателю или пользователю с ролью администратор в боте")
-		return
+func parseExemptRequestCallbackData(callbackData string) (int64, error) {
+	parts := strings.SplitN(callbackData, ":", 2)
+	if len(parts) != 2 {
+		return 0, errors.New("invalid callback data")
 	}
-
-	if err := h.service.RejectExemptRequest(ctx, update.CallbackQuery.Message.Message.Chat.ID, update.CallbackQuery.From.ID, update.CallbackQuery.Message.Message.ID); err != nil {
-		helpers.AnswerCallback(ctx, b, update, "Не удалось отклонить запрос")
-		return
-	}
-
-	fromID, _, err := parseExemptRequestCallbackData(update)
-	u, err := h.userService.GetUser(int64(fromID))
+	fromID, err := strconv.Atoi(parts[1])
 	if err != nil {
-		helpers.EditMessage(ctx, b, update, fmt.Sprintf("Запрос на рест отклонён"))
-		return
+		return 0, err
 	}
-
-	helpers.EditMessage(ctx, b, update, fmt.Sprintf("Запрос на рест для %s отклонён", helpers.Link(u)))
-}
-
-func parseExemptRequestCallbackData(update *models.Update) (fromID int, messageID int, err error) {
-	callbackData := update.CallbackQuery.Data
-
-	parts := strings.SplitN(callbackData, ":", 3)
-	if len(parts) != 3 {
-		return
-	}
-	fromID, err = strconv.Atoi(parts[1])
-	if err != nil {
-		return
-	}
-	messageID, err = strconv.Atoi(parts[2])
-	if err != nil {
-		return
-	}
-
-	return
+	return int64(fromID), nil
 }

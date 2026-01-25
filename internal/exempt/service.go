@@ -46,11 +46,13 @@ func (s *Service) CreateExemptRequest(chatID, userID, messageID int64, exemptUnt
 	})
 }
 
-func (s *Service) GetExemptRequest(ctx context.Context, chatID int64, userID, messageID int) (model.ExemptRequest, error) {
-	return s.repo.GetRequest(ctx, chatID, int64(userID), messageID)
+func (s *Service) GetExemptRequest(chatID int64, userID, messageID int64) (model.ExemptRequest, error) {
+	ctx := context.Background()
+	return s.repo.GetRequest(ctx, chatID, userID, messageID)
 }
 
-func (s *Service) ApproveExemptRequest(ctx context.Context, chatID, userID, messageID int64, exemptUntil time.Time) error {
+func (s *Service) ApproveExemptRequest(chatID, userID, messageID int64, exemptUntil time.Time) error {
+	ctx := context.Background()
 	return s.repo.ApproveRequestWithTx(ctx, model.ExemptRequest{
 		ChatID:      chatID,
 		UserID:      userID,
@@ -59,6 +61,7 @@ func (s *Service) ApproveExemptRequest(ctx context.Context, chatID, userID, mess
 	})
 }
 
-func (s *Service) RejectExemptRequest(ctx context.Context, chatID, userID int64, messageID int) error {
+func (s *Service) RejectExemptRequest(chatID, userID, messageID int64) error {
+	ctx := context.Background()
 	return s.repo.RejectRequest(ctx, chatID, userID, messageID)
 }
