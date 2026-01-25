@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
@@ -27,15 +29,16 @@ func NewHandler(service *Service, userService *user.Service, adminService *admin
 	return &Handler{service, userService, adminService, setRoleRe}
 }
 
-func (h *Handler) UpdateMembersList(ctx context.Context, b *bot.Bot, update *models.Update) {
-	count, err := helpers.UpdateChatMembers(ctx, b, h.service, update.Message.Chat.ID)
+func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *ext.Context, args []string) error {
+	count, err := helpers.UpdateChatMembers(b, h.service, ctx.EffectiveChat.Id)
 	if err != nil {
 		log.Println("Update chat members error", err)
-		helpers.SendMessage(ctx, b, update, "Не удалось обновить данные чата")
-		return
+		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось обновить данные чата", nil)
+		return err
 	}
 
-	helpers.SendMessage(ctx, b, update, fmt.Sprintf("Чат обновлён. Найдено %d участников", count))
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Чат обновлён. Найдено %d участников", count), nil)
+	return err
 }
 
 func (h *Handler) ListRoles(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -191,13 +194,11 @@ func (h *Handler) OnLeftMember(ctx context.Context, b *bot.Bot, update *models.U
 	}
 }
 
-func (h *Handler) OnBotPromote(ctx context.Context, b *bot.Bot, update *models.Update) {
-	chatID := update.MyChatMember.Chat.ID
-
-	count, err := helpers.UpdateChatMembers(ctx, b, h.service, chatID)
+func (h *Handler) OnBotPromote(b *gotgbot.Bot, ctx *ext.Context, args []string) {
+	count, err := helpers.UpdateChatMembers(b, h.service, ctx.EffectiveChat.Id)
 	if err != nil {
 		log.Println("Failed to update chat members on join:", err)
 		return
 	}
-	log.Printf("Updated chat %d members on bot join, total %d members\n", chatID, count)
+	log.Printf("Updated chat %d members on bot join, total %d members\n", ctx.EffectiveChat.Id, count)
 }

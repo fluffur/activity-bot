@@ -1,11 +1,8 @@
 package help
 
 import (
-	"activity-bot/internal/helpers"
-	"context"
-
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
+	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type Handler struct {
@@ -15,11 +12,13 @@ func NewHandler() *Handler {
 	return &Handler{}
 }
 
-func (h *Handler) Start(ctx context.Context, b *bot.Bot, update *models.Update) {
-	helpers.SendMessage(ctx, b, update, "Привет! Я могу следить за еженедельной нормой сообщений в группе. Добавь меня в группу или введи команду /help.")
+func (h *Handler) Start(b *gotgbot.Bot, ctx *ext.Context, args []string) error {
+	_, err := ctx.EffectiveMessage.Reply(b, "Привет! Я могу следить за еженедельной нормой сообщений в группе. Добавь меня в группу или введи команду /help.", nil)
+
+	return err
 }
 
-func (h *Handler) Help(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (h *Handler) Help(b *gotgbot.Bot, ctx *ext.Context, args []string) error {
 	helpText := `
 📌 <b>Команды бота</b>
 
@@ -52,5 +51,9 @@ func (h *Handler) Help(ctx context.Context, b *bot.Bot, update *models.Update) {
 💡 Команды поддерживают префиксы !, /, ., + (например: !рест, /норма, .роль)
 `
 
-	helpers.SendMessage(ctx, b, update, helpText)
+	_, err := ctx.EffectiveMessage.Reply(b, helpText, &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+	})
+
+	return err
 }

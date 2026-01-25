@@ -2,57 +2,40 @@ package helpers
 
 import (
 	"activity-bot/internal/model"
-	"context"
 
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
+	"github.com/PaulSonOfLars/gotgbot/v2"
 )
 
 type ChatMemberService interface {
-	UpdateChatMembers(ctx context.Context, chatID int64, members []model.ChatMemberUpdate) error
+	UpdateChatMembers(chatID int64, members []model.ChatMemberUpdate) error
 }
 
-func UpdateChatMembers(ctx context.Context, b *bot.Bot, service ChatMemberService, chatID int64) (int, error) {
-	admins, err := b.GetChatAdministrators(ctx, &bot.GetChatAdministratorsParams{
-		ChatID: chatID,
-	})
+func UpdateChatMembers(b *gotgbot.Bot, service ChatMemberService, chatID int64) (int, error) {
+	admins, err := b.GetChatAdministrators(chatID, nil)
 	if err != nil {
 		return 0, err
 	}
 
 	members := make([]model.ChatMemberUpdate, 0, len(admins))
 	for _, admin := range admins {
-		var chatUser *models.User
-		var customTitle string
+		chatUser := admin.MergeChatMember()
 
-		if admin.Administrator != nil {
-			chatUser = &admin.Administrator.User
-			customTitle = admin.Administrator.CustomTitle
-		} else if admin.Owner != nil {
-			chatUser = admin.Owner.User
-			customTitle = admin.Owner.CustomTitle
-		} else {
-			chatUser = nil
-		}
-		if chatUser == nil {
+		if chatUser.User.IsBot {
 			continue
 		}
 
-		if chatUser.IsBot {
-			continue
-		}
 		members = append(members, model.ChatMemberUpdate{
 			User: model.User{
-				ID:        chatUser.ID,
-				FirstName: chatUser.FirstName,
-				LastName:  chatUser.LastName,
-				Username:  &chatUser.Username,
+				ID:        chatUser.User.Id,
+				FirstName: chatUser.User.FirstName,
+				LastName:  chatUser.User.LastName,
+				Username:  &chatUser.User.Username,
 			},
-			CustomTitle: customTitle,
+			CustomTitle: chatUser.CustomTitle,
 		})
 	}
 
-	if err := service.UpdateChatMembers(ctx, chatID, members); err != nil {
+	if err := service.UpdateChatMembers(chatID, members); err != nil {
 		return 0, err
 	}
 	return len(members), nil

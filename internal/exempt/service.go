@@ -14,7 +14,8 @@ func NewService(repo Repository) *Service {
 	return &Service{repo}
 }
 
-func (s *Service) GetExemptMembers(ctx context.Context, chatID int64) ([]model.ExemptMember, error) {
+func (s *Service) GetExemptMembers(chatID int64) ([]model.ExemptMember, error) {
+	ctx := context.Background()
 	return s.repo.GetFromChat(ctx, chatID)
 }
 
