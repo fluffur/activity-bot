@@ -66,14 +66,14 @@ func (h *Handler) SetRole(ctx context.Context, b *bot.Bot, update *models.Update
 	args := h.setRoleRe.ReplaceAllString(update.Message.Text, "")
 	args = strings.TrimSpace(args)
 
-	targetUser, role, err := helpers.ExtractTargetUser(ctx, h.userService, update, args)
+	targetUser, role, err := helpers.ExtractTargetUser(h.userService, update, args)
 	if err != nil {
 		if !errors.Is(err, helpers.ErrUserNotSpecified) {
 			helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 			return
 		}
 		if role == "" {
-			targetUser, err = h.userService.GetUser(ctx, update.Message.From.ID)
+			targetUser, err = h.userService.GetUser(update.Message.From.ID)
 			if err != nil {
 				helpers.SendMessage(ctx, b, update, "Пользователь не найден, введите !обновить чат")
 				return

@@ -13,7 +13,8 @@ func NewService(repo Repository) *Service {
 	return &Service{repo}
 }
 
-func (s *Service) GetUser(ctx context.Context, id int64) (model.User, error) {
+func (s *Service) GetUser(id int64) (model.User, error) {
+	ctx := context.Background()
 	return s.repo.Get(ctx, id)
 }
 

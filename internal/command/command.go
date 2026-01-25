@@ -2,7 +2,6 @@ package command
 
 import (
 	"activity-bot/internal/model"
-	"log"
 	"strings"
 	"unicode/utf8"
 
@@ -74,28 +73,23 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	return false
 }
 func (c Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
-	args, user := c.parseArgs(ctx.Message)
-
-	return c.Response(b, ctx, user, args)
+	return c.Response(b, ctx, c.parseArgs(ctx.Message))
 }
 
 func (c Command) ensureUser(u *gotgbot.User) (model.User, error) {
 	return c.userService.EnsureUserExists(u.Id, u.Username, u.FirstName, u.LastName)
 
 }
-
-func (c Command) parseArgs(msg *gotgbot.Message) ([]string, *model.User) {
+func (c Command) parseArgs(msg *gotgbot.Message) *Context {
 	text := msg.GetText()
 	textRunes := []rune(text)
 
-	var targetUser *model.User
+	usersMap := make(map[int64]*model.User)
 
 	if msg.ReplyToMessage != nil && msg.ReplyToMessage.From != nil {
 		u, err := c.ensureUser(msg.ReplyToMessage.From)
 		if err == nil {
-			targetUser = &u
-		} else {
-			log.Println("Failed to ensure user", err)
+			usersMap[u.ID] = &u
 		}
 	}
 
@@ -104,23 +98,18 @@ func (c Command) parseArgs(msg *gotgbot.Message) ([]string, *model.User) {
 		start := int(e.Offset)
 		end := start + int(e.Length)
 
-		if e.Type == "text_mention" && e.User != nil && targetUser == nil {
+		if e.Type == "text_mention" && e.User != nil {
 			u, err := c.ensureUser(e.User)
 			if err == nil {
-				targetUser = &u
-			} else {
-				log.Println("Failed to ensure user", err)
-
+				usersMap[u.ID] = &u
 			}
 		}
-		if (e.Type == "mention") && targetUser == nil {
-			username := string(restRunes[start+1 : end])
+
+		if e.Type == "mention" {
+			username := string(restRunes[start+1 : end]) // пропускаем @
 			u, err := c.userService.GetUserByUsername(username)
 			if err == nil {
-				targetUser = &u
-			} else {
-				log.Println("Failed to get user", err)
-
+				usersMap[u.ID] = &u
 			}
 		}
 
@@ -128,7 +117,13 @@ func (c Command) parseArgs(msg *gotgbot.Message) ([]string, *model.User) {
 			restRunes = append(restRunes[:start], restRunes[end:]...)
 		}
 	}
+
 	rest := strings.TrimSpace(string(restRunes))
+
+	users := make([]*model.User, 0, len(usersMap))
+	for _, u := range usersMap {
+		users = append(users, u)
+	}
 
 	commands := append([]string{c.Command}, c.Aliases...)
 	for _, t := range c.Triggers {
@@ -137,13 +132,12 @@ func (c Command) parseArgs(msg *gotgbot.Message) ([]string, *model.User) {
 			if strings.HasPrefix(strings.ToLower(rest), fullCmd) {
 				rest = strings.TrimSpace(string([]rune(rest)[len([]rune(fullCmd)):]))
 
-				// 4. делим на аргументы
 				if c.MaxArgs <= 0 {
-					return strings.Fields(rest), targetUser
+					return &Context{strings.Fields(rest), users}
 				}
 				words := strings.Fields(rest)
 				if len(words) <= c.MaxArgs {
-					return []string{rest}, targetUser
+					return &Context{[]string{rest}, users}
 				}
 				args := make([]string, 0, c.MaxArgs)
 				for i := 0; i < c.MaxArgs-1; i++ {
@@ -151,12 +145,12 @@ func (c Command) parseArgs(msg *gotgbot.Message) ([]string, *model.User) {
 				}
 				last := strings.Join(words[c.MaxArgs-1:], " ")
 				args = append(args, last)
-				return args, targetUser
+				return &Context{args, users}
 			}
 		}
 	}
 
-	return []string{}, targetUser
+	return &Context{[]string{}, users}
 }
 
 func (c Command) Name() string {

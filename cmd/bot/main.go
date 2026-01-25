@@ -9,6 +9,7 @@ import (
 	"activity-bot/internal/exempt"
 	"activity-bot/internal/help"
 	"activity-bot/internal/stats"
+	"activity-bot/internal/user"
 	"context"
 	"log/slog"
 	"time"
@@ -52,7 +53,7 @@ func main() {
 
 	statsService := stats.NewService(statsRepository)
 	exemptService := exempt.NewService(exemptRepository)
-	//userService := user.NewService(userRepository)
+	userService := user.NewService(userRepository)
 	memberService := member.NewService(memberRepository, chatRepository, userRepository)
 	//adminService := admin.NewService(adminRepository)
 
@@ -66,11 +67,12 @@ func main() {
 		MaxRoutines: ext.DefaultMaxRoutines,
 	})
 	updater := ext.NewUpdater(dispatcher, &ext.UpdaterOpts{})
+	cb := command.NewBuilder(userService)
 
-	dispatcher.AddHandler(command.NewCommand("start", helpHandler.Start))
-	dispatcher.AddHandler(command.NewCommand("help", helpHandler.Help))
+	dispatcher.AddHandler(cb.NewCommand("start", helpHandler.Start))
+	dispatcher.AddHandler(cb.NewCommand("help", helpHandler.Help))
 	dispatcher.AddHandler(
-		command.NewCommand("отчет", statsHandler.ShowWeeklyReport, "отчёт", "stats").SetMaxArgs(1),
+		cb.NewCommand("отчет", statsHandler.ShowWeeklyReport, "отчёт", "stats").SetMaxArgs(1),
 	)
 
 	err = updater.StartPolling(b, &ext.PollingOpts{

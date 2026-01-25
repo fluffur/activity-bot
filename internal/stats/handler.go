@@ -2,6 +2,7 @@ package stats
 
 import (
 	"activity-bot/internal/chat/member"
+	"activity-bot/internal/command"
 	"activity-bot/internal/exempt"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
@@ -24,8 +25,9 @@ func NewHandler(service *Service, exemptService *exempt.Service, memberService *
 	return &Handler{service, exemptService, memberService}
 }
 
-func (h *Handler) ShowWeeklyReport(b *gotgbot.Bot, ctx *ext.Context, args []string) error {
-	log.Println(args, len(args))
+func (h *Handler) ShowWeeklyReport(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	log.Println(cctx.Args, len(cctx.Args))
+	log.Println(cctx.Users, len(cctx.Users))
 	if _, err := helpers.UpdateChatMembers(b, h.memberService, ctx.EffectiveChat.Id); err != nil {
 		log.Println("Auto-update chat members error", err)
 	}

@@ -34,7 +34,7 @@ func (h *Handler) AddAdmin(ctx context.Context, b *bot.Bot, update *models.Updat
 		return
 	}
 
-	targetUser, _, err := helpers.ExtractTargetUser(ctx, h.userService, update, "")
+	targetUser, _, err := helpers.ExtractTargetUser(h.userService, update, "")
 	if err != nil {
 		helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 		return
@@ -61,7 +61,7 @@ func (h *Handler) RemoveAdmin(ctx context.Context, b *bot.Bot, update *models.Up
 		return
 	}
 
-	targetUser, _, err := helpers.ExtractTargetUser(ctx, h.userService, update, "")
+	targetUser, _, err := helpers.ExtractTargetUser(h.userService, update, "")
 	if err != nil {
 		helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 		return

@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"activity-bot/internal/model"
-	"context"
 	"errors"
 	"strings"
 
@@ -12,16 +11,11 @@ import (
 var ErrUserNotSpecified = errors.New("user not specified")
 
 type UserService interface {
-	GetUserByUsername(ctx context.Context, username string) (model.User, error)
-	GetUser(ctx context.Context, id int64) (model.User, error)
+	GetUserByUsername(username string) (model.User, error)
+	GetUser(id int64) (model.User, error)
 }
 
-func ExtractTargetUser(
-	ctx context.Context,
-	userService UserService,
-	update *models.Update,
-	args string,
-) (model.User, string, error) {
+func ExtractTargetUser(userService UserService, update *models.Update, args string) (model.User, string, error) {
 
 	var tgUserID *int64
 
@@ -33,7 +27,7 @@ func ExtractTargetUser(
 	}
 
 	if tgUserID != nil {
-		u, err := userService.GetUser(ctx, *tgUserID)
+		u, err := userService.GetUser(*tgUserID)
 		if err != nil {
 			return model.User{}, "", err
 		}
@@ -45,7 +39,7 @@ func ExtractTargetUser(
 	for _, e := range update.Message.Entities {
 
 		if e.User != nil {
-			u, err := userService.GetUser(ctx, e.User.ID)
+			u, err := userService.GetUser(e.User.ID)
 			if err != nil {
 				return model.User{}, "", err
 			}
@@ -59,7 +53,7 @@ func ExtractTargetUser(
 		if e.Type == "mention" {
 			username := string(textRunes[e.Offset+1 : e.Offset+e.Length])
 
-			u, err := userService.GetUserByUsername(ctx, username)
+			u, err := userService.GetUserByUsername(username)
 			if err != nil {
 				return model.User{}, "", err
 			}

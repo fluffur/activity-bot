@@ -48,14 +48,14 @@ func (h *Handler) ExemptMember(ctx context.Context, b *bot.Bot, update *models.U
 	}
 	args := strings.TrimSpace(matches[2])
 
-	targetUser, restArg, err := helpers.ExtractTargetUser(ctx, h.userService, update, args)
+	targetUser, restArg, err := helpers.ExtractTargetUser(h.userService, update, args)
 	if err != nil {
 		if !errors.Is(err, helpers.ErrUserNotSpecified) {
 			helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 			return
 		}
 
-		targetUser, err = h.userService.GetUser(ctx, update.Message.From.ID)
+		targetUser, err = h.userService.GetUser(update.Message.From.ID)
 		if err != nil {
 			helpers.SendMessage(ctx, b, update, "Не удалось установить рест")
 			return
@@ -133,14 +133,14 @@ func (h *Handler) createExemptRequest(ctx context.Context, b *bot.Bot, update *m
 }
 
 func (h *Handler) ShowMemberExempt(ctx context.Context, b *bot.Bot, update *models.Update) {
-	targetUser, _, err := helpers.ExtractTargetUser(ctx, h.userService, update, "")
+	targetUser, _, err := helpers.ExtractTargetUser(h.userService, update, "")
 	if err != nil {
 		if !errors.Is(err, helpers.ErrUserNotSpecified) {
 			helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 			return
 		}
 
-		targetUser, err = h.userService.GetUser(ctx, update.Message.From.ID)
+		targetUser, err = h.userService.GetUser(update.Message.From.ID)
 		if err != nil {
 			helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 			return
@@ -162,13 +162,13 @@ func (h *Handler) ShowMemberExempt(ctx context.Context, b *bot.Bot, update *mode
 }
 
 func (h *Handler) EndMemberExempt(ctx context.Context, b *bot.Bot, update *models.Update) {
-	targetUser, _, err := helpers.ExtractTargetUser(ctx, h.userService, update, "")
+	targetUser, _, err := helpers.ExtractTargetUser(h.userService, update, "")
 	if err != nil {
 		if !errors.Is(err, helpers.ErrUserNotSpecified) {
 			helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 			return
 		}
-		targetUser, err = h.userService.GetUser(ctx, update.Message.From.ID)
+		targetUser, err = h.userService.GetUser(update.Message.From.ID)
 		if err != nil {
 			helpers.SendMessage(ctx, b, update, "Не удалось найти пользователя")
 			return
@@ -241,7 +241,7 @@ func (h *Handler) ApproveExemptRequest(ctx context.Context, b *bot.Bot, update *
 		helpers.AnswerCallback(ctx, b, update, "Не удалось одобрить запрос")
 		return
 	}
-	u, err := h.userService.GetUser(ctx, int64(fromID))
+	u, err := h.userService.GetUser(int64(fromID))
 	if err != nil {
 		log.Println(err)
 		helpers.AnswerCallback(ctx, b, update, "Не удалось найти пользователя")
@@ -269,7 +269,7 @@ func (h *Handler) RejectExemptRequest(ctx context.Context, b *bot.Bot, update *m
 	}
 
 	fromID, _, err := parseExemptRequestCallbackData(update)
-	u, err := h.userService.GetUser(ctx, int64(fromID))
+	u, err := h.userService.GetUser(int64(fromID))
 	if err != nil {
 		helpers.EditMessage(ctx, b, update, fmt.Sprintf("Запрос на рест отклонён"))
 		return

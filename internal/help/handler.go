@@ -1,6 +1,8 @@
 package help
 
 import (
+	"activity-bot/internal/command"
+
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
@@ -12,13 +14,13 @@ func NewHandler() *Handler {
 	return &Handler{}
 }
 
-func (h *Handler) Start(b *gotgbot.Bot, ctx *ext.Context, args []string) error {
+func (h *Handler) Start(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
 	_, err := ctx.EffectiveMessage.Reply(b, "Привет! Я могу следить за еженедельной нормой сообщений в группе. Добавь меня в группу или введи команду /help.", nil)
 
 	return err
 }
 
-func (h *Handler) Help(b *gotgbot.Bot, ctx *ext.Context, args []string) error {
+func (h *Handler) Help(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
 	helpText := `
 📌 <b>Команды бота</b>
 
