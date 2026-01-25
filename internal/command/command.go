@@ -34,9 +34,9 @@ type Command struct {
 	allowArgs        bool
 	requireTriggers  bool
 	fallbackToSender bool
-
-	userService  common.UserService
-	adminService common.AdminService
+	onlyGroups       bool
+	userService      common.UserService
+	adminService     common.AdminService
 }
 
 func NewCommand(c string, r Response, userService common.UserService, adminService common.AdminService, aliases ...string) Command {
@@ -51,6 +51,11 @@ func NewCommand(c string, r Response, userService common.UserService, adminServi
 		userService:  userService,
 		adminService: adminService,
 	}
+}
+
+func (c Command) OnlyGroups() Command {
+	c.onlyGroups = true
+	return c
 }
 
 func (c Command) RequireTriggers(require bool) Command {
@@ -94,6 +99,10 @@ func (c Command) SetAliases(aliases ...string) Command {
 }
 
 func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
+	if c.onlyGroups && ctx.EffectiveChat.Type == "private" {
+		return false
+	}
+
 	if ctx.Message != nil {
 		if ctx.Message.GetText() == "" {
 			return false

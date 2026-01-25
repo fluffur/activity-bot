@@ -10,6 +10,7 @@ import (
 	"activity-bot/internal/db/postgres"
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/exempt"
+	"activity-bot/internal/filters"
 	"activity-bot/internal/help"
 	msg "activity-bot/internal/message"
 	"activity-bot/internal/stats"
@@ -73,7 +74,7 @@ func main() {
 	exemptService := exempt.NewService(exemptRepository)
 	chatService := chat.NewService(chatRepository, cfg.DefaultWeeklyNorm)
 	userService := user.NewService(userRepository)
-	memberService := member.NewService(memberRepository, chatRepository, userRepository)
+	memberService := member.NewService(memberRepository, chatRepository, userRepository, cfg.DefaultWeeklyNorm)
 	adminService := admin.NewService(adminRepository)
 	messageService := msg.NewService(messageRepository)
 	cb := command.NewBuilder(userService, adminService)
@@ -92,23 +93,27 @@ func main() {
 
 	dp.AddHandler(cb.New("stats", statsHandler.ShowStats).
 		SetAliases("отчёт", "отчет").
-		SetMaxArgs(1),
+		SetMaxArgs(1).
+		OnlyGroups(),
 	)
 
 	dp.AddHandler(cb.New("norm", chatHandler.ShowNorm).
-		SetAliases("норма", "quota"),
+		SetAliases("норма", "quota").
+		OnlyGroups(),
 	)
 	dp.AddHandler(cb.New("norm", chatHandler.SetNorm).
 		SetAliases("норма", "quota").
 		SetTriggers("/", ".", "!", "+").
 		AllowArgs().
 		RequireAdmin().
+		OnlyGroups().
 		SetMaxArgs(1),
 	)
 
 	dp.AddHandler(cb.New("exempt", exemptHandler.Show).
 		SetAliases("рест", "rest", "рэст").
 		FallbackToSender().
+		OnlyGroups().
 		SetTriggers("/", ".", "!", "+"),
 	)
 	dp.AddHandler(cb.New("exempt", exemptHandler.Set).
@@ -116,64 +121,69 @@ func main() {
 		FallbackToSender().
 		SetTriggers("/", ".", "!", "+").
 		AllowArgs().
+		OnlyGroups().
 		SetMaxArgs(1),
 	)
 	dp.AddHandler(cb.New("-exempt", exemptHandler.End).
 		FallbackToSender().
+		OnlyGroups().
 		SetAliases("-рест", "-rest", "-рэст").
 		SetTriggers("/", ".", "!", ""),
 	)
-	dp.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"),
-		exemptHandler.ApproveExemptRequest))
-	dp.AddHandler(handlers.NewCallback(callbackquery.Prefix("reject:"),
-		exemptHandler.RejectExemptRequest))
+	dp.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"), exemptHandler.ApproveExemptRequest))
+	dp.AddHandler(handlers.NewCallback(callbackquery.Prefix("reject:"), exemptHandler.RejectExemptRequest))
 
 	dp.AddHandler(cb.New("admins", adminHandler.ListAdmins).
-		SetAliases("админы", "админчики", "администраторы", "адмы", "модеры", "mods"),
+		SetAliases("админы", "админчики", "администраторы", "адмы", "модеры", "mods").OnlyGroups(),
 	)
 
 	dp.AddHandler(cb.New("администратор", adminHandler.AddAdmin).
 		SetAliases("админ", "admin", "адм", "модер").
 		SetTriggers("/", ".", "!", "+").
+		OnlyGroups().
 		RequireAdmin(),
 	)
 
 	dp.AddHandler(cb.New("-администратор", adminHandler.RemoveAdmin).
 		SetAliases("-админ", "-admin", "-адм", "-модер", "-mod").
 		SetTriggers("/", ".", "!", "+", "").
+		OnlyGroups().
 		RequireCreator(),
 	)
 
 	dp.AddHandler(cb.New("обновить чат", memberHandler.UpdateMembersList).
+		OnlyGroups().
 		SetAliases("update chat", "update"),
 	)
 
 	dp.AddHandler(cb.New("роль", memberHandler.ShowRole).
+		OnlyGroups().
 		SetAliases("role", "title"),
 	)
 
 	dp.AddHandler(cb.New("роль", memberHandler.SetRole).
 		SetAliases("role", "title").
 		SetTriggers("/", ".", "!", "+").
+		OnlyGroups().
 		AllowArgs().
 		SetMaxArgs(1),
 	)
 
 	dp.AddHandler(cb.New("роли", memberHandler.ListRoles).
-		SetAliases("roles", "titles"),
+		SetAliases("roles", "titles").OnlyGroups(),
 	)
 
 	dp.AddHandler(cb.New("call", callHandler.Call).
 		SetAliases("калл", "колл").
 		AllowArgs().
+		OnlyGroups().
 		SetMaxArgs(1),
 	)
 
-	dp.AddHandler(handlers.NewMessage(message.Text, messageHandler.Message))
+	dp.AddHandler(handlers.NewMessage(filters.OnlyGroupsText, messageHandler.Message))
+	dp.AddHandler(handlers.NewMessage(message.NewChatMembers, memberHandler.OnJoinMember))
 	dp.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))
-	dp.AddHandler(handlers.NewMyChatMember(
-		chatmember.NewStatus("administrator"), memberHandler.OnBotPromote),
-	)
+	dp.AddHandler(handlers.NewMyChatMember(chatmember.NewStatus("administrator"), memberHandler.OnBotPromote))
 
 	err = updater.StartPolling(b, &ext.PollingOpts{
 		DropPendingUpdates: true,

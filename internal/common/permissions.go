@@ -8,10 +8,18 @@ import (
 )
 
 func IsSenderAdmin(b *gotgbot.Bot, ctx *ext.Context, adminService AdminService) bool {
-	if IsSenderCreator(b, ctx) {
+	return IsUserAdmin(b, adminService, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+}
+
+func IsSenderCreator(b *gotgbot.Bot, ctx *ext.Context) bool {
+	return IsUserCreator(b, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+}
+
+func IsUserAdmin(b *gotgbot.Bot, adminService AdminService, chatID, userID int64) bool {
+	if IsUserCreator(b, chatID, userID) {
 		return true
 	}
-	isAdmin, err := adminService.IsAdmin(ctx.EffectiveChat.Id, ctx.EffectiveUser.Id)
+	isAdmin, err := adminService.IsAdmin(chatID, userID)
 	if err != nil {
 		log.Println("IsAdmin", err)
 
@@ -21,8 +29,8 @@ func IsSenderAdmin(b *gotgbot.Bot, ctx *ext.Context, adminService AdminService) 
 	return isAdmin
 }
 
-func IsSenderCreator(b *gotgbot.Bot, ctx *ext.Context) bool {
-	senderMember, err := b.GetChatMember(ctx.EffectiveChat.Id, ctx.EffectiveUser.Id, nil)
+func IsUserCreator(b *gotgbot.Bot, chatID, userID int64) bool {
+	senderMember, err := b.GetChatMember(chatID, userID, nil)
 	if err != nil {
 		log.Println("GetChatMember", err)
 		return false

@@ -192,6 +192,14 @@ func (h *Handler) ApproveExemptRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
+	if !common.IsUserAdmin(b, h.adminService, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
+		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "Подтвердить запрос может только администратор",
+		})
+		return err
+
+	}
+
 	if err := h.service.ApproveExemptRequest(ctx.EffectiveChat.Id, fromID, ctx.EffectiveMessage.MessageId, exemptRequest.ExemptUntil); err != nil {
 		log.Println("Failed to approve exempt request", err)
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
@@ -221,6 +229,23 @@ func (h *Handler) ApproveExemptRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 }
 
 func (h *Handler) RejectExemptRequest(b *gotgbot.Bot, ctx *ext.Context) error {
+	fromID, err := parseExemptRequestCallbackData(ctx.CallbackQuery.Data)
+	exemptRequest, err := h.service.GetExemptRequest(ctx.EffectiveChat.Id, fromID, ctx.EffectiveMessage.MessageId)
+	if err != nil {
+		log.Println("Exempt request not found", err)
+		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "Не найден запрос на рест",
+		})
+		return err
+	}
+
+	if exemptRequest.UserID != ctx.EffectiveSender.Id() && !common.IsUserAdmin(b, h.adminService, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
+		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "Отклонить запрос может только администратор или заявитель реста",
+		})
+		return err
+
+	}
 	log.Println(ctx.EffectiveMessage.MessageId)
 	if err := h.service.RejectExemptRequest(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id(), ctx.EffectiveMessage.MessageId); err != nil {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
@@ -229,7 +254,6 @@ func (h *Handler) RejectExemptRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	fromID, err := parseExemptRequestCallbackData(ctx.CallbackQuery.Data)
 	u, err := h.userService.GetUser(fromID)
 	if err != nil {
 		_, _, err = b.EditMessageText("Запрос на рест отклонён",

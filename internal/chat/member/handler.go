@@ -168,8 +168,29 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Conte
 	return err
 }
 
+func (h *Handler) OnJoinMember(_ *gotgbot.Bot, ctx *ext.Context) error {
+	joinedMembers := ctx.EffectiveMessage.NewChatMembers
+	for _, u := range joinedMembers {
+		if u.IsBot {
+			continue
+		}
+		log.Println("Joined member", u.Id)
+		if _, err := h.service.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName); err != nil {
+			log.Println("Process left member error", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 	leftMember := ctx.EffectiveSender
+	u := leftMember.User
+	if _, err := h.service.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName); err != nil {
+		log.Println("Process left member error", err)
+		return err
+	}
 	title, err := h.service.ProcessLeftMember(ctx.EffectiveChat.Id, leftMember.Id())
 	if err != nil {
 		log.Println("Process left member error", err)
