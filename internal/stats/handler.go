@@ -70,10 +70,25 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 
 	weekHeader := fmt.Sprintf("📊 Отчёт за неделю: %s — %s", helpers.FormatToHumanDate(monday), helpers.FormatToHumanDate(sunday))
 
-	var passed, failed, rest []string
+	var passed, failed, newbies, rest []string
 
 	for _, r := range report {
 		line := fmt.Sprintf("%s — %d сообщений", helpers.Link(r.User), r.MessagesCount)
+
+		// Check if newbie
+		isNewbie := false
+		if r.NewbieThresholdDays > 0 {
+			newbieUntil := r.JoinedAt.AddDate(0, 0, int(r.NewbieThresholdDays))
+			if newbieUntil.After(now) {
+				isNewbie = true
+			}
+		}
+
+		if isNewbie {
+			newbies = append(newbies, line)
+			continue
+		}
+
 		if r.NormDone {
 			passed = append(passed, line)
 		} else {
@@ -109,6 +124,13 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 	sb.WriteString("\n❌ Не прошли норму ⚠️ \n")
 	if len(failed) > 0 {
 		writeNumberedList(&sb, failed)
+	} else {
+		sb.WriteString("—\n")
+	}
+
+	sb.WriteString("\n🐣 Новички\n")
+	if len(newbies) > 0 {
+		writeNumberedList(&sb, newbies)
 	} else {
 		sb.WriteString("—\n")
 	}

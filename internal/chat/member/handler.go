@@ -185,7 +185,7 @@ func (h *Handler) OnJoinMember(_ *gotgbot.Bot, ctx *ext.Context) error {
 			continue
 		}
 		slog.Info("member joined", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id)
-		if _, err := h.service.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName); err != nil {
+		if _, err := h.service.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, "member"); err != nil {
 			slog.Error("failed to ensure joined member exists", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id, "error", err)
 			return err
 		}
@@ -199,7 +199,7 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 	if u.IsBot {
 		return nil
 	}
-	if _, err := h.service.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName); err != nil {
+	if _, err := h.service.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, "administrator"); err != nil {
 		slog.Error("failed to ensure left member exists", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id, "error", err)
 		return err
 	}

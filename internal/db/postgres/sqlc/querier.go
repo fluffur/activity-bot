@@ -22,6 +22,7 @@ type Querier interface {
 	EnsureMemberFull(ctx context.Context, arg EnsureMemberFullParams) (ChatMember, error)
 	EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) (User, error)
 	ExemptChatMember(ctx context.Context, arg ExemptChatMemberParams) error
+	GetChat(ctx context.Context, id int64) (Chat, error)
 	GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdminsRow, error)
 	GetChatMember(ctx context.Context, arg GetChatMemberParams) (GetChatMemberRow, error)
 	GetChatMemberRole(ctx context.Context, arg GetChatMemberRoleParams) (string, error)
@@ -38,6 +39,7 @@ type Querier interface {
 	RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error
 	RemoveChatMemberExempt(ctx context.Context, arg RemoveChatMemberExemptParams) error
 	UpdateChatMemberTitle(ctx context.Context, arg UpdateChatMemberTitleParams) error
+	UpdateChatNewbieThreshold(ctx context.Context, arg UpdateChatNewbieThresholdParams) error
 	UpdateChatNorm(ctx context.Context, arg UpdateChatNormParams) error
 	UpsertChatMembersWithRole(ctx context.Context, arg UpsertChatMembersWithRoleParams) error
 	UpsertUsers(ctx context.Context, arg UpsertUsersParams) error

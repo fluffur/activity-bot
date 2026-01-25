@@ -72,8 +72,8 @@ func (s *Service) ProcessLeftMember(chatID int64, userID int64) (string, error) 
 	return member.CustomTitle, nil
 }
 
-func (s *Service) EnsureMemberExists(chatID int64, userID int64, username, firstName, lastName string) (model.ChatMember, error) {
+func (s *Service) EnsureMemberExists(chatID int64, userID int64, username, firstName, lastName, role string) (model.ChatMember, error) {
 	ctx := context.Background()
 
-	return s.repo.EnsureFull(ctx, chatID, userID, "administrator", firstName, lastName, username, s.defaultWeeklyNorm)
+	return s.repo.EnsureFull(ctx, chatID, userID, role, firstName, lastName, username, s.defaultWeeklyNorm)
 }

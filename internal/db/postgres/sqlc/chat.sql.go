@@ -10,21 +10,34 @@ import (
 )
 
 const ensureChatExists = `-- name: EnsureChatExists :one
-INSERT INTO chats(id, weekly_norm)
-VALUES ($1, $2)
-ON CONFLICT(id) DO UPDATE SET weekly_norm = chats.weekly_norm
-RETURNING id, weekly_norm
+INSERT INTO chats(id, weekly_norm, newbie_threshold_days)
+VALUES ($1, $2, $3)
+ON CONFLICT(id) DO UPDATE SET weekly_norm = EXCLUDED.weekly_norm,
+                               newbie_threshold_days = EXCLUDED.newbie_threshold_days
+RETURNING id, weekly_norm, newbie_threshold_days
 `
 
 type EnsureChatExistsParams struct {
-	ID         int64 `db:"id" json:"id"`
-	WeeklyNorm int32 `db:"weekly_norm" json:"weeklyNorm"`
+	ID                  int64 `db:"id" json:"id"`
+	WeeklyNorm          int32 `db:"weekly_norm" json:"weeklyNorm"`
+	NewbieThresholdDays int32 `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 }
 
 func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (Chat, error) {
-	row := q.db.QueryRow(ctx, ensureChatExists, arg.ID, arg.WeeklyNorm)
+	row := q.db.QueryRow(ctx, ensureChatExists, arg.ID, arg.WeeklyNorm, arg.NewbieThresholdDays)
 	var i Chat
-	err := row.Scan(&i.ID, &i.WeeklyNorm)
+	err := row.Scan(&i.ID, &i.WeeklyNorm, &i.NewbieThresholdDays)
+	return i, err
+}
+
+const getChat = `-- name: GetChat :one
+SELECT id, weekly_norm, newbie_threshold_days FROM chats WHERE id = $1
+`
+
+func (q *Queries) GetChat(ctx context.Context, id int64) (Chat, error) {
+	row := q.db.QueryRow(ctx, getChat, id)
+	var i Chat
+	err := row.Scan(&i.ID, &i.WeeklyNorm, &i.NewbieThresholdDays)
 	return i, err
 }
 
@@ -32,7 +45,7 @@ const getOrCreateChat = `-- name: GetOrCreateChat :one
 INSERT INTO chats(id, weekly_norm)
 VALUES ($1, $2)
 ON CONFLICT(id) DO UPDATE SET weekly_norm = chats.weekly_norm
-RETURNING id, weekly_norm
+RETURNING id, weekly_norm, newbie_threshold_days
 `
 
 type GetOrCreateChatParams struct {
@@ -43,8 +56,24 @@ type GetOrCreateChatParams struct {
 func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams) (Chat, error) {
 	row := q.db.QueryRow(ctx, getOrCreateChat, arg.ID, arg.WeeklyNorm)
 	var i Chat
-	err := row.Scan(&i.ID, &i.WeeklyNorm)
+	err := row.Scan(&i.ID, &i.WeeklyNorm, &i.NewbieThresholdDays)
 	return i, err
+}
+
+const updateChatNewbieThreshold = `-- name: UpdateChatNewbieThreshold :exec
+UPDATE chats
+SET newbie_threshold_days = $1
+WHERE id = $2
+`
+
+type UpdateChatNewbieThresholdParams struct {
+	NewbieThresholdDays int32 `db:"newbie_threshold_days" json:"newbieThresholdDays"`
+	ID                  int64 `db:"id" json:"id"`
+}
+
+func (q *Queries) UpdateChatNewbieThreshold(ctx context.Context, arg UpdateChatNewbieThresholdParams) error {
+	_, err := q.db.Exec(ctx, updateChatNewbieThreshold, arg.NewbieThresholdDays, arg.ID)
+	return err
 }
 
 const updateChatNorm = `-- name: UpdateChatNorm :exec

@@ -55,8 +55,9 @@ func (ns NullExemptStatus) Value() (driver.Value, error) {
 }
 
 type Chat struct {
-	ID         int64 `db:"id" json:"id"`
-	WeeklyNorm int32 `db:"weekly_norm" json:"weeklyNorm"`
+	ID                  int64 `db:"id" json:"id"`
+	WeeklyNorm          int32 `db:"weekly_norm" json:"weeklyNorm"`
+	NewbieThresholdDays int32 `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 }
 
 type ChatAdmin struct {

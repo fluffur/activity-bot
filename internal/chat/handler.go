@@ -3,8 +3,10 @@ package chat
 import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/command"
+	"activity-bot/internal/helpers"
 	"fmt"
 	"log"
+	"log/slog"
 	"strconv"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -52,5 +54,35 @@ func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 
 	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Установлена новая норма чата: %d", norm), nil)
 
+	return err
+}
+
+func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
+	threshold, err := h.service.GetNewbieThreshold(ctx.EffectiveChat.Id)
+	if err != nil {
+		slog.Error("failed to set newbie threshold", "chat_id", ctx.EffectiveChat.Id, "error", err)
+		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось установить срок для новичков", nil)
+		return err
+	}
+
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователи считаются новичками первые %d %s", threshold, helpers.PluralizeDays(threshold)), nil)
+	return err
+}
+
+func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	days, err := strconv.Atoi(cctx.Args[0])
+	if err != nil {
+		slog.Error("failed to parse newbie days", "error", err)
+		_, err = ctx.EffectiveMessage.Reply(b, "Количество дней должно быть числом", nil)
+		return err
+	}
+
+	if err := h.service.SetNewbieThreshold(ctx.EffectiveChat.Id, days); err != nil {
+		slog.Error("failed to set newbie threshold", "chat_id", ctx.EffectiveChat.Id, "error", err)
+		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось установить срок для новичков", nil)
+		return err
+	}
+
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Теперь пользователи считаются новичками первые %d %s", days, helpers.PluralizeDays(days)), nil)
 	return err
 }

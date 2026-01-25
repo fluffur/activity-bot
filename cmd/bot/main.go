@@ -53,6 +53,7 @@ func main() {
 		{Command: "roles", Description: "📜 Список всех ролей"},
 		{Command: "admins", Description: "👮 Админы бота"},
 		{Command: "update", Description: "🔄 Обновить данные чата"},
+		{Command: "newbie", Description: "🐣 Срок новичка"},
 		{Command: "help", Description: "❓ Помощь"},
 	}, nil)
 	if err != nil {
@@ -117,6 +118,22 @@ func main() {
 	dp.AddHandler(cb.New("norm", chatHandler.SetNorm).
 		SetAliases("норма", "quota").
 		SetTriggers("/", ".", "!", "+").
+		AllowArgs().
+		RequireAdmin().
+		OnlyGroups().
+		SetMaxArgs(1),
+	)
+
+	dp.AddHandler(cb.New("newbie", chatHandler.ShowNewbieThreshold).
+		SetAliases("новичок", "newbies", "новички", "нью", "ньюхи").
+		SetTriggers("/", ".", "!", "+", "").
+		RequireAdmin().
+		OnlyGroups(),
+	)
+
+	dp.AddHandler(cb.New("newbie", chatHandler.SetNewbieThreshold).
+		SetAliases("новичок", "newbies", "новички", "нью", "ньюхи").
+		SetTriggers("/", ".", "!", "+", "").
 		AllowArgs().
 		RequireAdmin().
 		OnlyGroups().

@@ -56,8 +56,10 @@ func mapWeeklyReportRow(row db.WeeklyMessageReportRow) model.WeeklyMessageReport
 			FirstName: row.FirstName.String,
 			Username:  username,
 		},
-		MessagesCount: int32(row.MessagesCount),
-		WeeklyNorm:    row.WeeklyNorm,
-		NormDone:      row.NormDone,
+		MessagesCount:       int32(row.MessagesCount),
+		WeeklyNorm:          row.WeeklyNorm,
+		NormDone:            row.NormDone,
+		JoinedAt:            row.JoinedAt.Time,
+		NewbieThresholdDays: row.NewbieThresholdDays,
 	}
 }

@@ -63,7 +63,7 @@ user_upsert AS (
 INSERT INTO chat_members (chat_id, user_id, role)
 SELECT chat_upsert.id, user_upsert.id, @role
 FROM chat_upsert, user_upsert
-ON CONFLICT (chat_id, user_id) DO UPDATE SET role = EXCLUDED.role
+ON CONFLICT (chat_id, user_id) DO UPDATE SET role = chat_members.role
 RETURNING *;
 
 -- name: UpsertChatMembersWithRole :exec

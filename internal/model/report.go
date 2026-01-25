@@ -5,10 +5,12 @@ import (
 )
 
 type WeeklyMessageReportMember struct {
-	User          User
-	MessagesCount int32
-	WeeklyNorm    int32
-	NormDone      bool
+	User                User
+	MessagesCount       int32
+	WeeklyNorm          int32
+	NormDone            bool
+	JoinedAt            time.Time
+	NewbieThresholdDays int32
 }
 
 type ExemptMember struct {

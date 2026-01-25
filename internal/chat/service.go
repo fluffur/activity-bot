@@ -30,3 +30,13 @@ func (s *Service) SetNorm(chatID int64, norm int) error {
 	ctx := context.Background()
 	return s.repo.SetNorm(ctx, chatID, int32(norm))
 }
+
+func (s *Service) SetNewbieThreshold(chatID int64, threshold int) error {
+	ctx := context.Background()
+	return s.repo.SetNewbieThreshold(ctx, chatID, int32(threshold))
+}
+
+func (s *Service) GetNewbieThreshold(chatID int64) (int, error) {
+	ctx := context.Background()
+	return s.repo.GetNewbieThreshold(ctx, chatID)
+}

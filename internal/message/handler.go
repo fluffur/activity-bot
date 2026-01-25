@@ -23,7 +23,7 @@ func (h *Handler) Message(_ *gotgbot.Bot, ctx *ext.Context) error {
 		return nil
 	}
 
-	if _, err := h.memberService.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName); err != nil {
+	if _, err := h.memberService.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, "member"); err != nil {
 		slog.Error("failed to ensure member exists on message", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id, "error", err)
 		return err
 	}

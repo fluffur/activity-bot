@@ -48,18 +48,20 @@ SELECT cm.user_id,
        u.last_name,
        COUNT(m.chat_id)                    AS messages_count,
        c.weekly_norm,
-       (COUNT(m.chat_id) >= c.weekly_norm) AS norm_done
+       (COUNT(m.chat_id) >= c.weekly_norm) AS norm_done,
+       cm.joined_at,
+       c.newbie_threshold_days
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
          LEFT JOIN messages m
                    ON m.chat_id = cm.chat_id
-                       AND m.user_id = cm.user_id
-                       AND m.created_at >= $1
-                       AND m.created_at < $1 + interval '7 days'
+                        AND m.user_id = cm.user_id
+                        AND m.created_at >= $1
+                        AND m.created_at < $1 + interval '7 days'
 WHERE cm.chat_id = $2
   AND (cm.exempt_until IS NULL OR cm.exempt_until < now())
-GROUP BY cm.user_id, u.username, u.first_name, u.last_name, c.weekly_norm
+GROUP BY cm.user_id, u.username, u.first_name, u.last_name, c.weekly_norm, cm.joined_at, c.newbie_threshold_days
 ORDER BY messages_count DESC
 `
 
@@ -69,13 +71,15 @@ type WeeklyMessageReportParams struct {
 }
 
 type WeeklyMessageReportRow struct {
-	UserID        int64       `db:"user_id" json:"userId"`
-	Username      pgtype.Text `db:"username" json:"username"`
-	FirstName     pgtype.Text `db:"first_name" json:"firstName"`
-	LastName      pgtype.Text `db:"last_name" json:"lastName"`
-	MessagesCount int64       `db:"messages_count" json:"messagesCount"`
-	WeeklyNorm    int32       `db:"weekly_norm" json:"weeklyNorm"`
-	NormDone      bool        `db:"norm_done" json:"normDone"`
+	UserID              int64              `db:"user_id" json:"userId"`
+	Username            pgtype.Text        `db:"username" json:"username"`
+	FirstName           pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName            pgtype.Text        `db:"last_name" json:"lastName"`
+	MessagesCount       int64              `db:"messages_count" json:"messagesCount"`
+	WeeklyNorm          int32              `db:"weekly_norm" json:"weeklyNorm"`
+	NormDone            bool               `db:"norm_done" json:"normDone"`
+	JoinedAt            pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	NewbieThresholdDays int32              `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 }
 
 func (q *Queries) WeeklyMessageReport(ctx context.Context, arg WeeklyMessageReportParams) ([]WeeklyMessageReportRow, error) {
@@ -95,6 +99,8 @@ func (q *Queries) WeeklyMessageReport(ctx context.Context, arg WeeklyMessageRepo
 			&i.MessagesCount,
 			&i.WeeklyNorm,
 			&i.NormDone,
+			&i.JoinedAt,
+			&i.NewbieThresholdDays,
 		); err != nil {
 			return nil, err
 		}

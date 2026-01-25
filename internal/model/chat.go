@@ -3,8 +3,9 @@ package model
 import "time"
 
 type Chat struct {
-	ID         int64
-	WeeklyNorm int32
+	ID                  int64
+	WeeklyNorm          int32
+	NewbieThresholdDays int32
 }
 
 type ChatMember struct {
