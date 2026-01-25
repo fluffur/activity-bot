@@ -16,8 +16,8 @@ func Link(u model.User) string {
 	return fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a>`, u.ID, html.EscapeString(u.FirstName))
 }
 
-func Mention(u model.User, value string) string {
-	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, u.ID, value)
+func Mention(id int64, value string) string {
+	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, id, value)
 }
 
 func MapUser(f *gotgbot.User) model.User {

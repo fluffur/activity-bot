@@ -76,7 +76,7 @@ func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 
 		for _, user := range users[i:end] {
 			emoji := emojis[rand.Intn(len(emojis))]
-			sb.WriteString(fmt.Sprintf("%s ", helpers.Mention(user, emoji)))
+			sb.WriteString(fmt.Sprintf("%s ", helpers.Mention(user.ID, emoji)))
 		}
 
 		photos := ctx.EffectiveMessage.Photo

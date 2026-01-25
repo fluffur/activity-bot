@@ -92,7 +92,7 @@ func main() {
 	messageService := msg.NewService(messageRepository)
 	cb := command.NewBuilder(userService, adminService)
 
-	helpHandler := help.NewHandler()
+	helpHandler := help.NewHandler(cfg.BotOwnerID)
 	statsHandler := stats.NewHandler(statsService, exemptService, memberService)
 	chatHandler := chat.NewHandler(chatService, adminService)
 	exemptHandler := exempt.NewHandler(exemptService, userService, adminService, exempt.NewDateParser())

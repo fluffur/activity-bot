@@ -2,16 +2,19 @@ package help
 
 import (
 	"activity-bot/internal/command"
+	"activity-bot/internal/helpers"
+	"fmt"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type Handler struct {
+	ownerID int64
 }
 
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(ownerID int64) *Handler {
+	return &Handler{ownerID}
 }
 
 func (h *Handler) Start(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
@@ -21,7 +24,7 @@ func (h *Handler) Start(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) er
 }
 
 func (h *Handler) Help(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
-	helpText := `
+	helpText := fmt.Sprintf(`
 📌 <b>Команды бота</b>
 
 💬 <b>Норма чата</b>
@@ -51,7 +54,9 @@ func (h *Handler) Help(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) err
 Сообщения считаются один к одному, только среди пользователей, не находящихся в ресте.
 
 💡 Команды поддерживают префиксы !, /, ., + (например: !рест, /норма, .роль)
-`
+
+📬 По техническим вопросам, багам и предложениям пишите %s
+`, helpers.Mention(h.ownerID, "в личные сообщения разработчику"))
 
 	_, err := ctx.EffectiveMessage.Reply(b, helpText, &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
