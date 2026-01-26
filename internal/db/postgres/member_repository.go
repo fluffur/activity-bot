@@ -46,6 +46,14 @@ func (r *MemberRepository) UpdateCustomTitle(ctx context.Context, chatID int64, 
 
 }
 
+func (r *MemberRepository) UpdateRole(ctx context.Context, chatID int64, userID int64, role string) error {
+	return r.queries.UpdateChatMemberRole(ctx, db.UpdateChatMemberRoleParams{
+		ChatID: chatID,
+		UserID: userID,
+		Role:   role,
+	})
+}
+
 func (r *MemberRepository) FindByChatID(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
 	members, err := r.queries.GetChatMembers(ctx, chatID)
 	if err != nil {

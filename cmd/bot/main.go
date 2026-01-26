@@ -1,11 +1,13 @@
 package main
 
 import (
+	"activity-bot/internal/adapter"
 	"activity-bot/internal/admin"
 	"activity-bot/internal/call"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chat/member"
 	"activity-bot/internal/command"
+	"activity-bot/internal/common"
 	"activity-bot/internal/config"
 	"activity-bot/internal/db/postgres"
 	db "activity-bot/internal/db/postgres/sqlc"
@@ -91,15 +93,21 @@ func main() {
 	memberService := member.NewService(memberRepository, chatRepository, userRepository, cfg.DefaultWeeklyNorm)
 	adminService := admin.NewService(adminRepository)
 	messageService := msg.NewService(messageRepository)
-	cb := command.NewBuilder(userService, adminService)
+
+	permissionChecker := common.NewPermissionChecker(adminService, cfg.BotOwnerID)
+
+	adminsProvider := adapter.NewTelegramChatAdminsProvider(b)
+	chatUpdater := common.NewChatUpdater(adminsProvider, memberService)
+
+	cb := command.NewBuilder(userService, permissionChecker)
 
 	helpHandler := help.NewHandler(cfg.BotOwnerID)
-	statsHandler := stats.NewHandler(statsService, exemptService, memberService)
+	statsHandler := stats.NewHandler(statsService, exemptService, memberService, chatUpdater)
 	chatHandler := chat.NewHandler(chatService, adminService)
-	exemptHandler := exempt.NewHandler(exemptService, userService, adminService, exempt.NewDateParser())
-	adminHandler := admin.NewHandler(adminService, userService)
+	exemptHandler := exempt.NewHandler(exemptService, userService, permissionChecker, exempt.NewDateParser())
+	adminHandler := admin.NewHandler(adminService, userService, permissionChecker, chatUpdater)
 	messageHandler := msg.NewHandler(messageService, memberService)
-	memberHandler := member.NewHandler(memberService, userService, adminService)
+	memberHandler := member.NewHandler(memberService, userService, adminService, chatUpdater)
 	callHandler := call.NewHandler(adminService, memberService)
 
 	dp.AddHandler(cb.New("start", helpHandler.Start))
@@ -166,9 +174,16 @@ func main() {
 		SetAliases("админы", "админчики", "администраторы", "адмы", "модеры", "mods").OnlyGroups(),
 	)
 
+	dp.AddHandler(cb.New("администратор", adminHandler.IsAdmin).
+		SetAliases("админ", "admin", "адм", "модер").
+		SetTriggers("/", ".", "!").
+		OnlyGroups().
+		FallbackToSender(),
+	)
+
 	dp.AddHandler(cb.New("администратор", adminHandler.AddAdmin).
 		SetAliases("админ", "admin", "адм", "модер").
-		SetTriggers("/", ".", "!", "+").
+		SetTriggers("+", "!+", "/+", ".+").
 		OnlyGroups().
 		RequireAdmin(),
 	)
@@ -182,7 +197,6 @@ func main() {
 
 	dp.AddHandler(cb.New("обновить чат", memberHandler.UpdateMembersList).
 		OnlyGroups().
-		RequireAdmin().
 		SetAliases("update chat", "update"),
 	)
 

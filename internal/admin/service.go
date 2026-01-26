@@ -28,6 +28,27 @@ func (s *Service) GetAdmins(chatID int64) ([]model.User, error) {
 	return s.repo.GetFromChat(ctx, chatID)
 }
 
+func (s *Service) GetAdminsEnsured(
+	chatID int64,
+	sync func(chatID int64) (int, error),
+) ([]model.User, error) {
+
+	admins, err := s.GetAdmins(chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(admins) > 0 {
+		return admins, nil
+	}
+
+	if _, err := sync(chatID); err != nil {
+		return nil, err
+	}
+
+	return s.GetAdmins(chatID)
+}
+
 func (s *Service) IsAdmin(chatID int64, userID int64) (bool, error) {
 	ctx := context.Background()
 	return s.repo.IsAdmin(ctx, chatID, userID)

@@ -3,6 +3,7 @@ package stats
 import (
 	"activity-bot/internal/chat/member"
 	"activity-bot/internal/command"
+	"activity-bot/internal/common"
 	"activity-bot/internal/exempt"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
@@ -19,14 +20,15 @@ type Handler struct {
 	service       *Service
 	exemptService *exempt.Service
 	memberService *member.Service
+	chatUpdater   *common.ChatUpdater
 }
 
-func NewHandler(service *Service, exemptService *exempt.Service, memberService *member.Service) *Handler {
-	return &Handler{service, exemptService, memberService}
+func NewHandler(service *Service, exemptService *exempt.Service, memberService *member.Service, chatUpdater *common.ChatUpdater) *Handler {
+	return &Handler{service, exemptService, memberService, chatUpdater}
 }
 
 func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
-	if _, err := member.UpdateChatMembers(b, h.memberService, ctx.EffectiveChat.Id); err != nil {
+	if _, err := h.chatUpdater.UpdateChatMembers(ctx.EffectiveChat.Id); err != nil {
 		slog.Warn("failed to auto-update chat members in stats", "chat_id", ctx.EffectiveChat.Id, "error", err)
 	}
 

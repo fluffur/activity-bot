@@ -60,12 +60,6 @@ type Chat struct {
 	NewbieThresholdDays int32 `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 }
 
-type ChatAdmin struct {
-	ChatID    int64              `db:"chat_id" json:"chatId"`
-	UserID    int64              `db:"user_id" json:"userId"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-}
-
 type ChatMember struct {
 	ChatID      int64              `db:"chat_id" json:"chatId"`
 	UserID      int64              `db:"user_id" json:"userId"`

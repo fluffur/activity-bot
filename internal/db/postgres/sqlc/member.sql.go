@@ -73,7 +73,13 @@ user_upsert AS (
 INSERT INTO chat_members (chat_id, user_id, role)
 SELECT chat_upsert.id, user_upsert.id, $1
 FROM chat_upsert, user_upsert
-ON CONFLICT (chat_id, user_id) DO UPDATE SET role = chat_members.role
+ON CONFLICT (chat_id, user_id) DO UPDATE SET 
+    role = CASE 
+        WHEN EXCLUDED.role = 'creator' THEN 'creator'
+        WHEN chat_members.role = 'administrator' THEN 'administrator'
+        WHEN chat_members.role = 'creator' AND EXCLUDED.role <> 'creator' THEN 'creator' -- creator remains creator unless EXCLUDED specifically says otherwise (sync might not have it)
+        ELSE EXCLUDED.role
+    END
 RETURNING chat_id, user_id, joined_at, exempt_until, custom_title, role
 `
 
@@ -272,6 +278,24 @@ func (q *Queries) GetMemberCustomTitle(ctx context.Context, arg GetMemberCustomT
 	return custom_title, err
 }
 
+const updateChatMemberRole = `-- name: UpdateChatMemberRole :exec
+UPDATE chat_members
+SET role = $1
+WHERE chat_id = $2
+  AND user_id = $3
+`
+
+type UpdateChatMemberRoleParams struct {
+	Role   string `db:"role" json:"role"`
+	ChatID int64  `db:"chat_id" json:"chatId"`
+	UserID int64  `db:"user_id" json:"userId"`
+}
+
+func (q *Queries) UpdateChatMemberRole(ctx context.Context, arg UpdateChatMemberRoleParams) error {
+	_, err := q.db.Exec(ctx, updateChatMemberRole, arg.Role, arg.ChatID, arg.UserID)
+	return err
+}
+
 const updateChatMemberTitle = `-- name: UpdateChatMemberTitle :exec
 UPDATE chat_members
 SET custom_title = $1
@@ -293,8 +317,13 @@ func (q *Queries) UpdateChatMemberTitle(ctx context.Context, arg UpdateChatMembe
 const upsertChatMembersWithRole = `-- name: UpsertChatMembersWithRole :exec
 INSERT INTO chat_members(chat_id, user_id, custom_title, role)
 SELECT $1, UNNEST($2::BIGINT[]), UNNEST($3::TEXT[]), UNNEST($4::TEXT[])
-ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = EXCLUDED.custom_title, 
-                                               role = EXCLUDED.role
+ON CONFLICT (chat_id, user_id) DO UPDATE SET 
+    custom_title = EXCLUDED.custom_title, 
+    role = CASE 
+        WHEN EXCLUDED.role = 'creator' THEN 'creator'
+        WHEN chat_members.role = 'administrator' THEN 'administrator'
+        ELSE EXCLUDED.role
+    END
 `
 
 type UpsertChatMembersWithRoleParams struct {

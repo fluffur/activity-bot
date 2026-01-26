@@ -4,37 +4,42 @@ import (
 	"log"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-func IsSenderAdmin(b *gotgbot.Bot, ctx *ext.Context, adminService AdminService) bool {
-	return IsUserAdmin(b, adminService, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+type PermissionChecker struct {
+	adminService AdminService
+	ownerID      int64
 }
 
-func IsSenderCreator(b *gotgbot.Bot, ctx *ext.Context, adminService AdminService) bool {
-	return IsUserCreator(b, adminService, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+func NewPermissionChecker(adminService AdminService, ownerID int64) *PermissionChecker {
+	return &PermissionChecker{adminService, ownerID}
 }
 
-func IsUserAdmin(b *gotgbot.Bot, adminService AdminService, chatID, userID int64) bool {
-	if IsUserCreator(b, adminService, chatID, userID) {
+func (c *PermissionChecker) IsAdmin(b *gotgbot.Bot, chatID, userID int64) bool {
+	if c.ownerID == userID {
 		return true
 	}
-
-	isAdmin, err := adminService.IsAdmin(chatID, userID)
-	if err != nil {
-		log.Println("IsBotAdmin check failed", err)
-		return false
+	isAdmin, err := c.adminService.IsAdmin(chatID, userID)
+	if err == nil {
+		return isAdmin
 	}
 
-	return isAdmin
+	return fallbackCreator(b, chatID, userID)
 }
 
-func IsUserCreator(b *gotgbot.Bot, adminService AdminService, chatID, userID int64) bool {
-	role, err := adminService.GetRole(chatID, userID)
+func (c *PermissionChecker) IsCreator(b *gotgbot.Bot, chatID, userID int64) bool {
+	if c.ownerID == userID {
+		return true
+	}
+	isCreator, err := c.adminService.IsCreator(chatID, userID)
 	if err == nil {
-		return role == "creator"
+		return isCreator
 	}
 
+	return fallbackCreator(b, chatID, userID)
+}
+
+func fallbackCreator(b *gotgbot.Bot, chatID, userID int64) bool {
 	senderMember, err := b.GetChatMember(chatID, userID, nil)
 	if err != nil {
 		log.Println("GetChatMember fallback check failed", err)

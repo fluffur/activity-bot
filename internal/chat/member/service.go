@@ -23,6 +23,11 @@ func (s *Service) SetMemberTitle(chatID int64, userID int64, title string) error
 	return s.repo.UpdateCustomTitle(ctx, chatID, userID, title)
 }
 
+func (s *Service) SetMemberRole(chatID int64, userID int64, role string) error {
+	ctx := context.Background()
+	return s.repo.UpdateRole(ctx, chatID, userID, role)
+}
+
 func (s *Service) GetMembersWithTitle(chatID int64) ([]model.ChatMember, error) {
 	ctx := context.Background()
 	return s.repo.GetWithCustomTitles(ctx, chatID)

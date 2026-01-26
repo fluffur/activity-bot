@@ -38,6 +38,7 @@ type Querier interface {
 	RejectExemptRequest(ctx context.Context, arg RejectExemptRequestParams) error
 	RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error
 	RemoveChatMemberExempt(ctx context.Context, arg RemoveChatMemberExemptParams) error
+	UpdateChatMemberRole(ctx context.Context, arg UpdateChatMemberRoleParams) error
 	UpdateChatMemberTitle(ctx context.Context, arg UpdateChatMemberTitleParams) error
 	UpdateChatNewbieThreshold(ctx context.Context, arg UpdateChatNewbieThresholdParams) error
 	UpdateChatNorm(ctx context.Context, arg UpdateChatNormParams) error
