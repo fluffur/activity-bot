@@ -21,10 +21,7 @@ func New(service *message.Service, memberService *member.Service) *Handler {
 func (h *Handler) Message(_ *gotgbot.Bot, ctx *ext.Context) error {
 	u := ctx.EffectiveSender.User
 	c := ctx.EffectiveChat
-	if u == nil || c == nil {
-		return nil
-	}
-	if u.IsBot {
+	if u == nil || c == nil || u.IsBot {
 		return nil
 	}
 
