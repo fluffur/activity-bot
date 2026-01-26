@@ -12,10 +12,11 @@ import (
 )
 
 const deleteChatMember = `-- name: DeleteChatMember :exec
-DELETE
-FROM chat_members
+UPDATE chat_members
+SET left_at = now()
 WHERE chat_id = $1
   AND user_id = $2
+  AND left_at IS NULL
 `
 
 type DeleteChatMemberParams struct {
@@ -31,8 +32,9 @@ func (q *Queries) DeleteChatMember(ctx context.Context, arg DeleteChatMemberPara
 const ensureChatMemberExists = `-- name: EnsureChatMemberExists :one
 INSERT INTO chat_members(chat_id, user_id, role)
 VALUES ($1, $2, $3)
-ON CONFLICT(chat_id, user_id) DO UPDATE SET role = EXCLUDED.role
-RETURNING chat_id, user_id, joined_at, exempt_until, custom_title, role
+ON CONFLICT(chat_id, user_id) DO UPDATE SET role    = EXCLUDED.role,
+                                            left_at = NULL
+RETURNING chat_id, user_id, joined_at, exempt_until, custom_title, role, left_at
 `
 
 type EnsureChatMemberExistsParams struct {
@@ -51,6 +53,7 @@ func (q *Queries) EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemb
 		&i.ExemptUntil,
 		&i.CustomTitle,
 		&i.Role,
+		&i.LeftAt,
 	)
 	return i, err
 }
@@ -58,29 +61,30 @@ func (q *Queries) EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemb
 const ensureMemberFull = `-- name: EnsureMemberFull :one
 WITH chat_upsert AS (
     INSERT INTO chats (id, weekly_norm)
-    VALUES ($2, $3)
-    ON CONFLICT (id) DO UPDATE SET weekly_norm = chats.weekly_norm
-    RETURNING id
-),
-user_upsert AS (
-    INSERT INTO users (id, username, first_name, last_name)
-    VALUES ($4, $5, $6, $7)
-    ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
-                                   first_name = EXCLUDED.first_name,
-                                   last_name  = EXCLUDED.last_name
-    RETURNING id
-)
-INSERT INTO chat_members (chat_id, user_id, role)
+        VALUES ($2, $3)
+        ON CONFLICT (id) DO UPDATE SET weekly_norm = chats.weekly_norm
+        RETURNING id),
+     user_upsert AS (
+         INSERT INTO users (id, username, first_name, last_name)
+             VALUES ($4, $5, $6, $7)
+             ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username,
+                 first_name = EXCLUDED.first_name,
+                 last_name = EXCLUDED.last_name
+             RETURNING id)
+INSERT
+INTO chat_members (chat_id, user_id, role)
 SELECT chat_upsert.id, user_upsert.id, $1
-FROM chat_upsert, user_upsert
-ON CONFLICT (chat_id, user_id) DO UPDATE SET 
-    role = CASE 
-        WHEN EXCLUDED.role = 'creator' THEN 'creator'
-        WHEN chat_members.role = 'administrator' THEN 'administrator'
-        WHEN chat_members.role = 'creator' AND EXCLUDED.role <> 'creator' THEN 'creator' -- creator remains creator unless EXCLUDED specifically says otherwise (sync might not have it)
-        ELSE EXCLUDED.role
-    END
-RETURNING chat_id, user_id, joined_at, exempt_until, custom_title, role
+FROM chat_upsert,
+     user_upsert
+ON CONFLICT (chat_id, user_id) DO UPDATE SET role    = CASE
+                                                           WHEN EXCLUDED.role = 'creator' THEN 'creator'
+                                                           WHEN chat_members.role = 'administrator' THEN 'administrator'
+                                                           WHEN chat_members.role = 'creator' AND EXCLUDED.role <> 'creator'
+                                                               THEN 'creator'
+                                                           ELSE EXCLUDED.role
+    END,
+                                             left_at = NULL
+RETURNING chat_id, user_id, joined_at, exempt_until, custom_title, role, left_at
 `
 
 type EnsureMemberFullParams struct {
@@ -111,15 +115,17 @@ func (q *Queries) EnsureMemberFull(ctx context.Context, arg EnsureMemberFullPara
 		&i.ExemptUntil,
 		&i.CustomTitle,
 		&i.Role,
+		&i.LeftAt,
 	)
 	return i, err
 }
 
 const getChatMember = `-- name: GetChatMember :one
-SELECT chat_id, user_id, joined_at, exempt_until, custom_title, role, id, username, first_name, last_name, created_at
+SELECT chat_id, user_id, joined_at, exempt_until, custom_title, role, left_at, id, username, first_name, last_name, created_at
 FROM chat_members
          JOIN users ON users.id = user_id
-WHERE chat_id = $1
+WHERE left_at IS NULL
+  AND chat_id = $1
   AND user_id = $2
 `
 
@@ -135,6 +141,7 @@ type GetChatMemberRow struct {
 	ExemptUntil pgtype.Timestamptz `db:"exempt_until" json:"exemptUntil"`
 	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
 	Role        string             `db:"role" json:"role"`
+	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
 	ID          int64              `db:"id" json:"id"`
 	Username    pgtype.Text        `db:"username" json:"username"`
 	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
@@ -152,6 +159,7 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 		&i.ExemptUntil,
 		&i.CustomTitle,
 		&i.Role,
+		&i.LeftAt,
 		&i.ID,
 		&i.Username,
 		&i.FirstName,
@@ -162,10 +170,11 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 }
 
 const getChatMembers = `-- name: GetChatMembers :many
-SELECT chat_id, user_id, joined_at, exempt_until, custom_title, role, id, username, first_name, last_name, created_at
+SELECT chat_id, user_id, joined_at, exempt_until, custom_title, role, left_at, id, username, first_name, last_name, created_at
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
+  AND cm.left_at IS NULL
 `
 
 type GetChatMembersRow struct {
@@ -175,6 +184,7 @@ type GetChatMembersRow struct {
 	ExemptUntil pgtype.Timestamptz `db:"exempt_until" json:"exemptUntil"`
 	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
 	Role        string             `db:"role" json:"role"`
+	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
 	ID          int64              `db:"id" json:"id"`
 	Username    pgtype.Text        `db:"username" json:"username"`
 	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
@@ -198,6 +208,7 @@ func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMe
 			&i.ExemptUntil,
 			&i.CustomTitle,
 			&i.Role,
+			&i.LeftAt,
 			&i.ID,
 			&i.Username,
 			&i.FirstName,
@@ -219,6 +230,7 @@ SELECT cm.user_id, cm.custom_title, cm.role, u.first_name, u.last_name, u.userna
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = $1
+  AND cm.left_at IS NULL
   AND cm.custom_title IS NOT NULL
   AND cm.custom_title <> ''
 `
@@ -317,13 +329,14 @@ func (q *Queries) UpdateChatMemberTitle(ctx context.Context, arg UpdateChatMembe
 const upsertChatMembersWithRole = `-- name: UpsertChatMembersWithRole :exec
 INSERT INTO chat_members(chat_id, user_id, custom_title, role)
 SELECT $1, UNNEST($2::BIGINT[]), UNNEST($3::TEXT[]), UNNEST($4::TEXT[])
-ON CONFLICT (chat_id, user_id) DO UPDATE SET 
-    custom_title = EXCLUDED.custom_title, 
-    role = CASE 
-        WHEN EXCLUDED.role = 'creator' THEN 'creator'
-        WHEN chat_members.role = 'administrator' THEN 'administrator'
-        ELSE EXCLUDED.role
-    END
+ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = EXCLUDED.custom_title,
+                                             role         = CASE
+                                                                WHEN EXCLUDED.role = 'creator' THEN 'creator'
+                                                                WHEN chat_members.role = 'administrator'
+                                                                    THEN 'administrator'
+                                                                ELSE EXCLUDED.role
+                                                 END,
+                                             left_at      = NULL
 `
 
 type UpsertChatMembersWithRoleParams struct {

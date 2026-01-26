@@ -67,6 +67,7 @@ type ChatMember struct {
 	ExemptUntil pgtype.Timestamptz `db:"exempt_until" json:"exemptUntil"`
 	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
 	Role        string             `db:"role" json:"role"`
+	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
 }
 
 type ExemptRequest struct {
