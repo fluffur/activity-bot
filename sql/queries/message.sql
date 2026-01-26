@@ -28,5 +28,5 @@ WHERE cm.chat_id = $2
   AND cm.left_at IS NULL
   AND (cm.exempt_until IS NULL OR cm.exempt_until < now())
 
-GROUP BY cm.user_id, u.username, u.first_name, u.last_name, c.weekly_norm, cm.joined_at, c.newbie_threshold_days
+GROUP BY cm.user_id, u.username, u.first_name, u.last_name, c.weekly_norm, cm.joined_at, c.newbie_threshold_days, cm.role, cm.custom_title
 ORDER BY messages_count DESC;
