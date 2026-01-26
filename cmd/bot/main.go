@@ -226,6 +226,9 @@ func main() {
 		SetAliases("update chat", "update"),
 	)
 
+	dp.AddHandler(cb.New("роли", memberHandler.ListRoles).
+		SetAliases("roles", "titles").OnlyGroups(),
+	)
 	dp.AddHandler(cb.New("-роль", memberHandler.DeleteRole).
 		OnlyGroups().
 		SetAliases("-role", "-title"),
@@ -233,6 +236,7 @@ func main() {
 
 	dp.AddHandler(cb.New("роль", memberHandler.ShowRole).
 		OnlyGroups().
+		FallbackToSender().
 		SetAliases("role", "title"),
 	)
 
@@ -242,10 +246,6 @@ func main() {
 		OnlyGroups().
 		AllowArgs().
 		SetMaxArgs(1),
-	)
-
-	dp.AddHandler(cb.New("роли", memberHandler.ListRoles).
-		SetAliases("roles", "titles").OnlyGroups(),
 	)
 
 	dp.AddHandler(cb.New("call", callHandler.Call).
