@@ -157,9 +157,7 @@ func (h *Handler) DeleteRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Con
 	targetUser := cctx.Users[0]
 
 	if _, err := b.PromoteChatMember(ctx.EffectiveChat.Id, targetUser.ID, nil); err != nil {
-		slog.Error("Cannot demote chat member")
-		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось удалить администратора", nil)
-		return err
+		slog.Error("Cannot demote chat member", "error", err)
 	}
 
 	if err := h.service.DeleteRole(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
