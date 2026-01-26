@@ -74,14 +74,15 @@ func main() {
 	}
 
 	_, err = b.SetMyCommands([]gotgbot.BotCommand{
-		{Command: "stats", Description: "📈 Отчёт за неделю"},
+		{Command: "stats", Description: "📈 Недельный отчёт"},
 		{Command: "norm", Description: "📊 Норма сообщений"},
-		{Command: "rest", Description: "💤 Статус реста"},
-		{Command: "role", Description: "🎭 Узнать свою роль"},
-		{Command: "roles", Description: "📜 Список всех ролей"},
-		{Command: "admins", Description: "👮 Админы бота"},
+		{Command: "rest", Description: "💤 Управление рестом"},
+		{Command: "role", Description: "🎭 Роль пользователя"},
+		{Command: "roles", Description: "📜 Список ролей"},
+		{Command: "admins", Description: "👮 Администраторы бота"},
 		{Command: "update", Description: "🔄 Обновить данные чата"},
-		{Command: "newbie", Description: "🐣 Срок новичка"},
+		{Command: "newbie", Description: "🐣 Порог новичка"},
+		{Command: "call", Description: "📞 Вызов участников"},
 		{Command: "help", Description: "❓ Помощь"},
 	}, nil)
 	if err != nil {
