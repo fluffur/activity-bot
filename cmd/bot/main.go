@@ -256,10 +256,10 @@ func main() {
 		SetMaxArgs(1),
 	)
 
-	dp.AddHandler(handlers.NewMessage(filters.OnlyGroups, messageHandler.Message))
-	dp.AddHandler(handlers.NewMessage(message.NewChatMembers, memberHandler.OnJoinMember))
 	dp.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))
+	dp.AddHandler(handlers.NewMessage(message.NewChatMembers, memberHandler.OnJoinMember))
 	dp.AddHandler(handlers.NewMyChatMember(chatmember.NewStatus("administrator"), memberHandler.OnBotPromote))
+	dp.AddHandler(handlers.NewMessage(filters.OnlyGroups, messageHandler.Message))
 
 	if cfg.WebhookURL != "" {
 		webhookOpts := ext.WebhookOpts{

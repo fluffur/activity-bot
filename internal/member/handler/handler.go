@@ -223,6 +223,7 @@ func (h *Handler) OnJoinMember(_ *gotgbot.Bot, ctx *ext.Context) error {
 
 func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 	u := ctx.Message.LeftChatMember
+	slog.Info("member left", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id)
 	if u.IsBot {
 		return nil
 	}
