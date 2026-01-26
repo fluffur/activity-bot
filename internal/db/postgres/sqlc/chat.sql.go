@@ -10,11 +10,16 @@ import (
 )
 
 const ensureChatExists = `-- name: EnsureChatExists :one
-INSERT INTO chats(id, weekly_norm, newbie_threshold_days)
-VALUES ($1, $2, $3)
-ON CONFLICT(id) DO UPDATE SET weekly_norm = EXCLUDED.weekly_norm,
-                               newbie_threshold_days = EXCLUDED.newbie_threshold_days
-RETURNING id, weekly_norm, newbie_threshold_days
+WITH ins AS (
+    INSERT INTO chats(id, weekly_norm, newbie_threshold_days)
+        VALUES ($1, $2, $3)
+        ON CONFLICT(id) DO NOTHING
+        RETURNING id, weekly_norm, newbie_threshold_days
+)
+SELECT id, weekly_norm, newbie_threshold_days FROM ins
+UNION ALL
+SELECT id, weekly_norm, newbie_threshold_days FROM chats WHERE id = $1
+LIMIT 1
 `
 
 type EnsureChatExistsParams struct {
@@ -23,9 +28,15 @@ type EnsureChatExistsParams struct {
 	NewbieThresholdDays int32 `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 }
 
-func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (Chat, error) {
+type EnsureChatExistsRow struct {
+	ID                  int64 `db:"id" json:"id"`
+	WeeklyNorm          int32 `db:"weekly_norm" json:"weeklyNorm"`
+	NewbieThresholdDays int32 `db:"newbie_threshold_days" json:"newbieThresholdDays"`
+}
+
+func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error) {
 	row := q.db.QueryRow(ctx, ensureChatExists, arg.ID, arg.WeeklyNorm, arg.NewbieThresholdDays)
-	var i Chat
+	var i EnsureChatExistsRow
 	err := row.Scan(&i.ID, &i.WeeklyNorm, &i.NewbieThresholdDays)
 	return i, err
 }

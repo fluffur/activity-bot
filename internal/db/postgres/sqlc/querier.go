@@ -17,7 +17,7 @@ type Querier interface {
 	ChatExemptUsers(ctx context.Context, chatID int64) ([]ChatExemptUsersRow, error)
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
 	DeleteChatMember(ctx context.Context, arg DeleteChatMemberParams) error
-	EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (Chat, error)
+	EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error)
 	EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemberExistsParams) (ChatMember, error)
 	EnsureMemberFull(ctx context.Context, arg EnsureMemberFullParams) (ChatMember, error)
 	EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) (User, error)

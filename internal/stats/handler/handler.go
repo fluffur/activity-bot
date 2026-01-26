@@ -8,7 +8,6 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/stats"
 	"fmt"
-	"log"
 	"log/slog"
 	"strings"
 	"time"
@@ -80,7 +79,6 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 		isNewbie := false
 		if r.NewbieThresholdDays > 0 {
 			newbieUntil := r.JoinedAt.AddDate(0, 0, int(r.NewbieThresholdDays))
-			log.Println(r.NewbieThresholdDays, newbieUntil)
 			if newbieUntil.After(now) {
 				isNewbie = true
 			}

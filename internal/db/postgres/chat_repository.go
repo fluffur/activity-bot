@@ -19,7 +19,7 @@ func (r *ChatRepository) Ensure(ctx context.Context, c model.Chat) (model.Chat, 
 	ch, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{
 		ID:                  c.ID,
 		WeeklyNorm:          c.WeeklyNorm,
-		NewbieThresholdDays: 3, // Default 3
+		NewbieThresholdDays: 3,
 	})
 	if err != nil {
 		return model.Chat{}, err
@@ -66,7 +66,7 @@ func (r *ChatRepository) GetNorm(ctx context.Context, chatID int64, fallbackNorm
 	return int(c.WeeklyNorm), nil
 }
 
-func mapChat(c db.Chat) model.Chat {
+func mapChat(c db.EnsureChatExistsRow) model.Chat {
 	return model.Chat{
 		ID:                  c.ID,
 		WeeklyNorm:          c.WeeklyNorm,

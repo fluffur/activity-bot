@@ -1,9 +1,14 @@
 -- name: EnsureChatExists :one
-INSERT INTO chats(id, weekly_norm, newbie_threshold_days)
-VALUES ($1, $2, $3)
-ON CONFLICT(id) DO UPDATE SET weekly_norm = EXCLUDED.weekly_norm,
-                               newbie_threshold_days = EXCLUDED.newbie_threshold_days
-RETURNING *;
+WITH ins AS (
+    INSERT INTO chats(id, weekly_norm, newbie_threshold_days)
+        VALUES ($1, $2, $3)
+        ON CONFLICT(id) DO NOTHING
+        RETURNING *
+)
+SELECT * FROM ins
+UNION ALL
+SELECT * FROM chats WHERE id = $1
+LIMIT 1;
 
 -- name: GetOrCreateChat :one
 INSERT INTO chats(id, weekly_norm)
