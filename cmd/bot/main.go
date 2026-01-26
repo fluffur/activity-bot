@@ -8,7 +8,6 @@ import (
 	"activity-bot/internal/chat"
 	chatH "activity-bot/internal/chat/handler"
 	"activity-bot/internal/command"
-	"activity-bot/internal/common"
 	"activity-bot/internal/config"
 	"activity-bot/internal/db/postgres"
 	db "activity-bot/internal/db/postgres/sqlc"
@@ -98,20 +97,20 @@ func main() {
 	userService := user.NewService(userRepository)
 
 	adminsProvider := adapter.NewTelegramChatAdminsProvider(b)
+	statusProvider := adapter.NewTelegramMemberStatusProvider(b)
 	memberService := member.NewService(memberRepository, chatRepository, userRepository, adminsProvider, cfg.DefaultWeeklyNorm)
-	adminService := admin.NewService(adminRepository)
+	adminService := admin.NewService(adminRepository, statusProvider, cfg.BotOwnerID)
 	messageService := msg.NewService(messageRepository)
 
-	permissionChecker := common.NewPermissionChecker(adminService, cfg.BotOwnerID)
 	dateParser := exempt.NewDateParser()
 
-	cb := command.NewBuilder(userService, permissionChecker)
+	cb := command.NewBuilder(userService, adminService)
 
 	helpHandler := helpH.New(cfg.BotOwnerID)
 	statsHandler := statsH.New(statsService, exemptService, memberService)
 	chatHandler := chatH.New(chatService, adminService)
-	exemptHandler := exemptH.New(exemptService, userService, permissionChecker, dateParser)
-	adminHandler := adminH.New(adminService, userService, permissionChecker, memberService)
+	exemptHandler := exemptH.New(exemptService, userService, adminService, dateParser)
+	adminHandler := adminH.New(adminService, userService, memberService)
 	messageHandler := messageH.New(messageService, memberService)
 	memberHandler := memberH.New(memberService, userService)
 	callHandler := callH.New(memberService)

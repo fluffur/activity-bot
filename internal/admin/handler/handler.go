@@ -3,10 +3,10 @@ package handler
 import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/command"
-	"activity-bot/internal/common"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"activity-bot/internal/user"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -16,14 +16,13 @@ import (
 )
 
 type Handler struct {
-	service           *admin.Service
-	userService       *user.Service
-	permissionChecker *common.PermissionChecker
-	memberService     *member.Service
+	service       *admin.Service
+	userService   *user.Service
+	memberService *member.Service
 }
 
-func New(service *admin.Service, userService *user.Service, permissionChecker *common.PermissionChecker, memberService *member.Service) *Handler {
-	return &Handler{service, userService, permissionChecker, memberService}
+func New(service *admin.Service, userService *user.Service, memberService *member.Service) *Handler {
+	return &Handler{service, userService, memberService}
 }
 
 func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
@@ -34,7 +33,7 @@ func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 
 	targetUser := cctx.Users[0]
 
-	if h.permissionChecker.IsAdmin(b, ctx.EffectiveChat.Id, targetUser.ID) {
+	if h.service.CheckIsAdmin(ctx.EffectiveChat.Id, targetUser.ID) {
 		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь является администратором чата", nil)
 		return err
 	}
@@ -45,12 +44,17 @@ func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 
 func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
 	if len(cctx.Users) == 0 {
-		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота. Попробуйте упомянуть его через ответ на сообщение или дождитесь, пока он напишет что-нибудь.", nil)
+		_, err := ctx.EffectiveMessage.Reply(b, "Вероятно вы забыли указать пользователя, которого хотите сделать админом, либо он был не найден. Попробуйте ответить пользователю с этой командой или обновить чат", nil)
 		return err
 	}
 
 	targetUser := cctx.Users[0]
 	if err := h.service.AddAdmin(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
+		if errors.Is(err, admin.ErrUserIsAlreadyAdmin) {
+			_, err := ctx.EffectiveMessage.Reply(b, "Пользователь уже является администратором", nil)
+			return err
+		}
+
 		slog.Error("failed to add admin", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось добавить администратора", nil)
 		return err
@@ -74,27 +78,26 @@ func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Co
 
 	targetUser := cctx.Users[0]
 
-	isAdmin, err := h.service.IsAdmin(ctx.EffectiveChat.Id, targetUser.ID)
-	if err != nil {
-		slog.Error("failed to check admin status", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
-		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось проверить статус пользователя", nil)
-
-		return err
-	}
-
-	if !isAdmin {
-		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не является администратором", nil)
-
-		return err
-	}
-
 	if err := h.service.RemoveAdmin(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
+		if errors.Is(err, admin.ErrUserIsNotAdmin) {
+			_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не является администратором", nil)
+
+			return err
+		}
+
+		if errors.Is(err, admin.ErrUserIsCreator) {
+			_, err := ctx.EffectiveMessage.Reply(b, "Нельзя удалить создателя из списка администраторов", nil)
+
+			return err
+		}
+
 		slog.Error("failed to remove admin", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось удалить администратора", nil)
+
 		return err
 	}
 
-	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s удалён из администраторов бота", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
+	_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s удалён из администраторов бота", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 			IsDisabled: true,

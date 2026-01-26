@@ -1,8 +1,9 @@
 package command
 
 import (
-	"activity-bot/internal/common"
+	"activity-bot/internal/admin"
 	"activity-bot/internal/model"
+	"activity-bot/internal/user"
 	"log"
 	"strings"
 
@@ -11,35 +12,35 @@ import (
 )
 
 type Builder struct {
-	userService       common.UserService
-	permissionChecker *common.PermissionChecker
+	userService  *user.Service
+	adminService *admin.Service
 }
 
-func NewBuilder(userService common.UserService, permissionChecker *common.PermissionChecker) *Builder {
-	return &Builder{userService, permissionChecker}
+func NewBuilder(userService *user.Service, adminService *admin.Service) *Builder {
+	return &Builder{userService, adminService}
 }
 
 func (b *Builder) New(c string, r Response, aliases ...string) Command {
-	return NewCommand(c, r, b.userService, b.permissionChecker, aliases...)
+	return NewCommand(c, r, b.userService, b.adminService, aliases...)
 }
 
 type Command struct {
-	Command           string
-	Triggers          []string
-	Aliases           []string
-	Response          Response
-	MaxArgs           int
-	requireAdmin      bool
-	requireCreator    bool
-	allowArgs         bool
-	requireTriggers   bool
-	fallbackToSender  bool
-	onlyGroups        bool
-	userService       common.UserService
-	permissionChecker *common.PermissionChecker
+	Command          string
+	Triggers         []string
+	Aliases          []string
+	Response         Response
+	MaxArgs          int
+	requireAdmin     bool
+	requireCreator   bool
+	allowArgs        bool
+	requireTriggers  bool
+	fallbackToSender bool
+	onlyGroups       bool
+	userService      *user.Service
+	adminService     *admin.Service
 }
 
-func NewCommand(c string, r Response, userService common.UserService, permissionChecker *common.PermissionChecker, aliases ...string) Command {
+func NewCommand(c string, r Response, userService *user.Service, adminService *admin.Service, aliases ...string) Command {
 	return Command{
 		Command:          strings.ToLower(c),
 		Triggers:         []string{"/", "!", ".", ""},
@@ -48,8 +49,8 @@ func NewCommand(c string, r Response, userService common.UserService, permission
 		requireTriggers:  true,
 		fallbackToSender: false,
 
-		userService:       userService,
-		permissionChecker: permissionChecker,
+		userService:  userService,
+		adminService: adminService,
 	}
 }
 
@@ -113,18 +114,14 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	return false
 }
 func (c Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
-	if c.requireCreator {
-		if !c.permissionChecker.IsCreator(b, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
-			_, err := ctx.EffectiveMessage.Reply(b, "Только создатель может выполнить эту команду", nil)
-			return err
-		}
+	if c.requireCreator && !c.adminService.CheckIsCreator(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
+		_, err := ctx.EffectiveMessage.Reply(b, "Только создатель может выполнить эту команду", nil)
+		return err
 	}
 
-	if c.requireAdmin {
-		if !c.permissionChecker.IsAdmin(b, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
-			_, err := ctx.EffectiveMessage.Reply(b, "Только создатель и администраторы могут выполнить эту команду", nil)
-			return err
-		}
+	if c.requireAdmin && !c.adminService.CheckIsAdmin(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
+		_, err := ctx.EffectiveMessage.Reply(b, "Только создатель и администраторы могут выполнить эту команду", nil)
+		return err
 	}
 
 	return c.Response(b, ctx, c.parseArgs(b, ctx))

@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"activity-bot/internal/admin"
 	"activity-bot/internal/command"
-	"activity-bot/internal/common"
 	"activity-bot/internal/exempt"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
@@ -19,14 +19,14 @@ import (
 )
 
 type Handler struct {
-	service           *exempt.Service
-	userService       *user.Service
-	permissionChecker *common.PermissionChecker
-	dateParser        *exempt.DateParser
+	service      *exempt.Service
+	userService  *user.Service
+	adminService *admin.Service
+	dateParser   *exempt.DateParser
 }
 
-func New(service *exempt.Service, userService *user.Service, permissionChecker *common.PermissionChecker, dateParser *exempt.DateParser) *Handler {
-	return &Handler{service, userService, permissionChecker, dateParser}
+func New(service *exempt.Service, userService *user.Service, adminService *admin.Service, dateParser *exempt.DateParser) *Handler {
+	return &Handler{service, userService, adminService, dateParser}
 }
 
 func (h *Handler) Set(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
@@ -55,7 +55,7 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) e
 		return err
 	}
 
-	if !h.permissionChecker.IsAdmin(b, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
+	if !h.adminService.CheckIsAdmin(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
 		return h.createExemptRequest(b, ctx, targetUser, date)
 	}
 
@@ -151,7 +151,7 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) e
 
 	targetUser := cctx.Users[0]
 
-	if targetUser.ID != ctx.EffectiveUser.Id && !h.permissionChecker.IsAdmin(b, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
+	if targetUser.ID != ctx.EffectiveUser.Id && !h.adminService.CheckIsAdmin(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
 		_, err := ctx.EffectiveMessage.Reply(b, "Вы можете удалить из реста только себя", nil)
 		return err
 	}
@@ -207,7 +207,7 @@ func (h *Handler) ApproveExemptRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	if !h.permissionChecker.IsAdmin(b, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
+	if !h.adminService.CheckIsAdmin(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Подтвердить запрос может только администратор",
 		})
@@ -254,7 +254,7 @@ func (h *Handler) RejectExemptRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	if exemptRequest.UserID != ctx.EffectiveSender.Id() && !h.permissionChecker.IsAdmin(b, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
+	if exemptRequest.UserID != ctx.EffectiveSender.Id() && !h.adminService.CheckIsAdmin(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Отклонить запрос может только администратор или заявитель реста",
 		})

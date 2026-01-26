@@ -150,8 +150,8 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 
 func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
 	if len(cctx.Users) == 0 {
-		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота.", nil)
-		return err
+		slog.Error("No user in ShowRole")
+		return nil
 	}
 
 	targetUser := cctx.Users[0]

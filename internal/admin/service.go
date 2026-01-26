@@ -3,37 +3,82 @@ package admin
 import (
 	"activity-bot/internal/model"
 	"context"
+	"errors"
+	"log/slog"
+)
+
+type ChatMemberStatusProvider interface {
+	GetChatMemberStatus(chatID, userID int64) (string, error)
+}
+
+var (
+	ErrUserIsNotAdmin     = errors.New("user is not admin")
+	ErrUserIsAlreadyAdmin = errors.New("user is already admin")
+	ErrUserIsCreator      = errors.New("user is creator")
 )
 
 type Service struct {
-	repo Repository
+	repo         Repository
+	memberStatus ChatMemberStatusProvider
+	ownerID      int64
 }
 
-func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+func NewService(repo Repository, statusProvider ChatMemberStatusProvider, ownerID int64) *Service {
+	return &Service{repo, statusProvider, ownerID}
 }
 
 func (s *Service) AddAdmin(chatID int64, userID int64) error {
 	ctx := context.Background()
+	isCreator, err := s.IsCreator(chatID, userID)
+	if err != nil {
+		return err
+	}
+	if isCreator {
+		return ErrUserIsAlreadyAdmin
+	}
+
+	isAdmin, err := s.IsAdmin(chatID, userID)
+	if err != nil {
+		return err
+	}
+
+	if isAdmin {
+		return ErrUserIsAlreadyAdmin
+	}
+
 	return s.repo.Add(ctx, chatID, userID)
 }
 
 func (s *Service) RemoveAdmin(chatID int64, userID int64) error {
 	ctx := context.Background()
-	return s.repo.Remove(ctx, chatID, userID)
-}
 
-func (s *Service) GetAdmins(chatID int64) ([]model.User, error) {
-	ctx := context.Background()
-	return s.repo.GetFromChat(ctx, chatID)
+	isCreator, err := s.IsCreator(chatID, userID)
+	if err != nil {
+		return err
+	}
+	if isCreator {
+		return ErrUserIsCreator
+	}
+
+	isAdmin, err := s.IsAdmin(chatID, userID)
+	if err != nil {
+		return err
+	}
+
+	if !isAdmin {
+		return ErrUserIsNotAdmin
+	}
+
+	return s.repo.Remove(ctx, chatID, userID)
 }
 
 func (s *Service) GetAdminsEnsured(
 	chatID int64,
 	sync func(chatID int64) (int, error),
 ) ([]model.User, error) {
+	ctx := context.Background()
 
-	admins, err := s.GetAdmins(chatID)
+	admins, err := s.repo.GetFromChat(ctx, chatID)
 	if err != nil {
 		return nil, err
 	}
@@ -46,20 +91,69 @@ func (s *Service) GetAdminsEnsured(
 		return nil, err
 	}
 
-	return s.GetAdmins(chatID)
-}
-
-func (s *Service) IsAdmin(chatID int64, userID int64) (bool, error) {
-	ctx := context.Background()
-	return s.repo.IsAdmin(ctx, chatID, userID)
+	return s.repo.GetFromChat(ctx, chatID)
 }
 
 func (s *Service) IsCreator(chatID int64, userID int64) (bool, error) {
+	if userID == s.ownerID {
+		return true, nil
+	}
+
 	ctx := context.Background()
-	return s.repo.IsCreator(ctx, chatID, userID)
+
+	isCreator, err := s.repo.IsCreator(ctx, chatID, userID)
+	if err == nil {
+		return isCreator, nil
+	}
+
+	status, err := s.memberStatus.GetChatMemberStatus(chatID, userID)
+	if err != nil {
+		return false, err
+	}
+
+	return status == "creator", nil
 }
 
 func (s *Service) GetRole(chatID int64, userID int64) (string, error) {
 	ctx := context.Background()
 	return s.repo.GetRole(ctx, chatID, userID)
+}
+
+func (s *Service) CheckIsAdmin(chatID, userID int64) bool {
+	isAdmin, err := s.IsAdmin(chatID, userID)
+	if err != nil {
+		slog.Error("failed to check admin", "chat_id", chatID, "user_id", userID, "error", err)
+		return false
+	}
+	return isAdmin
+}
+
+func (s *Service) CheckIsCreator(chatID, userID int64) bool {
+	isCreator, err := s.IsCreator(chatID, userID)
+	if err != nil {
+		slog.Error("failed to check creator", "chat_id", chatID, "user_id", userID, "error", err)
+		return false
+	}
+	return isCreator
+}
+
+func (s *Service) IsAdmin(chatID, userID int64) (bool, error) {
+	if userID == s.ownerID {
+		return true, nil
+	}
+
+	isAdmin, err := s.repo.IsAdmin(context.Background(), chatID, userID)
+	if err != nil {
+		return false, err
+	}
+	if isAdmin {
+		return true, nil
+	}
+
+	status, err := s.memberStatus.GetChatMemberStatus(chatID, userID)
+	if err != nil {
+		return false, err
+	}
+
+	return status == "creator", nil
 }
