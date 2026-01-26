@@ -120,8 +120,8 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 
 	targetUser := cctx.Users[0]
 
-	exempt, err := h.service.GetMemberExempt(ctx.EffectiveChat.Id, targetUser.ID)
-	if err != nil || exempt == nil {
+	e, err := h.service.GetMemberExempt(ctx.EffectiveChat.Id, targetUser.ID)
+	if err != nil || e == nil {
 		_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s не находится в ресте", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
 			ParseMode: gotgbot.ParseModeHTML,
 			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
@@ -132,7 +132,7 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 		return err
 	}
 
-	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s находится в ресте до %s", helpers.Link(*targetUser), helpers.FormatToHumanDate(*exempt)), &gotgbot.SendMessageOpts{
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s находится в ресте до %s", helpers.Link(*targetUser), helpers.FormatToHumanDate(*e)), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 			IsDisabled: true,
@@ -156,13 +156,13 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) e
 		return err
 	}
 
-	exempt, err := h.service.GetMemberExempt(ctx.EffectiveChat.Id, targetUser.ID)
+	e, err := h.service.GetMemberExempt(ctx.EffectiveChat.Id, targetUser.ID)
 	if err != nil {
 		slog.Error("failed to check member exempt status", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось проверить рест пользователя", nil)
 		return err
 	}
-	if exempt == nil {
+	if e == nil {
 		if targetUser.ID == ctx.EffectiveUser.Id {
 			_, err := ctx.EffectiveMessage.Reply(b, "Вы не находитесь в ресте", nil)
 			return err
