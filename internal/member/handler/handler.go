@@ -79,20 +79,20 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 		return err
 	}
 
-	member, err := b.GetChatMember(ctx.EffectiveChat.Id, targetUser.ID, nil)
+	m, err := b.GetChatMember(ctx.EffectiveChat.Id, targetUser.ID, nil)
 	if err != nil {
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось получить информацию о пользователе", nil)
 
 		return err
 	}
 
-	if member.GetStatus() == "creator" {
+	if m.GetStatus() == "creator" {
 		_, err := ctx.EffectiveMessage.Reply(b, "Нельзя изменить роль создателя чата", nil)
 		return err
 	}
-	mergedMember := member.MergeChatMember()
+	mergedMember := m.MergeChatMember()
 
-	if member.GetStatus() == "administrator" {
+	if m.GetStatus() == "administrator" {
 		if !mergedMember.CanBeEdited {
 			_, err := ctx.EffectiveMessage.Reply(b, "Я не могу изменить этого администратора (он назначен другим админом)", nil)
 			return err
@@ -103,7 +103,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 
 			return err
 		}
-	} else if member.GetStatus() == "member" {
+	} else if m.GetStatus() == "member" {
 		if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, targetUser.ID, &gotgbot.PromoteChatMemberOpts{
 			CanPinMessages:  true,
 			CanPostMessages: true,
@@ -224,7 +224,7 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 	return err
 }
 
-func (h *Handler) OnBotPromote(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) OnBotPromote(_ *gotgbot.Bot, ctx *ext.Context) error {
 	count, err := h.service.SyncChatMembers(ctx.EffectiveChat.Id)
 	if err != nil {
 		slog.Error("failed to update chat members on bot promote", "chat_id", ctx.EffectiveChat.Id, "error", err)
