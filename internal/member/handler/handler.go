@@ -148,6 +148,30 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 	return err
 }
 
+func (h *Handler) DeleteRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	if len(cctx.Users) == 0 {
+		slog.Error("No user in DeleteRole")
+		return nil
+	}
+
+	targetUser := cctx.Users[0]
+
+	if _, err := b.PromoteChatMember(ctx.EffectiveChat.Id, targetUser.ID, nil); err != nil {
+		slog.Error("Cannot demote chat member")
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось удалить администратора", nil)
+		return err
+	}
+
+	if err := h.service.DeleteRole(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
+		_, err := ctx.EffectiveMessage.Reply(b, "Администратор удалён, но роль в базе бота нет", nil)
+
+		return err
+	}
+	_, err := ctx.EffectiveMessage.Reply(b, "Администратор удалён", nil)
+
+	return err
+}
+
 func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
 	if len(cctx.Users) == 0 {
 		slog.Error("No user in ShowRole")

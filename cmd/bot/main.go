@@ -52,6 +52,27 @@ func main() {
 		panic("failed to create new bot: " + err.Error())
 	}
 
+	if _, err := b.SetMyDefaultAdministratorRightsWithContext(ctx, &gotgbot.SetMyDefaultAdministratorRightsOpts{
+		Rights: &gotgbot.ChatAdministratorRights{
+			CanManageChat:       true,
+			CanDeleteMessages:   true,
+			CanManageVideoChats: true,
+			CanRestrictMembers:  true,
+			CanPromoteMembers:   true,
+			CanChangeInfo:       true,
+			CanInviteUsers:      true,
+			CanPostStories:      true,
+			CanEditStories:      true,
+			CanDeleteStories:    true,
+			CanPostMessages:     true,
+			CanEditMessages:     true,
+			CanPinMessages:      true,
+			CanManageTopics:     true,
+		},
+	}); err != nil {
+		slog.Warn("failed to set default administrator rights", "error", err)
+	}
+
 	_, err = b.SetMyCommands([]gotgbot.BotCommand{
 		{Command: "stats", Description: "📈 Отчёт за неделю"},
 		{Command: "norm", Description: "📊 Норма сообщений"},
@@ -108,7 +129,7 @@ func main() {
 
 	helpHandler := helpH.New(cfg.BotOwnerID)
 	statsHandler := statsH.New(statsService, exemptService, memberService)
-	chatHandler := chatH.New(chatService, adminService)
+	chatHandler := chatH.New(chatService, adminService, dateParser)
 	exemptHandler := exemptH.New(exemptService, userService, adminService, dateParser)
 	adminHandler := adminH.New(adminService, userService, memberService)
 	messageHandler := messageH.New(messageService, memberService)
@@ -203,6 +224,11 @@ func main() {
 	dp.AddHandler(cb.New("обновить чат", memberHandler.UpdateMembersList).
 		OnlyGroups().
 		SetAliases("update chat", "update"),
+	)
+
+	dp.AddHandler(cb.New("-роль", memberHandler.DeleteRole).
+		OnlyGroups().
+		SetAliases("-role", "-title"),
 	)
 
 	dp.AddHandler(cb.New("роль", memberHandler.ShowRole).

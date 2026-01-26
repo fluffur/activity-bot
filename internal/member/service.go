@@ -100,3 +100,8 @@ func (s *Service) SyncChatMembers(chatID int64) (int, error) {
 
 	return len(members), nil
 }
+
+func (s *Service) DeleteRole(chatID int64, userID int64) error {
+	ctx := context.Background()
+	return s.repo.UpdateRole(ctx, chatID, userID, "")
+}

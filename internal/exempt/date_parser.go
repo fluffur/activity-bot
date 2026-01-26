@@ -31,11 +31,40 @@ func (p *DateParser) Parse(arg string) (time.Time, bool) {
 		return t, true
 	}
 
-	if t, ok := p.parsePeriod(arg); ok {
-		return t, true
+	if days, ok := p.ParseDays(arg); ok {
+		return p.startOfDay(p.now()).AddDate(0, 0, days), true
 	}
 
 	return time.Time{}, false
+}
+
+func (p *DateParser) ParseDays(arg string) (int, bool) {
+	arg = strings.TrimSpace(strings.ToLower(arg))
+	if days, err := strconv.Atoi(arg); err == nil {
+		return days, true
+	}
+
+	re := regexp.MustCompile(`^(?:(\d+)\s*)?(день|дня|дней|неделя|недели|недель|месяц|месяца|месяцев)$`)
+	m := re.FindStringSubmatch(arg)
+	if len(m) == 0 {
+		return 0, false
+	}
+
+	count := 1
+	if m[1] != "" {
+		count, _ = strconv.Atoi(m[1])
+	}
+
+	switch m[2] {
+	case "день", "дня", "дней":
+		return count, true
+	case "неделя", "недели", "недель":
+		return count * 7, true
+	case "месяц", "месяца", "месяцев":
+		return count * 30, true
+	}
+
+	return 0, false
 }
 
 func (p *DateParser) parseDate(arg string) (time.Time, bool) {
@@ -70,26 +99,8 @@ func (p *DateParser) parseDate(arg string) (time.Time, bool) {
 }
 
 func (p *DateParser) parsePeriod(arg string) (time.Time, bool) {
-	re := regexp.MustCompile(`^(?:(\d+)\s*)?(день|дня|дней|неделя|недели|недель|месяц|месяца|месяцев)$`)
-	m := re.FindStringSubmatch(arg)
-	if len(m) == 0 {
-		return time.Time{}, false
-	}
-
-	count := 1
-	if m[1] != "" {
-		count, _ = strconv.Atoi(m[1])
-	}
-
-	now := p.startOfDay(p.now())
-
-	switch m[2] {
-	case "день", "дня", "дней":
-		return now.AddDate(0, 0, count), true
-	case "неделя", "недели", "недель":
-		return now.AddDate(0, 0, count*7), true
-	case "месяц", "месяца", "месяцев":
-		return now.AddDate(0, count, 0), true
+	if days, ok := p.ParseDays(arg); ok {
+		return p.startOfDay(p.now()).AddDate(0, 0, days), true
 	}
 
 	return time.Time{}, false

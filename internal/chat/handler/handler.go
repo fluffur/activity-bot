@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/command"
+	"activity-bot/internal/exempt"
 	"activity-bot/internal/helpers"
 	"fmt"
 	"log"
@@ -17,10 +18,11 @@ import (
 type Handler struct {
 	service      *chat.Service
 	adminService *admin.Service
+	dateParser   *exempt.DateParser
 }
 
-func New(service *chat.Service, adminService *admin.Service) *Handler {
-	return &Handler{service, adminService}
+func New(service *chat.Service, adminService *admin.Service, dateParser *exempt.DateParser) *Handler {
+	return &Handler{service, adminService, dateParser}
 }
 
 func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
@@ -71,10 +73,10 @@ func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, _ *comma
 }
 
 func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	days, err := strconv.Atoi(cctx.Args[0])
-	if err != nil {
-		slog.Error("failed to parse newbie days", "error", err)
-		_, err = ctx.EffectiveMessage.Reply(b, "Количество дней должно быть числом", nil)
+	days, ok := h.dateParser.ParseDays(cctx.Args[0])
+	if !ok {
+		slog.Warn("failed to parse newbie days", "arg", cctx.Args[0])
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось распознать срок. Используйте формат: 3 дня, неделя, 14 дней или просто число.", nil)
 		return err
 	}
 
@@ -84,6 +86,6 @@ func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, cctx *com
 		return err
 	}
 
-	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Теперь пользователи считаются новичками первые %d %s", days, helpers.PluralizeDays(days)), nil)
+	_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Теперь пользователи считаются новичками первые %d %s", days, helpers.PluralizeDays(days)), nil)
 	return err
 }

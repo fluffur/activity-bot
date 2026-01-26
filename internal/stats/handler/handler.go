@@ -76,7 +76,6 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 	for _, r := range report {
 		line := fmt.Sprintf("%s — %d сообщений", helpers.Link(r.User), r.MessagesCount)
 
-		// Check if newbie
 		isNewbie := false
 		if r.NewbieThresholdDays > 0 {
 			newbieUntil := r.JoinedAt.AddDate(0, 0, int(r.NewbieThresholdDays))
