@@ -20,17 +20,21 @@ func New(service *message.Service, memberService *member.Service) *Handler {
 
 func (h *Handler) Message(_ *gotgbot.Bot, ctx *ext.Context) error {
 	u := ctx.EffectiveSender.User
+	c := ctx.EffectiveChat
+	if u == nil || c == nil {
+		return nil
+	}
 	if u.IsBot {
 		return nil
 	}
 
-	if _, err := h.memberService.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, "member"); err != nil {
-		slog.Error("failed to ensure member exists on message", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id, "error", err)
+	if _, err := h.memberService.EnsureMemberExists(c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member"); err != nil {
+		slog.Error("failed to ensure member exists on message", "chat_id", c.Id, "user_id", u.Id, "error", err)
 		return err
 	}
 
-	if err := h.service.Save(ctx.EffectiveChat.Id, ctx.EffectiveUser.Id); err != nil {
-		slog.Error("failed to save message activity", "chat_id", ctx.EffectiveChat.Id, "user_id", ctx.EffectiveUser.Id, "error", err)
+	if err := h.service.Save(c.Id, u.Id); err != nil {
+		slog.Error("failed to save message activity", "chat_id", c.Id, "user_id", u.Id, "error", err)
 		return err
 	}
 	return nil
