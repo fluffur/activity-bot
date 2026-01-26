@@ -75,7 +75,7 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 	var passed, failed, newbies, rest []string
 
 	for _, r := range report {
-		line := fmt.Sprintf("%s — %d сообщений", helpers.Link(r.User), r.MessagesCount)
+		line := fmt.Sprintf("%s (%s) — %d сообщений", helpers.Link(r.User), r.CustomTitle, r.MessagesCount)
 
 		isNewbie := false
 		if r.NewbieThresholdDays > 0 {
@@ -105,7 +105,7 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 		} else {
 			untilText = "неизвестно"
 		}
-		line := fmt.Sprintf("%s до %s", helpers.Link(r.User), untilText)
+		line := fmt.Sprintf("%s (%s) до %s", helpers.Link(r.User), r.CustomTitle, untilText)
 		rest = append(rest, line)
 	}
 	var totalMessages int32 = 0

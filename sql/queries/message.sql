@@ -13,7 +13,9 @@ SELECT cm.user_id,
        c.weekly_norm,
        (COUNT(m.chat_id) >= c.weekly_norm) AS norm_done,
        cm.joined_at,
-       c.newbie_threshold_days
+       c.newbie_threshold_days,
+       cm.role,
+       cm.custom_title
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id

@@ -57,7 +57,9 @@ SELECT cm.user_id,
        u.username,
        u.first_name,
        u.last_name,
-       cm.exempt_until
+       cm.exempt_until,
+       cm.role,
+       cm.custom_title
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
@@ -72,6 +74,8 @@ type ChatExemptUsersRow struct {
 	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
 	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
 	ExemptUntil pgtype.Timestamptz `db:"exempt_until" json:"exemptUntil"`
+	Role        string             `db:"role" json:"role"`
+	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
 }
 
 func (q *Queries) ChatExemptUsers(ctx context.Context, chatID int64) ([]ChatExemptUsersRow, error) {
@@ -89,6 +93,8 @@ func (q *Queries) ChatExemptUsers(ctx context.Context, chatID int64) ([]ChatExem
 			&i.FirstName,
 			&i.LastName,
 			&i.ExemptUntil,
+			&i.Role,
+			&i.CustomTitle,
 		); err != nil {
 			return nil, err
 		}

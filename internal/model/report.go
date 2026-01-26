@@ -11,9 +11,13 @@ type WeeklyMessageReportMember struct {
 	NormDone            bool
 	JoinedAt            time.Time
 	NewbieThresholdDays int32
+	Role                string
+	CustomTitle         string
 }
 
 type ExemptMember struct {
 	User        User
 	ExemptUntil time.Time
+	Role        string
+	CustomTitle string
 }

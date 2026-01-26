@@ -3,7 +3,9 @@ SELECT cm.user_id,
        u.username,
        u.first_name,
        u.last_name,
-       cm.exempt_until
+       cm.exempt_until,
+       cm.role,
+       cm.custom_title
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1

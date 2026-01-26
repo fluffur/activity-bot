@@ -61,5 +61,7 @@ func mapWeeklyReportRow(row db.WeeklyMessageReportRow) model.WeeklyMessageReport
 		NormDone:            row.NormDone,
 		JoinedAt:            row.JoinedAt.Time,
 		NewbieThresholdDays: row.NewbieThresholdDays,
+		CustomTitle:         row.CustomTitle.String,
+		Role:                row.Role,
 	}
 }

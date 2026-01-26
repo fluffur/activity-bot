@@ -189,5 +189,7 @@ func mapChatExemptUsersRow(row db.ChatExemptUsersRow) model.ExemptMember {
 			Username:  username,
 		},
 		ExemptUntil: row.ExemptUntil.Time,
+		Role:        row.Role,
+		CustomTitle: row.CustomTitle.String,
 	}
 }
