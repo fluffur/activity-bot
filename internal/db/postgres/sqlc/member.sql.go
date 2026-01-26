@@ -290,6 +290,24 @@ func (q *Queries) GetMemberCustomTitle(ctx context.Context, arg GetMemberCustomT
 	return custom_title, err
 }
 
+const markChatMembersLeftNotInList = `-- name: MarkChatMembersLeftNotInList :exec
+UPDATE chat_members
+SET left_at = now()
+WHERE chat_id = $1
+  AND left_at IS NULL
+  AND user_id <> ALL($2::BIGINT[])
+`
+
+type MarkChatMembersLeftNotInListParams struct {
+	ChatID  int64   `db:"chat_id" json:"chatId"`
+	UserIds []int64 `db:"user_ids" json:"userIds"`
+}
+
+func (q *Queries) MarkChatMembersLeftNotInList(ctx context.Context, arg MarkChatMembersLeftNotInListParams) error {
+	_, err := q.db.Exec(ctx, markChatMembersLeftNotInList, arg.ChatID, arg.UserIds)
+	return err
+}
+
 const updateChatMemberRole = `-- name: UpdateChatMemberRole :exec
 UPDATE chat_members
 SET role = $1

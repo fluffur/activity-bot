@@ -23,7 +23,7 @@ func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Reposit
 	return &Service{repo, chatRepo, userRepo, adminsProvider, defaultWeeklyNorm}
 }
 
-func (s *Service) SetMemberTitle(chatID int64, userID int64, title string) error {
+func (s *Service) SetMemberTitle(chatID int64, userID int64, title *string) error {
 	ctx := context.Background()
 	return s.repo.UpdateCustomTitle(ctx, chatID, userID, title)
 }
@@ -89,6 +89,8 @@ func (s *Service) EnsureMemberExists(chatID int64, userID int64, username, first
 }
 
 func (s *Service) SyncChatMembers(chatID int64) (int, error) {
+	ctx := context.Background()
+
 	members, err := s.adminsProvider.GetChatAdmins(chatID)
 	if err != nil {
 		return 0, err
@@ -98,10 +100,16 @@ func (s *Service) SyncChatMembers(chatID int64) (int, error) {
 		return 0, err
 	}
 
-	return len(members), nil
-}
+	userIDs := make([]int64, 0, len(members))
+	for _, m := range members {
+		userIDs = append(userIDs, m.User.ID)
+	}
 
-func (s *Service) DeleteRole(chatID int64, userID int64) error {
-	ctx := context.Background()
-	return s.repo.UpdateCustomTitle(ctx, chatID, userID, "")
+	if len(userIDs) > 0 {
+		if err := s.repo.MarkLeftNotInList(ctx, chatID, userIDs); err != nil {
+			return 0, err
+		}
+	}
+
+	return len(members), nil
 }

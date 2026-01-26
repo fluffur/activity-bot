@@ -97,3 +97,10 @@ ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = EXCLUDED.custom_titl
                                                  END,
                                              left_at      = NULL
 ;
+
+-- name: MarkChatMembersLeftNotInList :exec
+UPDATE chat_members
+SET left_at = now()
+WHERE chat_id = @chat_id
+  AND left_at IS NULL
+  AND user_id <> ALL(@user_ids::BIGINT[]);

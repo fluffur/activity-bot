@@ -6,9 +6,3 @@ type User struct {
 	LastName  string
 	Username  *string
 }
-
-func NewUser(id int64) User {
-	return User{
-		ID: id,
-	}
-}

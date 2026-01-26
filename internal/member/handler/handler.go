@@ -127,7 +127,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 		return err
 	}
 
-	if err := h.service.SetMemberTitle(ctx.EffectiveChat.Id, targetUser.ID, role); err != nil {
+	if err := h.service.SetMemberTitle(ctx.EffectiveChat.Id, targetUser.ID, &role); err != nil {
 		slog.Error("failed to set custom title in DB", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Роль в Telegram изменена, но не удалось сохранить у бота, можно попробовать !обновить чат", nil)
 
@@ -160,7 +160,7 @@ func (h *Handler) DeleteRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Con
 		slog.Error("Cannot demote chat member", "error", err)
 	}
 
-	if err := h.service.DeleteRole(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
+	if err := h.service.SetMemberTitle(ctx.EffectiveChat.Id, targetUser.ID, nil); err != nil {
 		_, err := ctx.EffectiveMessage.Reply(b, "Администратор удалён, но роль в базе бота нет", nil)
 
 		return err

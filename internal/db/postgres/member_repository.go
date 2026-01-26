@@ -34,14 +34,18 @@ func (r *MemberRepository) GetCustomTitle(ctx context.Context, chatID int64, use
 	return title.String, nil
 }
 
-func (r *MemberRepository) UpdateCustomTitle(ctx context.Context, chatID int64, userID int64, title string) error {
-	return r.queries.UpdateChatMemberTitle(ctx, db.UpdateChatMemberTitleParams{
-		ChatID: chatID,
-		UserID: userID,
-		CustomTitle: pgtype.Text{
-			String: title,
+func (r *MemberRepository) UpdateCustomTitle(ctx context.Context, chatID int64, userID int64, title *string) error {
+	var customTitle pgtype.Text
+	if title != nil {
+		customTitle = pgtype.Text{
+			String: *title,
 			Valid:  true,
-		},
+		}
+	}
+	return r.queries.UpdateChatMemberTitle(ctx, db.UpdateChatMemberTitleParams{
+		ChatID:      chatID,
+		UserID:      userID,
+		CustomTitle: customTitle,
 	})
 
 }
@@ -188,6 +192,13 @@ func (r *MemberRepository) EnsureFull(ctx context.Context, chatID int64, userID 
 	}
 
 	return mapChatMember(m), nil
+}
+
+func (r *MemberRepository) MarkLeftNotInList(ctx context.Context, chatID int64, userIDs []int64) error {
+	return r.queries.MarkChatMembersLeftNotInList(ctx, db.MarkChatMembersLeftNotInListParams{
+		ChatID:  chatID,
+		UserIds: userIDs,
+	})
 }
 
 func mapChatMember(m db.ChatMember) model.ChatMember {
