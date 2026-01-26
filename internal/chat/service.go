@@ -3,6 +3,7 @@ package chat
 import (
 	"activity-bot/internal/model"
 	"context"
+	"log"
 )
 
 type Service struct {
@@ -33,6 +34,7 @@ func (s *Service) SetNorm(chatID int64, norm int) error {
 
 func (s *Service) SetNewbieThreshold(chatID int64, threshold int) error {
 	ctx := context.Background()
+	log.Println(threshold)
 	return s.repo.SetNewbieThreshold(ctx, chatID, int32(threshold))
 }
 
