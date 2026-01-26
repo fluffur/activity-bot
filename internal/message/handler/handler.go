@@ -1,7 +1,8 @@
-package message
+package handler
 
 import (
-	"activity-bot/internal/chat/member"
+	"activity-bot/internal/member"
+	"activity-bot/internal/message"
 	"log/slog"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -9,11 +10,11 @@ import (
 )
 
 type Handler struct {
-	service       *Service
+	service       *message.Service
 	memberService *member.Service
 }
 
-func NewHandler(service *Service, memberService *member.Service) *Handler {
+func New(service *message.Service, memberService *member.Service) *Handler {
 	return &Handler{service, memberService}
 }
 

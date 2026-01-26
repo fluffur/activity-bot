@@ -1,8 +1,9 @@
-package exempt
+package handler
 
 import (
 	"activity-bot/internal/command"
 	"activity-bot/internal/common"
+	"activity-bot/internal/exempt"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
@@ -18,13 +19,13 @@ import (
 )
 
 type Handler struct {
-	service           *Service
+	service           *exempt.Service
 	userService       *user.Service
 	permissionChecker *common.PermissionChecker
-	dateParser        *DateParser
+	dateParser        *exempt.DateParser
 }
 
-func NewHandler(service *Service, userService *user.Service, permissionChecker *common.PermissionChecker, dateParser *DateParser) *Handler {
+func New(service *exempt.Service, userService *user.Service, permissionChecker *common.PermissionChecker, dateParser *exempt.DateParser) *Handler {
 	return &Handler{service, userService, permissionChecker, dateParser}
 }
 

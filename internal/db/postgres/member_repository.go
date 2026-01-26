@@ -1,8 +1,8 @@
 package postgres
 
 import (
-	"activity-bot/internal/chat/member"
 	db "activity-bot/internal/db/postgres/sqlc"
+	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"context"
 	"errors"

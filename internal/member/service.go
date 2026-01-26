@@ -7,15 +7,20 @@ import (
 	"context"
 )
 
+type ChatAdminsProvider interface {
+	GetChatAdmins(chatID int64) ([]model.ChatMemberUpdate, error)
+}
+
 type Service struct {
 	repo              Repository
 	chatRepo          chat.Repository
 	userRepo          user.Repository
+	adminsProvider    ChatAdminsProvider
 	defaultWeeklyNorm int32
 }
 
-func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Repository, defaultWeeklyNorm int32) *Service {
-	return &Service{repo, chatRepo, userRepo, defaultWeeklyNorm}
+func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Repository, adminsProvider ChatAdminsProvider, defaultWeeklyNorm int32) *Service {
+	return &Service{repo, chatRepo, userRepo, adminsProvider, defaultWeeklyNorm}
 }
 
 func (s *Service) SetMemberTitle(chatID int64, userID int64, title string) error {
@@ -81,4 +86,17 @@ func (s *Service) EnsureMemberExists(chatID int64, userID int64, username, first
 	ctx := context.Background()
 
 	return s.repo.EnsureFull(ctx, chatID, userID, role, firstName, lastName, username, s.defaultWeeklyNorm)
+}
+
+func (s *Service) SyncChatMembers(chatID int64) (int, error) {
+	members, err := s.adminsProvider.GetChatAdmins(chatID)
+	if err != nil {
+		return 0, err
+	}
+
+	if err := s.UpdateChatMembers(chatID, members); err != nil {
+		return 0, err
+	}
+
+	return len(members), nil
 }

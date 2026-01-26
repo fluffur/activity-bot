@@ -1,4 +1,4 @@
-package help
+package handler
 
 import (
 	"activity-bot/internal/command"
@@ -13,7 +13,7 @@ type Handler struct {
 	ownerID int64
 }
 
-func NewHandler(ownerID int64) *Handler {
+func New(ownerID int64) *Handler {
 	return &Handler{ownerID}
 }
 

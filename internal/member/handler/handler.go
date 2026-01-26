@@ -1,10 +1,9 @@
-package member
+package handler
 
 import (
-	"activity-bot/internal/admin"
 	"activity-bot/internal/command"
-	"activity-bot/internal/common"
 	"activity-bot/internal/helpers"
+	"activity-bot/internal/member"
 	"activity-bot/internal/user"
 	"fmt"
 	"html"
@@ -16,18 +15,16 @@ import (
 )
 
 type Handler struct {
-	service      *Service
-	userService  *user.Service
-	adminService *admin.Service
-	chatUpdater  *common.ChatUpdater
+	service     *member.Service
+	userService *user.Service
 }
 
-func NewHandler(service *Service, userService *user.Service, adminService *admin.Service, updater *common.ChatUpdater) *Handler {
-	return &Handler{service, userService, adminService, updater}
+func New(service *member.Service, userService *user.Service) *Handler {
+	return &Handler{service, userService}
 }
 
 func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
-	count, err := h.chatUpdater.UpdateChatMembers(ctx.EffectiveChat.Id)
+	count, err := h.service.SyncChatMembers(ctx.EffectiveChat.Id)
 	if err != nil {
 		slog.Error("failed to update chat members", "chat_id", ctx.EffectiveChat.Id, "error", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось обновить данные чата", nil)
@@ -228,7 +225,7 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 }
 
 func (h *Handler) OnBotPromote(b *gotgbot.Bot, ctx *ext.Context) error {
-	count, err := h.chatUpdater.UpdateChatMembers(ctx.EffectiveChat.Id)
+	count, err := h.service.SyncChatMembers(ctx.EffectiveChat.Id)
 	if err != nil {
 		slog.Error("failed to update chat members on bot promote", "chat_id", ctx.EffectiveChat.Id, "error", err)
 		return err

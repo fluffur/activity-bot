@@ -1,9 +1,11 @@
-package admin
+package handler
 
 import (
+	"activity-bot/internal/admin"
 	"activity-bot/internal/command"
 	"activity-bot/internal/common"
 	"activity-bot/internal/helpers"
+	"activity-bot/internal/member"
 	"activity-bot/internal/user"
 	"fmt"
 	"log/slog"
@@ -14,14 +16,14 @@ import (
 )
 
 type Handler struct {
-	service           *Service
+	service           *admin.Service
 	userService       *user.Service
 	permissionChecker *common.PermissionChecker
-	chatUpdater       *common.ChatUpdater
+	memberService     *member.Service
 }
 
-func NewHandler(service *Service, userService *user.Service, permissionChecker *common.PermissionChecker, chatUpdater *common.ChatUpdater) *Handler {
-	return &Handler{service, userService, permissionChecker, chatUpdater}
+func New(service *admin.Service, userService *user.Service, permissionChecker *common.PermissionChecker, memberService *member.Service) *Handler {
+	return &Handler{service, userService, permissionChecker, memberService}
 }
 
 func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
@@ -103,7 +105,7 @@ func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Co
 }
 
 func (h *Handler) ListAdmins(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
-	admins, err := h.service.GetAdminsEnsured(ctx.EffectiveChat.Id, h.chatUpdater.UpdateChatMembers)
+	admins, err := h.service.GetAdminsEnsured(ctx.EffectiveChat.Id, h.memberService.SyncChatMembers)
 	if err != nil {
 		slog.Error("failed to list admins", "chat_id", ctx.EffectiveChat.Id, "error", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить список администраторов", nil)
@@ -117,8 +119,8 @@ func (h *Handler) ListAdmins(b *gotgbot.Bot, ctx *ext.Context, _ *command.Contex
 
 	var sb strings.Builder
 	sb.WriteString("👮 Администраторы бота:\n")
-	for i, admin := range admins {
-		sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, helpers.Link(admin)))
+	for i, a := range admins {
+		sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, helpers.Link(a)))
 	}
 	_, err = ctx.EffectiveMessage.Reply(b, sb.String(), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,

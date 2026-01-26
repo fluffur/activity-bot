@@ -1,7 +1,8 @@
-package chat
+package handler
 
 import (
 	"activity-bot/internal/admin"
+	"activity-bot/internal/chat"
 	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"fmt"
@@ -14,11 +15,11 @@ import (
 )
 
 type Handler struct {
-	service      *Service
+	service      *chat.Service
 	adminService *admin.Service
 }
 
-func NewHandler(service *Service, adminService *admin.Service) *Handler {
+func New(service *chat.Service, adminService *admin.Service) *Handler {
 	return &Handler{service, adminService}
 }
 

@@ -3,20 +3,26 @@ package main
 import (
 	"activity-bot/internal/adapter"
 	"activity-bot/internal/admin"
-	"activity-bot/internal/call"
+	adminH "activity-bot/internal/admin/handler"
+	callH "activity-bot/internal/call/handler"
 	"activity-bot/internal/chat"
-	"activity-bot/internal/chat/member"
+	chatH "activity-bot/internal/chat/handler"
 	"activity-bot/internal/command"
 	"activity-bot/internal/common"
 	"activity-bot/internal/config"
 	"activity-bot/internal/db/postgres"
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/exempt"
+	exemptH "activity-bot/internal/exempt/handler"
 	"activity-bot/internal/filters"
-	"activity-bot/internal/help"
+	helpH "activity-bot/internal/help/handler"
 	"activity-bot/internal/logger"
+	"activity-bot/internal/member"
+	memberH "activity-bot/internal/member/handler"
 	msg "activity-bot/internal/message"
+	messageH "activity-bot/internal/message/handler"
 	"activity-bot/internal/stats"
+	statsH "activity-bot/internal/stats/handler"
 	"activity-bot/internal/user"
 	"context"
 	"fmt"
@@ -90,25 +96,25 @@ func main() {
 	exemptService := exempt.NewService(exemptRepository)
 	chatService := chat.NewService(chatRepository, cfg.DefaultWeeklyNorm)
 	userService := user.NewService(userRepository)
-	memberService := member.NewService(memberRepository, chatRepository, userRepository, cfg.DefaultWeeklyNorm)
+
+	adminsProvider := adapter.NewTelegramChatAdminsProvider(b)
+	memberService := member.NewService(memberRepository, chatRepository, userRepository, adminsProvider, cfg.DefaultWeeklyNorm)
 	adminService := admin.NewService(adminRepository)
 	messageService := msg.NewService(messageRepository)
 
 	permissionChecker := common.NewPermissionChecker(adminService, cfg.BotOwnerID)
-
-	adminsProvider := adapter.NewTelegramChatAdminsProvider(b)
-	chatUpdater := common.NewChatUpdater(adminsProvider, memberService)
+	dateParser := exempt.NewDateParser()
 
 	cb := command.NewBuilder(userService, permissionChecker)
 
-	helpHandler := help.NewHandler(cfg.BotOwnerID)
-	statsHandler := stats.NewHandler(statsService, exemptService, memberService, chatUpdater)
-	chatHandler := chat.NewHandler(chatService, adminService)
-	exemptHandler := exempt.NewHandler(exemptService, userService, permissionChecker, exempt.NewDateParser())
-	adminHandler := admin.NewHandler(adminService, userService, permissionChecker, chatUpdater)
-	messageHandler := msg.NewHandler(messageService, memberService)
-	memberHandler := member.NewHandler(memberService, userService, adminService, chatUpdater)
-	callHandler := call.NewHandler(adminService, memberService)
+	helpHandler := helpH.New(cfg.BotOwnerID)
+	statsHandler := statsH.New(statsService, exemptService, memberService)
+	chatHandler := chatH.New(chatService, adminService)
+	exemptHandler := exemptH.New(exemptService, userService, permissionChecker, dateParser)
+	adminHandler := adminH.New(adminService, userService, permissionChecker, memberService)
+	messageHandler := messageH.New(messageService, memberService)
+	memberHandler := memberH.New(memberService, userService)
+	callHandler := callH.New(memberService)
 
 	dp.AddHandler(cb.New("start", helpHandler.Start))
 	dp.AddHandler(cb.New("help", helpHandler.Help))

@@ -1,10 +1,9 @@
-package call
+package handler
 
 import (
-	"activity-bot/internal/admin"
-	"activity-bot/internal/chat/member"
 	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
+	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"fmt"
 	"log"
@@ -25,12 +24,11 @@ var emojis = []string{
 }
 
 type Handler struct {
-	adminService  *admin.Service
 	memberService *member.Service
 }
 
-func NewHandler(adminService *admin.Service, memberService *member.Service) *Handler {
-	return &Handler{adminService, memberService}
+func New(memberService *member.Service) *Handler {
+	return &Handler{memberService}
 }
 
 func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
