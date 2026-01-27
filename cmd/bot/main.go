@@ -160,7 +160,10 @@ func main() {
 		SetMaxArgs(1),
 	)
 
-	dp.AddHandler(cb.New("олды кроме", chatHandler.SetOnlyNewbies))
+	dp.AddHandler(cb.New("олды кроме", chatHandler.SetOnlyNewbies).
+		RequireAdmin().
+		OnlyGroups(),
+	)
 
 	dp.AddHandler(cb.New("newbie", chatHandler.ShowNewbieThreshold).
 		SetAliases("новичок", "newbies", "новички", "нью", "ньюхи").
