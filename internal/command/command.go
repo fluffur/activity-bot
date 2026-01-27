@@ -43,7 +43,7 @@ type Command struct {
 func NewCommand(c string, r Response, userService *user.Service, adminService *admin.Service, aliases ...string) Command {
 	return Command{
 		Command:          strings.ToLower(c),
-		Triggers:         []string{"/", "!", ".", ""},
+		Triggers:         []string{"/", "!", "."},
 		Aliases:          aliases,
 		Response:         r,
 		requireTriggers:  true,

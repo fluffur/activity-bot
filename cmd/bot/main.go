@@ -142,6 +142,7 @@ func main() {
 
 	dp.AddHandler(cb.New("stats", statsHandler.ShowStats).
 		SetAliases("отчёт", "отчет").
+		SetTriggers("/", ".", "!", "").
 		SetMaxArgs(1).
 		OnlyGroups(),
 	)
@@ -161,13 +162,13 @@ func main() {
 
 	dp.AddHandler(cb.New("newbie", chatHandler.ShowNewbieThreshold).
 		SetAliases("новичок", "newbies", "новички", "нью", "ньюхи").
-		SetTriggers("/", ".", "!", "+", "").
+		SetTriggers("/", ".", "!", "+").
 		OnlyGroups(),
 	)
 
 	dp.AddHandler(cb.New("newbie", chatHandler.SetNewbieThreshold).
 		SetAliases("новичок", "newbies", "новички", "нью", "ньюхи").
-		SetTriggers("/", ".", "!", "+", "").
+		SetTriggers("/", ".", "!", "+").
 		AllowArgs().
 		RequireAdmin().
 		OnlyGroups().
@@ -203,7 +204,6 @@ func main() {
 
 	dp.AddHandler(cb.New("администратор", adminHandler.IsAdmin).
 		SetAliases("админ", "admin", "адм", "модер").
-		SetTriggers("/", ".", "!").
 		OnlyGroups().
 		FallbackToSender(),
 	)
@@ -217,7 +217,7 @@ func main() {
 
 	dp.AddHandler(cb.New("-администратор", adminHandler.RemoveAdmin).
 		SetAliases("-админ", "-admin", "-адм", "-модер", "-mod").
-		SetTriggers("/", ".", "!", "+", "").
+		SetTriggers("/", ".", "!", "").
 		OnlyGroups().
 		RequireCreator(),
 	)
@@ -232,12 +232,13 @@ func main() {
 	)
 	dp.AddHandler(cb.New("-роль", memberHandler.DeleteRole).
 		OnlyGroups().
-		SetAliases("-role", "-title"),
+		SetAliases("-role", "-title").
+		SetTriggers("/", ".", "!", ""),
 	)
-
 	dp.AddHandler(cb.New("роль", memberHandler.ShowRole).
 		OnlyGroups().
 		FallbackToSender().
+		SetTriggers("/", ".", "!", "").
 		SetAliases("role", "title"),
 	)
 
