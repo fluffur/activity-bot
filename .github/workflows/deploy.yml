@@ -26,7 +26,7 @@ jobs:
 
             mkdir -p backups
 
-            find backups -type f -mtime +7 -name "*.sql" -delete
+            ls -1t backups/*.sql 2>/dev/null | tail -n +4 | xargs -r rm -f
 
             TIMESTAMP=$(date +'%Y%m%d%H%M%S')
             echo "Creating database backup..."
