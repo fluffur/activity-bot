@@ -33,7 +33,6 @@ type Command struct {
 	requireAdmin     bool
 	requireCreator   bool
 	allowArgs        bool
-	requireTriggers  bool
 	fallbackToSender bool
 	onlyGroups       bool
 	userService      *user.Service
@@ -46,7 +45,6 @@ func NewCommand(c string, r Response, userService *user.Service, adminService *a
 		Triggers:         []string{"/", "!", "."},
 		Aliases:          aliases,
 		Response:         r,
-		requireTriggers:  true,
 		fallbackToSender: false,
 
 		userService:  userService,
@@ -56,11 +54,6 @@ func NewCommand(c string, r Response, userService *user.Service, adminService *a
 
 func (c Command) OnlyGroups() Command {
 	c.onlyGroups = true
-	return c
-}
-
-func (c Command) RequireTriggers(require bool) Command {
-	c.requireTriggers = require
 	return c
 }
 
