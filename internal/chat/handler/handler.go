@@ -89,3 +89,20 @@ func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, cctx *com
 	_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Теперь пользователи считаются новичками первые %d %s", days, helpers.PluralizeDays(days)), nil)
 	return err
 }
+
+func (h *Handler) SetOnlyNewbies(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+	if len(cctx.Users) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Укажите хотя бы одного юзера", nil)
+
+		return err
+	}
+	if err := h.service.SetOnlyNewbies(ctx.EffectiveChat.Id, cctx.Users); err != nil {
+		log.Println("failed to set only-newbies", err)
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось установить олдов", nil)
+		return err
+	}
+
+	_, err := ctx.EffectiveMessage.Reply(b, "Олды установлены", nil)
+
+	return err
+}

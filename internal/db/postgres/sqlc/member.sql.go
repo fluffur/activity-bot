@@ -308,6 +308,25 @@ func (q *Queries) MarkChatMembersLeftNotInList(ctx context.Context, arg MarkChat
 	return err
 }
 
+const moveChatMembersToOldExcept = `-- name: MoveChatMembersToOldExcept :exec
+UPDATE chat_members cm
+SET joined_at = joined_at - ((c.newbie_threshold_days + 1) || ' days')::interval
+FROM chats c
+WHERE c.id = cm.chat_id
+  AND cm.chat_id = $1
+  AND cm.user_id <> ALL($2::BIGINT[])
+`
+
+type MoveChatMembersToOldExceptParams struct {
+	ChatID  int64   `db:"chat_id" json:"chatId"`
+	UserIds []int64 `db:"user_ids" json:"userIds"`
+}
+
+func (q *Queries) MoveChatMembersToOldExcept(ctx context.Context, arg MoveChatMembersToOldExceptParams) error {
+	_, err := q.db.Exec(ctx, moveChatMembersToOldExcept, arg.ChatID, arg.UserIds)
+	return err
+}
+
 const updateChatMemberRole = `-- name: UpdateChatMemberRole :exec
 UPDATE chat_members
 SET role = $1
