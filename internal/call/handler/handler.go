@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"activity-bot/internal/command"
+	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"fmt"
@@ -22,7 +22,7 @@ func New(memberService *member.Service) *Handler {
 	return &Handler{memberService}
 }
 
-func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
+func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
 	message := cctx.FirstArgument()
 
 	if _, err := h.memberService.SyncChatMembers(ctx.EffectiveChat.Id); err != nil {

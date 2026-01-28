@@ -2,7 +2,7 @@ package handler
 
 import (
 	"activity-bot/internal/admin"
-	"activity-bot/internal/command"
+	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"activity-bot/internal/user"
@@ -25,13 +25,13 @@ func New(service *admin.Service, userService *user.Service, memberService *membe
 	return &Handler{service, userService, memberService}
 }
 
-func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	if len(cctx.Users) == 0 {
-		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота. Попробуйте упомянуть его через ответ на сообщение или дождитесь, пока он напишет что-нибудь.", nil)
-		return err
-	}
+func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	targetUser := cctx.FirstUser()
 
-	targetUser := cctx.Users[0]
+	if targetUser == nil {
+		slog.Error("No user in IsAdmin")
+		return nil
+	}
 
 	if h.service.CheckIsAdmin(ctx.EffectiveChat.Id, targetUser.ID) {
 		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь является администратором чата", nil)
@@ -42,13 +42,14 @@ func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 	return err
 }
 
-func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	if len(cctx.Users) == 0 {
-		_, err := ctx.EffectiveMessage.Reply(b, "Вероятно вы забыли указать пользователя, которого хотите сделать админом, либо он был не найден. Попробуйте ответить пользователю с этой командой или обновить чат", nil)
+func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	targetUser := cctx.FirstUser()
+
+	if targetUser == nil {
+		_, err := ctx.EffectiveMessage.Reply(b, "Вы забыли указать пользователя, которого хотите сделать админом, либо он был не найден в чате", nil)
 		return err
 	}
 
-	targetUser := cctx.Users[0]
 	if err := h.service.AddAdmin(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
 		if errors.Is(err, admin.ErrUserIsAlreadyAdmin) {
 			_, err := ctx.EffectiveMessage.Reply(b, "Пользователь уже является администратором", nil)
@@ -70,13 +71,13 @@ func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Conte
 	return err
 }
 
-func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	if len(cctx.Users) == 0 {
-		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота.", nil)
-		return err
-	}
+func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	targetUser := cctx.FirstUser()
 
-	targetUser := cctx.Users[0]
+	if targetUser == nil {
+		slog.Error("No user in RemoveAdmin")
+		return nil
+	}
 
 	if err := h.service.RemoveAdmin(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
 		if errors.Is(err, admin.ErrUserIsNotAdmin) {
@@ -107,7 +108,7 @@ func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Co
 	return err
 }
 
-func (h *Handler) ListAdmins(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
+func (h *Handler) ListAdmins(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
 	admins, err := h.service.GetAdminsEnsured(ctx.EffectiveChat.Id, h.memberService.SyncChatMembers)
 	if err != nil {
 		slog.Error("failed to list admins", "chat_id", ctx.EffectiveChat.Id, "error", err)

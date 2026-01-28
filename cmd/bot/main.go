@@ -7,7 +7,7 @@ import (
 	callH "activity-bot/internal/call/handler"
 	"activity-bot/internal/chat"
 	chatH "activity-bot/internal/chat/handler"
-	"activity-bot/internal/command"
+	"activity-bot/internal/cmd"
 	"activity-bot/internal/config"
 	"activity-bot/internal/db/postgres"
 	db "activity-bot/internal/db/postgres/sqlc"
@@ -140,58 +140,59 @@ func main() {
 	creatorGuard := guard.NewCreatorGuard(adminService)
 	groupGuard := guard.OnlyGroups()
 
-	dp.AddHandler(command.New("start", helpHandler.Start, userService))
-	dp.AddHandler(command.New("help", helpHandler.Help, userService))
+	dp.AddHandler(cmd.New("start", helpHandler.Start, userService))
+	dp.AddHandler(cmd.New("help", helpHandler.Help, userService))
 
-	dp.AddHandler(command.New("stats", statsHandler.ShowStats, userService).
+	dp.AddHandler(cmd.New("stats", statsHandler.ShowStats, userService).
 		SetAliases("отчёт", "отчет").
 		SetTriggers("/", ".", "!", "").
 		SetArgsCount(1).
 		WithGuards(groupGuard),
 	)
 
-	dp.AddHandler(command.New("norm", chatHandler.ShowNorm, userService).
+	dp.AddHandler(cmd.New("norm", chatHandler.ShowNorm, userService).
 		SetAliases("норма", "quota").
 		WithGuards(groupGuard),
 	)
-	dp.AddHandler(command.New("norm", chatHandler.SetNorm, userService).
+	dp.AddHandler(cmd.New("norm", chatHandler.SetNorm, userService).
 		SetAliases("норма", "quota").
 		SetTriggers("/", ".", "!", "+").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
 
-	dp.AddHandler(command.New("олды кроме", chatHandler.SetOnlyNewbies, userService).
-		WithGuards(groupGuard, adminGuard),
+	dp.AddHandler(cmd.New("олды кроме", chatHandler.SetOnlyNewbies, userService).
+		WithGuards(groupGuard, creatorGuard).
+		SetArgsCount(cmd.ArgsCountAny),
 	)
 
-	dp.AddHandler(command.New("newbie", chatHandler.ShowNewbieThreshold, userService).
+	dp.AddHandler(cmd.New("newbie", chatHandler.ShowNewbieThreshold, userService).
 		SetAliases("новичок", "newbies", "новички", "нью", "ньюхи").
 		SetTriggers("/", ".", "!", "+").
 		WithGuards(groupGuard, adminGuard),
 	)
 
-	dp.AddHandler(command.New("newbie", chatHandler.SetNewbieThreshold, userService).
+	dp.AddHandler(cmd.New("newbie", chatHandler.SetNewbieThreshold, userService).
 		SetAliases("новичок", "newbies", "новички", "нью", "ньюхи").
 		SetTriggers("/", ".", "!", "+").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
 
-	dp.AddHandler(command.New("exempt", exemptHandler.Show, userService).
+	dp.AddHandler(cmd.New("exempt", exemptHandler.Show, userService).
 		SetAliases("рест", "rest", "рэст").
 		FallbackToSender().
 		WithGuards(groupGuard, adminGuard).
 		SetTriggers("/", ".", "!", "+", ""),
 	)
-	dp.AddHandler(command.New("exempt", exemptHandler.Set, userService).
+	dp.AddHandler(cmd.New("exempt", exemptHandler.Set, userService).
 		SetAliases("рест", "rest", "рэст").
 		FallbackToSender().
 		SetTriggers("/", ".", "!", "+", "").
 		WithGuards(groupGuard).
 		SetArgsCount(1),
 	)
-	dp.AddHandler(command.New("-exempt", exemptHandler.End, userService).
+	dp.AddHandler(cmd.New("-exempt", exemptHandler.End, userService).
 		FallbackToSender().
 		WithGuards(groupGuard).
 		SetAliases("-рест", "-rest", "-рэст").
@@ -200,51 +201,51 @@ func main() {
 	dp.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"), exemptHandler.ApproveExemptRequest))
 	dp.AddHandler(handlers.NewCallback(callbackquery.Prefix("reject:"), exemptHandler.RejectExemptRequest))
 
-	dp.AddHandler(command.New("admins", adminHandler.ListAdmins, userService).
+	dp.AddHandler(cmd.New("admins", adminHandler.ListAdmins, userService).
 		SetAliases("админы", "админчики", "администраторы", "адмы", "модеры", "mods").
 		WithGuards(groupGuard),
 	)
 
-	dp.AddHandler(command.New("администратор", adminHandler.IsAdmin, userService).
+	dp.AddHandler(cmd.New("администратор", adminHandler.IsAdmin, userService).
 		SetAliases("админ", "admin", "адм", "модер").
 		WithGuards(groupGuard).
 		FallbackToSender(),
 	)
 
-	dp.AddHandler(command.New("администратор", adminHandler.AddAdmin, userService).
+	dp.AddHandler(cmd.New("администратор", adminHandler.AddAdmin, userService).
 		SetAliases("админ", "admin", "адм", "модер").
 		SetTriggers("+", "!+", "/+", ".+").
 		WithGuards(groupGuard, adminGuard),
 	)
 
-	dp.AddHandler(command.New("-администратор", adminHandler.RemoveAdmin, userService).
+	dp.AddHandler(cmd.New("-администратор", adminHandler.RemoveAdmin, userService).
 		SetAliases("-админ", "-admin", "-адм", "-модер", "-mod").
 		SetTriggers("/", ".", "!", "").
 		WithGuards(groupGuard, creatorGuard),
 	)
 
-	dp.AddHandler(command.New("обновить чат", memberHandler.UpdateMembersList, userService).
+	dp.AddHandler(cmd.New("обновить чат", memberHandler.UpdateMembersList, userService).
 		WithGuards(groupGuard).
 		SetAliases("update chat", "update"),
 	)
 
-	dp.AddHandler(command.New("роли", memberHandler.ListRoles, userService).
+	dp.AddHandler(cmd.New("роли", memberHandler.ListRoles, userService).
 		SetAliases("roles", "titles").
 		WithGuards(groupGuard),
 	)
-	dp.AddHandler(command.New("-роль", memberHandler.DeleteRole, userService).
+	dp.AddHandler(cmd.New("-роль", memberHandler.DeleteRole, userService).
 		WithGuards(groupGuard).
 		SetAliases("-role", "-title").
 		SetTriggers("/", ".", "!", ""),
 	)
-	dp.AddHandler(command.New("роль", memberHandler.ShowRole, userService).
+	dp.AddHandler(cmd.New("роль", memberHandler.ShowRole, userService).
 		WithGuards(groupGuard).
 		FallbackToSender().
 		SetTriggers("/", ".", "!", "").
 		SetAliases("role", "title"),
 	)
 
-	dp.AddHandler(command.New("роль", memberHandler.SetRole, userService).
+	dp.AddHandler(cmd.New("роль", memberHandler.SetRole, userService).
 		SetAliases("role", "title").
 		SetTriggers("/", ".", "!", "+").
 		WithGuards(groupGuard).
@@ -252,7 +253,7 @@ func main() {
 		SetArgsCount(1),
 	)
 
-	dp.AddHandler(command.New("call", callHandler.Call, userService).
+	dp.AddHandler(cmd.New("call", callHandler.Call, userService).
 		SetAliases("калл", "колл").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),

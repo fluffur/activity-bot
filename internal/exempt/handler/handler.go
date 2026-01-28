@@ -2,7 +2,7 @@ package handler
 
 import (
 	"activity-bot/internal/admin"
-	"activity-bot/internal/command"
+	"activity-bot/internal/cmd"
 	"activity-bot/internal/exempt"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
@@ -29,21 +29,22 @@ func New(service *exempt.Service, userService *user.Service, adminService *admin
 	return &Handler{service, userService, adminService, dateParser}
 }
 
-func (h *Handler) Set(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	if len(cctx.Users) == 0 {
-		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота. Попробуйте упомянуть его через ответ на сообщение или дождитесь, пока он напишет что-нибудь.", nil)
-		return err
+func (h *Handler) Set(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	targetUser := cctx.FirstUser()
+	if targetUser == nil {
+		slog.Error("Failed to find target user in Set Exempt")
+		return nil
 	}
 
-	targetUser := cctx.Users[0]
+	firstArgument := cctx.FirstArgument()
 
-	if len(cctx.Args) < 1 {
+	if firstArgument == "" {
 		_, err := ctx.EffectiveMessage.Reply(b, "Вы забыли указать срок реста, попробуйте написать +рест 2 недели в ответ пользователю", nil)
 
 		return err
 	}
 
-	date, ok := h.dateParser.Parse(cctx.Args[0])
+	date, ok := h.dateParser.Parse(firstArgument)
 	if !ok {
 		_, err := ctx.EffectiveMessage.Reply(b, "Не понял формат. Примеры:\n+рест 12.01\n+рест 2 недели\n+рест месяц", nil)
 
@@ -112,13 +113,13 @@ func (h *Handler) createExemptRequest(b *gotgbot.Bot, ctx *ext.Context, targetUs
 	return err
 }
 
-func (h *Handler) Show(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	if len(cctx.Users) == 0 {
-		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота.", nil)
-		return err
-	}
+func (h *Handler) Show(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	targetUser := cctx.FirstUser()
 
-	targetUser := cctx.Users[0]
+	if targetUser == nil {
+		slog.Error("Failed to find target user in Show Exempt")
+		return nil
+	}
 
 	e, err := h.service.GetMemberExempt(ctx.EffectiveChat.Id, targetUser.ID)
 	if err != nil || e == nil {
@@ -143,13 +144,13 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 
 }
 
-func (h *Handler) End(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	if len(cctx.Users) == 0 {
-		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота.", nil)
-		return err
-	}
+func (h *Handler) End(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	targetUser := cctx.FirstUser()
 
-	targetUser := cctx.Users[0]
+	if targetUser == nil {
+		slog.Error("failed to find target user in End Exempt")
+		return nil
+	}
 
 	if targetUser.ID != ctx.EffectiveUser.Id && !h.adminService.CheckIsAdmin(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
 		_, err := ctx.EffectiveMessage.Reply(b, "Вы можете удалить из реста только себя", nil)

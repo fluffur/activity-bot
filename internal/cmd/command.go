@@ -1,4 +1,4 @@
-package command
+package cmd
 
 import (
 	"activity-bot/internal/model"
@@ -10,15 +10,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-type Guard interface {
-	Check(ctx *ext.Context) (bool, string)
-}
-
-type GuardFunc func(ctx *ext.Context) (bool, string)
-
-func (f GuardFunc) Check(ctx *ext.Context) (bool, string) {
-	return f(ctx)
-}
+const ArgsCountAny = -1
 
 type Command struct {
 	command          string
@@ -151,10 +143,10 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 	rest, matched := c.matchCommand(text, b.User.Username)
 	if !matched {
 		log.Println("Command logic mismatch: matchCommand failed in parseArgs")
-		return &Context{Args: []string{}, Users: []*model.User{}}
+		return &Context{args: []string{}, users: []*model.User{}}
 	}
 	words := strings.Fields(rest)
-	if c.argsCount > 0 && len(words) > c.argsCount {
+	if c.argsCount != ArgsCountAny && c.argsCount > 0 && len(words) > c.argsCount {
 		last := strings.Join(words[c.argsCount-1:], " ")
 		words = append(words[:c.argsCount-1], last)
 	}
@@ -165,8 +157,8 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 	}
 
 	return &Context{
-		Args:  words,
-		Users: users,
+		args:  words,
+		users: users,
 	}
 }
 

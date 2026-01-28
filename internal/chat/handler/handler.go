@@ -3,7 +3,7 @@ package handler
 import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/chat"
-	"activity-bot/internal/command"
+	"activity-bot/internal/cmd"
 	"activity-bot/internal/exempt"
 	"activity-bot/internal/helpers"
 	"fmt"
@@ -25,7 +25,7 @@ func New(service *chat.Service, adminService *admin.Service, dateParser *exempt.
 	return &Handler{service, adminService, dateParser}
 }
 
-func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
+func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
 	norm, err := h.service.GetNorm(ctx.EffectiveChat.Id)
 	if err != nil {
 		log.Println("Failed to show chat norm", err)
@@ -39,8 +39,8 @@ func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context)
 	return err
 }
 
-func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	norm, err := strconv.Atoi(cctx.Args[0])
+func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	norm, err := strconv.Atoi(cctx.FirstArgument())
 	if err != nil {
 		log.Println("Failed to set chat norm", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Норма должна быть числом", nil)
@@ -60,7 +60,7 @@ func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 	return err
 }
 
-func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
+func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
 	threshold, err := h.service.GetNewbieThreshold(ctx.EffectiveChat.Id)
 	if err != nil {
 		slog.Error("failed to set newbie threshold", "chat_id", ctx.EffectiveChat.Id, "error", err)
@@ -72,10 +72,10 @@ func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, _ *comma
 	return err
 }
 
-func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	days, ok := h.dateParser.ParseDays(cctx.Args[0])
+func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	days, ok := h.dateParser.ParseDays(cctx.FirstArgument())
 	if !ok {
-		slog.Warn("failed to parse newbie days", "arg", cctx.Args[0])
+		slog.Warn("failed to parse newbie days", "arg", cctx.FirstArgument())
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось распознать срок. Используйте формат: 3 дня, неделя, 14 дней или просто число.", nil)
 		return err
 	}
@@ -90,13 +90,13 @@ func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, cctx *com
 	return err
 }
 
-func (h *Handler) SetOnlyNewbies(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	if len(cctx.Users) == 0 {
-		_, err := ctx.EffectiveMessage.Reply(b, "Укажите хотя бы одного юзера", nil)
+func (h *Handler) SetOnlyNewbies(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	if len(cctx.Users()) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Укажите хотя бы одного участника", nil)
 
 		return err
 	}
-	if err := h.service.SetOnlyNewbies(ctx.EffectiveChat.Id, cctx.Users); err != nil {
+	if err := h.service.SetOnlyNewbies(ctx.EffectiveChat.Id, cctx.Users()); err != nil {
 		log.Println("failed to set only-newbies", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось установить олдов", nil)
 		return err

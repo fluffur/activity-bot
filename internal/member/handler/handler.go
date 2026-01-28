@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"activity-bot/internal/command"
+	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"activity-bot/internal/user"
@@ -23,7 +23,7 @@ func New(service *member.Service, userService *user.Service) *Handler {
 	return &Handler{service, userService}
 }
 
-func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
+func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
 	count, err := h.service.SyncChatMembers(ctx.EffectiveChat.Id)
 	if err != nil {
 		slog.Error("failed to update chat members", "chat_id", ctx.EffectiveChat.Id, "error", err)
@@ -35,7 +35,10 @@ func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *ext.Context, _ *command
 	return err
 }
 
-func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
+func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
+	if _, err := h.service.SyncChatMembers(ctx.EffectiveChat.Id); err != nil {
+		slog.Error("failed to update chat members", "chat_id", ctx.EffectiveChat.Id, "error", err)
+	}
 	members, err := h.service.GetMembersWithTitle(ctx.EffectiveChat.Id)
 	if err != nil {
 		slog.Error("failed to get members with titles", "chat_id", ctx.EffectiveChat.Id, "error", err)
@@ -64,14 +67,14 @@ func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context
 	return err
 }
 
-func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	if len(cctx.Users) == 0 {
-		_, err := ctx.EffectiveMessage.Reply(b, "Пользователь не найден в базе данных бота. Попробуйте упомянуть его через ответ на сообщение или дождитесь, пока он напишет что-нибудь.", nil)
-		return err
-	}
+func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	targetUser := cctx.FirstUser()
+	role := cctx.FirstArgument()
 
-	role := cctx.Args[0]
-	targetUser := cctx.Users[0]
+	if targetUser == nil || role != "" {
+		slog.Error("No user or role in SetRole", "targetUser", targetUser, "role", role)
+		return nil
+	}
 
 	if len(role) > 32 {
 		_, err := ctx.EffectiveMessage.Reply(b, "Слишком длинная роль (максимум 32 символа)", nil)
@@ -148,13 +151,13 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 	return err
 }
 
-func (h *Handler) DeleteRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	if len(cctx.Users) == 0 {
+func (h *Handler) DeleteRole(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	targetUser := cctx.FirstUser()
+
+	if targetUser == nil {
 		slog.Error("No user in DeleteRole")
 		return nil
 	}
-
-	targetUser := cctx.Users[0]
 
 	if _, err := b.PromoteChatMember(ctx.EffectiveChat.Id, targetUser.ID, nil); err != nil {
 		slog.Error("Cannot demote chat member", "error", err)
@@ -170,13 +173,14 @@ func (h *Handler) DeleteRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Con
 	return err
 }
 
-func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	if len(cctx.Users) == 0 {
+func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	targetUser := cctx.FirstUser()
+
+	if targetUser == nil {
 		slog.Error("No user in ShowRole")
 		return nil
 	}
 
-	targetUser := cctx.Users[0]
 	mTitle, err := h.service.GetMemberTitle(ctx.EffectiveChat.Id, targetUser.ID)
 	if err != nil {
 		slog.Error("failed to get custom title from DB", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)

@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"activity-bot/internal/command"
+	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"fmt"
 
@@ -17,13 +17,13 @@ func New(ownerID int64) *Handler {
 	return &Handler{ownerID}
 }
 
-func (h *Handler) Start(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
+func (h *Handler) Start(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
 	_, err := ctx.EffectiveMessage.Reply(b, "Привет! Я могу следить за еженедельной нормой сообщений в группе. Добавь меня в группу или введи команду /help.", nil)
 
 	return err
 }
 
-func (h *Handler) Help(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
+func (h *Handler) Help(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
 	helpText := fmt.Sprintf(`
 📌 <b>Команды бота</b>
 
