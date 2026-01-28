@@ -21,11 +21,11 @@ func (f GuardFunc) Check(b *gotgbot.Bot, ctx *ext.Context) error {
 }
 
 type Command struct {
-	Command          string
-	Triggers         []string
-	Aliases          []string
-	Response         Response
-	MaxArgs          int
+	command          string
+	triggers         []string
+	aliases          []string
+	response         Response
+	maxArgs          int
 	allowArgs        bool
 	fallbackToSender bool
 	userService      *user.Service
@@ -34,10 +34,10 @@ type Command struct {
 
 func New(c string, r Response, userService *user.Service, aliases ...string) *Command {
 	return &Command{
-		Command:          strings.ToLower(c),
-		Triggers:         []string{"/", "!", "."},
-		Aliases:          aliases,
-		Response:         r,
+		command:          strings.ToLower(c),
+		triggers:         []string{"/", "!", "."},
+		aliases:          aliases,
+		response:         r,
 		fallbackToSender: false,
 
 		userService: userService,
@@ -61,17 +61,17 @@ func (c *Command) AllowArgs() *Command {
 }
 
 func (c *Command) SetMaxArgs(maxArgs int) *Command {
-	c.MaxArgs = maxArgs
+	c.maxArgs = maxArgs
 	return c
 }
 
 func (c *Command) SetTriggers(triggers ...string) *Command {
-	c.Triggers = triggers
+	c.triggers = triggers
 	return c
 }
 
 func (c *Command) SetAliases(aliases ...string) *Command {
-	c.Aliases = aliases
+	c.aliases = aliases
 	return c
 }
 
@@ -92,7 +92,7 @@ func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 		}
 	}
 
-	return c.Response(b, ctx, c.parseArgs(b, ctx))
+	return c.response(b, ctx, c.parseArgs(b, ctx))
 }
 
 func (c *Command) ensureUser(u *gotgbot.User) (model.User, error) {
@@ -163,8 +163,8 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 	rest := strings.TrimSpace(string(textRunes))
 
 commandsLoop:
-	for _, t := range c.Triggers {
-		for _, cmd := range append([]string{c.Command}, c.Aliases...) {
+	for _, t := range c.triggers {
+		for _, cmd := range append([]string{c.command}, c.aliases...) {
 			fullCmd := string(t) + strings.ToLower(cmd)
 			fullCmdWithBot := fullCmd + "@" + strings.ToLower(b.User.Username)
 
@@ -180,9 +180,9 @@ commandsLoop:
 	}
 
 	words := strings.Fields(rest)
-	if c.MaxArgs > 0 && len(words) > c.MaxArgs {
-		last := strings.Join(words[c.MaxArgs-1:], " ")
-		words = append(words[:c.MaxArgs-1], last)
+	if c.maxArgs > 0 && len(words) > c.maxArgs {
+		last := strings.Join(words[c.maxArgs-1:], " ")
+		words = append(words[:c.maxArgs-1], last)
 	}
 
 	users := make([]*model.User, 0, len(usersMap))
@@ -197,7 +197,7 @@ commandsLoop:
 }
 
 func (c *Command) Name() string {
-	return "command_" + c.Command
+	return "command_" + c.command
 }
 
 func (c *Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
@@ -206,12 +206,12 @@ func (c *Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
 		return false
 	}
 
-	for _, trigger := range c.Triggers {
+	for _, trigger := range c.triggers {
 		if !strings.HasPrefix(text, trigger) {
 			continue
 		}
 
-		for _, cName := range append([]string{c.Command}, c.Aliases...) {
+		for _, cName := range append([]string{c.command}, c.aliases...) {
 			fullCmd := trigger + strings.ToLower(cName)
 			fullCmdWithBot := fullCmd + "@" + strings.ToLower(b.User.Username)
 
