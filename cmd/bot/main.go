@@ -218,7 +218,8 @@ func main() {
 		SetTriggers("/", ".", "!", "").
 		WithGuards(groupGuard),
 	)
-	dp.AddHandler(cf.New(memberHandler.ShowRole, "роль", "role", "title").
+	dp.AddHandler(cf.New(memberHandler.ShowRole, "роль", "role", "title",
+		"какая роль", "роль у", "роль кого").
 		SetTriggers("/", ".", "!", "").
 		WithGuards(groupGuard).
 		FallbackToSender(),
