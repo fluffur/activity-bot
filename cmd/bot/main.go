@@ -150,7 +150,7 @@ func main() {
 		WithGuards(groupGuard),
 	)
 
-	dp.AddHandler(cf.New(chatHandler.ShowNorm, "norm", "норма", "quota").
+	dp.AddHandler(cf.New(chatHandler.ShowNorm, "norm", "норма", "quota", "какая норма", "а какая норма", "норма какая").
 		SetTriggers("/", ".", "!", "").
 		WithGuards(groupGuard),
 	)

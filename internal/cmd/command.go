@@ -116,15 +116,15 @@ func (c *Command) ensureUser(u *gotgbot.User) (model.User, error) {
 func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 	msg := ctx.Message
 	users := make([]*model.User, 0)
-	usedIDs := make(map[int64]struct{})
+	takenUsers := make(map[int64]struct{})
 
 	addUser := func(user *model.User) {
-		if _, ok := usedIDs[user.ID]; ok {
+		if _, ok := takenUsers[user.ID]; ok {
 			return
 		}
 
 		users = append(users, user)
-		usedIDs[user.ID] = struct{}{}
+		takenUsers[user.ID] = struct{}{}
 	}
 
 	if msg.ReplyToMessage != nil && msg.ReplyToMessage.From != nil && !msg.ReplyToMessage.From.IsBot {
@@ -235,25 +235,20 @@ func (c *Command) matchCommand(text string, botUsername string) (string, bool) {
 		return "", false
 	}
 
-	textNoPrefix := strings.TrimSpace(strings.TrimPrefix(text, trigger))
-	parts := strings.Fields(textNoPrefix)
-	if len(parts) == 0 {
-		return "", false
-	}
-
-	commandPart := parts[0]
-	if len(commandPart) > len(textNoPrefix) {
-		return "", false
-	}
-	args := strings.TrimSpace(textNoPrefix[len(commandPart):])
+	text = strings.TrimSpace(strings.TrimPrefix(text, trigger))
 
 	for _, cmd := range c.commands {
-		if commandPart == cmd {
-			return args, true
+		cmd = strings.ToLower(cmd)
+
+		if text == cmd || strings.HasPrefix(text, cmd+" ") {
+			rest := strings.TrimSpace(text[len(cmd):])
+			return rest, true
 		}
 
-		if commandPart == cmd+"@"+botUsername {
-			return args, true
+		full := cmd + "@" + botUsername
+		if text == full || strings.HasPrefix(text, full+" ") {
+			rest := strings.TrimSpace(text[len(full):])
+			return rest, true
 		}
 	}
 
