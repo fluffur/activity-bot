@@ -88,7 +88,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 	}
 
 	if m.GetStatus() == "creator" {
-		_, err := ctx.EffectiveMessage.Reply(b, "Нельзя изменить роль создателя чата", nil)
+		_, err := ctx.EffectiveMessage.Reply(b, "Я не могу изменить роль создателя чата", nil)
 		return err
 	}
 	mergedMember := m.MergeChatMember()
