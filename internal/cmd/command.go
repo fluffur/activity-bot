@@ -13,10 +13,28 @@ import (
 const ArgsCountAny = -1
 const ArgsCountNone = 0
 
+var defaultTriggers = []string{"/"}
+
+type Factory struct {
+	userService *user.Service
+	triggers    []string
+}
+
+func NewFactory(userService *user.Service, triggers ...string) *Factory {
+	if len(triggers) == 0 {
+		triggers = defaultTriggers
+	}
+
+	return &Factory{userService, triggers}
+}
+
+func (f *Factory) New(r Response, c string, aliases ...string) *Command {
+	return New(append(aliases, c), f.triggers, r, f.userService)
+}
+
 type Command struct {
-	command          string
+	commands         []string
 	triggers         []string
-	aliases          []string
 	response         Response
 	argsCount        int
 	fallbackToSender bool
@@ -24,12 +42,11 @@ type Command struct {
 	guards           []Guard
 }
 
-func New(c string, r Response, userService *user.Service) *Command {
+func New(commands []string, triggers []string, response Response, userService *user.Service) *Command {
 	return &Command{
-		command:          strings.ToLower(c),
-		triggers:         []string{"/", "!", "."},
-		aliases:          []string{},
-		response:         r,
+		commands:         commands,
+		triggers:         triggers,
+		response:         response,
 		fallbackToSender: false,
 		argsCount:        ArgsCountNone,
 		userService:      userService,
@@ -61,8 +78,10 @@ func (c *Command) SetTriggers(triggers ...string) *Command {
 	return c
 }
 
-func (c *Command) SetAliases(aliases ...string) *Command {
-	c.aliases = aliases
+func (c *Command) AddAliases(aliases ...string) *Command {
+	for _, a := range aliases {
+		c.commands = append(c.commands, strings.ToLower(a))
+	}
 	return c
 }
 
@@ -168,7 +187,11 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 }
 
 func (c *Command) Name() string {
-	return "command_" + c.command
+	if len(c.commands) > 0 {
+		return "command_" + c.commands[0]
+	}
+	return "unnamed_command"
+
 }
 
 func (c *Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
@@ -194,7 +217,7 @@ func (c *Command) matchCommand(text string, botUsername string) (string, bool) {
 	botUsername = strings.ToLower(botUsername)
 
 	for _, t := range c.triggers {
-		for _, cmd := range append([]string{c.command}, c.aliases...) {
+		for _, cmd := range c.commands {
 			fullCmd := t + strings.ToLower(cmd)
 			fullCmdWithBot := fullCmd + "@" + botUsername
 
