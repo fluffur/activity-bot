@@ -2,8 +2,8 @@ package guard
 
 import (
 	"activity-bot/internal/admin"
+	"activity-bot/internal/command"
 
-	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
@@ -11,14 +11,13 @@ type CreatorGuard struct {
 	service *admin.Service
 }
 
-func NewCreatorGuard(service *admin.Service) *CreatorGuard {
+func NewCreatorGuard(service *admin.Service) command.Guard {
 	return &CreatorGuard{service}
 }
 
-func (g *CreatorGuard) Check(b *gotgbot.Bot, ctx *ext.Context) error {
+func (g *CreatorGuard) Check(ctx *ext.Context) (bool, string) {
 	if !g.service.CheckIsCreator(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
-		_, err := ctx.EffectiveMessage.Reply(b, "Только создатель может выполнить эту команду", nil)
-		return err
+		return false, "Только создатель может выполнить эту команду"
 	}
-	return nil
+	return true, ""
 }

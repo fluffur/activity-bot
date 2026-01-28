@@ -11,13 +11,13 @@ import (
 )
 
 type Guard interface {
-	Check(b *gotgbot.Bot, ctx *ext.Context) error
+	Check(ctx *ext.Context) (bool, string)
 }
 
-type GuardFunc func(b *gotgbot.Bot, ctx *ext.Context) error
+type GuardFunc func(ctx *ext.Context) (bool, string)
 
-func (f GuardFunc) Check(b *gotgbot.Bot, ctx *ext.Context) error {
-	return f(b, ctx)
+func (f GuardFunc) Check(ctx *ext.Context) (bool, string) {
+	return f(ctx)
 }
 
 type Command struct {
@@ -87,7 +87,11 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 
 func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 	for _, guard := range c.guards {
-		if err := guard.Check(b, ctx); err != nil {
+		if ok, message := guard.Check(ctx); !ok {
+			if message != "" {
+				_, err := ctx.EffectiveMessage.Reply(b, message, nil)
+				return err
+			}
 			return nil
 		}
 	}

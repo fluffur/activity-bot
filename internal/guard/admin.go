@@ -2,8 +2,8 @@ package guard
 
 import (
 	"activity-bot/internal/admin"
+	"activity-bot/internal/command"
 
-	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
@@ -11,14 +11,13 @@ type AdminGuard struct {
 	service *admin.Service
 }
 
-func NewAdminGuard(service *admin.Service) *AdminGuard {
+func NewAdminGuard(service *admin.Service) command.Guard {
 	return &AdminGuard{service}
 }
 
-func (g *AdminGuard) Check(b *gotgbot.Bot, ctx *ext.Context) error {
+func (g *AdminGuard) Check(ctx *ext.Context) (bool, string) {
 	if !g.service.CheckIsAdmin(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
-		_, err := ctx.EffectiveMessage.Reply(b, "Только создатель и администраторы могут выполнить эту команду", nil)
-		return err
+		return false, "Только создатель и администраторы могут выполнить эту команду"
 	}
-	return nil
+	return true, ""
 }
