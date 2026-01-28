@@ -222,11 +222,11 @@ func (c *Command) matchCommand(text string, botUsername string) (string, bool) {
 
 			textNoPrefix := strings.TrimSpace(strings.TrimPrefix(text, t))
 
-			if strings.HasPrefix(textNoPrefix, cmdLower+"@"+botUsername) {
+			if textNoPrefix == cmdLower+"@"+botUsername || strings.HasPrefix(textNoPrefix, cmdLower+"@"+botUsername+" ") || strings.HasPrefix(textNoPrefix, cmdLower+"@"+botUsername+", ") {
 				return strings.TrimSpace(textNoPrefix[len(cmdLower+"@"+botUsername):]), true
 			}
 
-			if strings.HasPrefix(textNoPrefix, cmdLower) {
+			if textNoPrefix == cmdLower || strings.HasPrefix(textNoPrefix, cmdLower+" ") || strings.HasPrefix(textNoPrefix, cmdLower+", ") {
 				return strings.TrimSpace(textNoPrefix[len(cmdLower):]), true
 			}
 		}
