@@ -43,6 +43,10 @@ type Command struct {
 }
 
 func New(commands []string, triggers []string, response Response, userService *user.Service) *Command {
+	for i, c := range commands {
+		commands[i] = strings.ToLower(c)
+	}
+
 	return &Command{
 		commands:         commands,
 		triggers:         triggers,
@@ -65,7 +69,7 @@ func (c *Command) FallbackToSender() *Command {
 }
 
 func (c *Command) SetArgsCount(argsCount int) *Command {
-	if c.argsCount < 0 && c.argsCount != ArgsCountAny {
+	if argsCount < 0 && argsCount != ArgsCountAny {
 		return c
 	}
 
@@ -86,13 +90,10 @@ func (c *Command) AddAliases(aliases ...string) *Command {
 }
 
 func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
-	if ctx.Message != nil {
-		if ctx.Message.GetText() == "" {
-			return false
-		}
-		return c.checkMessage(b, ctx.Message)
+	if ctx.Message == nil || ctx.Message.GetText() == "" {
+		return false
 	}
-	return false
+	return c.checkMessage(b, ctx.Message)
 }
 
 func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -238,8 +239,6 @@ func (c *Command) matchCommand(text string, botUsername string) (string, bool) {
 	text = strings.TrimSpace(strings.TrimPrefix(text, trigger))
 
 	for _, cmd := range c.commands {
-		cmd = strings.ToLower(cmd)
-
 		if text == cmd || strings.HasPrefix(text, cmd+" ") {
 			rest := strings.TrimSpace(text[len(cmd):])
 			return rest, true
