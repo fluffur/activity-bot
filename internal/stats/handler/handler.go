@@ -117,7 +117,7 @@ func formatReport(report []model.MessageReportMember, exemptMembers []model.Exem
 				helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)),
 				r.MessagesCount,
 			)
-			passed = append(newbies, line)
+			passed = append(passed, line)
 			continue
 		}
 
