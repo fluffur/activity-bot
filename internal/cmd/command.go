@@ -115,12 +115,22 @@ func (c *Command) ensureUser(u *gotgbot.User) (model.User, error) {
 }
 func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 	msg := ctx.Message
-	usersMap := make(map[int64]*model.User)
+	users := make([]*model.User, 0)
+	usedIDs := make(map[int64]struct{})
+
+	addUser := func(user *model.User) {
+		if _, ok := usedIDs[user.ID]; ok {
+			return
+		}
+
+		users = append(users, user)
+		usedIDs[user.ID] = struct{}{}
+	}
 
 	if msg.ReplyToMessage != nil && msg.ReplyToMessage.From != nil && !msg.ReplyToMessage.From.IsBot {
 		u, err := c.ensureUser(msg.ReplyToMessage.From)
 		if err == nil {
-			usersMap[u.ID] = &u
+			addUser(&u)
 		} else {
 			log.Println("Ensure user from reply exists", err)
 		}
@@ -135,7 +145,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 			if e.User != nil {
 				u, err := c.ensureUser(e.User)
 				if err == nil {
-					usersMap[u.ID] = &u
+					addUser(&u)
 				} else {
 					log.Println("Ensure user from mention exists", err)
 				}
@@ -147,7 +157,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 				username := string(textRunes[start+1 : end])
 				u, err := c.userService.GetUserByUsername(username)
 				if err == nil {
-					usersMap[u.ID] = &u
+					addUser(&u)
 				} else {
 					log.Println("Ensure user from username mention exists", err)
 				}
@@ -155,12 +165,12 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 		}
 	}
 
-	if c.fallbackToSender && len(usersMap) == 0 {
+	if c.fallbackToSender && len(users) == 0 {
 		u, err := c.userService.EnsureUserExists(ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
 		if err != nil {
 			log.Println("Show EnsureUserExists failed", err)
 		} else {
-			usersMap[u.ID] = &u
+			addUser(&u)
 		}
 	}
 
@@ -173,11 +183,6 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 	if c.argsCount != ArgsCountAny && c.argsCount > 0 && len(words) > c.argsCount {
 		last := strings.Join(words[c.argsCount-1:], " ")
 		words = append(words[:c.argsCount-1], last)
-	}
-
-	users := make([]*model.User, 0, len(usersMap))
-	for _, u := range usersMap {
-		users = append(users, u)
 	}
 
 	return &Context{
