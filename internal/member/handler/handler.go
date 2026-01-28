@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"activity-bot/internal/user"
+	"errors"
 	"fmt"
 	"html"
 	"log/slog"
@@ -182,7 +183,7 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) 
 	}
 
 	mTitle, err := h.service.GetMemberTitle(ctx.EffectiveChat.Id, targetUser.ID)
-	if err != nil {
+	if err != nil && !errors.Is(err, member.ErrInvalidCustomTitle) {
 		slog.Error("failed to get custom title from DB", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось получить роль пользователя", nil)
 		return err

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -24,11 +25,14 @@ func (r *MemberRepository) GetCustomTitle(ctx context.Context, chatID int64, use
 		ChatID: chatID,
 		UserID: userID,
 	})
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		return "", member.ErrMemberNotFound
+	}
 	if err != nil {
 		return "", err
 	}
-	if !title.Valid {
-		return "", errors.New("invalid custom title")
+	if !title.Valid || title.String == "" {
+		return "", member.ErrInvalidCustomTitle
 	}
 
 	return title.String, nil

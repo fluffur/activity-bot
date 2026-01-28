@@ -3,7 +3,11 @@ package member
 import (
 	"activity-bot/internal/model"
 	"context"
+	"errors"
 )
+
+var ErrMemberNotFound = errors.New("member not found")
+var ErrInvalidCustomTitle = errors.New("invalid custom title")
 
 type Repository interface {
 	GetCustomTitle(ctx context.Context, chatID int64, userID int64) (string, error)
