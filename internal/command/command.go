@@ -32,11 +32,11 @@ type Command struct {
 	guards           []Guard
 }
 
-func New(c string, r Response, userService *user.Service, aliases ...string) *Command {
+func New(c string, r Response, userService *user.Service) *Command {
 	return &Command{
 		command:          strings.ToLower(c),
 		triggers:         []string{"/", "!", "."},
-		aliases:          aliases,
+		aliases:          []string{},
 		response:         r,
 		fallbackToSender: false,
 
@@ -105,11 +105,7 @@ func (c *Command) ensureUser(u *gotgbot.User) (model.User, error) {
 }
 func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 	msg := ctx.Message
-	text := msg.GetText()
-	textRunes := []rune(text)
-
 	usersMap := make(map[int64]*model.User)
-	removeRanges := make([][2]int, 0)
 
 	if msg.ReplyToMessage != nil && msg.ReplyToMessage.From != nil && !msg.ReplyToMessage.From.IsBot {
 		u, err := c.ensureUser(msg.ReplyToMessage.From)
@@ -120,13 +116,10 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 		}
 	}
 
-	for _, e := range msg.Entities {
-		start := int(e.Offset)
-		end := start + int(e.Length)
-		if start < 0 || end > len(textRunes) {
-			continue
-		}
+	text, entities := cleanMessage(msg)
+	textRunes := []rune(msg.GetText())
 
+	for _, e := range entities {
 		switch e.Type {
 		case "text_mention":
 			if e.User != nil {
@@ -136,17 +129,19 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 				} else {
 					log.Println("Ensure user from mention exists", err)
 				}
-				removeRanges = append(removeRanges, [2]int{start, end})
 			}
 		case "mention":
-			username := string(textRunes[start+1 : end])
-			u, err := c.userService.GetUserByUsername(username)
-			if err == nil {
-				usersMap[u.ID] = &u
-			} else {
-				log.Println("Ensure user from username mention exists", err)
+			start := int(e.Offset)
+			end := start + int(e.Length)
+			if start >= 0 && end <= len(textRunes) {
+				username := string(textRunes[start+1 : end])
+				u, err := c.userService.GetUserByUsername(username)
+				if err == nil {
+					usersMap[u.ID] = &u
+				} else {
+					log.Println("Ensure user from username mention exists", err)
+				}
 			}
-			removeRanges = append(removeRanges, [2]int{start, end})
 		}
 	}
 
@@ -159,30 +154,11 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 		}
 	}
 
-	for i := len(removeRanges) - 1; i >= 0; i-- {
-		r := removeRanges[i]
-		textRunes = append(textRunes[:r[0]], textRunes[r[1]:]...)
+	rest, matched := c.matchCommand(text, b.User.Username)
+	if !matched {
+		log.Println("Command logic mismatch: matchCommand failed in parseArgs")
+		return &Context{Args: []string{}, Users: []*model.User{}}
 	}
-
-	rest := strings.TrimSpace(string(textRunes))
-
-commandsLoop:
-	for _, t := range c.triggers {
-		for _, cmd := range append([]string{c.command}, c.aliases...) {
-			fullCmd := string(t) + strings.ToLower(cmd)
-			fullCmdWithBot := fullCmd + "@" + strings.ToLower(b.User.Username)
-
-			if strings.HasPrefix(strings.ToLower(rest), fullCmd) || strings.HasPrefix(strings.ToLower(rest), fullCmdWithBot) {
-				if strings.HasPrefix(strings.ToLower(rest), fullCmdWithBot) {
-					rest = strings.TrimSpace(rest[len(fullCmdWithBot):])
-				} else {
-					rest = strings.TrimSpace(rest[len(fullCmd):])
-				}
-				break commandsLoop
-			}
-		}
-	}
-
 	words := strings.Fields(rest)
 	if c.maxArgs > 0 && len(words) > c.maxArgs {
 		last := strings.Join(words[c.maxArgs-1:], " ")
@@ -205,45 +181,48 @@ func (c *Command) Name() string {
 }
 
 func (c *Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
-	text := strings.ToLower(removeMentions(msg))
+	text, _ := cleanMessage(msg)
 	if text == "" {
 		return false
 	}
 
-	for _, trigger := range c.triggers {
-		if !strings.HasPrefix(text, trigger) {
-			continue
-		}
+	rest, matched := c.matchCommand(text, b.User.Username)
+	if !matched {
+		return false
+	}
 
-		for _, cName := range append([]string{c.command}, c.aliases...) {
-			fullCmd := trigger + strings.ToLower(cName)
-			fullCmdWithBot := fullCmd + "@" + strings.ToLower(b.User.Username)
+	if !c.allowArgs && len(rest) > 0 {
+		return false
+	}
 
-			if strings.HasPrefix(text, fullCmd) || strings.HasPrefix(text, fullCmdWithBot) {
-				rest := text[len(fullCmd):]
+	return true
+}
 
-				if strings.HasPrefix(rest, "@"+strings.ToLower(b.User.Username)) {
-					rest = rest[len(b.User.Username)+1:]
-				}
+func (c *Command) matchCommand(text string, botUsername string) (string, bool) {
+	text = strings.ToLower(text)
+	botUsername = strings.ToLower(botUsername)
 
-				rest = strings.TrimSpace(rest)
+	for _, t := range c.triggers {
+		for _, cmd := range append([]string{c.command}, c.aliases...) {
+			fullCmd := t + strings.ToLower(cmd)
+			fullCmdWithBot := fullCmd + "@" + botUsername
 
-				if !c.allowArgs && len(rest) > 0 {
-					return false
-				}
-				return true
+			if strings.HasPrefix(text, fullCmdWithBot) {
+				return strings.TrimSpace(text[len(fullCmdWithBot):]), true
+			}
+			if strings.HasPrefix(text, fullCmd) {
+				return strings.TrimSpace(text[len(fullCmd):]), true
 			}
 		}
 	}
-
-	return false
+	return "", false
 }
 
-func removeMentions(msg *gotgbot.Message) string {
+func cleanMessage(msg *gotgbot.Message) (string, []gotgbot.MessageEntity) {
 	text := msg.GetText()
 	textRunes := []rune(text)
-
 	removeRanges := make([][2]int, 0)
+	removedEntities := make([]gotgbot.MessageEntity, 0)
 
 	for _, e := range msg.Entities {
 		start := int(e.Offset)
@@ -255,6 +234,7 @@ func removeMentions(msg *gotgbot.Message) string {
 		switch e.Type {
 		case "mention", "text_mention":
 			removeRanges = append(removeRanges, [2]int{start, end})
+			removedEntities = append(removedEntities, e)
 		}
 	}
 
@@ -263,5 +243,5 @@ func removeMentions(msg *gotgbot.Message) string {
 		textRunes = append(textRunes[:r[0]], textRunes[r[1]:]...)
 	}
 
-	return strings.TrimSpace(string(textRunes))
+	return strings.TrimSpace(string(textRunes)), removedEntities
 }

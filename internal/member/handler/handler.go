@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/user"
 	"fmt"
 	"html"
+	"log"
 	"log/slog"
 	"strings"
 
@@ -72,7 +73,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Contex
 
 	role := cctx.Args[0]
 	targetUser := cctx.Users[0]
-
+	log.Println(role, targetUser)
 	if len(role) > 32 {
 		_, err := ctx.EffectiveMessage.Reply(b, "Слишком длинная роль (максимум 32 символа)", nil)
 

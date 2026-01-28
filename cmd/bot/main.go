@@ -252,6 +252,7 @@ func main() {
 		SetTriggers("/", ".", "!", "+").
 		WithGuards(groupGuard).
 		AllowArgs().
+		FallbackToSender().
 		SetMaxArgs(1),
 	)
 

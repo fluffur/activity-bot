@@ -5,5 +5,5 @@ import (
 )
 
 func OnlyGroups(msg *gotgbot.Message) bool {
-	return msg.Chat.Type != "private"
+	return msg.Chat.Type != gotgbot.ChatTypePrivate
 }
