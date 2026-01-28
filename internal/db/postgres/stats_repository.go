@@ -18,25 +18,31 @@ func NewStatsRepository(queries *db.Queries) stats.Repository {
 	return &StatsRepository{queries}
 }
 
-func (r *StatsRepository) GetWeeklyReport(ctx context.Context, chatID int64) ([]model.WeeklyMessageReportMember, error) {
-	now := time.Now()
-	weekday := int(now.Weekday())
-	daysSinceMonday := (weekday + 6) % 7
-	monday := now.AddDate(0, 0, -daysSinceMonday)
-	monday = time.Date(monday.Year(), monday.Month(), monday.Day(), 0, 0, 0, 0, monday.Location())
+func (r *StatsRepository) GetReport(
+	ctx context.Context,
+	chatID int64,
+	from, to *time.Time,
+) ([]model.MessageReportMember, error) {
 
-	rows, err := r.queries.WeeklyMessageReport(ctx, db.WeeklyMessageReportParams{
-		ChatID: chatID,
-		CreatedAt: pgtype.Timestamptz{
-			Time:  monday,
-			Valid: true,
-		},
+	var fromPg, toPg pgtype.Timestamptz
+
+	if from != nil {
+		fromPg = pgtype.Timestamptz{Time: *from, Valid: true}
+	}
+	if to != nil {
+		toPg = pgtype.Timestamptz{Time: *to, Valid: true}
+	}
+
+	rows, err := r.queries.MessageReport(ctx, db.MessageReportParams{
+		ChatID:   chatID,
+		FromDate: fromPg,
+		ToDate:   toPg,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]model.WeeklyMessageReportMember, len(rows))
+	result := make([]model.MessageReportMember, len(rows))
 	for i, row := range rows {
 		result[i] = mapWeeklyReportRow(row)
 	}
@@ -44,13 +50,13 @@ func (r *StatsRepository) GetWeeklyReport(ctx context.Context, chatID int64) ([]
 	return result, nil
 }
 
-func mapWeeklyReportRow(row db.WeeklyMessageReportRow) model.WeeklyMessageReportMember {
+func mapWeeklyReportRow(row db.MessageReportRow) model.MessageReportMember {
 	var username *string
 	if row.Username.Valid {
 		username = &row.Username.String
 	}
 
-	return model.WeeklyMessageReportMember{
+	return model.MessageReportMember{
 		User: model.User{
 			ID:        row.UserID,
 			FirstName: row.FirstName.String,

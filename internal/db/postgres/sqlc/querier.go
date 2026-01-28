@@ -36,6 +36,7 @@ type Querier interface {
 	IsChatAdmin(ctx context.Context, arg IsChatAdminParams) (bool, error)
 	IsChatCreator(ctx context.Context, arg IsChatCreatorParams) (bool, error)
 	MarkChatMembersLeftNotInList(ctx context.Context, arg MarkChatMembersLeftNotInListParams) error
+	MessageReport(ctx context.Context, arg MessageReportParams) ([]MessageReportRow, error)
 	MoveChatMembersToOldExcept(ctx context.Context, arg MoveChatMembersToOldExceptParams) error
 	RejectExemptRequest(ctx context.Context, arg RejectExemptRequestParams) error
 	RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error
@@ -46,7 +47,6 @@ type Querier interface {
 	UpdateChatNorm(ctx context.Context, arg UpdateChatNormParams) error
 	UpsertChatMembersWithRole(ctx context.Context, arg UpsertChatMembersWithRoleParams) error
 	UpsertUsers(ctx context.Context, arg UpsertUsersParams) error
-	WeeklyMessageReport(ctx context.Context, arg WeeklyMessageReportParams) ([]WeeklyMessageReportRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -25,8 +25,7 @@ type Command struct {
 	triggers         []string
 	aliases          []string
 	response         Response
-	maxArgs          int
-	allowArgs        bool
+	argsCount        int
 	fallbackToSender bool
 	userService      *user.Service
 	guards           []Guard
@@ -55,13 +54,8 @@ func (c *Command) FallbackToSender() *Command {
 	return c
 }
 
-func (c *Command) AllowArgs() *Command {
-	c.allowArgs = true
-	return c
-}
-
-func (c *Command) SetMaxArgs(maxArgs int) *Command {
-	c.maxArgs = maxArgs
+func (c *Command) SetArgsCount(argsCount int) *Command {
+	c.argsCount = argsCount
 	return c
 }
 
@@ -160,9 +154,9 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 		return &Context{Args: []string{}, Users: []*model.User{}}
 	}
 	words := strings.Fields(rest)
-	if c.maxArgs > 0 && len(words) > c.maxArgs {
-		last := strings.Join(words[c.maxArgs-1:], " ")
-		words = append(words[:c.maxArgs-1], last)
+	if c.argsCount > 0 && len(words) > c.argsCount {
+		last := strings.Join(words[c.argsCount-1:], " ")
+		words = append(words[:c.argsCount-1], last)
 	}
 
 	users := make([]*model.User, 0, len(usersMap))
@@ -191,7 +185,7 @@ func (c *Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
 		return false
 	}
 
-	if !c.allowArgs && len(rest) > 0 {
+	if c.argsCount == 0 && len(rest) > 0 {
 		return false
 	}
 

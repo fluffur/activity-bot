@@ -41,7 +41,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 	return i, err
 }
 
-const weeklyMessageReport = `-- name: WeeklyMessageReport :many
+const messageReport = `-- name: MessageReport :many
 SELECT cm.user_id,
        u.username,
        u.first_name,
@@ -59,22 +59,26 @@ FROM chat_members cm
          LEFT JOIN messages m
                    ON m.chat_id = cm.chat_id
                        AND m.user_id = cm.user_id
-                       AND m.created_at >= $1
-                       AND m.created_at < $1 + interval '7 days'
-WHERE cm.chat_id = $2
+                       AND (
+                          $1::timestamptz IS NULL
+                              OR (m.created_at >= $1 AND m.created_at < $2)
+                          )
+WHERE cm.chat_id = $3
   AND cm.left_at IS NULL
   AND (cm.exempt_until IS NULL OR cm.exempt_until < now())
-
-GROUP BY cm.user_id, u.username, u.first_name, u.last_name, c.weekly_norm, cm.joined_at, c.newbie_threshold_days, cm.role, cm.custom_title
+GROUP BY cm.user_id, u.username, u.first_name, u.last_name,
+         c.weekly_norm, cm.joined_at, c.newbie_threshold_days,
+         cm.role, cm.custom_title
 ORDER BY messages_count DESC
 `
 
-type WeeklyMessageReportParams struct {
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	ChatID    int64              `db:"chat_id" json:"chatId"`
+type MessageReportParams struct {
+	FromDate pgtype.Timestamptz `db:"from_date" json:"fromDate"`
+	ToDate   pgtype.Timestamptz `db:"to_date" json:"toDate"`
+	ChatID   int64              `db:"chat_id" json:"chatId"`
 }
 
-type WeeklyMessageReportRow struct {
+type MessageReportRow struct {
 	UserID              int64              `db:"user_id" json:"userId"`
 	Username            pgtype.Text        `db:"username" json:"username"`
 	FirstName           pgtype.Text        `db:"first_name" json:"firstName"`
@@ -88,15 +92,15 @@ type WeeklyMessageReportRow struct {
 	CustomTitle         pgtype.Text        `db:"custom_title" json:"customTitle"`
 }
 
-func (q *Queries) WeeklyMessageReport(ctx context.Context, arg WeeklyMessageReportParams) ([]WeeklyMessageReportRow, error) {
-	rows, err := q.db.Query(ctx, weeklyMessageReport, arg.CreatedAt, arg.ChatID)
+func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([]MessageReportRow, error) {
+	rows, err := q.db.Query(ctx, messageReport, arg.FromDate, arg.ToDate, arg.ChatID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []WeeklyMessageReportRow{}
+	items := []MessageReportRow{}
 	for rows.Next() {
-		var i WeeklyMessageReportRow
+		var i MessageReportRow
 		if err := rows.Scan(
 			&i.UserID,
 			&i.Username,

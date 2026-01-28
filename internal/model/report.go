@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type WeeklyMessageReportMember struct {
+type MessageReportMember struct {
 	User                User
 	MessagesCount       int32
 	WeeklyNorm          int32

@@ -146,7 +146,7 @@ func main() {
 	dp.AddHandler(command.New("stats", statsHandler.ShowStats, userService).
 		SetAliases("отчёт", "отчет").
 		SetTriggers("/", ".", "!", "").
-		SetMaxArgs(1).
+		SetArgsCount(1).
 		WithGuards(groupGuard),
 	)
 
@@ -157,9 +157,8 @@ func main() {
 	dp.AddHandler(command.New("norm", chatHandler.SetNorm, userService).
 		SetAliases("норма", "quota").
 		SetTriggers("/", ".", "!", "+").
-		AllowArgs().
 		WithGuards(groupGuard, adminGuard).
-		SetMaxArgs(1),
+		SetArgsCount(1),
 	)
 
 	dp.AddHandler(command.New("олды кроме", chatHandler.SetOnlyNewbies, userService).
@@ -175,9 +174,8 @@ func main() {
 	dp.AddHandler(command.New("newbie", chatHandler.SetNewbieThreshold, userService).
 		SetAliases("новичок", "newbies", "новички", "нью", "ньюхи").
 		SetTriggers("/", ".", "!", "+").
-		AllowArgs().
 		WithGuards(groupGuard, adminGuard).
-		SetMaxArgs(1),
+		SetArgsCount(1),
 	)
 
 	dp.AddHandler(command.New("exempt", exemptHandler.Show, userService).
@@ -190,9 +188,8 @@ func main() {
 		SetAliases("рест", "rest", "рэст").
 		FallbackToSender().
 		SetTriggers("/", ".", "!", "+", "").
-		AllowArgs().
 		WithGuards(groupGuard).
-		SetMaxArgs(1),
+		SetArgsCount(1),
 	)
 	dp.AddHandler(command.New("-exempt", exemptHandler.End, userService).
 		FallbackToSender().
@@ -251,16 +248,14 @@ func main() {
 		SetAliases("role", "title").
 		SetTriggers("/", ".", "!", "+").
 		WithGuards(groupGuard).
-		AllowArgs().
 		FallbackToSender().
-		SetMaxArgs(1),
+		SetArgsCount(1),
 	)
 
 	dp.AddHandler(command.New("call", callHandler.Call, userService).
 		SetAliases("калл", "колл").
-		AllowArgs().
 		WithGuards(groupGuard, adminGuard).
-		SetMaxArgs(1),
+		SetArgsCount(1),
 	)
 
 	dp.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))

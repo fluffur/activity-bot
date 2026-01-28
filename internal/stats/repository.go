@@ -3,8 +3,9 @@ package stats
 import (
 	"activity-bot/internal/model"
 	"context"
+	"time"
 )
 
 type Repository interface {
-	GetWeeklyReport(ctx context.Context, chatID int64) ([]model.WeeklyMessageReportMember, error)
+	GetReport(ctx context.Context, chatID int64, from, to *time.Time) ([]model.MessageReportMember, error)
 }

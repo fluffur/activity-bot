@@ -26,12 +26,31 @@ func New(service *stats.Service, exemptService *exempt.Service, memberService *m
 	return &Handler{service, exemptService, memberService}
 }
 
-func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context) error {
+func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
 	if _, err := h.memberService.SyncChatMembers(ctx.EffectiveChat.Id); err != nil {
 		slog.Warn("failed to auto-update chat members in stats", "chat_id", ctx.EffectiveChat.Id, "error", err)
 	}
 
-	report, err := h.service.GetMemberStats(ctx.EffectiveChat.Id)
+	var period string
+	if len(cctx.Args) == 0 {
+		period = "неделя"
+	} else {
+		period = cctx.Args[0]
+	}
+
+	var from, to *time.Time
+	switch period {
+	case "неделя":
+		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now())
+	case "месяц":
+		from, to = stats.ResolvePeriod(stats.PeriodMonth, time.Now())
+	case "всё", "все", "всего", "вся":
+		from, to = nil, nil
+	default:
+		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now())
+	}
+
+	report, err := h.service.GetMemberStats(ctx.EffectiveChat.Id, from, to)
 	if err != nil {
 		slog.Error("failed to get member stats for report", "chat_id", ctx.EffectiveChat.Id, "error", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить отчёт", nil)
@@ -51,7 +70,7 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context
 		return err
 	}
 
-	_, err = ctx.EffectiveMessage.Reply(b, formatWeeklyReport(report, exemptMembers), &gotgbot.SendMessageOpts{
+	_, err = ctx.EffectiveMessage.Reply(b, formatReport(report, exemptMembers, from, to), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 			IsDisabled: true,
@@ -59,22 +78,31 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, _ *command.Context
 	})
 	return err
 }
-func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers []model.ExemptMember) string {
+
+func formatReport(report []model.MessageReportMember, exemptMembers []model.ExemptMember, from, to *time.Time) string {
+	var periodHeader string
 	now := time.Now()
 
-	weekday := int(now.Weekday())
-	daysSinceMonday := (weekday + 6) % 7
-	monday := now.AddDate(0, 0, -daysSinceMonday)
-	monday = time.Date(monday.Year(), monday.Month(), monday.Day(), 0, 0, 0, 0, monday.Location())
-	sunday := monday.AddDate(0, 0, 6)
-	sunday = time.Date(sunday.Year(), sunday.Month(), sunday.Day(), 23, 59, 59, 0, sunday.Location())
-
-	weekHeader := fmt.Sprintf("📊 Отчёт за неделю: %s — %s", helpers.FormatToHumanDate(monday), helpers.FormatToHumanDate(sunday))
+	if from != nil && to != nil {
+		periodHeader = fmt.Sprintf("📊 Отчёт за период: %s — %s",
+			helpers.FormatToHumanDate(*from),
+			helpers.FormatToHumanDate(*to),
+		)
+	} else if from != nil {
+		periodHeader = fmt.Sprintf("📊 Отчёт с %s", helpers.FormatToHumanDate(*from))
+	} else if to != nil {
+		periodHeader = fmt.Sprintf("📊 Отчёт до %s", helpers.FormatToHumanDate(*to))
+	} else {
+		periodHeader = fmt.Sprintf("📊 Отчёт за всё время")
+	}
 
 	var passed, failed, newbies, rest []string
 
 	for _, r := range report {
-		line := fmt.Sprintf("%s — %d сообщений", helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)), r.MessagesCount)
+		line := fmt.Sprintf("%s — %d сообщений",
+			helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)),
+			r.MessagesCount,
+		)
 
 		isNewbie := false
 		if r.NewbieThresholdDays > 0 {
@@ -103,25 +131,29 @@ func formatWeeklyReport(report []model.WeeklyMessageReportMember, exemptMembers 
 		} else {
 			untilText = "неизвестно"
 		}
-		line := fmt.Sprintf("%s до %s", helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)), untilText)
+		line := fmt.Sprintf("%s до %s",
+			helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)),
+			untilText,
+		)
 		rest = append(rest, line)
 	}
-	var totalMessages int32 = 0
+
+	var totalMessages int32
 	for _, r := range report {
 		totalMessages += r.MessagesCount
 	}
 
 	var sb strings.Builder
-	sb.WriteString(weekHeader + "\n\n")
+	sb.WriteString(periodHeader + "\n\n")
 
-	sb.WriteString("✅ Прошли норму 🌟\n")
+	sb.WriteString("🌟 Прошли норму\n")
 	if len(passed) > 0 {
 		writeNumberedList(&sb, passed)
 	} else {
 		sb.WriteString("—\n")
 	}
 
-	sb.WriteString("\n❌ Не прошли норму ⚠️ \n")
+	sb.WriteString("\n❌ Не прошли норму️ \n")
 	if len(failed) > 0 {
 		writeNumberedList(&sb, failed)
 	} else {
