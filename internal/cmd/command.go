@@ -11,6 +11,7 @@ import (
 )
 
 const ArgsCountAny = -1
+const ArgsCountNone = 0
 
 type Command struct {
 	command          string
@@ -30,9 +31,9 @@ func New(c string, r Response, userService *user.Service) *Command {
 		aliases:          []string{},
 		response:         r,
 		fallbackToSender: false,
-
-		userService: userService,
-		guards:      make([]Guard, 0),
+		argsCount:        ArgsCountNone,
+		userService:      userService,
+		guards:           make([]Guard, 0),
 	}
 }
 
@@ -47,6 +48,10 @@ func (c *Command) FallbackToSender() *Command {
 }
 
 func (c *Command) SetArgsCount(argsCount int) *Command {
+	if c.argsCount < 0 && c.argsCount != ArgsCountAny {
+		return c
+	}
+
 	c.argsCount = argsCount
 	return c
 }
@@ -177,7 +182,7 @@ func (c *Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
 		return false
 	}
 
-	if c.argsCount == 0 && len(rest) > 0 {
+	if c.argsCount == ArgsCountNone && len(rest) > 0 {
 		return false
 	}
 
