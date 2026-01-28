@@ -4,7 +4,6 @@ import (
 	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
-	"activity-bot/internal/model"
 	"fmt"
 	"log"
 	"strings"
@@ -29,27 +28,16 @@ func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 		message = cctx.Args[0]
 	}
 
-	dbMembers, err := h.memberService.GetChatMembers(ctx.EffectiveChat.Id)
+	if _, err := h.memberService.SyncChatMembers(ctx.EffectiveChat.Id); err != nil {
+		log.Println("Failed to sync chat members", err)
+		return err
+	}
+
+	users, err := h.memberService.GetChatMembers(ctx.EffectiveChat.Id)
 	if err != nil {
 		log.Println("GetChatMembers", err)
 	}
 
-	admins, err := b.GetChatAdministrators(ctx.EffectiveChat.Id, nil)
-	if err != nil {
-		log.Println("GetChatAdministrators", err)
-		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось созвать пользователей", nil)
-		return err
-	}
-
-	var tgUsers []gotgbot.MergedChatMember
-	for _, a := range admins {
-		if a.GetUser().IsBot {
-			continue
-		}
-		tgUsers = append(tgUsers, a.MergeChatMember())
-	}
-
-	users := mergeUsers(dbMembers, tgUsers)
 	for i := 0; i < len(users); i += mentionsPerMessage {
 		end := i + mentionsPerMessage
 		if end > len(users) {
@@ -91,51 +79,4 @@ func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 	}
 
 	return nil
-}
-
-func mergeUsers(dbMembers []model.ChatMember, tgUsers []gotgbot.MergedChatMember) []model.ChatMember {
-	usersMap := make(map[int64]model.ChatMember)
-
-	for _, m := range tgUsers {
-		if m.User.IsBot {
-			continue
-		}
-
-		var username *string
-		if m.User.Username != "" {
-			username = &m.User.Username
-		}
-		var role string
-		if m.GetStatus() == "creator" {
-			role = "creator"
-		} else {
-			role = "member"
-		}
-		usersMap[m.User.Id] = model.ChatMember{
-			User: model.User{
-				ID:        m.User.Id,
-				FirstName: m.User.FirstName,
-				LastName:  m.User.LastName,
-				Username:  username,
-			},
-			CustomTitle: m.CustomTitle,
-			Role:        role,
-		}
-	}
-
-	for _, m := range dbMembers {
-		usersMap[m.User.ID] = model.ChatMember{
-			User:        m.User,
-			ChatID:      m.ChatID,
-			ExemptUntil: m.ExemptUntil,
-			CustomTitle: m.CustomTitle,
-			Role:        m.Role,
-		}
-	}
-
-	result := make([]model.ChatMember, 0, len(usersMap))
-	for _, u := range usersMap {
-		result = append(result, u)
-	}
-	return result
 }
