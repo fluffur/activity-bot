@@ -212,25 +212,43 @@ func (c *Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
 	return true
 }
 
+func (c *Command) findTrigger(text string) (string, bool) {
+	for _, t := range c.triggers {
+		if strings.HasPrefix(text, t) {
+			return t, true
+		}
+	}
+	return "", false
+}
+
 func (c *Command) matchCommand(text string, botUsername string) (string, bool) {
 	text = strings.ToLower(strings.TrimSpace(text))
 	botUsername = strings.ToLower(botUsername)
 
-	for _, t := range c.triggers {
-		for _, cmd := range c.commands {
-			cmdLower := strings.ToLower(cmd)
+	trigger, found := c.findTrigger(text)
+	if !found {
+		return "", false
+	}
 
-			textNoPrefix := strings.TrimSpace(strings.TrimPrefix(text, t))
+	textNoPrefix := strings.TrimSpace(strings.TrimPrefix(text, trigger))
+	parts := strings.Fields(textNoPrefix)
+	if len(parts) == 0 {
+		return "", false
+	}
 
-			if textNoPrefix == cmdLower+"@"+botUsername || strings.HasPrefix(textNoPrefix, cmdLower+"@"+botUsername+" ") || strings.HasPrefix(textNoPrefix, cmdLower+"@"+botUsername+", ") {
-				return strings.TrimSpace(textNoPrefix[len(cmdLower+"@"+botUsername):]), true
-			}
+	commandPart := parts[0]
+	args := strings.TrimSpace(textNoPrefix[len(commandPart):])
 
-			if textNoPrefix == cmdLower || strings.HasPrefix(textNoPrefix, cmdLower+" ") || strings.HasPrefix(textNoPrefix, cmdLower+", ") {
-				return strings.TrimSpace(textNoPrefix[len(cmdLower):]), true
-			}
+	for _, cmd := range c.commands {
+		if commandPart == cmd {
+			return args, true
+		}
+
+		if commandPart == cmd+"@"+botUsername {
+			return args, true
 		}
 	}
+
 	return "", false
 }
 
