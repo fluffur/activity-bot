@@ -62,8 +62,11 @@ func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 			sb.WriteString(fmt.Sprintf("%s\n\n", message))
 		}
 
-		for _, user := range users[i:end] {
-			sb.WriteString(fmt.Sprintf("%s, ", helpers.Mention(user.User.ID, user.CustomTitle)))
+		for j, user := range users[i:end] {
+			sb.WriteString(helpers.Mention(user.User.ID, user.CustomTitle))
+			if j < len(users[i:end])-1 {
+				sb.WriteString(", ")
+			}
 		}
 		photos := ctx.EffectiveMessage.Photo
 		if len(photos) != 0 {
