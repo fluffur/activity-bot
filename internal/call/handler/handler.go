@@ -5,7 +5,7 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -23,19 +23,17 @@ func New(memberService *member.Service) *Handler {
 }
 
 func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) error {
-	var message string
-	if len(cctx.Args) != 0 {
-		message = cctx.Args[0]
-	}
+	message := cctx.FirstArgument()
 
 	if _, err := h.memberService.SyncChatMembers(ctx.EffectiveChat.Id); err != nil {
-		log.Println("Failed to sync chat members", err)
+		slog.Error("Failed to sync chat members", "error", err)
 		return err
 	}
 
 	users, err := h.memberService.GetChatMembers(ctx.EffectiveChat.Id)
 	if err != nil {
-		log.Println("GetChatMembers", err)
+		slog.Error("Failed to get chat members", "error", err)
+		return err
 	}
 
 	for i := 0; i < len(users); i += mentionsPerMessage {
