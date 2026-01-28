@@ -213,19 +213,21 @@ func (c *Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
 }
 
 func (c *Command) matchCommand(text string, botUsername string) (string, bool) {
-	text = strings.ToLower(text)
+	text = strings.ToLower(strings.TrimSpace(text))
 	botUsername = strings.ToLower(botUsername)
 
 	for _, t := range c.triggers {
 		for _, cmd := range c.commands {
-			fullCmd := t + strings.ToLower(cmd)
-			fullCmdWithBot := fullCmd + "@" + botUsername
+			cmdLower := strings.ToLower(cmd)
 
-			if strings.HasPrefix(text, fullCmdWithBot) {
-				return strings.TrimSpace(text[len(fullCmdWithBot):]), true
+			textNoPrefix := strings.TrimSpace(strings.TrimPrefix(text, t))
+
+			if strings.HasPrefix(textNoPrefix, cmdLower+"@"+botUsername) {
+				return strings.TrimSpace(textNoPrefix[len(cmdLower+"@"+botUsername):]), true
 			}
-			if strings.HasPrefix(text, fullCmd) {
-				return strings.TrimSpace(text[len(fullCmd):]), true
+
+			if strings.HasPrefix(textNoPrefix, cmdLower) {
+				return strings.TrimSpace(textNoPrefix[len(cmdLower):]), true
 			}
 		}
 	}

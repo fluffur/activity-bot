@@ -71,7 +71,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) e
 	targetUser := cctx.FirstUser()
 	role := cctx.FirstArgument()
 
-	if targetUser == nil || role != "" {
+	if targetUser == nil || role == "" {
 		slog.Error("No user or role in SetRole", "targetUser", targetUser, "role", role)
 		return nil
 	}
