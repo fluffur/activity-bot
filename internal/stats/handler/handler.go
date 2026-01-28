@@ -112,6 +112,15 @@ func formatReport(report []model.MessageReportMember, exemptMembers []model.Exem
 			}
 		}
 
+		if isNewbie && r.NormDone {
+			line = fmt.Sprintf("%s 🐣 — %d сообщений",
+				helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)),
+				r.MessagesCount,
+			)
+			passed = append(newbies, line)
+			continue
+		}
+
 		if isNewbie {
 			newbies = append(newbies, line)
 			continue
