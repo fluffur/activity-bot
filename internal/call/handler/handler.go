@@ -7,19 +7,13 @@ import (
 	"activity-bot/internal/model"
 	"fmt"
 	"log"
-	"math/rand"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-var emojis = []string{
-	"🔔", "👋", "⚡", "📢", "🔥",
-	"🟡", "🟢", "🔹", "🔸", "⭐",
-	"✨", "🏆", "🎯", "🚨", "🛎️",
-	"🥁", "📣", "🎉", "🟠", "🟣",
-}
+const mentionsPerMessage = 7
 
 type Handler struct {
 	memberService *member.Service
@@ -47,79 +41,98 @@ func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 		return err
 	}
 
-	var tgUsers []gotgbot.User
+	var tgUsers []gotgbot.MergedChatMember
 	for _, a := range admins {
 		if a.GetUser().IsBot {
 			continue
 		}
-		tgUsers = append(tgUsers, a.GetUser())
+		tgUsers = append(tgUsers, a.MergeChatMember())
 	}
 
 	users := mergeUsers(dbMembers, tgUsers)
-
-	var sb strings.Builder
-
-	if message != "" {
-		sb.WriteString(fmt.Sprintf("%s\n\n", message))
-	}
-
-	for _, user := range users {
-		emoji := emojis[rand.Intn(len(emojis))]
-		sb.WriteString(fmt.Sprintf("%s ", helpers.Mention(user.ID, emoji)))
-	}
-
-	photos := ctx.EffectiveMessage.Photo
-	if len(photos) != 0 {
-		lastPhoto := photos[len(photos)-1]
-		if _, err := b.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByID(lastPhoto.FileId), &gotgbot.SendPhotoOpts{
-			ParseMode: gotgbot.ParseModeHTML,
-			Caption:   sb.String(),
-		}); err != nil {
-			return err
+	for i := 0; i < len(users); i += mentionsPerMessage {
+		end := i + mentionsPerMessage
+		if end > len(users) {
+			end = len(users)
 		}
-	} else {
-		if _, err := b.SendMessage(ctx.EffectiveChat.Id, sb.String(), &gotgbot.SendMessageOpts{
-			ParseMode: gotgbot.ParseModeHTML,
-			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-				IsDisabled: true,
-			},
-		}); err != nil {
-			return err
+
+		var sb strings.Builder
+
+		if message != "" {
+			sb.WriteString(fmt.Sprintf("%s\n\n", message))
 		}
+
+		for _, user := range users[i:end] {
+			sb.WriteString(fmt.Sprintf("%s, ", helpers.Mention(user.User.ID, user.CustomTitle)))
+		}
+		photos := ctx.EffectiveMessage.Photo
+		if len(photos) != 0 {
+			lastPhoto := photos[len(photos)-1]
+			if _, err := b.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByID(lastPhoto.FileId), &gotgbot.SendPhotoOpts{
+				ParseMode: gotgbot.ParseModeHTML,
+				Caption:   sb.String(),
+			}); err != nil {
+				return err
+			}
+		} else {
+			if _, err := b.SendMessage(ctx.EffectiveChat.Id, sb.String(), &gotgbot.SendMessageOpts{
+				ParseMode: gotgbot.ParseModeHTML,
+				LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+					IsDisabled: true,
+				},
+			}); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	return nil
 }
 
-func mergeUsers(dbMembers []model.ChatMember, tgUsers []gotgbot.User) []model.User {
-	usersMap := make(map[int64]model.User)
+func mergeUsers(dbMembers []model.ChatMember, tgUsers []gotgbot.MergedChatMember) []model.ChatMember {
+	usersMap := make(map[int64]model.ChatMember)
 
-	for _, m := range dbMembers {
-		usersMap[m.User.ID] = m.User
-	}
-
-	for _, u := range tgUsers {
-		if u.IsBot {
+	for _, m := range tgUsers {
+		if m.User.IsBot {
 			continue
 		}
 
 		var username *string
-		if u.Username != "" {
-			username = &u.Username
+		if m.User.Username != "" {
+			username = &m.User.Username
 		}
-
-		usersMap[u.Id] = model.User{
-			ID:        u.Id,
-			FirstName: u.FirstName,
-			LastName:  u.LastName,
-			Username:  username,
+		var role string
+		if m.GetStatus() == "creator" {
+			role = "creator"
+		} else {
+			role = "member"
+		}
+		usersMap[m.User.Id] = model.ChatMember{
+			User: model.User{
+				ID:        m.User.Id,
+				FirstName: m.User.FirstName,
+				LastName:  m.User.LastName,
+				Username:  username,
+			},
+			CustomTitle: m.CustomTitle,
+			Role:        role,
 		}
 	}
 
-	result := make([]model.User, 0, len(usersMap))
+	for _, m := range dbMembers {
+		usersMap[m.User.ID] = model.ChatMember{
+			User:        m.User,
+			ChatID:      m.ChatID,
+			ExemptUntil: m.ExemptUntil,
+			CustomTitle: m.CustomTitle,
+			Role:        m.Role,
+		}
+	}
+
+	result := make([]model.ChatMember, 0, len(usersMap))
 	for _, u := range usersMap {
 		result = append(result, u)
 	}
-
 	return result
 }
