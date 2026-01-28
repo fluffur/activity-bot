@@ -13,7 +13,8 @@ import (
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/exempt"
 	exemptH "activity-bot/internal/exempt/handler"
-	"activity-bot/internal/filters"
+	"activity-bot/internal/filter"
+	"activity-bot/internal/guard"
 	helpH "activity-bot/internal/help/handler"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
@@ -126,8 +127,6 @@ func main() {
 
 	dateParser := exempt.NewDateParser()
 
-	cb := command.NewBuilder(userService, adminService)
-
 	helpHandler := helpH.New(cfg.BotOwnerID)
 	statsHandler := statsH.New(statsService, exemptService, memberService)
 	chatHandler := chatH.New(chatService, adminService, dateParser)
@@ -137,136 +136,136 @@ func main() {
 	memberHandler := memberH.New(memberService, userService)
 	callHandler := callH.New(memberService)
 
-	dp.AddHandler(cb.New("start", helpHandler.Start))
-	dp.AddHandler(cb.New("help", helpHandler.Help))
+	adminGuard := guard.NewAdminGuard(adminService)
+	creatorGuard := guard.NewCreatorGuard(adminService)
+	groupGuard := guard.OnlyGroups()
 
-	dp.AddHandler(cb.New("stats", statsHandler.ShowStats).
+	dp.AddHandler(command.New("start", helpHandler.Start, userService))
+	dp.AddHandler(command.New("help", helpHandler.Help, userService))
+
+	dp.AddHandler(command.New("stats", statsHandler.ShowStats, userService).
 		SetAliases("отчёт", "отчет").
 		SetTriggers("/", ".", "!", "").
 		SetMaxArgs(1).
-		OnlyGroups(),
+		WithGuards(groupGuard),
 	)
 
-	dp.AddHandler(cb.New("norm", chatHandler.ShowNorm).
+	dp.AddHandler(command.New("norm", chatHandler.ShowNorm, userService).
 		SetAliases("норма", "quota").
-		OnlyGroups(),
+		WithGuards(groupGuard),
 	)
-	dp.AddHandler(cb.New("norm", chatHandler.SetNorm).
+	dp.AddHandler(command.New("norm", chatHandler.SetNorm, userService).
 		SetAliases("норма", "quota").
 		SetTriggers("/", ".", "!", "+").
 		AllowArgs().
-		RequireAdmin().
-		OnlyGroups().
+		WithGuards(groupGuard, adminGuard).
 		SetMaxArgs(1),
 	)
 
-	dp.AddHandler(cb.New("олды кроме", chatHandler.SetOnlyNewbies).
-		RequireAdmin().
-		OnlyGroups(),
+	dp.AddHandler(command.New("олды кроме", chatHandler.SetOnlyNewbies, userService).
+		WithGuards(groupGuard, adminGuard),
 	)
 
-	dp.AddHandler(cb.New("newbie", chatHandler.ShowNewbieThreshold).
+	dp.AddHandler(command.New("newbie", chatHandler.ShowNewbieThreshold, userService).
 		SetAliases("новичок", "newbies", "новички", "нью", "ньюхи").
 		SetTriggers("/", ".", "!", "+").
-		OnlyGroups(),
+		WithGuards(groupGuard, adminGuard),
 	)
 
-	dp.AddHandler(cb.New("newbie", chatHandler.SetNewbieThreshold).
+	dp.AddHandler(command.New("newbie", chatHandler.SetNewbieThreshold, userService).
 		SetAliases("новичок", "newbies", "новички", "нью", "ньюхи").
 		SetTriggers("/", ".", "!", "+").
 		AllowArgs().
-		RequireAdmin().
-		OnlyGroups().
+		WithGuards(groupGuard, adminGuard).
 		SetMaxArgs(1),
 	)
 
-	dp.AddHandler(cb.New("exempt", exemptHandler.Show).
+	dp.AddHandler(command.New("exempt", exemptHandler.Show, userService).
 		SetAliases("рест", "rest", "рэст").
 		FallbackToSender().
-		OnlyGroups().
+		WithGuards(groupGuard, adminGuard).
 		SetTriggers("/", ".", "!", "+", ""),
 	)
-	dp.AddHandler(cb.New("exempt", exemptHandler.Set).
+	dp.AddHandler(command.New("exempt", exemptHandler.Set, userService).
 		SetAliases("рест", "rest", "рэст").
 		FallbackToSender().
 		SetTriggers("/", ".", "!", "+", "").
 		AllowArgs().
-		OnlyGroups().
+		WithGuards(groupGuard).
 		SetMaxArgs(1),
 	)
-	dp.AddHandler(cb.New("-exempt", exemptHandler.End).
+	dp.AddHandler(command.New("-exempt", exemptHandler.End, userService).
 		FallbackToSender().
-		OnlyGroups().
+		WithGuards(groupGuard).
 		SetAliases("-рест", "-rest", "-рэст").
 		SetTriggers("/", ".", "!", ""),
 	)
 	dp.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"), exemptHandler.ApproveExemptRequest))
 	dp.AddHandler(handlers.NewCallback(callbackquery.Prefix("reject:"), exemptHandler.RejectExemptRequest))
 
-	dp.AddHandler(cb.New("admins", adminHandler.ListAdmins).
-		SetAliases("админы", "админчики", "администраторы", "адмы", "модеры", "mods").OnlyGroups(),
+	dp.AddHandler(command.New("admins", adminHandler.ListAdmins, userService).
+		SetAliases("админы", "админчики", "администраторы", "адмы", "модеры", "mods").
+		WithGuards(groupGuard),
 	)
 
-	dp.AddHandler(cb.New("администратор", adminHandler.IsAdmin).
+	dp.AddHandler(command.New("администратор", adminHandler.IsAdmin, userService).
 		SetAliases("админ", "admin", "адм", "модер").
-		OnlyGroups().
+		WithGuards(groupGuard).
 		FallbackToSender(),
 	)
 
-	dp.AddHandler(cb.New("администратор", adminHandler.AddAdmin).
+	dp.AddHandler(command.New("администратор", adminHandler.AddAdmin, userService).
 		SetAliases("админ", "admin", "адм", "модер").
 		SetTriggers("+", "!+", "/+", ".+").
-		OnlyGroups().
-		RequireAdmin(),
+		WithGuards(groupGuard, adminGuard),
 	)
 
-	dp.AddHandler(cb.New("-администратор", adminHandler.RemoveAdmin).
+	dp.AddHandler(command.New("-администратор", adminHandler.RemoveAdmin, userService).
 		SetAliases("-админ", "-admin", "-адм", "-модер", "-mod").
 		SetTriggers("/", ".", "!", "").
-		OnlyGroups().
-		RequireCreator(),
+		WithGuards(groupGuard, creatorGuard),
 	)
 
-	dp.AddHandler(cb.New("обновить чат", memberHandler.UpdateMembersList).
-		OnlyGroups().
+	dp.AddHandler(command.New("обновить чат", memberHandler.UpdateMembersList, userService).
+		WithGuards(groupGuard).
 		SetAliases("update chat", "update"),
 	)
 
-	dp.AddHandler(cb.New("роли", memberHandler.ListRoles).
-		SetAliases("roles", "titles").OnlyGroups(),
+	dp.AddHandler(command.New("роли", memberHandler.ListRoles, userService).
+		SetAliases("roles", "titles").
+		WithGuards(groupGuard),
 	)
-	dp.AddHandler(cb.New("-роль", memberHandler.DeleteRole).
-		OnlyGroups().
+	dp.AddHandler(command.New("-роль", memberHandler.DeleteRole, userService).
+		WithGuards(groupGuard).
 		SetAliases("-role", "-title").
 		SetTriggers("/", ".", "!", ""),
 	)
-	dp.AddHandler(cb.New("роль", memberHandler.ShowRole).
-		OnlyGroups().
+	dp.AddHandler(command.New("роль", memberHandler.ShowRole, userService).
+		WithGuards(groupGuard).
 		FallbackToSender().
 		SetTriggers("/", ".", "!", "").
 		SetAliases("role", "title"),
 	)
 
-	dp.AddHandler(cb.New("роль", memberHandler.SetRole).
+	dp.AddHandler(command.New("роль", memberHandler.SetRole, userService).
 		SetAliases("role", "title").
 		SetTriggers("/", ".", "!", "+").
-		OnlyGroups().
+		WithGuards(groupGuard).
 		AllowArgs().
 		SetMaxArgs(1),
 	)
 
-	dp.AddHandler(cb.New("call", callHandler.Call).
+	dp.AddHandler(command.New("call", callHandler.Call, userService).
 		SetAliases("калл", "колл").
 		AllowArgs().
-		OnlyGroups().
-		RequireAdmin().
+		WithGuards(groupGuard, adminGuard).
 		SetMaxArgs(1),
 	)
 
 	dp.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))
 	dp.AddHandler(handlers.NewMessage(message.NewChatMembers, memberHandler.OnJoinMember))
 	dp.AddHandler(handlers.NewMyChatMember(chatmember.NewStatus("administrator"), memberHandler.OnBotPromote))
-	dp.AddHandler(handlers.NewMessage(filters.OnlyGroups, messageHandler.Message))
+	dp.AddHandler(handlers.NewMessage(filter.OnlyGroups, messageHandler.Message))
 
 	if cfg.WebhookURL != "" {
 		webhookOpts := ext.WebhookOpts{

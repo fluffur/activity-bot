@@ -1,7 +1,6 @@
 package command
 
 import (
-	"activity-bot/internal/admin"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"log"
@@ -11,17 +10,14 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-type Builder struct {
-	userService  *user.Service
-	adminService *admin.Service
+type Guard interface {
+	Check(b *gotgbot.Bot, ctx *ext.Context) error
 }
 
-func NewBuilder(userService *user.Service, adminService *admin.Service) *Builder {
-	return &Builder{userService, adminService}
-}
+type GuardFunc func(b *gotgbot.Bot, ctx *ext.Context) error
 
-func (b *Builder) New(c string, r Response, aliases ...string) Command {
-	return NewCommand(c, r, b.userService, b.adminService, aliases...)
+func (f GuardFunc) Check(b *gotgbot.Bot, ctx *ext.Context) error {
+	return f(b, ctx)
 }
 
 type Command struct {
@@ -30,101 +26,80 @@ type Command struct {
 	Aliases          []string
 	Response         Response
 	MaxArgs          int
-	requireAdmin     bool
-	requireCreator   bool
 	allowArgs        bool
 	fallbackToSender bool
-	onlyGroups       bool
 	userService      *user.Service
-	adminService     *admin.Service
+	guards           []Guard
 }
 
-func NewCommand(c string, r Response, userService *user.Service, adminService *admin.Service, aliases ...string) Command {
-	return Command{
+func New(c string, r Response, userService *user.Service, aliases ...string) *Command {
+	return &Command{
 		Command:          strings.ToLower(c),
 		Triggers:         []string{"/", "!", "."},
 		Aliases:          aliases,
 		Response:         r,
 		fallbackToSender: false,
 
-		userService:  userService,
-		adminService: adminService,
+		userService: userService,
+		guards:      make([]Guard, 0),
 	}
 }
 
-func (c Command) OnlyGroups() Command {
-	c.onlyGroups = true
+func (c *Command) WithGuards(guards ...Guard) *Command {
+	c.guards = append(c.guards, guards...)
 	return c
 }
 
-func (c Command) RequireAdmin() Command {
-	c.requireAdmin = true
-	return c
-}
-
-func (c Command) RequireCreator() Command {
-	c.requireCreator = true
-	return c
-}
-
-func (c Command) FallbackToSender() Command {
+func (c *Command) FallbackToSender() *Command {
 	c.fallbackToSender = true
 	return c
 }
 
-func (c Command) AllowArgs() Command {
+func (c *Command) AllowArgs() *Command {
 	c.allowArgs = true
 	return c
 }
 
-func (c Command) SetMaxArgs(maxArgs int) Command {
+func (c *Command) SetMaxArgs(maxArgs int) *Command {
 	c.MaxArgs = maxArgs
 	return c
 }
 
-func (c Command) SetTriggers(triggers ...string) Command {
+func (c *Command) SetTriggers(triggers ...string) *Command {
 	c.Triggers = triggers
 	return c
 }
 
-func (c Command) SetAliases(aliases ...string) Command {
+func (c *Command) SetAliases(aliases ...string) *Command {
 	c.Aliases = aliases
 	return c
 }
 
-func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
-	if c.onlyGroups && ctx.EffectiveChat.Type == "private" {
-		return false
-	}
-
+func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	if ctx.Message != nil {
 		if ctx.Message.GetText() == "" {
 			return false
 		}
 		return c.checkMessage(b, ctx.Message)
 	}
-
 	return false
 }
-func (c Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
-	if c.requireCreator && !c.adminService.CheckIsCreator(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
-		_, err := ctx.EffectiveMessage.Reply(b, "Только создатель может выполнить эту команду", nil)
-		return err
-	}
 
-	if c.requireAdmin && !c.adminService.CheckIsAdmin(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
-		_, err := ctx.EffectiveMessage.Reply(b, "Только создатель и администраторы могут выполнить эту команду", nil)
-		return err
+func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
+	for _, guard := range c.guards {
+		if err := guard.Check(b, ctx); err != nil {
+			return nil
+		}
 	}
 
 	return c.Response(b, ctx, c.parseArgs(b, ctx))
 }
 
-func (c Command) ensureUser(u *gotgbot.User) (model.User, error) {
+func (c *Command) ensureUser(u *gotgbot.User) (model.User, error) {
 	return c.userService.EnsureUserExists(u.Id, u.Username, u.FirstName, u.LastName)
 
 }
-func (c Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
+func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 	msg := ctx.Message
 	text := msg.GetText()
 	textRunes := []rune(text)
@@ -221,11 +196,11 @@ commandsLoop:
 	}
 }
 
-func (c Command) Name() string {
+func (c *Command) Name() string {
 	return "command_" + c.Command
 }
 
-func (c Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
+func (c *Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
 	text := strings.ToLower(removeMentions(msg))
 	if text == "" {
 		return false
