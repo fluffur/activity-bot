@@ -150,7 +150,7 @@ func main() {
 		WithGuards(groupGuard),
 	)
 
-	dp.AddHandler(cf.New(chatHandler.ShowNorm, "norm", "норма", "quota").
+	dp.AddHandler(cf.New(chatHandler.ShowNorm, "norm", "норма", "какая норма", "quota").
 		WithGuards(groupGuard),
 	)
 	dp.AddHandler(cf.New(chatHandler.SetNorm, "norm", "норма", "quota").
