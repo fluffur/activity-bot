@@ -14,8 +14,6 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-const mentionsPerMessage = 5
-
 var emojis = []string{
 	"🔔", "👋", "⚡", "📢", "🔥",
 	"🟡", "🟢", "🔹", "🔸", "⭐",
@@ -40,7 +38,6 @@ func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 	dbMembers, err := h.memberService.GetChatMembers(ctx.EffectiveChat.Id)
 	if err != nil {
 		log.Println("GetChatMembers", err)
-
 	}
 
 	admins, err := b.GetChatAdministrators(ctx.EffectiveChat.Id, nil)
@@ -60,43 +57,35 @@ func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *command.Context) 
 
 	users := mergeUsers(dbMembers, tgUsers)
 
-	for i := 0; i < len(users); i += mentionsPerMessage {
-		end := i + mentionsPerMessage
-		if end > len(users) {
-			end = len(users)
+	var sb strings.Builder
+
+	if message != "" {
+		sb.WriteString(fmt.Sprintf("%s\n\n", message))
+	}
+
+	for _, user := range users {
+		emoji := emojis[rand.Intn(len(emojis))]
+		sb.WriteString(fmt.Sprintf("%s ", helpers.Mention(user.ID, emoji)))
+	}
+
+	photos := ctx.EffectiveMessage.Photo
+	if len(photos) != 0 {
+		lastPhoto := photos[len(photos)-1]
+		if _, err := b.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByID(lastPhoto.FileId), &gotgbot.SendPhotoOpts{
+			ParseMode: gotgbot.ParseModeHTML,
+			Caption:   sb.String(),
+		}); err != nil {
+			return err
 		}
-
-		var sb strings.Builder
-
-		if message != "" {
-			sb.WriteString(fmt.Sprintf("%s\n\n", message))
+	} else {
+		if _, err := b.SendMessage(ctx.EffectiveChat.Id, sb.String(), &gotgbot.SendMessageOpts{
+			ParseMode: gotgbot.ParseModeHTML,
+			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+				IsDisabled: true,
+			},
+		}); err != nil {
+			return err
 		}
-
-		for _, user := range users[i:end] {
-			emoji := emojis[rand.Intn(len(emojis))]
-			sb.WriteString(fmt.Sprintf("%s ", helpers.Mention(user.ID, emoji)))
-		}
-
-		photos := ctx.EffectiveMessage.Photo
-		if len(photos) != 0 {
-			lastPhoto := photos[len(photos)-1]
-			if _, err := b.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByID(lastPhoto.FileId), &gotgbot.SendPhotoOpts{
-				ParseMode: gotgbot.ParseModeHTML,
-				Caption:   sb.String(),
-			}); err != nil {
-				return err
-			}
-		} else {
-			if _, err := b.SendMessage(ctx.EffectiveChat.Id, sb.String(), &gotgbot.SendMessageOpts{
-				ParseMode: gotgbot.ParseModeHTML,
-				LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-					IsDisabled: true,
-				},
-			}); err != nil {
-				return err
-			}
-		}
-
 	}
 
 	return nil
