@@ -237,6 +237,9 @@ func (c *Command) matchCommand(text string, botUsername string) (string, bool) {
 	}
 
 	commandPart := parts[0]
+	if len(commandPart) > len(textNoPrefix) {
+		return "", false
+	}
 	args := strings.TrimSpace(textNoPrefix[len(commandPart):])
 
 	for _, cmd := range c.commands {
