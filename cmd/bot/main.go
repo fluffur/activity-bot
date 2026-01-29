@@ -240,6 +240,7 @@ func main() {
 	)
 
 	dp.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл").
+		SetTriggers("/", ".", "!", "+", "").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
