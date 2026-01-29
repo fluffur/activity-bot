@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"log"
 	"log/slog"
 	"strings"
 
@@ -260,4 +261,38 @@ func (h *Handler) OnBotPromote(_ *gotgbot.Bot, ctx *ext.Context) error {
 	}
 	slog.Info("updated chat members on bot join", "chat_id", ctx.EffectiveChat.Id, "count", count)
 	return nil
+}
+
+func (h *Handler) SetOnlyNewbies(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	if len(cctx.Users()) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Укажите хотя бы одного участника", nil)
+
+		return err
+	}
+	if err := h.service.SetOnlyNewbies(ctx.EffectiveChat.Id, cctx.Users()); err != nil {
+		log.Println("failed to set only-newbies", err)
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось установить олдов", nil)
+		return err
+	}
+
+	_, err := ctx.EffectiveMessage.Reply(b, "Олды установлены", nil)
+
+	return err
+}
+
+func (h *Handler) SetNewbies(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	if len(cctx.Users()) == 0 {
+		_, err := ctx.EffectiveMessage.Reply(b, "Укажите хотя бы одного участника", nil)
+
+		return err
+	}
+	if err := h.service.SetNewbies(ctx.EffectiveChat.Id, cctx.Users()); err != nil {
+		log.Println("failed to set only-newbies", err)
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось установить новичков", nil)
+		return err
+	}
+
+	_, err := ctx.EffectiveMessage.Reply(b, "Новички установлены", nil)
+
+	return err
 }

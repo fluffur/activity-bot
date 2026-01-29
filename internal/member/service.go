@@ -113,3 +113,13 @@ func (s *Service) SyncChatMembers(chatID int64) (int, error) {
 
 	return len(members), nil
 }
+
+func (s *Service) SetOnlyNewbies(chatID int64, users []*model.User) error {
+	ctx := context.Background()
+	return s.repo.SetOnlyNewbies(ctx, chatID, users)
+}
+
+func (s *Service) SetNewbies(chatID int64, users []*model.User) error {
+	ctx := context.Background()
+	return s.repo.SetNewbies(ctx, chatID, users)
+}

@@ -15,6 +15,14 @@ func NewChatRepository(queries *db.Queries) chat.Repository {
 	return &ChatRepository{queries}
 }
 
+func mapChat(c db.EnsureChatExistsRow) model.Chat {
+	return model.Chat{
+		ID:                  c.ID,
+		WeeklyNorm:          c.WeeklyNorm,
+		NewbieThresholdDays: c.NewbieThresholdDays,
+	}
+}
+
 func (r *ChatRepository) Ensure(ctx context.Context, c model.Chat) (model.Chat, error) {
 	ch, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{
 		ID:                  c.ID,
@@ -64,23 +72,4 @@ func (r *ChatRepository) GetNorm(ctx context.Context, chatID int64, fallbackNorm
 		return 0, err
 	}
 	return int(c.WeeklyNorm), nil
-}
-
-func (r *ChatRepository) SetOnlyNewbies(ctx context.Context, chatID int64, users []*model.User) error {
-	userIDs := make([]int64, len(users))
-	for i, u := range users {
-		userIDs[i] = u.ID
-	}
-	return r.queries.MoveChatMembersToOldExcept(ctx, db.MoveChatMembersToOldExceptParams{
-		ChatID:  chatID,
-		UserIds: userIDs,
-	})
-}
-
-func mapChat(c db.EnsureChatExistsRow) model.Chat {
-	return model.Chat{
-		ID:                  c.ID,
-		WeeklyNorm:          c.WeeklyNorm,
-		NewbieThresholdDays: c.NewbieThresholdDays,
-	}
 }

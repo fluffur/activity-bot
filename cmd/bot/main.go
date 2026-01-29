@@ -160,11 +160,20 @@ func main() {
 		SetArgsCount(1),
 	)
 
-	dp.AddHandler(cf.New(chatHandler.SetOnlyNewbies, "олды кроме").
+	dp.AddHandler(cf.New(memberHandler.SetNewbies, "+новички").
+		SetTriggers("/", "!", ".", "").
 		WithGuards(groupGuard, creatorGuard),
 	)
 
-	dp.AddHandler(cf.New(chatHandler.ShowNewbieThreshold, "newbie", "новичок", "newbies", "новички", "нью", "ньюхи").
+	dp.AddHandler(cf.New(memberHandler.SetOnlyNewbies, "олды кроме").
+		WithGuards(groupGuard, creatorGuard),
+	)
+
+	dp.AddHandler(cf.New(memberHandler.SetOnlyNewbies, "олды кроме").
+		WithGuards(groupGuard, creatorGuard),
+	)
+
+	dp.AddHandler(cf.New(chatHandler.ShowNewbieThreshold, "newbie", "новичок", "newbies", "нью").
 		SetTriggers("/", ".", "!", "+").
 		WithGuards(groupGuard, adminGuard),
 	)

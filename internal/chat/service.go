@@ -40,8 +40,3 @@ func (s *Service) GetNewbieThreshold(chatID int64) (int, error) {
 	ctx := context.Background()
 	return s.repo.GetNewbieThreshold(ctx, chatID)
 }
-
-func (s *Service) SetOnlyNewbies(chatID int64, users []*model.User) error {
-	ctx := context.Background()
-	return s.repo.SetOnlyNewbies(ctx, chatID, users)
-}

@@ -103,7 +103,7 @@ UPDATE chat_members
 SET left_at = now()
 WHERE chat_id = @chat_id
   AND left_at IS NULL
-  AND user_id <> ALL(@user_ids::BIGINT[]);
+  AND user_id <> ALL (@user_ids::BIGINT[]);
 
 
 -- name: MoveChatMembersToOldExcept :exec
@@ -112,4 +112,12 @@ SET joined_at = joined_at - ((c.newbie_threshold_days + 1) || ' days')::interval
 FROM chats c
 WHERE c.id = cm.chat_id
   AND cm.chat_id = $1
-  AND cm.user_id <> ALL(@user_ids::BIGINT[]);
+  AND cm.user_id <> ALL (@user_ids::BIGINT[]);
+
+-- name: MoveChatMembersToNew :exec
+UPDATE chat_members cm
+SET joined_at = now()
+FROM chats c
+WHERE c.id = cm.chat_id
+  AND cm.chat_id = $1
+  AND cm.user_id = ANY (@user_ids::BIGINT[]);

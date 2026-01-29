@@ -37,6 +37,7 @@ type Querier interface {
 	IsChatCreator(ctx context.Context, arg IsChatCreatorParams) (bool, error)
 	MarkChatMembersLeftNotInList(ctx context.Context, arg MarkChatMembersLeftNotInListParams) error
 	MessageReport(ctx context.Context, arg MessageReportParams) ([]MessageReportRow, error)
+	MoveChatMembersToNew(ctx context.Context, arg MoveChatMembersToNewParams) error
 	MoveChatMembersToOldExcept(ctx context.Context, arg MoveChatMembersToOldExceptParams) error
 	RejectExemptRequest(ctx context.Context, arg RejectExemptRequestParams) error
 	RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error

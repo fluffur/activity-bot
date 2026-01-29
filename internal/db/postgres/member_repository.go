@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/model"
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -242,4 +243,27 @@ func mapChatMemberRow(m db.GetChatMemberRow) model.ChatMember {
 		CustomTitle: m.CustomTitle.String,
 		Role:        m.Role,
 	}
+}
+
+func (r *MemberRepository) SetOnlyNewbies(ctx context.Context, chatID int64, users []*model.User) error {
+	userIDs := make([]int64, len(users))
+	for i, u := range users {
+		userIDs[i] = u.ID
+	}
+	return r.queries.MoveChatMembersToOldExcept(ctx, db.MoveChatMembersToOldExceptParams{
+		ChatID:  chatID,
+		UserIds: userIDs,
+	})
+}
+
+func (r *MemberRepository) SetNewbies(ctx context.Context, chatID int64, users []*model.User) error {
+	userIDs := make([]int64, len(users))
+	for i, u := range users {
+		userIDs[i] = u.ID
+	}
+	log.Println(userIDs)
+	return r.queries.MoveChatMembersToNew(ctx, db.MoveChatMembersToNewParams{
+		ChatID:  chatID,
+		UserIds: userIDs,
+	})
 }
