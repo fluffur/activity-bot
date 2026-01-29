@@ -161,8 +161,7 @@ func main() {
 	)
 
 	dp.AddHandler(cf.New(chatHandler.SetOnlyNewbies, "олды кроме").
-		WithGuards(groupGuard, creatorGuard).
-		SetArgsCount(cmd.ArgsCountAny),
+		WithGuards(groupGuard, creatorGuard),
 	)
 
 	dp.AddHandler(cf.New(chatHandler.ShowNewbieThreshold, "newbie", "новичок", "newbies", "новички", "нью", "ньюхи").
