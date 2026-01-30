@@ -33,6 +33,8 @@ type Querier interface {
 	GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams) (Chat, error)
 	GetUser(ctx context.Context, id int64) (User, error)
 	GetUserByUsername(ctx context.Context, username pgtype.Text) (User, error)
+	ImportActivity(ctx context.Context, arg ImportActivityParams) error
+	ImportActivityBulk(ctx context.Context, arg ImportActivityBulkParams) error
 	IsChatAdmin(ctx context.Context, arg IsChatAdminParams) (bool, error)
 	IsChatCreator(ctx context.Context, arg IsChatCreatorParams) (bool, error)
 	MarkChatMembersLeftNotInList(ctx context.Context, arg MarkChatMembersLeftNotInListParams) error

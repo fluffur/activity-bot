@@ -79,6 +79,14 @@ type ExemptRequest struct {
 	MessageID   int64              `db:"message_id" json:"messageId"`
 }
 
+type ImportedActivity struct {
+	ChatID        int64              `db:"chat_id" json:"chatId"`
+	UserID        int64              `db:"user_id" json:"userId"`
+	PeriodStart   pgtype.Timestamptz `db:"period_start" json:"periodStart"`
+	PeriodEnd     pgtype.Timestamptz `db:"period_end" json:"periodEnd"`
+	MessagesCount int32              `db:"messages_count" json:"messagesCount"`
+}
+
 type Message struct {
 	ChatID    int64              `db:"chat_id" json:"chatId"`
 	UserID    int64              `db:"user_id" json:"userId"`
