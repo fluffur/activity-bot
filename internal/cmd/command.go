@@ -228,7 +228,6 @@ func (c *Command) findTrigger(text string) (string, bool) {
 }
 
 func (c *Command) matchCommand(text string, botUsername string) (string, bool) {
-	text = strings.ToLower(strings.TrimSpace(text))
 	botUsername = strings.ToLower(botUsername)
 
 	trigger, found := c.findTrigger(text)
@@ -237,15 +236,15 @@ func (c *Command) matchCommand(text string, botUsername string) (string, bool) {
 	}
 
 	text = strings.TrimSpace(strings.TrimPrefix(text, trigger))
-
+	textLower := strings.ToLower(text)
 	for _, cmd := range c.commands {
-		if text == cmd || strings.HasPrefix(text, cmd+" ") {
+		if textLower == cmd || strings.HasPrefix(textLower, cmd+" ") {
 			rest := strings.TrimSpace(text[len(cmd):])
 			return rest, true
 		}
 
 		full := cmd + "@" + botUsername
-		if text == full || strings.HasPrefix(text, full+" ") {
+		if textLower == full || strings.HasPrefix(textLower, full+" ") {
 			rest := strings.TrimSpace(text[len(full):])
 			return rest, true
 		}
