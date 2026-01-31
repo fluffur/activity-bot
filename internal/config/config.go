@@ -15,6 +15,7 @@ type Config struct {
 	HTTPPort           int    `env:"HTTP_PORT" envDefault:"8080"`
 	Debug              bool   `env:"DEBUG" envDefault:"false"`
 	BotOwnerID         int64  `env:"BOT_OWNER_ID"`
+	GeminiAPIKey       string `env:"GEMINI_API_KEY"`
 }
 
 func Load() (Config, error) {

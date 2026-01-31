@@ -1,22 +1,26 @@
 package handler
 
 import (
+	"activity-bot/internal/cmd"
 	"activity-bot/internal/member"
 	"activity-bot/internal/message"
+	"context"
 	"errors"
 	"log/slog"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
+	"google.golang.org/genai"
 )
 
 type Handler struct {
 	service       *message.Service
 	memberService *member.Service
+	geminiClient  *genai.Client
 }
 
-func New(service *message.Service, memberService *member.Service) *Handler {
-	return &Handler{service, memberService}
+func New(service *message.Service, memberService *member.Service, geminiClient *genai.Client) *Handler {
+	return &Handler{service, memberService, geminiClient}
 }
 
 func (h *Handler) EnsureMemberCustomTitle(b *gotgbot.Bot, chatID, userID int64) (string, error) {
@@ -35,6 +39,24 @@ func (h *Handler) EnsureMemberCustomTitle(b *gotgbot.Bot, chatID, userID int64) 
 	}
 
 	return chatMember.MergeChatMember().CustomTitle, nil
+}
+
+func (h *Handler) Bot(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	ctxx := context.Background()
+	result, err := h.geminiClient.Models.GenerateContent(
+		ctxx,
+		"gemini-3-flash-preview",
+		genai.Text(cctx.FirstArgument()),
+		nil,
+	)
+	if err != nil {
+		slog.Error("Failed to answer", "error", err)
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось отправить ответ", nil)
+		return err
+	}
+
+	_, err = ctx.EffectiveMessage.Reply(b, result.Text(), nil)
+	return err
 }
 
 func (h *Handler) Message(b *gotgbot.Bot, ctx *ext.Context) error {

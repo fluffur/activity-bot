@@ -35,6 +35,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/chatmember"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/message"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/genai"
 )
 
 func main() {
@@ -96,6 +97,14 @@ func main() {
 
 	queries := db.New(pool)
 
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{
+		APIKey:  cfg.GeminiAPIKey,
+		Backend: genai.BackendGeminiAPI,
+	})
+	if err != nil {
+		panic("failed to init gemini client " + err.Error())
+	}
+
 	dp := ext.NewDispatcher(&ext.DispatcherOpts{
 		Error: func(b *gotgbot.Bot, ctx *ext.Context, err error) ext.DispatcherAction {
 			slog.Error("an error occurred while handling update", "error", err)
@@ -131,7 +140,7 @@ func main() {
 	chatHandler := chatH.New(chatService, adminService, dateParser)
 	exemptHandler := exemptH.New(exemptService, userService, adminService, dateParser)
 	adminHandler := adminH.New(adminService, userService, memberService)
-	messageHandler := messageH.New(messageService, memberService)
+	messageHandler := messageH.New(messageService, memberService, client)
 	memberHandler := memberH.New(memberService, userService)
 	callHandler := callH.New(memberService)
 
@@ -244,6 +253,8 @@ func main() {
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
+
+	dp.AddHandler(cf.New(messageHandler.Bot, "крис").WithGuards(groupGuard, adminGuard).SetArgsCount(1))
 
 	dp.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))
 	dp.AddHandler(handlers.NewMessage(message.NewChatMembers, memberHandler.OnJoinMember))
