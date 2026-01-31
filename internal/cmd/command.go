@@ -90,9 +90,10 @@ func (c *Command) AddAliases(aliases ...string) *Command {
 }
 
 func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
-	if ctx.Message == nil || ctx.Message.GetText() == "" {
+	if ctx.Message == nil || ctx.Message.ForwardOrigin != nil || ctx.Message.GetText() == "" {
 		return false
 	}
+
 	return c.checkMessage(b, ctx.Message)
 }
 
