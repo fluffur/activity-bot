@@ -141,6 +141,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 	textRunes := []rune(msg.GetText())
 
 	for _, e := range entities {
+
 		switch e.Type {
 		case "text_mention":
 			if e.User != nil {
@@ -163,6 +164,19 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 					log.Println("Ensure user from username mention exists", err)
 				}
 			}
+		case "url":
+			start := int(e.Offset)
+			end := start + int(e.Length)
+			if start >= 0 && end <= len(textRunes) {
+				username := strings.TrimPrefix(strings.TrimPrefix(string(textRunes[start:end]), "https://"), "t.me/")
+				u, err := c.userService.GetUserByUsername(username)
+				if err == nil {
+					addUser(&u)
+				} else {
+					log.Println("Ensure user from username mention exists", err)
+				}
+			}
+
 		}
 	}
 
@@ -267,7 +281,7 @@ func cleanMessage(msg *gotgbot.Message) (string, []gotgbot.MessageEntity) {
 		}
 
 		switch e.Type {
-		case "mention", "text_mention":
+		case "mention", "text_mention", "url":
 			removeRanges = append(removeRanges, [2]int{start, end})
 			removedEntities = append(removedEntities, e)
 		}
