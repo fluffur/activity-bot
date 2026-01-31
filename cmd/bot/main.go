@@ -254,7 +254,9 @@ func main() {
 		SetArgsCount(1),
 	)
 
-	dp.AddHandler(cf.New(messageHandler.Bot, "крис").WithGuards(groupGuard, adminGuard).SetArgsCount(1))
+	dp.AddHandler(cf.New(messageHandler.Bot, "крис").
+		SetTriggers("/", ".", "!", "+", "").
+		WithGuards(groupGuard).SetArgsCount(1))
 
 	dp.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))
 	dp.AddHandler(handlers.NewMessage(message.NewChatMembers, memberHandler.OnJoinMember))
