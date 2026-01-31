@@ -14,7 +14,8 @@ WHERE id = $1;
 -- name: GetUserByUsername :one
 SELECT *
 FROM users
-WHERE username = $1;
+WHERE LOWER(username) = LOWER($1);
+
 
 -- name: UpsertUsers :exec
 INSERT INTO users(id, username, first_name, last_name)

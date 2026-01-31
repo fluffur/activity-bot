@@ -67,11 +67,11 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 const getUserByUsername = `-- name: GetUserByUsername :one
 SELECT id, username, first_name, last_name, created_at
 FROM users
-WHERE username = $1
+WHERE LOWER(username) = LOWER($1)
 `
 
-func (q *Queries) GetUserByUsername(ctx context.Context, username pgtype.Text) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByUsername, username)
+func (q *Queries) GetUserByUsername(ctx context.Context, lower string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByUsername, lower)
 	var i User
 	err := row.Scan(
 		&i.ID,
