@@ -255,7 +255,7 @@ func main() {
 	)
 
 	dp.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").SetTriggers("/", ".", "!", ""))
-	dp.AddHandler(cf.New(chatHandler.SetPrompt, "промпт").SetTriggers("/", ".", "!", "").SetArgsCount(1))
+	dp.AddHandler(cf.New(chatHandler.SetPrompt, "промпт").SetTriggers("/", ".", "!", "").SetArgsCount(1).WithGuards(groupGuard, adminGuard))
 
 	dp.AddHandler(cf.New(messageHandler.Bot, "крис").
 		SetTriggers("/", ".", "!", "+", "").
