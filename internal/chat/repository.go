@@ -11,4 +11,6 @@ type Repository interface {
 	SetNewbieThreshold(ctx context.Context, chatID int64, threshold int32) error
 	GetNorm(ctx context.Context, chatID int64, fallbackNorm int32) (int, error)
 	GetNewbieThreshold(ctx context.Context, chatID int64) (int, error)
+	GetChat(ctx context.Context, chatID int64) (model.Chat, error)
+	SetChatPrompt(ctx context.Context, chatID int64, prompt string) error
 }

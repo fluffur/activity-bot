@@ -5,6 +5,8 @@ import (
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/model"
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type ChatRepository struct {
@@ -20,6 +22,7 @@ func mapChat(c db.EnsureChatExistsRow) model.Chat {
 		ID:                  c.ID,
 		WeeklyNorm:          c.WeeklyNorm,
 		NewbieThresholdDays: c.NewbieThresholdDays,
+		GeminiSystemPrompt:  c.GeminiSystemPrompt.String,
 	}
 }
 
@@ -64,12 +67,31 @@ func (r *ChatRepository) GetNewbieThreshold(ctx context.Context, chatID int64) (
 
 func (r *ChatRepository) GetNorm(ctx context.Context, chatID int64, fallbackNorm int32) (int, error) {
 	c, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{
-		ID:                  chatID,
-		WeeklyNorm:          fallbackNorm,
-		NewbieThresholdDays: 3,
+		ID:         chatID,
+		WeeklyNorm: fallbackNorm,
 	})
 	if err != nil {
 		return 0, err
 	}
 	return int(c.WeeklyNorm), nil
+}
+
+func (r *ChatRepository) GetChat(ctx context.Context, chatID int64) (model.Chat, error) {
+	c, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{
+		ID: chatID,
+	})
+	if err != nil {
+		return model.Chat{}, err
+	}
+	return mapChat(c), nil
+}
+
+func (r *ChatRepository) SetChatPrompt(ctx context.Context, chatID int64, prompt string) error {
+	return r.queries.SetChatGeminiSystemPrompt(ctx, db.SetChatGeminiSystemPromptParams{
+		GeminiSystemPrompt: pgtype.Text{
+			String: prompt,
+			Valid:  true,
+		},
+		ChatID: chatID,
+	})
 }

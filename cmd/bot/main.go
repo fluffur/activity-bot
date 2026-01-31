@@ -140,7 +140,7 @@ func main() {
 	chatHandler := chatH.New(chatService, adminService, dateParser)
 	exemptHandler := exemptH.New(exemptService, userService, adminService, dateParser)
 	adminHandler := adminH.New(adminService, userService, memberService)
-	messageHandler := messageH.New(messageService, memberService, client)
+	messageHandler := messageH.New(messageService, memberService, chatService, client)
 	memberHandler := memberH.New(memberService, userService)
 	callHandler := callH.New(memberService)
 
@@ -253,6 +253,9 @@ func main() {
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
+
+	dp.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").SetTriggers("/", ".", "!", ""))
+	dp.AddHandler(cf.New(chatHandler.SetPrompt, "промпт").SetTriggers("/", ".", "!", "").SetArgsCount(1))
 
 	dp.AddHandler(cf.New(messageHandler.Bot, "крис").
 		SetTriggers("/", ".", "!", "+", "").

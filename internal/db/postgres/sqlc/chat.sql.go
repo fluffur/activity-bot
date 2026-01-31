@@ -7,18 +7,22 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const ensureChatExists = `-- name: EnsureChatExists :one
 WITH ins AS (
-    INSERT INTO chats(id, weekly_norm, newbie_threshold_days)
+    INSERT INTO chats (id, weekly_norm, newbie_threshold_days)
         VALUES ($1, $2, $3)
-        ON CONFLICT(id) DO NOTHING
-        RETURNING id, weekly_norm, newbie_threshold_days
-)
-SELECT id, weekly_norm, newbie_threshold_days FROM ins
+        ON CONFLICT (id) DO NOTHING
+        RETURNING id, weekly_norm, newbie_threshold_days, gemini_system_prompt)
+SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt
+FROM ins
 UNION ALL
-SELECT id, weekly_norm, newbie_threshold_days FROM chats WHERE id = $1
+SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt
+FROM chats
+WHERE id = $1
 LIMIT 1
 `
 
@@ -29,26 +33,39 @@ type EnsureChatExistsParams struct {
 }
 
 type EnsureChatExistsRow struct {
-	ID                  int64 `db:"id" json:"id"`
-	WeeklyNorm          int32 `db:"weekly_norm" json:"weeklyNorm"`
-	NewbieThresholdDays int32 `db:"newbie_threshold_days" json:"newbieThresholdDays"`
+	ID                  int64       `db:"id" json:"id"`
+	WeeklyNorm          int32       `db:"weekly_norm" json:"weeklyNorm"`
+	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
+	GeminiSystemPrompt  pgtype.Text `db:"gemini_system_prompt" json:"geminiSystemPrompt"`
 }
 
 func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error) {
 	row := q.db.QueryRow(ctx, ensureChatExists, arg.ID, arg.WeeklyNorm, arg.NewbieThresholdDays)
 	var i EnsureChatExistsRow
-	err := row.Scan(&i.ID, &i.WeeklyNorm, &i.NewbieThresholdDays)
+	err := row.Scan(
+		&i.ID,
+		&i.WeeklyNorm,
+		&i.NewbieThresholdDays,
+		&i.GeminiSystemPrompt,
+	)
 	return i, err
 }
 
 const getChat = `-- name: GetChat :one
-SELECT id, weekly_norm, newbie_threshold_days FROM chats WHERE id = $1
+SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt
+FROM chats
+WHERE id = $1
 `
 
 func (q *Queries) GetChat(ctx context.Context, id int64) (Chat, error) {
 	row := q.db.QueryRow(ctx, getChat, id)
 	var i Chat
-	err := row.Scan(&i.ID, &i.WeeklyNorm, &i.NewbieThresholdDays)
+	err := row.Scan(
+		&i.ID,
+		&i.WeeklyNorm,
+		&i.NewbieThresholdDays,
+		&i.GeminiSystemPrompt,
+	)
 	return i, err
 }
 
@@ -56,7 +73,7 @@ const getOrCreateChat = `-- name: GetOrCreateChat :one
 INSERT INTO chats(id, weekly_norm)
 VALUES ($1, $2)
 ON CONFLICT(id) DO UPDATE SET weekly_norm = chats.weekly_norm
-RETURNING id, weekly_norm, newbie_threshold_days
+RETURNING id, weekly_norm, newbie_threshold_days, gemini_system_prompt
 `
 
 type GetOrCreateChatParams struct {
@@ -67,8 +84,29 @@ type GetOrCreateChatParams struct {
 func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams) (Chat, error) {
 	row := q.db.QueryRow(ctx, getOrCreateChat, arg.ID, arg.WeeklyNorm)
 	var i Chat
-	err := row.Scan(&i.ID, &i.WeeklyNorm, &i.NewbieThresholdDays)
+	err := row.Scan(
+		&i.ID,
+		&i.WeeklyNorm,
+		&i.NewbieThresholdDays,
+		&i.GeminiSystemPrompt,
+	)
 	return i, err
+}
+
+const setChatGeminiSystemPrompt = `-- name: SetChatGeminiSystemPrompt :exec
+UPDATE chats
+SET gemini_system_prompt = $1
+WHERE id = $2
+`
+
+type SetChatGeminiSystemPromptParams struct {
+	GeminiSystemPrompt pgtype.Text `db:"gemini_system_prompt" json:"geminiSystemPrompt"`
+	ChatID             int64       `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) SetChatGeminiSystemPrompt(ctx context.Context, arg SetChatGeminiSystemPromptParams) error {
+	_, err := q.db.Exec(ctx, setChatGeminiSystemPrompt, arg.GeminiSystemPrompt, arg.ChatID)
+	return err
 }
 
 const updateChatNewbieThreshold = `-- name: UpdateChatNewbieThreshold :exec

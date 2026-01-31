@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/member"
 	"activity-bot/internal/message"
@@ -16,11 +17,12 @@ import (
 type Handler struct {
 	service       *message.Service
 	memberService *member.Service
+	chatService   *chat.Service
 	geminiClient  *genai.Client
 }
 
-func New(service *message.Service, memberService *member.Service, geminiClient *genai.Client) *Handler {
-	return &Handler{service, memberService, geminiClient}
+func New(service *message.Service, memberService *member.Service, chatService *chat.Service, geminiClient *genai.Client) *Handler {
+	return &Handler{service, memberService, chatService, geminiClient}
 }
 
 func (h *Handler) EnsureMemberCustomTitle(b *gotgbot.Bot, chatID, userID int64) (string, error) {
@@ -43,11 +45,18 @@ func (h *Handler) EnsureMemberCustomTitle(b *gotgbot.Bot, chatID, userID int64) 
 
 func (h *Handler) Bot(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
 	ctxx := context.Background()
+	c, err := h.chatService.GetChat(ctx.EffectiveChat.Id)
+	if err != nil {
+		slog.Error("Failed to get chat", "error", err)
+		return err
+	}
 	result, err := h.geminiClient.Models.GenerateContent(
 		ctxx,
 		"gemini-3-flash-preview",
 		genai.Text(cctx.FirstArgument()),
-		nil,
+		&genai.GenerateContentConfig{
+			SystemInstruction: genai.NewContentFromText(c.GeminiSystemPrompt, genai.RoleUser),
+		},
 	)
 	if err != nil {
 		slog.Error("Failed to answer", "error", err)

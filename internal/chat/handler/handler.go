@@ -89,3 +89,26 @@ func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd
 	_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Теперь пользователи считаются новичками первые %d %s", days, helpers.PluralizeDays(days)), nil)
 	return err
 }
+
+func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	if err := h.service.SetChatPrompt(ctx.EffectiveChat.Id, cctx.FirstArgument()); err != nil {
+		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось установить промпт", nil)
+		return err
+	}
+
+	_, err := ctx.EffectiveMessage.Reply(b, "Промпт установлен успешно", nil)
+	return err
+}
+
+func (h *Handler) ShowPrompt(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
+	c, err := h.service.GetChat(ctx.EffectiveChat.Id)
+	if err != nil {
+		slog.Error("Failed get chat", "error", err)
+		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить промпт", nil)
+		return err
+	}
+
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Промпт: \"%s\"", c.GeminiSystemPrompt), nil)
+	return err
+
+}
