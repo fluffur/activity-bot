@@ -50,6 +50,16 @@ func (r *StatsRepository) GetReport(
 	return result, nil
 }
 
+func (r *StatsRepository) ImportActivityBulk(ctx context.Context, chatID int64, from, to time.Time, userIDs []int64, counts []int32) error {
+	return r.queries.ImportActivityBulk(ctx, db.ImportActivityBulkParams{
+		ChatID:         chatID,
+		UserIds:        userIDs,
+		PeriodStart:    pgtype.Timestamptz{Time: from, Valid: true},
+		PeriodEnd:      pgtype.Timestamptz{Time: to, Valid: true},
+		MessagesCounts: counts,
+	})
+}
+
 func mapWeeklyReportRow(row db.MessageReportRow) model.MessageReportMember {
 	var username *string
 	if row.Username.Valid {

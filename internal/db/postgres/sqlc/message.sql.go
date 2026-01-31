@@ -140,7 +140,10 @@ WITH real_messages AS (
          WHERE ia.chat_id = $1
            AND (
              $2::timestamptz IS NULL
-                 OR (ia.period_start >= $2 AND ia.period_end <= $3)
+                 OR (
+                 ia.period_start < $3
+                     AND ia.period_end   > $2
+                 )
              )
          GROUP BY ia.chat_id, ia.user_id
      )

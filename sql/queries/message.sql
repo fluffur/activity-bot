@@ -26,7 +26,10 @@ WITH real_messages AS (
          WHERE ia.chat_id = @chat_id
            AND (
              @from_date::timestamptz IS NULL
-                 OR (ia.period_start >= @from_date AND ia.period_end <= @to_date)
+                 OR (
+                 ia.period_start < @to_date
+                     AND ia.period_end   > @from_date
+                 )
              )
          GROUP BY ia.chat_id, ia.user_id
      )

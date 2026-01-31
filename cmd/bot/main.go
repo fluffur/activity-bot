@@ -16,6 +16,7 @@ import (
 	"activity-bot/internal/filter"
 	"activity-bot/internal/guard"
 	helpH "activity-bot/internal/help/handler"
+	importH "activity-bot/internal/import/handler"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
 	memberH "activity-bot/internal/member/handler"
@@ -134,6 +135,7 @@ func main() {
 	messageHandler := messageH.New(messageService, memberService)
 	memberHandler := memberH.New(memberService, userService)
 	callHandler := callH.New(memberService)
+	importHandler := importH.NewHandler(statsService, userService)
 
 	adminGuard := guard.NewAdminGuard(adminService)
 	creatorGuard := guard.NewCreatorGuard(adminService)
@@ -243,6 +245,11 @@ func main() {
 		SetTriggers("/", ".", "!", "+", "").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
+	)
+
+	dp.AddHandler(cf.New(importHandler.Import, "import", "импортировать", "импортировать из").
+		SetTriggers("/", ".", "!", "+", "").
+		WithGuards(groupGuard, adminGuard),
 	)
 
 	dp.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))
