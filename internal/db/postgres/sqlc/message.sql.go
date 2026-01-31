@@ -118,66 +118,40 @@ func (q *Queries) ImportActivityBulk(ctx context.Context, arg ImportActivityBulk
 }
 
 const messageReport = `-- name: MessageReport :many
-WITH real_messages AS (
-    SELECT
-        m.chat_id,
-        m.user_id,
-        COUNT(*) AS cnt
-    FROM messages m
-    WHERE m.chat_id = $1
-      AND (
-        $2::timestamptz IS NULL
-            OR (m.created_at >= $2 AND m.created_at < $3)
-        )
-    GROUP BY m.chat_id, m.user_id
-),
-     imported_messages AS (
-         SELECT
-             ia.chat_id,
-             ia.user_id,
-             SUM(ia.messages_count) AS cnt
-         FROM imported_activity ia
-         WHERE ia.chat_id = $1
-           AND (
-             $2::timestamptz IS NULL
-                 OR (ia.period_start >= $2 AND ia.period_end <= $3)
-             )
-         GROUP BY ia.chat_id, ia.user_id
-     )
-SELECT
-    cm.user_id,
-    u.username,
-    u.first_name,
-    u.last_name,
-
-    COALESCE(r.cnt, 0) + COALESCE(i.cnt, 0) AS messages_count,
-
-    c.weekly_norm,
-    (COALESCE(r.cnt, 0) + COALESCE(i.cnt, 0) >= c.weekly_norm) AS norm_done,
-
-    cm.joined_at,
-    c.newbie_threshold_days,
-    cm.role,
-    cm.custom_title
+SELECT cm.user_id,
+       u.username,
+       u.first_name,
+       u.last_name,
+       COUNT(m.chat_id)                    AS messages_count,
+       c.weekly_norm,
+       (COUNT(m.chat_id) >= c.weekly_norm) AS norm_done,
+       cm.joined_at,
+       c.newbie_threshold_days,
+       cm.role,
+       cm.custom_title
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
-         LEFT JOIN real_messages r
-                   ON r.chat_id = cm.chat_id
-                       AND r.user_id = cm.user_id
-         LEFT JOIN imported_messages i
-                   ON i.chat_id = cm.chat_id
-                       AND i.user_id = cm.user_id
-WHERE cm.chat_id = $1
+         LEFT JOIN messages m
+                   ON m.chat_id = cm.chat_id
+                       AND m.user_id = cm.user_id
+                       AND (
+                          $1::timestamptz IS NULL
+                              OR (m.created_at >= $1 AND m.created_at < $2)
+                          )
+WHERE cm.chat_id = $3
   AND cm.left_at IS NULL
   AND (cm.exempt_until IS NULL OR cm.exempt_until < now())
+GROUP BY cm.user_id, u.username, u.first_name, u.last_name,
+         c.weekly_norm, cm.joined_at, c.newbie_threshold_days,
+         cm.role, cm.custom_title
 ORDER BY messages_count DESC
 `
 
 type MessageReportParams struct {
-	ChatID   int64              `db:"chat_id" json:"chatId"`
 	FromDate pgtype.Timestamptz `db:"from_date" json:"fromDate"`
 	ToDate   pgtype.Timestamptz `db:"to_date" json:"toDate"`
+	ChatID   int64              `db:"chat_id" json:"chatId"`
 }
 
 type MessageReportRow struct {
@@ -185,7 +159,7 @@ type MessageReportRow struct {
 	Username            pgtype.Text        `db:"username" json:"username"`
 	FirstName           pgtype.Text        `db:"first_name" json:"firstName"`
 	LastName            pgtype.Text        `db:"last_name" json:"lastName"`
-	MessagesCount       int32              `db:"messages_count" json:"messagesCount"`
+	MessagesCount       int64              `db:"messages_count" json:"messagesCount"`
 	WeeklyNorm          int32              `db:"weekly_norm" json:"weeklyNorm"`
 	NormDone            bool               `db:"norm_done" json:"normDone"`
 	JoinedAt            pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
@@ -195,7 +169,7 @@ type MessageReportRow struct {
 }
 
 func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([]MessageReportRow, error) {
-	rows, err := q.db.Query(ctx, messageReport, arg.ChatID, arg.FromDate, arg.ToDate)
+	rows, err := q.db.Query(ctx, messageReport, arg.FromDate, arg.ToDate, arg.ChatID)
 	if err != nil {
 		return nil, err
 	}
