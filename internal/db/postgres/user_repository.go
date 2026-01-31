@@ -50,10 +50,7 @@ func (r *UserRepository) Get(ctx context.Context, id int64) (model.User, error) 
 }
 
 func (r *UserRepository) GetByUsername(ctx context.Context, username string) (model.User, error) {
-	u, err := r.queries.GetUserByUsername(ctx, pgtype.Text{
-		String: username,
-		Valid:  username != "",
-	})
+	u, err := r.queries.GetUserByUsername(ctx, username)
 	if err != nil {
 		return model.User{}, err
 	}
