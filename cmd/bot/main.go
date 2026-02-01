@@ -154,40 +154,36 @@ func main() {
 	dp.AddHandler(cf.New(helpHandler.Help, "help"))
 
 	dp.AddHandler(cf.New(statsHandler.ShowStats, "stats", "отчёт", "отчет").
-		SetTriggers("/", ".", "!", "").
+		AddTriggers("").
 		SetArgsCount(1).
 		WithGuards(groupGuard),
 	)
 
 	dp.AddHandler(cf.New(chatHandler.ShowNorm, "norm", "норма какая", "а норма какая", "норма", "quota", "какая норма", "а какая норма").
-		SetTriggers("/", ".", "!", "").
+		AddTriggers("").
 		WithGuards(groupGuard),
 	)
 	dp.AddHandler(cf.New(chatHandler.SetNorm, "norm", "норма", "quota").
-		SetTriggers("/", ".", "!", "+").
+		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
 
-	dp.AddHandler(cf.New(memberHandler.SetNewbies, "+новички").
-		SetTriggers("/", "!", ".", "").
+	dp.AddHandler(cf.New(memberHandler.SetNewbies, "новички все").
+		AddTriggers("+").
 		WithGuards(groupGuard, creatorGuard),
 	)
 
 	dp.AddHandler(cf.New(memberHandler.SetOnlyNewbies, "олды кроме").
+		AddTriggers("+").
 		WithGuards(groupGuard, creatorGuard),
 	)
 
-	dp.AddHandler(cf.New(memberHandler.SetOnlyNewbies, "олды кроме").
-		WithGuards(groupGuard, creatorGuard),
-	)
-
-	dp.AddHandler(cf.New(chatHandler.ShowNewbieThreshold, "newbie", "новичок", "newbies", "нью").
-		SetTriggers("/", ".", "!", "+").
+	dp.AddHandler(cf.New(chatHandler.ShowNewbieThreshold, "newbie", "новички", "нью").
 		WithGuards(groupGuard, adminGuard),
 	)
-	dp.AddHandler(cf.New(chatHandler.SetNewbieThreshold, "newbie", "новичок", "newbies", "новички", "нью", "ньюхи").
-		SetTriggers("/", ".", "!", "+").
+	dp.AddHandler(cf.New(chatHandler.SetNewbieThreshold, "newbie", "новички", "нью").
+		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
@@ -195,33 +191,33 @@ func main() {
 	dp.AddHandler(cf.New(exemptHandler.Show, "exempt", "рест", "rest", "рэст").
 		FallbackToSender().
 		WithGuards(groupGuard, adminGuard).
-		SetTriggers("/", ".", "!", "+", ""),
+		AddTriggers("+", ""),
 	)
 	dp.AddHandler(cf.New(exemptHandler.Set, "exempt", "рест", "rest", "рэст").
 		FallbackToSender().
-		SetTriggers("/", ".", "!", "+", "").
+		AddTriggers("+", "").
 		WithGuards(groupGuard).
 		SetArgsCount(1),
 	)
 	dp.AddHandler(cf.New(exemptHandler.End, "-exempt", "-рест", "-rest", "-рэст").
 		FallbackToSender().
 		WithGuards(groupGuard).
-		SetTriggers("/", ".", "!", ""),
+		AddTriggers(""),
 	)
 
 	dp.AddHandler(cf.New(adminHandler.ListAdmins, "admins", "админы", "админчики", "администраторы", "адмы", "модеры", "mods").
 		WithGuards(groupGuard),
 	)
-	dp.AddHandler(cf.New(adminHandler.IsAdmin, "администратор", "админ", "admin", "адм", "модер").
+	dp.AddHandler(cf.New(adminHandler.IsAdmin, "админ", "admin", "is_admin", "адм", "модер", "mod", "is_mod").
 		WithGuards(groupGuard).
 		FallbackToSender(),
 	)
-	dp.AddHandler(cf.New(adminHandler.AddAdmin, "администратор", "админ", "admin", "адм", "модер").
-		SetTriggers("+", "!+", "/+", ".+").
+	dp.AddHandler(cf.New(adminHandler.AddAdmin, "+админ", "+admin", "+адм", "+модер", "+mod").
+		AddTriggers("").
 		WithGuards(groupGuard, adminGuard),
 	)
 	dp.AddHandler(cf.New(adminHandler.RemoveAdmin, "-администратор", "-админ", "-admin", "-адм", "-модер", "-mod").
-		SetTriggers("/", ".", "!", "").
+		AddTriggers("").
 		WithGuards(groupGuard, creatorGuard),
 	)
 
@@ -232,33 +228,37 @@ func main() {
 		WithGuards(groupGuard),
 	)
 	dp.AddHandler(cf.New(memberHandler.DeleteRole, "-роль", "-role", "-title").
-		SetTriggers("/", ".", "!", "").
+		AddTriggers("").
 		WithGuards(groupGuard),
 	)
 	dp.AddHandler(cf.New(memberHandler.ShowRole, "роль", "role", "title",
 		"какая роль", "роль у", "роль кого").
-		SetTriggers("/", ".", "!", "").
+		AddTriggers("").
 		WithGuards(groupGuard).
 		FallbackToSender(),
 	)
 	dp.AddHandler(cf.New(memberHandler.SetRole, "роль", "role", "title").
-		SetTriggers("/", ".", "!", "+").
+		AddTriggers("+").
 		WithGuards(groupGuard).
 		FallbackToSender().
 		SetArgsCount(1),
 	)
 
-	dp.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл").
-		SetTriggers("/", ".", "!", "+", "").
+	dp.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл", "all").
+		AddTriggers("+", "").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
 
-	dp.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").SetTriggers("/", ".", "!", ""))
-	dp.AddHandler(cf.New(chatHandler.SetPrompt, "промпт").SetTriggers("/", ".", "!", "").SetArgsCount(1).WithGuards(groupGuard, adminGuard))
+	dp.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").AddTriggers(""))
+	dp.AddHandler(cf.New(chatHandler.SetPrompt, "промпт").
+		AddTriggers("").
+		SetArgsCount(1).
+		WithGuards(groupGuard, adminGuard),
+	)
 
 	dp.AddHandler(cf.New(messageHandler.Bot, "крис").
-		SetTriggers("/", ".", "!", "+", "").
+		AddTriggers("").
 		WithGuards(groupGuard).SetArgsCount(1))
 
 	dp.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))

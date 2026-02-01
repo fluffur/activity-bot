@@ -82,6 +82,11 @@ func (c *Command) SetTriggers(triggers ...string) *Command {
 	return c
 }
 
+func (c *Command) AddTriggers(trigger ...string) *Command {
+	c.triggers = append(c.triggers, trigger...)
+	return c
+}
+
 func (c *Command) AddAliases(aliases ...string) *Command {
 	for _, a := range aliases {
 		c.commands = append(c.commands, strings.ToLower(a))
