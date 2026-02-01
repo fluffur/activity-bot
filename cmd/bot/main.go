@@ -81,9 +81,10 @@ func main() {
 		{Command: "role", Description: "🎭 Роль пользователя"},
 		{Command: "roles", Description: "📜 Список ролей"},
 		{Command: "admins", Description: "👮 Администраторы бота"},
+		{Command: "is_admin", Description: "👮 Проверить статус администратора"},
 		{Command: "update", Description: "🔄 Обновить данные чата"},
 		{Command: "newbie", Description: "🐣 Порог новичка"},
-		{Command: "call", Description: "📞 Вызов участников"},
+		{Command: "all", Description: "📞 Вызов участников"},
 		{Command: "help", Description: "❓ Помощь"},
 	}, nil)
 	if err != nil {
