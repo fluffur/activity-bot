@@ -5,7 +5,6 @@ DROP TABLE IF EXISTS imported_activity;
 
 -- +goose Down
 -- +goose StatementBegin
--- если нужно уметь откатываться
 CREATE TABLE imported_activity
 (
     chat_id        BIGINT      NOT NULL REFERENCES chats (id) ON DELETE CASCADE,
