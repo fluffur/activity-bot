@@ -11,8 +11,6 @@ import (
 	"activity-bot/internal/config"
 	"activity-bot/internal/db/postgres"
 	db "activity-bot/internal/db/postgres/sqlc"
-	"activity-bot/internal/exempt"
-	exemptH "activity-bot/internal/exempt/handler"
 	"activity-bot/internal/filter"
 	"activity-bot/internal/guard"
 	helpH "activity-bot/internal/help/handler"
@@ -21,6 +19,8 @@ import (
 	memberH "activity-bot/internal/member/handler"
 	msg "activity-bot/internal/message"
 	messageH "activity-bot/internal/message/handler"
+	"activity-bot/internal/rest"
+	restH "activity-bot/internal/rest/handler"
 	"activity-bot/internal/stats"
 	statsH "activity-bot/internal/stats/handler"
 	"activity-bot/internal/user"
@@ -115,7 +115,7 @@ func main() {
 	updater := ext.NewUpdater(dp, &ext.UpdaterOpts{})
 
 	statsRepository := postgres.NewStatsRepository(queries)
-	exemptRepository := postgres.NewExemptRepository(queries, pool)
+	restRepository := postgres.NewRestRepository(queries, pool)
 	memberRepository := postgres.NewMemberRepository(queries)
 	userRepository := postgres.NewUserRepository(queries)
 	chatRepository := postgres.NewChatRepository(queries)
@@ -123,7 +123,7 @@ func main() {
 	messageRepository := postgres.NewMessageRepository(queries)
 
 	statsService := stats.NewService(statsRepository)
-	exemptService := exempt.NewService(exemptRepository)
+	restService := rest.NewService(restRepository)
 	chatService := chat.NewService(chatRepository, cfg.DefaultWeeklyNorm)
 	userService := user.NewService(userRepository)
 
@@ -133,12 +133,12 @@ func main() {
 	adminService := admin.NewService(adminRepository, statusProvider, cfg.BotOwnerID)
 	messageService := msg.NewService(messageRepository)
 
-	dateParser := exempt.NewDateParser()
+	dateParser := rest.NewDateParser()
 
 	helpHandler := helpH.New(cfg.BotOwnerID)
-	statsHandler := statsH.New(statsService, exemptService, memberService)
+	statsHandler := statsH.New(statsService, restService, memberService)
 	chatHandler := chatH.New(chatService, adminService, dateParser)
-	exemptHandler := exemptH.New(exemptService, userService, adminService, dateParser)
+	restHandler := restH.New(restService, userService, adminService, dateParser)
 	adminHandler := adminH.New(adminService, userService, memberService)
 	messageHandler := messageH.New(messageService, memberService, chatService, client)
 	memberHandler := memberH.New(memberService, userService)
@@ -188,18 +188,18 @@ func main() {
 		SetArgsCount(1),
 	)
 
-	dp.AddHandler(cf.New(exemptHandler.Show, "exempt", "рест", "rest", "рэст").
+	dp.AddHandler(cf.New(restHandler.Show, "рест", "rest", "рэст").
 		FallbackToSender().
 		WithGuards(groupGuard, adminGuard).
 		AddTriggers("+", ""),
 	)
-	dp.AddHandler(cf.New(exemptHandler.Set, "exempt", "рест", "rest", "рэст").
+	dp.AddHandler(cf.New(restHandler.Set, "рест", "rest", "рэст").
 		FallbackToSender().
 		AddTriggers("+", "").
 		WithGuards(groupGuard).
 		SetArgsCount(1),
 	)
-	dp.AddHandler(cf.New(exemptHandler.End, "-exempt", "-рест", "-rest", "-рэст").
+	dp.AddHandler(cf.New(restHandler.End, "-рест", "-rest", "-рэст").
 		FallbackToSender().
 		WithGuards(groupGuard).
 		AddTriggers(""),

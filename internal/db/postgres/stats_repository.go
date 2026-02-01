@@ -68,6 +68,6 @@ func mapWeeklyReportRow(row db.MessageReportRow) model.MessageReportMember {
 		JoinedAt:            row.JoinedAt.Time,
 		NewbieThresholdDays: row.NewbieThresholdDays,
 		CustomTitle:         row.CustomTitle.String,
-		Role:                row.Role,
+		Status:              row.Status,
 	}
 }

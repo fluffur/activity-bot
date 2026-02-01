@@ -4,11 +4,11 @@ import (
 	"time"
 )
 
-type ExemptRequest struct {
+type RestRequest struct {
 	ChatID      int64
 	UserID      int64
 	RequestedAt time.Time
-	ExemptUntil time.Time
+	RestUntil   time.Time
 	Status      string
 	MessageID   int64
 }

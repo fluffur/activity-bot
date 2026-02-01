@@ -65,7 +65,7 @@ func (r *AdminRepository) IsCreator(ctx context.Context, chatID int64, userID in
 }
 
 func (r *AdminRepository) GetRole(ctx context.Context, chatID int64, userID int64) (string, error) {
-	return r.queries.GetChatMemberRole(ctx, db.GetChatMemberRoleParams{
+	return r.queries.GetChatMemberStatus(ctx, db.GetChatMemberStatusParams{
 		ChatID: chatID,
 		UserID: userID,
 	})

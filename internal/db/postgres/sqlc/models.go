@@ -11,47 +11,47 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type ExemptStatus string
+type RestStatus string
 
 const (
-	ExemptStatusPending  ExemptStatus = "pending"
-	ExemptStatusApproved ExemptStatus = "approved"
-	ExemptStatusRejected ExemptStatus = "rejected"
+	RestStatusPending  RestStatus = "pending"
+	RestStatusApproved RestStatus = "approved"
+	RestStatusRejected RestStatus = "rejected"
 )
 
-func (e *ExemptStatus) Scan(src interface{}) error {
+func (e *RestStatus) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = ExemptStatus(s)
+		*e = RestStatus(s)
 	case string:
-		*e = ExemptStatus(s)
+		*e = RestStatus(s)
 	default:
-		return fmt.Errorf("unsupported scan type for ExemptStatus: %T", src)
+		return fmt.Errorf("unsupported scan type for RestStatus: %T", src)
 	}
 	return nil
 }
 
-type NullExemptStatus struct {
-	ExemptStatus ExemptStatus `json:"exemptStatus"`
-	Valid        bool         `json:"valid"` // Valid is true if ExemptStatus is not NULL
+type NullRestStatus struct {
+	RestStatus RestStatus `json:"restStatus"`
+	Valid      bool       `json:"valid"` // Valid is true if RestStatus is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullExemptStatus) Scan(value interface{}) error {
+func (ns *NullRestStatus) Scan(value interface{}) error {
 	if value == nil {
-		ns.ExemptStatus, ns.Valid = "", false
+		ns.RestStatus, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.ExemptStatus.Scan(value)
+	return ns.RestStatus.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullExemptStatus) Value() (driver.Value, error) {
+func (ns NullRestStatus) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.ExemptStatus), nil
+	return string(ns.RestStatus), nil
 }
 
 type Chat struct {
@@ -65,27 +65,10 @@ type ChatMember struct {
 	ChatID      int64              `db:"chat_id" json:"chatId"`
 	UserID      int64              `db:"user_id" json:"userId"`
 	JoinedAt    pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
-	ExemptUntil pgtype.Timestamptz `db:"exempt_until" json:"exemptUntil"`
+	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
 	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
-	Role        string             `db:"role" json:"role"`
+	Status      string             `db:"status" json:"status"`
 	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
-}
-
-type ExemptRequest struct {
-	ChatID      int64              `db:"chat_id" json:"chatId"`
-	UserID      int64              `db:"user_id" json:"userId"`
-	RequestedAt pgtype.Timestamptz `db:"requested_at" json:"requestedAt"`
-	ExemptUntil pgtype.Timestamptz `db:"exempt_until" json:"exemptUntil"`
-	Status      ExemptStatus       `db:"status" json:"status"`
-	MessageID   int64              `db:"message_id" json:"messageId"`
-}
-
-type ImportedActivity struct {
-	ChatID        int64              `db:"chat_id" json:"chatId"`
-	UserID        int64              `db:"user_id" json:"userId"`
-	PeriodStart   pgtype.Timestamptz `db:"period_start" json:"periodStart"`
-	PeriodEnd     pgtype.Timestamptz `db:"period_end" json:"periodEnd"`
-	MessagesCount int32              `db:"messages_count" json:"messagesCount"`
 }
 
 type Message struct {
@@ -93,6 +76,15 @@ type Message struct {
 	UserID    int64              `db:"user_id" json:"userId"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
 	DeletedAt pgtype.Timestamptz `db:"deleted_at" json:"deletedAt"`
+}
+
+type RestRequest struct {
+	ChatID      int64              `db:"chat_id" json:"chatId"`
+	UserID      int64              `db:"user_id" json:"userId"`
+	RequestedAt pgtype.Timestamptz `db:"requested_at" json:"requestedAt"`
+	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	Status      RestStatus         `db:"status" json:"status"`
+	MessageID   int64              `db:"message_id" json:"messageId"`
 }
 
 type User struct {

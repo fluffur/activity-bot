@@ -9,15 +9,15 @@ type MessageReportMember struct {
 	MessagesCount       int32
 	WeeklyNorm          int32
 	NormDone            bool
-	JoinedAt            time.Time
 	NewbieThresholdDays int32
-	Role                string
+	Status              string
 	CustomTitle         string
+	JoinedAt            time.Time
 }
 
-type ExemptMember struct {
+type RestMember struct {
 	User        User
-	ExemptUntil time.Time
-	Role        string
+	RestUntil   time.Time
+	Status      string
 	CustomTitle string
 }

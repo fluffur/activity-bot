@@ -1,54 +1,54 @@
--- name: ChatExemptUsers :many
+-- name: GetRestMembers :many
 SELECT cm.user_id,
        u.username,
        u.first_name,
        u.last_name,
-       cm.exempt_until,
-       cm.role,
+       cm.rest_until,
+       cm.status,
        cm.custom_title
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
-  AND cm.exempt_until IS NOT NULL
-  AND cm.exempt_until >= now()
-ORDER BY cm.exempt_until;
+  AND cm.rest_until IS NOT NULL
+  AND cm.rest_until >= now()
+ORDER BY cm.rest_until;
 
 
--- name: ExemptChatMember :exec
+-- name: SetMemberRest :exec
 UPDATE chat_members
-SET exempt_until = $1
+SET rest_until = $1
 WHERE chat_id = $2
   AND user_id = $3;
 
 
--- name: RemoveChatMemberExempt :exec
+-- name: EndMemberRest :exec
 UPDATE chat_members
-SET exempt_until = null
+SET rest_until = null
 WHERE user_id = $1
   AND chat_id = $2;
 
 
--- name: AddExemptRequest :exec
-INSERT INTO exempt_requests(chat_id, user_id, exempt_until, message_id)
+-- name: AddRestRequest :exec
+INSERT INTO rest_requests(chat_id, user_id, rest_until, message_id)
 VALUES ($1, $2, $3, $4);
 
--- name: ApproveExemptRequest :exec
-UPDATE exempt_requests
+-- name: ApproveRestRequest :exec
+UPDATE rest_requests
 SET status = 'approved'
 WHERE chat_id = $1
   AND user_id = $2
   AND message_id = $3;
 
--- name: RejectExemptRequest :exec
-UPDATE exempt_requests
+-- name: RejectRestRequest :exec
+UPDATE rest_requests
 SET status = 'rejected'
 WHERE chat_id = $1
   AND user_id = $2
   AND message_id = $3;
 
--- name: GetExemptRequest :one
+-- name: GetRestRequest :one
 SELECT *
-FROM exempt_requests
+FROM rest_requests
 WHERE chat_id = $1
   AND user_id = $2
   AND message_id = $3;

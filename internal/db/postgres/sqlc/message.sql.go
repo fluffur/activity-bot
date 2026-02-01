@@ -51,7 +51,7 @@ SELECT cm.user_id,
        (COUNT(m.chat_id) >= c.weekly_norm) AS norm_done,
        cm.joined_at,
        c.newbie_threshold_days,
-       cm.role,
+       cm.status,
        cm.custom_title
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
@@ -65,10 +65,10 @@ FROM chat_members cm
                           )
 WHERE cm.chat_id = $3
   AND cm.left_at IS NULL
-  AND (cm.exempt_until IS NULL OR cm.exempt_until < now())
+  AND (cm.rest_until IS NULL OR cm.rest_until < now())
 GROUP BY cm.user_id, u.username, u.first_name, u.last_name,
          c.weekly_norm, cm.joined_at, c.newbie_threshold_days,
-         cm.role, cm.custom_title
+         cm.status, cm.custom_title
 ORDER BY messages_count DESC
 `
 
@@ -88,7 +88,7 @@ type MessageReportRow struct {
 	NormDone            bool               `db:"norm_done" json:"normDone"`
 	JoinedAt            pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
 	NewbieThresholdDays int32              `db:"newbie_threshold_days" json:"newbieThresholdDays"`
-	Role                string             `db:"role" json:"role"`
+	Status              string             `db:"status" json:"status"`
 	CustomTitle         pgtype.Text        `db:"custom_title" json:"customTitle"`
 }
 
@@ -111,7 +111,7 @@ func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([
 			&i.NormDone,
 			&i.JoinedAt,
 			&i.NewbieThresholdDays,
-			&i.Role,
+			&i.Status,
 			&i.CustomTitle,
 		); err != nil {
 			return nil, err

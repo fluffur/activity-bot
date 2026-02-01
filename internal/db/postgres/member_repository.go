@@ -55,11 +55,11 @@ func (r *MemberRepository) UpdateCustomTitle(ctx context.Context, chatID int64, 
 
 }
 
-func (r *MemberRepository) UpdateRole(ctx context.Context, chatID int64, userID int64, role string) error {
-	return r.queries.UpdateChatMemberRole(ctx, db.UpdateChatMemberRoleParams{
+func (r *MemberRepository) UpdateStatus(ctx context.Context, chatID int64, userID int64, status string) error {
+	return r.queries.UpdateMemberStatus(ctx, db.UpdateMemberStatusParams{
 		ChatID: chatID,
 		UserID: userID,
-		Role:   role,
+		Status: status,
 	})
 }
 
@@ -71,13 +71,13 @@ func (r *MemberRepository) FindByChatID(ctx context.Context, chatID int64) ([]mo
 
 	result := make([]model.ChatMember, len(members))
 	for i, m := range members {
-		var exemptUntil *time.Time
+		var restUntil *time.Time
 		var username *string
 		if m.Username.Valid {
 			username = &m.Username.String
 		}
-		if m.ExemptUntil.Valid {
-			exemptUntil = &m.ExemptUntil.Time
+		if m.RestUntil.Valid {
+			restUntil = &m.RestUntil.Time
 		}
 		result[i] = model.ChatMember{
 			User: model.User{
@@ -87,9 +87,9 @@ func (r *MemberRepository) FindByChatID(ctx context.Context, chatID int64) ([]mo
 				Username:  username,
 			},
 			ChatID:      chatID,
-			ExemptUntil: exemptUntil,
+			RestUntil:   restUntil,
 			CustomTitle: m.CustomTitle.String,
-			Role:        m.Role,
+			Status:      m.Status,
 		}
 	}
 
@@ -117,7 +117,7 @@ func (r *MemberRepository) GetWithCustomTitles(ctx context.Context, chatID int64
 				ID:        m.UserID,
 			},
 			CustomTitle: m.CustomTitle.String,
-			Role:        m.Role,
+			Status:      m.Status,
 		}
 	}
 	return res, nil
@@ -126,18 +126,18 @@ func (r *MemberRepository) GetWithCustomTitles(ctx context.Context, chatID int64
 func (r *MemberRepository) UpsertChatMembers(ctx context.Context, chatID int64, users []model.ChatMemberUpdate) error {
 	userIDs := make([]int64, len(users))
 	customTitles := make([]string, len(users))
-	roles := make([]string, len(users))
+	statuses := make([]string, len(users))
 	for i, u := range users {
 		userIDs[i] = u.User.ID
 		customTitles[i] = u.CustomTitle
-		roles[i] = u.Role
+		statuses[i] = u.Status
 	}
 
-	return r.queries.UpsertChatMembersWithRole(ctx, db.UpsertChatMembersWithRoleParams{
+	return r.queries.UpsertChatMembers(ctx, db.UpsertChatMembersParams{
 		ChatID:       chatID,
 		UserIds:      userIDs,
 		CustomTitles: customTitles,
-		Roles:        roles,
+		Statuses:     statuses,
 	})
 }
 
@@ -160,11 +160,11 @@ func (r *MemberRepository) Remove(ctx context.Context, chatID int64, userID int6
 	})
 }
 
-func (r *MemberRepository) EnsureExists(ctx context.Context, chatID int64, userID int64, role string) (model.ChatMember, error) {
+func (r *MemberRepository) EnsureExists(ctx context.Context, chatID int64, userID int64, status string) (model.ChatMember, error) {
 	m, err := r.queries.EnsureChatMemberExists(ctx, db.EnsureChatMemberExistsParams{
 		ChatID: chatID,
 		UserID: userID,
-		Role:   role,
+		Status: status,
 	})
 	if err != nil {
 		return model.ChatMember{}, err
@@ -173,9 +173,9 @@ func (r *MemberRepository) EnsureExists(ctx context.Context, chatID int64, userI
 	return mapChatMember(m), nil
 }
 
-func (r *MemberRepository) EnsureFull(ctx context.Context, chatID int64, userID int64, role string, firstName, lastName string, username string, weeklyNorm int32) (model.ChatMember, error) {
+func (r *MemberRepository) EnsureFull(ctx context.Context, chatID int64, userID int64, status string, firstName, lastName string, username string, weeklyNorm int32) (model.ChatMember, error) {
 	m, err := r.queries.EnsureMemberFull(ctx, db.EnsureMemberFullParams{
-		Role:       role,
+		Status:     status,
 		ChatID:     chatID,
 		WeeklyNorm: weeklyNorm,
 		UserID:     userID,
@@ -207,25 +207,25 @@ func (r *MemberRepository) MarkLeftNotInList(ctx context.Context, chatID int64, 
 }
 
 func mapChatMember(m db.ChatMember) model.ChatMember {
-	var exemptUntil *time.Time
-	if m.ExemptUntil.Valid {
-		t := m.ExemptUntil.Time
-		exemptUntil = &t
+	var restUntil *time.Time
+	if m.RestUntil.Valid {
+		t := m.RestUntil.Time
+		restUntil = &t
 	}
 	return model.ChatMember{
 		ChatID:      m.ChatID,
 		User:        model.User{ID: m.UserID},
-		ExemptUntil: exemptUntil,
+		RestUntil:   restUntil,
 		CustomTitle: m.CustomTitle.String,
-		Role:        m.Role,
+		Status:      m.Status,
 	}
 }
 
 func mapChatMemberRow(m db.GetChatMemberRow) model.ChatMember {
-	var exemptUntil *time.Time
-	if m.ExemptUntil.Valid {
-		t := m.ExemptUntil.Time
-		exemptUntil = &t
+	var restUntil *time.Time
+	if m.RestUntil.Valid {
+		t := m.RestUntil.Time
+		restUntil = &t
 	}
 	var username *string
 	if m.Username.Valid {
@@ -239,9 +239,9 @@ func mapChatMemberRow(m db.GetChatMemberRow) model.ChatMember {
 			LastName:  m.LastName.String,
 			Username:  username,
 		},
-		ExemptUntil: exemptUntil,
+		RestUntil:   restUntil,
 		CustomTitle: m.CustomTitle.String,
-		Role:        m.Role,
+		Status:      m.Status,
 	}
 }
 

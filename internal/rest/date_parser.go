@@ -1,4 +1,4 @@
-package exempt
+package rest
 
 import (
 	"regexp"

@@ -12,7 +12,7 @@ type Chat struct {
 type ChatMember struct {
 	User        User
 	ChatID      int64
-	ExemptUntil *time.Time
+	RestUntil   *time.Time
 	CustomTitle string
-	Role        string
+	Status      string
 }

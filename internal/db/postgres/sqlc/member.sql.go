@@ -30,29 +30,29 @@ func (q *Queries) DeleteChatMember(ctx context.Context, arg DeleteChatMemberPara
 }
 
 const ensureChatMemberExists = `-- name: EnsureChatMemberExists :one
-INSERT INTO chat_members(chat_id, user_id, role)
+INSERT INTO chat_members(chat_id, user_id, status)
 VALUES ($1, $2, $3)
-ON CONFLICT(chat_id, user_id) DO UPDATE SET role    = EXCLUDED.role,
+ON CONFLICT(chat_id, user_id) DO UPDATE SET status  = EXCLUDED.status,
                                             left_at = NULL
-RETURNING chat_id, user_id, joined_at, exempt_until, custom_title, role, left_at
+RETURNING chat_id, user_id, joined_at, rest_until, custom_title, status, left_at
 `
 
 type EnsureChatMemberExistsParams struct {
 	ChatID int64  `db:"chat_id" json:"chatId"`
 	UserID int64  `db:"user_id" json:"userId"`
-	Role   string `db:"role" json:"role"`
+	Status string `db:"status" json:"status"`
 }
 
 func (q *Queries) EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemberExistsParams) (ChatMember, error) {
-	row := q.db.QueryRow(ctx, ensureChatMemberExists, arg.ChatID, arg.UserID, arg.Role)
+	row := q.db.QueryRow(ctx, ensureChatMemberExists, arg.ChatID, arg.UserID, arg.Status)
 	var i ChatMember
 	err := row.Scan(
 		&i.ChatID,
 		&i.UserID,
 		&i.JoinedAt,
-		&i.ExemptUntil,
+		&i.RestUntil,
 		&i.CustomTitle,
-		&i.Role,
+		&i.Status,
 		&i.LeftAt,
 	)
 	return i, err
@@ -72,23 +72,24 @@ WITH chat_upsert AS (
                  last_name = EXCLUDED.last_name
              RETURNING id)
 INSERT
-INTO chat_members (chat_id, user_id, role)
+INTO chat_members (chat_id, user_id, status)
 SELECT chat_upsert.id, user_upsert.id, $1
 FROM chat_upsert,
      user_upsert
-ON CONFLICT (chat_id, user_id) DO UPDATE SET role    = CASE
-                                                           WHEN EXCLUDED.role = 'creator' THEN 'creator'
-                                                           WHEN chat_members.role = 'administrator' THEN 'administrator'
-                                                           WHEN chat_members.role = 'creator' AND EXCLUDED.role <> 'creator'
+ON CONFLICT (chat_id, user_id) DO UPDATE SET status  = CASE
+                                                           WHEN EXCLUDED.status = 'creator' THEN 'creator'
+                                                           WHEN chat_members.status = 'administrator'
+                                                               THEN 'administrator'
+                                                           WHEN chat_members.status = 'creator' AND EXCLUDED.status <> 'creator'
                                                                THEN 'creator'
-                                                           ELSE EXCLUDED.role
+                                                           ELSE EXCLUDED.status
     END,
                                              left_at = NULL
-RETURNING chat_id, user_id, joined_at, exempt_until, custom_title, role, left_at
+RETURNING chat_id, user_id, joined_at, rest_until, custom_title, status, left_at
 `
 
 type EnsureMemberFullParams struct {
-	Role       string      `db:"role" json:"role"`
+	Status     string      `db:"status" json:"status"`
 	ChatID     int64       `db:"chat_id" json:"chatId"`
 	WeeklyNorm int32       `db:"weekly_norm" json:"weeklyNorm"`
 	UserID     int64       `db:"user_id" json:"userId"`
@@ -99,7 +100,7 @@ type EnsureMemberFullParams struct {
 
 func (q *Queries) EnsureMemberFull(ctx context.Context, arg EnsureMemberFullParams) (ChatMember, error) {
 	row := q.db.QueryRow(ctx, ensureMemberFull,
-		arg.Role,
+		arg.Status,
 		arg.ChatID,
 		arg.WeeklyNorm,
 		arg.UserID,
@@ -112,16 +113,16 @@ func (q *Queries) EnsureMemberFull(ctx context.Context, arg EnsureMemberFullPara
 		&i.ChatID,
 		&i.UserID,
 		&i.JoinedAt,
-		&i.ExemptUntil,
+		&i.RestUntil,
 		&i.CustomTitle,
-		&i.Role,
+		&i.Status,
 		&i.LeftAt,
 	)
 	return i, err
 }
 
 const getChatMember = `-- name: GetChatMember :one
-SELECT chat_id, user_id, joined_at, exempt_until, custom_title, role, left_at, id, username, first_name, last_name, created_at
+SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, id, username, first_name, last_name, created_at
 FROM chat_members
          JOIN users ON users.id = user_id
 WHERE left_at IS NULL
@@ -138,9 +139,9 @@ type GetChatMemberRow struct {
 	ChatID      int64              `db:"chat_id" json:"chatId"`
 	UserID      int64              `db:"user_id" json:"userId"`
 	JoinedAt    pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
-	ExemptUntil pgtype.Timestamptz `db:"exempt_until" json:"exemptUntil"`
+	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
 	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
-	Role        string             `db:"role" json:"role"`
+	Status      string             `db:"status" json:"status"`
 	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
 	ID          int64              `db:"id" json:"id"`
 	Username    pgtype.Text        `db:"username" json:"username"`
@@ -156,9 +157,9 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 		&i.ChatID,
 		&i.UserID,
 		&i.JoinedAt,
-		&i.ExemptUntil,
+		&i.RestUntil,
 		&i.CustomTitle,
-		&i.Role,
+		&i.Status,
 		&i.LeftAt,
 		&i.ID,
 		&i.Username,
@@ -170,7 +171,7 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 }
 
 const getChatMembers = `-- name: GetChatMembers :many
-SELECT chat_id, user_id, joined_at, exempt_until, custom_title, role, left_at, id, username, first_name, last_name, created_at
+SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, id, username, first_name, last_name, created_at
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
@@ -181,9 +182,9 @@ type GetChatMembersRow struct {
 	ChatID      int64              `db:"chat_id" json:"chatId"`
 	UserID      int64              `db:"user_id" json:"userId"`
 	JoinedAt    pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
-	ExemptUntil pgtype.Timestamptz `db:"exempt_until" json:"exemptUntil"`
+	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
 	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
-	Role        string             `db:"role" json:"role"`
+	Status      string             `db:"status" json:"status"`
 	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
 	ID          int64              `db:"id" json:"id"`
 	Username    pgtype.Text        `db:"username" json:"username"`
@@ -205,9 +206,9 @@ func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMe
 			&i.ChatID,
 			&i.UserID,
 			&i.JoinedAt,
-			&i.ExemptUntil,
+			&i.RestUntil,
 			&i.CustomTitle,
-			&i.Role,
+			&i.Status,
 			&i.LeftAt,
 			&i.ID,
 			&i.Username,
@@ -226,7 +227,7 @@ func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMe
 }
 
 const getChatMembersWithTitles = `-- name: GetChatMembersWithTitles :many
-SELECT cm.user_id, cm.custom_title, cm.role, u.first_name, u.last_name, u.username
+SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = $1
@@ -238,7 +239,7 @@ WHERE cm.chat_id = $1
 type GetChatMembersWithTitlesRow struct {
 	UserID      int64       `db:"user_id" json:"userId"`
 	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
-	Role        string      `db:"role" json:"role"`
+	Status      string      `db:"status" json:"status"`
 	FirstName   pgtype.Text `db:"first_name" json:"firstName"`
 	LastName    pgtype.Text `db:"last_name" json:"lastName"`
 	Username    pgtype.Text `db:"username" json:"username"`
@@ -256,7 +257,7 @@ func (q *Queries) GetChatMembersWithTitles(ctx context.Context, chatID int64) ([
 		if err := rows.Scan(
 			&i.UserID,
 			&i.CustomTitle,
-			&i.Role,
+			&i.Status,
 			&i.FirstName,
 			&i.LastName,
 			&i.Username,
@@ -346,24 +347,6 @@ func (q *Queries) MoveChatMembersToOldExcept(ctx context.Context, arg MoveChatMe
 	return err
 }
 
-const updateChatMemberRole = `-- name: UpdateChatMemberRole :exec
-UPDATE chat_members
-SET role = $1
-WHERE chat_id = $2
-  AND user_id = $3
-`
-
-type UpdateChatMemberRoleParams struct {
-	Role   string `db:"role" json:"role"`
-	ChatID int64  `db:"chat_id" json:"chatId"`
-	UserID int64  `db:"user_id" json:"userId"`
-}
-
-func (q *Queries) UpdateChatMemberRole(ctx context.Context, arg UpdateChatMemberRoleParams) error {
-	_, err := q.db.Exec(ctx, updateChatMemberRole, arg.Role, arg.ChatID, arg.UserID)
-	return err
-}
-
 const updateChatMemberTitle = `-- name: UpdateChatMemberTitle :exec
 UPDATE chat_members
 SET custom_title = $1
@@ -382,32 +365,50 @@ func (q *Queries) UpdateChatMemberTitle(ctx context.Context, arg UpdateChatMembe
 	return err
 }
 
-const upsertChatMembersWithRole = `-- name: UpsertChatMembersWithRole :exec
-INSERT INTO chat_members(chat_id, user_id, custom_title, role)
+const updateMemberStatus = `-- name: UpdateMemberStatus :exec
+UPDATE chat_members
+SET status = $1
+WHERE chat_id = $2
+  AND user_id = $3
+`
+
+type UpdateMemberStatusParams struct {
+	Status string `db:"status" json:"status"`
+	ChatID int64  `db:"chat_id" json:"chatId"`
+	UserID int64  `db:"user_id" json:"userId"`
+}
+
+func (q *Queries) UpdateMemberStatus(ctx context.Context, arg UpdateMemberStatusParams) error {
+	_, err := q.db.Exec(ctx, updateMemberStatus, arg.Status, arg.ChatID, arg.UserID)
+	return err
+}
+
+const upsertChatMembers = `-- name: UpsertChatMembers :exec
+INSERT INTO chat_members(chat_id, user_id, custom_title, status)
 SELECT $1, UNNEST($2::BIGINT[]), UNNEST($3::TEXT[]), UNNEST($4::TEXT[])
 ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = EXCLUDED.custom_title,
-                                             role         = CASE
-                                                                WHEN EXCLUDED.role = 'creator' THEN 'creator'
-                                                                WHEN chat_members.role = 'administrator'
+                                             status         = CASE
+                                                                WHEN EXCLUDED.status = 'creator' THEN 'creator'
+                                                                WHEN chat_members.status = 'administrator'
                                                                     THEN 'administrator'
-                                                                ELSE EXCLUDED.role
+                                                                ELSE EXCLUDED.status
                                                  END,
                                              left_at      = NULL
 `
 
-type UpsertChatMembersWithRoleParams struct {
+type UpsertChatMembersParams struct {
 	ChatID       int64    `db:"chat_id" json:"chatId"`
 	UserIds      []int64  `db:"user_ids" json:"userIds"`
 	CustomTitles []string `db:"custom_titles" json:"customTitles"`
-	Roles        []string `db:"roles" json:"roles"`
+	Statuses     []string `db:"statuses" json:"statuses"`
 }
 
-func (q *Queries) UpsertChatMembersWithRole(ctx context.Context, arg UpsertChatMembersWithRoleParams) error {
-	_, err := q.db.Exec(ctx, upsertChatMembersWithRole,
+func (q *Queries) UpsertChatMembers(ctx context.Context, arg UpsertChatMembersParams) error {
+	_, err := q.db.Exec(ctx, upsertChatMembers,
 		arg.ChatID,
 		arg.UserIds,
 		arg.CustomTitles,
-		arg.Roles,
+		arg.Statuses,
 	)
 	return err
 }

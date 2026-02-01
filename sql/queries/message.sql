@@ -13,7 +13,7 @@ SELECT cm.user_id,
        (COUNT(m.chat_id) >= c.weekly_norm) AS norm_done,
        cm.joined_at,
        c.newbie_threshold_days,
-       cm.role,
+       cm.status,
        cm.custom_title
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
@@ -27,9 +27,9 @@ FROM chat_members cm
                           )
 WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL
-  AND (cm.exempt_until IS NULL OR cm.exempt_until < now())
+  AND (cm.rest_until IS NULL OR cm.rest_until < now())
 GROUP BY cm.user_id, u.username, u.first_name, u.last_name,
          c.weekly_norm, cm.joined_at, c.newbie_threshold_days,
-         cm.role, cm.custom_title
+         cm.status, cm.custom_title
 ORDER BY messages_count DESC;
 

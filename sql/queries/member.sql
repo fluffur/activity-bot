@@ -6,9 +6,9 @@ WHERE chat_id = $1
 
 
 -- name: EnsureChatMemberExists :one
-INSERT INTO chat_members(chat_id, user_id, role)
-VALUES ($1, $2, @role)
-ON CONFLICT(chat_id, user_id) DO UPDATE SET role    = EXCLUDED.role,
+INSERT INTO chat_members(chat_id, user_id, status)
+VALUES ($1, $2, @status)
+ON CONFLICT(chat_id, user_id) DO UPDATE SET status  = EXCLUDED.status,
                                             left_at = NULL
 RETURNING *;
 
@@ -30,7 +30,7 @@ WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL;
 
 -- name: GetChatMembersWithTitles :many
-SELECT cm.user_id, cm.custom_title, cm.role, u.first_name, u.last_name, u.username
+SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = @chat_id
@@ -51,9 +51,9 @@ WHERE chat_id = @chat_id
   AND user_id = @user_id
   AND left_at IS NULL;
 
--- name: UpdateChatMemberRole :exec
+-- name: UpdateMemberStatus :exec
 UPDATE chat_members
-SET role = @role
+SET status = @status
 WHERE chat_id = @chat_id
   AND user_id = @user_id;
 
@@ -71,29 +71,30 @@ WITH chat_upsert AS (
                  last_name = EXCLUDED.last_name
              RETURNING id)
 INSERT
-INTO chat_members (chat_id, user_id, role)
-SELECT chat_upsert.id, user_upsert.id, @role
+INTO chat_members (chat_id, user_id, status)
+SELECT chat_upsert.id, user_upsert.id, @status
 FROM chat_upsert,
      user_upsert
-ON CONFLICT (chat_id, user_id) DO UPDATE SET role    = CASE
-                                                           WHEN EXCLUDED.role = 'creator' THEN 'creator'
-                                                           WHEN chat_members.role = 'administrator' THEN 'administrator'
-                                                           WHEN chat_members.role = 'creator' AND EXCLUDED.role <> 'creator'
+ON CONFLICT (chat_id, user_id) DO UPDATE SET status  = CASE
+                                                           WHEN EXCLUDED.status = 'creator' THEN 'creator'
+                                                           WHEN chat_members.status = 'administrator'
+                                                               THEN 'administrator'
+                                                           WHEN chat_members.status = 'creator' AND EXCLUDED.status <> 'creator'
                                                                THEN 'creator'
-                                                           ELSE EXCLUDED.role
+                                                           ELSE EXCLUDED.status
     END,
                                              left_at = NULL
 RETURNING *;
 
--- name: UpsertChatMembersWithRole :exec
-INSERT INTO chat_members(chat_id, user_id, custom_title, role)
-SELECT @chat_id, UNNEST(@user_ids::BIGINT[]), UNNEST(@custom_titles::TEXT[]), UNNEST(@roles::TEXT[])
+-- name: UpsertChatMembers :exec
+INSERT INTO chat_members(chat_id, user_id, custom_title, status)
+SELECT @chat_id, UNNEST(@user_ids::BIGINT[]), UNNEST(@custom_titles::TEXT[]), UNNEST(@statuses::TEXT[])
 ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = EXCLUDED.custom_title,
-                                             role         = CASE
-                                                                WHEN EXCLUDED.role = 'creator' THEN 'creator'
-                                                                WHEN chat_members.role = 'administrator'
+                                             status         = CASE
+                                                                WHEN EXCLUDED.status = 'creator' THEN 'creator'
+                                                                WHEN chat_members.status = 'administrator'
                                                                     THEN 'administrator'
-                                                                ELSE EXCLUDED.role
+                                                                ELSE EXCLUDED.status
                                                  END,
                                              left_at      = NULL
 ;

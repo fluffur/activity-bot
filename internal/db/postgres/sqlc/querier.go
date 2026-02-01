@@ -12,25 +12,25 @@ import (
 
 type Querier interface {
 	AddChatAdmin(ctx context.Context, arg AddChatAdminParams) error
-	AddExemptRequest(ctx context.Context, arg AddExemptRequestParams) error
-	ApproveExemptRequest(ctx context.Context, arg ApproveExemptRequestParams) error
-	ChatExemptUsers(ctx context.Context, chatID int64) ([]ChatExemptUsersRow, error)
+	AddRestRequest(ctx context.Context, arg AddRestRequestParams) error
+	ApproveRestRequest(ctx context.Context, arg ApproveRestRequestParams) error
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
 	DeleteChatMember(ctx context.Context, arg DeleteChatMemberParams) error
+	EndMemberRest(ctx context.Context, arg EndMemberRestParams) error
 	EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error)
 	EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemberExistsParams) (ChatMember, error)
 	EnsureMemberFull(ctx context.Context, arg EnsureMemberFullParams) (ChatMember, error)
 	EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) (User, error)
-	ExemptChatMember(ctx context.Context, arg ExemptChatMemberParams) error
 	GetChat(ctx context.Context, id int64) (Chat, error)
 	GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdminsRow, error)
 	GetChatMember(ctx context.Context, arg GetChatMemberParams) (GetChatMemberRow, error)
-	GetChatMemberRole(ctx context.Context, arg GetChatMemberRoleParams) (string, error)
+	GetChatMemberStatus(ctx context.Context, arg GetChatMemberStatusParams) (string, error)
 	GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMembersRow, error)
 	GetChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetChatMembersWithTitlesRow, error)
-	GetExemptRequest(ctx context.Context, arg GetExemptRequestParams) (ExemptRequest, error)
 	GetMemberCustomTitle(ctx context.Context, arg GetMemberCustomTitleParams) (pgtype.Text, error)
 	GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams) (Chat, error)
+	GetRestMembers(ctx context.Context, chatID int64) ([]GetRestMembersRow, error)
+	GetRestRequest(ctx context.Context, arg GetRestRequestParams) (RestRequest, error)
 	GetUser(ctx context.Context, id int64) (User, error)
 	GetUserByUsername(ctx context.Context, lower string) (User, error)
 	IsChatAdmin(ctx context.Context, arg IsChatAdminParams) (bool, error)
@@ -39,15 +39,15 @@ type Querier interface {
 	MessageReport(ctx context.Context, arg MessageReportParams) ([]MessageReportRow, error)
 	MoveChatMembersToNew(ctx context.Context, arg MoveChatMembersToNewParams) error
 	MoveChatMembersToOldExcept(ctx context.Context, arg MoveChatMembersToOldExceptParams) error
-	RejectExemptRequest(ctx context.Context, arg RejectExemptRequestParams) error
+	RejectRestRequest(ctx context.Context, arg RejectRestRequestParams) error
 	RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error
-	RemoveChatMemberExempt(ctx context.Context, arg RemoveChatMemberExemptParams) error
 	SetChatGeminiSystemPrompt(ctx context.Context, arg SetChatGeminiSystemPromptParams) error
-	UpdateChatMemberRole(ctx context.Context, arg UpdateChatMemberRoleParams) error
+	SetMemberRest(ctx context.Context, arg SetMemberRestParams) error
 	UpdateChatMemberTitle(ctx context.Context, arg UpdateChatMemberTitleParams) error
 	UpdateChatNewbieThreshold(ctx context.Context, arg UpdateChatNewbieThresholdParams) error
 	UpdateChatNorm(ctx context.Context, arg UpdateChatNormParams) error
-	UpsertChatMembersWithRole(ctx context.Context, arg UpsertChatMembersWithRoleParams) error
+	UpdateMemberStatus(ctx context.Context, arg UpdateMemberStatusParams) error
+	UpsertChatMembers(ctx context.Context, arg UpsertChatMembersParams) error
 	UpsertUsers(ctx context.Context, arg UpsertUsersParams) error
 }
 

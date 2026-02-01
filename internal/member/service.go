@@ -30,7 +30,7 @@ func (s *Service) SetMemberTitle(chatID int64, userID int64, title *string) erro
 
 func (s *Service) SetMemberRole(chatID int64, userID int64, role string) error {
 	ctx := context.Background()
-	return s.repo.UpdateRole(ctx, chatID, userID, role)
+	return s.repo.UpdateStatus(ctx, chatID, userID, role)
 }
 
 func (s *Service) GetMembersWithTitle(chatID int64) ([]model.ChatMember, error) {

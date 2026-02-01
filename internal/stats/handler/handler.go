@@ -2,10 +2,10 @@ package handler
 
 import (
 	"activity-bot/internal/cmd"
-	"activity-bot/internal/exempt"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
+	"activity-bot/internal/rest"
 	"activity-bot/internal/stats"
 	"fmt"
 	"log/slog"
@@ -18,12 +18,12 @@ import (
 
 type Handler struct {
 	service       *stats.Service
-	exemptService *exempt.Service
+	restService   *rest.Service
 	memberService *member.Service
 }
 
-func New(service *stats.Service, exemptService *exempt.Service, memberService *member.Service) *Handler {
-	return &Handler{service, exemptService, memberService}
+func New(service *stats.Service, restService *rest.Service, memberService *member.Service) *Handler {
+	return &Handler{service, restService, memberService}
 }
 
 func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
@@ -58,19 +58,19 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context)
 
 	}
 
-	exemptMembers, err := h.exemptService.GetExemptMembers(ctx.EffectiveChat.Id)
+	restMembers, err := h.restService.GetRestMembers(ctx.EffectiveChat.Id)
 	if err != nil {
-		slog.Error("failed to get exempt members for report", "chat_id", ctx.EffectiveChat.Id, "error", err)
+		slog.Error("failed to get rest members for report", "chat_id", ctx.EffectiveChat.Id, "error", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить отчёт", nil)
 		return err
 	}
 
-	if len(report) == 0 && len(exemptMembers) == 0 {
+	if len(report) == 0 && len(restMembers) == 0 {
 		_, err = ctx.EffectiveMessage.Reply(b, "Нет данных для отчёта на эту неделю", nil)
 		return err
 	}
 
-	_, err = ctx.EffectiveMessage.Reply(b, formatReport(report, exemptMembers, from, to), &gotgbot.SendMessageOpts{
+	_, err = ctx.EffectiveMessage.Reply(b, formatReport(report, restMembers, from, to), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 			IsDisabled: true,
@@ -79,7 +79,7 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context)
 	return err
 }
 
-func formatReport(report []model.MessageReportMember, exemptMembers []model.ExemptMember, from, to *time.Time) string {
+func formatReport(report []model.MessageReportMember, restMembers []model.RestMember, from, to *time.Time) string {
 	var periodHeader string
 	now := time.Now()
 
@@ -133,10 +133,10 @@ func formatReport(report []model.MessageReportMember, exemptMembers []model.Exem
 		}
 	}
 
-	for _, r := range exemptMembers {
+	for _, r := range restMembers {
 		var untilText string
-		if !r.ExemptUntil.IsZero() {
-			untilText = helpers.FormatToHumanDate(r.ExemptUntil)
+		if !r.RestUntil.IsZero() {
+			untilText = helpers.FormatToHumanDate(r.RestUntil)
 		} else {
 			untilText = "неизвестно"
 		}

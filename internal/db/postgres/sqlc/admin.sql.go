@@ -13,7 +13,7 @@ import (
 
 const addChatAdmin = `-- name: AddChatAdmin :exec
 UPDATE chat_members
-SET role = 'administrator'
+SET status = 'administrator'
 WHERE chat_id = $1 AND user_id = $2
 `
 
@@ -31,7 +31,7 @@ const getChatAdmins = `-- name: GetChatAdmins :many
 SELECT u.id, u.username, u.first_name, u.last_name, cm.joined_at as created_at
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
-WHERE cm.chat_id = $1 AND cm.role IN ('administrator', 'creator')
+WHERE cm.chat_id = $1 AND cm.status IN ('administrator', 'creator')
 ORDER BY cm.joined_at
 `
 
@@ -69,23 +69,23 @@ func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdm
 	return items, nil
 }
 
-const getChatMemberRole = `-- name: GetChatMemberRole :one
-SELECT role
+const getChatMemberStatus = `-- name: GetChatMemberStatus :one
+SELECT status
 FROM chat_members
 WHERE chat_id = $1
   AND user_id = $2
 `
 
-type GetChatMemberRoleParams struct {
+type GetChatMemberStatusParams struct {
 	ChatID int64 `db:"chat_id" json:"chatId"`
 	UserID int64 `db:"user_id" json:"userId"`
 }
 
-func (q *Queries) GetChatMemberRole(ctx context.Context, arg GetChatMemberRoleParams) (string, error) {
-	row := q.db.QueryRow(ctx, getChatMemberRole, arg.ChatID, arg.UserID)
-	var role string
-	err := row.Scan(&role)
-	return role, err
+func (q *Queries) GetChatMemberStatus(ctx context.Context, arg GetChatMemberStatusParams) (string, error) {
+	row := q.db.QueryRow(ctx, getChatMemberStatus, arg.ChatID, arg.UserID)
+	var status string
+	err := row.Scan(&status)
+	return status, err
 }
 
 const isChatAdmin = `-- name: IsChatAdmin :one
@@ -93,7 +93,7 @@ SELECT EXISTS(SELECT 1
               FROM chat_members
               WHERE chat_id = $1
                 AND user_id = $2
-                AND role IN ('administrator', 'creator'))
+                AND status IN ('administrator', 'creator'))
 `
 
 type IsChatAdminParams struct {
@@ -113,7 +113,7 @@ SELECT EXISTS(SELECT 1
               FROM chat_members
               WHERE chat_id = $1
                 AND user_id = $2
-                AND role = 'creator')
+                AND status = 'creator')
 `
 
 type IsChatCreatorParams struct {
@@ -130,7 +130,7 @@ func (q *Queries) IsChatCreator(ctx context.Context, arg IsChatCreatorParams) (b
 
 const removeChatAdmin = `-- name: RemoveChatAdmin :exec
 UPDATE chat_members
-SET role = 'member'
+SET status = 'member'
 WHERE chat_id = $1 AND user_id = $2
 `
 
