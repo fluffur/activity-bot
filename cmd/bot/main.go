@@ -165,6 +165,7 @@ func main() {
 	adminGuard := guard.NewAdminGuard(adminService)
 	creatorGuard := guard.NewCreatorGuard(adminService)
 	groupGuard := guard.OnlyGroups()
+	rateLimiterGuard := guard.NewRateLimiter(rdb, 1, 10*time.Second)
 
 	cf := cmd.NewFactory(userService, "/", "!", ".")
 
@@ -174,7 +175,7 @@ func main() {
 	dp.AddHandler(cf.New(statsHandler.ShowStats, "stats", "отчёт", "отчет").
 		AddTriggers("").
 		SetArgsCount(1).
-		WithGuards(groupGuard),
+		WithGuards(groupGuard, rateLimiterGuard),
 	)
 	dp.AddHandler(cf.New(statsHandler.WhoAmI, "whoami", "ктоя", "я кто").
 		AddTriggers("").
@@ -232,7 +233,7 @@ func main() {
 	)
 
 	dp.AddHandler(cf.New(adminHandler.ListAdmins, "admins", "админы", "админчики", "администраторы", "адмы", "модеры", "mods").
-		WithGuards(groupGuard),
+		WithGuards(groupGuard, rateLimiterGuard),
 	)
 	dp.AddHandler(cf.New(adminHandler.IsAdmin, "админ", "admin", "is_admin", "адм", "модер", "mod", "is_mod").
 		WithGuards(groupGuard).
@@ -248,7 +249,7 @@ func main() {
 	)
 
 	dp.AddHandler(cf.New(memberHandler.UpdateMembersList, "обновить чат", "update chat", "update").
-		WithGuards(groupGuard),
+		WithGuards(groupGuard, rateLimiterGuard),
 	)
 	dp.AddHandler(cf.New(memberHandler.ListRoles, "роли", "roles", "titles").
 		WithGuards(groupGuard),
@@ -272,7 +273,7 @@ func main() {
 
 	dp.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл", "all").
 		AddTriggers("+", "").
-		WithGuards(groupGuard, adminGuard).
+		WithGuards(groupGuard, adminGuard, rateLimiterGuard).
 		SetArgsCount(1),
 	)
 
@@ -295,7 +296,9 @@ func main() {
 
 	dp.AddHandler(cf.New(messageHandler.Bot, "крис").
 		AddTriggers("").
-		WithGuards(groupGuard).SetArgsCount(1))
+		WithGuards(groupGuard, guard.NewRateLimiter(rdb, 5, 10*time.Second)).
+		SetArgsCount(1),
+	)
 
 	dp.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))
 	dp.AddHandler(handlers.NewMessage(message.NewChatMembers, memberHandler.OnJoinMember))

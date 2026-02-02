@@ -1,0 +1,47 @@
+package guard
+
+import (
+	"activity-bot/internal/cmd"
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
+	"github.com/redis/go-redis/v9"
+)
+
+type RateLimiter struct {
+	Redis    *redis.Client
+	Limit    int
+	Interval time.Duration
+}
+
+func NewRateLimiter(rdb *redis.Client, limit int, interval time.Duration) cmd.Guard {
+	return &RateLimiter{
+		Redis:    rdb,
+		Limit:    limit,
+		Interval: interval,
+	}
+}
+
+func (r *RateLimiter) Check(ctx *ext.Context) (bool, string) {
+	cctx := context.Background()
+	userID := ctx.EffectiveUser.Id
+	key := fmt.Sprintf("rate:%d", userID)
+	count, err := r.Redis.Get(cctx, key).Int()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return false, ""
+	}
+
+	if count >= r.Limit {
+		return false, "⚠️ Слишком много запросов! Попробуй позже."
+	}
+
+	pipe := r.Redis.TxPipeline()
+	pipe.Incr(cctx, key)
+	pipe.Expire(cctx, key, r.Interval)
+	_, _ = pipe.Exec(cctx)
+
+	return true, ""
+}
