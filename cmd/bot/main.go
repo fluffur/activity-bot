@@ -11,7 +11,6 @@ import (
 	"activity-bot/internal/config"
 	"activity-bot/internal/db/postgres"
 	db "activity-bot/internal/db/postgres/sqlc"
-	redisDB "activity-bot/internal/db/redis"
 	"activity-bot/internal/filter"
 	"activity-bot/internal/guard"
 	helpH "activity-bot/internal/help/handler"
@@ -138,7 +137,7 @@ func main() {
 	chatRepository := postgres.NewChatRepository(queries)
 	adminRepository := postgres.NewAdminRepository(queries)
 	messageRepository := postgres.NewMessageRepository(queries)
-	ladderRepository := redisDB.NewLadderRepository(rdb)
+	//ladderRepository := redisDB.NewLadderRepository(rdb)
 
 	statsService := stats.NewService(statsRepository)
 	restService := rest.NewService(restRepository)
@@ -149,7 +148,7 @@ func main() {
 	statusProvider := adapter.NewTelegramMemberStatusProvider(b)
 	memberService := member.NewService(memberRepository, chatRepository, userRepository, adminsProvider, cfg.DefaultWeeklyNorm)
 	adminService := admin.NewService(adminRepository, statusProvider, cfg.BotOwnerID)
-	messageService := msg.NewService(messageRepository, ladderRepository)
+	messageService := msg.NewService(messageRepository)
 
 	dateParser := rest.NewDateParser()
 
