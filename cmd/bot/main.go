@@ -176,11 +176,11 @@ func main() {
 		SetArgsCount(1).
 		WithGuards(groupGuard),
 	)
-	dp.AddHandler(cf.New(statsHandler.WhoAmI, "whoami", "хто я", "я кто").
+	dp.AddHandler(cf.New(statsHandler.WhoAmI, "whoami", "ктоя", "я кто").
 		AddTriggers("").
 		WithGuards(groupGuard),
 	)
-	dp.AddHandler(cf.New(statsHandler.WhoAreYou, "whoareu", "хто ты", "ты кто").
+	dp.AddHandler(cf.New(statsHandler.WhoAreYou, "whoareu", "ктоты", "тыкто").
 		AddTriggers("").
 		WithGuards(groupGuard),
 	)
