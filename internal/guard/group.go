@@ -8,7 +8,7 @@ import (
 )
 
 func OnlyGroups() cmd.Guard {
-	return cmd.GuardFunc(func(ctx *ext.Context) (bool, string) {
+	return cmd.GuardFunc(func(ctx *ext.Context, _ string) (bool, string) {
 		if !filter.OnlyGroups(ctx.EffectiveMessage) {
 			return false, "Команда доступна только в группах"
 		}

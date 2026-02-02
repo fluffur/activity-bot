@@ -252,7 +252,7 @@ func main() {
 		WithGuards(groupGuard, rateLimiterGuard),
 	)
 	dp.AddHandler(cf.New(memberHandler.ListRoles, "роли", "roles", "titles").
-		WithGuards(groupGuard),
+		WithGuards(groupGuard, rateLimiterGuard),
 	)
 	dp.AddHandler(cf.New(memberHandler.DeleteRole, "-роль", "-role", "-title").
 		AddTriggers("").

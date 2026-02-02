@@ -104,7 +104,7 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 
 func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 	for _, guard := range c.guards {
-		if ok, message := guard.Check(ctx); !ok {
+		if ok, message := guard.Check(ctx, c.commands[0]); !ok {
 			if message != "" {
 				_, err := ctx.EffectiveMessage.Reply(b, message, nil)
 				return err

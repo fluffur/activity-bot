@@ -15,7 +15,7 @@ func NewAdminGuard(service *admin.Service) cmd.Guard {
 	return &AdminGuard{service}
 }
 
-func (g *AdminGuard) Check(ctx *ext.Context) (bool, string) {
+func (g *AdminGuard) Check(ctx *ext.Context, _ string) (bool, string) {
 	if !g.service.CheckIsAdmin(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
 		return false, "Только создатель и администраторы могут выполнить эту команду"
 	}

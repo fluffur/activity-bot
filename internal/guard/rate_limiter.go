@@ -25,10 +25,10 @@ func NewRateLimiter(rdb *redis.Client, limit int, interval time.Duration) cmd.Gu
 	}
 }
 
-func (r *RateLimiter) Check(ctx *ext.Context) (bool, string) {
+func (r *RateLimiter) Check(ctx *ext.Context, command string) (bool, string) {
 	cctx := context.Background()
-	userID := ctx.EffectiveUser.Id
-	key := fmt.Sprintf("rate:%d", userID)
+	chatID := ctx.EffectiveChat.Id
+	key := fmt.Sprintf("rate:%d:%s", chatID, command)
 	count, err := r.Redis.Get(cctx, key).Int()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return false, ""
