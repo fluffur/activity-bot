@@ -123,8 +123,9 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 
 🌟 <b>Активность</b>
  • Сегодня: %d сообщений
- • Календарная неделя: %d сообщений
+ • На этой неделе: %d сообщений
  • Неделя: %d сообщений
+ • В этом месяце: %d сообщений
  • Месяц: %d сообщений
  • Всего: %d сообщений
 
@@ -137,8 +138,9 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 		htmlEscape(m.Status),
 		helpers.FormatToHumanDate(m.JoinedAt),
 		m.DayCount,
-		m.WeekCount,
 		m.WeekRollingCount,
+		m.WeekCount,
+		m.MonthRollingCount,
 		m.MonthCount,
 		m.AllTime,
 		restText,

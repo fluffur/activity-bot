@@ -52,6 +52,9 @@ SELECT cm.user_id,
        COUNT(m.chat_id) FILTER (
            WHERE m.created_at >= date_trunc('month', now())
            )            AS month_count,
+       COUNT(*) FILTER (
+           WHERE m.created_at >= now() - interval '30 days'
+           ) AS month_rolling_count,
        COUNT(m.chat_id) AS all_time_count,
 
        c.weekly_norm,

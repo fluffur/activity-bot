@@ -142,6 +142,9 @@ SELECT cm.user_id,
        COUNT(m.chat_id) FILTER (
            WHERE m.created_at >= date_trunc('month', now())
            )            AS month_count,
+       COUNT(*) FILTER (
+           WHERE m.created_at >= now() - interval '30 days'
+           ) AS month_rolling_count,
        COUNT(m.chat_id) AS all_time_count,
 
        c.weekly_norm,
@@ -188,6 +191,7 @@ type MessageReportOneRow struct {
 	WeekCount           int64              `db:"week_count" json:"weekCount"`
 	WeekRollingCount    int64              `db:"week_rolling_count" json:"weekRollingCount"`
 	MonthCount          int64              `db:"month_count" json:"monthCount"`
+	MonthRollingCount   int64              `db:"month_rolling_count" json:"monthRollingCount"`
 	AllTimeCount        int64              `db:"all_time_count" json:"allTimeCount"`
 	WeeklyNorm          int32              `db:"weekly_norm" json:"weeklyNorm"`
 	JoinedAt            pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
@@ -209,6 +213,7 @@ func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOnePara
 		&i.WeekCount,
 		&i.WeekRollingCount,
 		&i.MonthCount,
+		&i.MonthRollingCount,
 		&i.AllTimeCount,
 		&i.WeeklyNorm,
 		&i.JoinedAt,

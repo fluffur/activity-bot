@@ -25,11 +25,12 @@ type RestMember struct {
 type MemberStats struct {
 	User User
 
-	DayCount         int32
-	WeekCount        int32
-	WeekRollingCount int32
-	MonthCount       int32
-	AllTime          int32
+	DayCount          int32
+	WeekCount         int32
+	WeekRollingCount  int32
+	MonthCount        int32
+	MonthRollingCount int32
+	AllTime           int32
 
 	WeeklyNorm      int32
 	JoinedAt        time.Time

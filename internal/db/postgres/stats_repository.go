@@ -78,11 +78,12 @@ func mapMemberStats(row db.MessageReportOneRow) model.MemberStats {
 			FirstName: row.FirstName.String,
 			Username:  username,
 		},
-		DayCount:         int32(row.DayCount),
-		WeekCount:        int32(row.WeekCount),
-		WeekRollingCount: int32(row.WeekRollingCount),
-		MonthCount:       int32(row.MonthCount),
-		AllTime:          int32(row.AllTimeCount),
+		DayCount:          int32(row.DayCount),
+		WeekCount:         int32(row.WeekCount),
+		WeekRollingCount:  int32(row.WeekRollingCount),
+		MonthCount:        int32(row.MonthCount),
+		MonthRollingCount: int32(row.MonthRollingCount),
+		AllTime:           int32(row.AllTimeCount),
 
 		RestUntil: restUntil,
 
