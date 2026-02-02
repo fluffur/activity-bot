@@ -26,6 +26,7 @@ type MemberStats struct {
 	User User
 
 	DayCount          int32
+	DayRollingCount   int32
 	WeekCount         int32
 	WeekRollingCount  int32
 	MonthCount        int32

@@ -258,19 +258,34 @@ func (c *Command) matchCommand(text string, botUsername string) (string, bool) {
 	text = strings.TrimSpace(strings.TrimPrefix(text, trigger))
 	textLower := strings.ToLower(text)
 	for _, cmd := range c.commands {
-		if textLower == cmd || strings.HasPrefix(textLower, cmd+" ") {
-			rest := strings.TrimSpace(text[len(cmd):])
+		if hasPrefix, sep := hasCommandPrefix(textLower, cmd); hasPrefix {
+			rest := strings.TrimSpace(text[len(cmd+sep):])
 			return rest, true
 		}
 
 		full := cmd + "@" + botUsername
-		if textLower == full || strings.HasPrefix(textLower, full+" ") {
-			rest := strings.TrimSpace(text[len(full):])
+		if hasPrefix, sep := hasCommandPrefix(textLower, full); hasPrefix {
+			rest := strings.TrimSpace(text[len(full+sep):])
 			return rest, true
 		}
 	}
 
 	return "", false
+}
+
+func hasCommandPrefix(text, cmd string) (bool, string) {
+	text = strings.ToLower(text)
+	cmd = strings.ToLower(cmd)
+	if text == cmd {
+		return true, ""
+	}
+	separators := []string{" ", ",", "\n"}
+	for _, sep := range separators {
+		if strings.HasPrefix(text, cmd+sep) {
+			return true, sep
+		}
+	}
+	return false, ""
 }
 
 func cleanMessage(msg *gotgbot.Message) (string, []gotgbot.MessageEntity) {

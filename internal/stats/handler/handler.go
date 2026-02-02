@@ -127,6 +127,7 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 • В этом месяце: %d сообщений
 
 🔄 <b>Активность (rolling)</b>
+• Сутки: %d сообщений
 • Последние 7 дней: %d сообщений
 • Последние 30 дней: %d сообщений
 
@@ -144,6 +145,7 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 		m.DayCount,
 		m.WeekCount,
 		m.MonthCount,
+		m.DayRollingCount,
 		m.WeekRollingCount,
 		m.MonthRollingCount,
 		m.AllTime,

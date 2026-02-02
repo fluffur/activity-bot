@@ -24,7 +24,13 @@ func New(memberService *member.Service) *Handler {
 
 func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
 	message := cctx.FirstArgument()
-
+	var replyParams *gotgbot.ReplyParameters
+	if ctx.EffectiveMessage.ReplyToMessage != nil {
+		replyParams = &gotgbot.ReplyParameters{
+			MessageId: ctx.EffectiveMessage.ReplyToMessage.MessageId,
+			ChatId:    ctx.EffectiveChat.Id,
+		}
+	}
 	if _, err := h.memberService.SyncChatMembers(ctx.EffectiveChat.Id); err != nil {
 		slog.Error("Failed to sync chat members", "error", err)
 		return err
@@ -58,8 +64,9 @@ func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) erro
 		if len(photos) != 0 {
 			lastPhoto := photos[len(photos)-1]
 			if _, err := b.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByID(lastPhoto.FileId), &gotgbot.SendPhotoOpts{
-				ParseMode: gotgbot.ParseModeHTML,
-				Caption:   sb.String(),
+				ParseMode:       gotgbot.ParseModeHTML,
+				Caption:         sb.String(),
+				ReplyParameters: replyParams,
 			}); err != nil {
 				return err
 			}
@@ -69,6 +76,7 @@ func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) erro
 				LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 					IsDisabled: true,
 				},
+				ReplyParameters: replyParams,
 			}); err != nil {
 				return err
 			}

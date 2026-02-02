@@ -130,7 +130,8 @@ SELECT cm.user_id,
        u.first_name,
        u.last_name,
 
-       COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day') AS day_count,
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now())) AS day_count,
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day') AS day_rolling_count,
        COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('week', now())) AS week_count,
        COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '7 days') AS week_rolling_count,
        COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('month', now())) AS month_count,
@@ -178,6 +179,7 @@ type MessageReportOneRow struct {
 	FirstName           pgtype.Text        `db:"first_name" json:"firstName"`
 	LastName            pgtype.Text        `db:"last_name" json:"lastName"`
 	DayCount            int64              `db:"day_count" json:"dayCount"`
+	DayRollingCount     int64              `db:"day_rolling_count" json:"dayRollingCount"`
 	WeekCount           int64              `db:"week_count" json:"weekCount"`
 	WeekRollingCount    int64              `db:"week_rolling_count" json:"weekRollingCount"`
 	MonthCount          int64              `db:"month_count" json:"monthCount"`
@@ -200,6 +202,7 @@ func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOnePara
 		&i.FirstName,
 		&i.LastName,
 		&i.DayCount,
+		&i.DayRollingCount,
 		&i.WeekCount,
 		&i.WeekRollingCount,
 		&i.MonthCount,
