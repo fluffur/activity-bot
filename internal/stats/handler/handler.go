@@ -112,18 +112,18 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 		restText = "• Рест до " + helpers.FormatToHumanDate(*m.RestUntil)
 	}
 
+	weekBar := weekNormBar(m.WeekCount, m.WeeklyNorm)
 	text := fmt.Sprintf(
 		`<b>📊 Информация о пользователе %s</b>
 
 🌟 <b>Профиль</b>
- • Имя: %s
  • Роль: %s
  • Статус: %s
  • Присоединился: %s
 
 📅 <b>Активность (календарная)</b>
 • Сегодня: %d сообщений
-• На этой неделе: %d сообщений
+• На этой неделе: %s
 • В этом месяце: %d сообщений
 
 🔄 <b>Активность (rolling)</b>
@@ -138,12 +138,11 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 %s
 `,
 		helpers.LinkWithContent(m.User, fmt.Sprintf("%s (%s)", m.User.FirstName, customTitle)),
-		htmlEscape(m.User.FirstName),
 		htmlEscape(customTitle),
 		htmlEscape(m.Status),
 		helpers.FormatToHumanDate(m.JoinedAt),
 		m.DayCount,
-		m.WeekCount,
+		weekBar,
 		m.MonthCount,
 		m.DayRollingCount,
 		m.WeekRollingCount,
@@ -160,6 +159,23 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 	}
 
 	return nil
+}
+
+func weekNormBar(current, norm int32) string {
+	if norm == 0 {
+		return ""
+	}
+
+	percent := float64(current) / float64(norm)
+	if percent > 1 {
+		percent = 1
+	}
+
+	totalBlocks := 10
+	filledBlocks := int(percent * float64(totalBlocks))
+	bar := strings.Repeat("●", filledBlocks) + strings.Repeat("○", totalBlocks-filledBlocks)
+
+	return fmt.Sprintf("%s %d/%d", bar, current, norm)
 }
 
 func htmlEscape(s string) string {
