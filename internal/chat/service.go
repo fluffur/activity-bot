@@ -50,3 +50,17 @@ func (s *Service) GetNewbieThreshold(chatID int64) (int, error) {
 	ctx := context.Background()
 	return s.repo.GetNewbieThreshold(ctx, chatID)
 }
+
+func (s *Service) SetMaxLadder(chatID int64, maxLadder int32) error {
+	ctx := context.Background()
+	return s.repo.SetMaxLadder(ctx, chatID, maxLadder)
+}
+
+func (s *Service) GetMaxLadder(chatID int64) (int32, error) {
+	ctx := context.Background()
+	c, err := s.repo.GetChat(ctx, chatID)
+	if err != nil {
+		return 0, err
+	}
+	return c.MaxLadder, nil
+}

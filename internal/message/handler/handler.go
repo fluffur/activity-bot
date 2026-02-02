@@ -3,6 +3,9 @@ package handler
 import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
+	"fmt"
+	"time"
+
 	"activity-bot/internal/member"
 	"activity-bot/internal/message"
 	"context"
@@ -94,6 +97,26 @@ func (h *Handler) Message(b *gotgbot.Bot, ctx *ext.Context) error {
 				return err
 			}
 		}
+	}
+
+	maxLadder, err := h.chatService.GetMaxLadder(ctx.EffectiveChat.Id)
+	if err != nil {
+		slog.Error("failed to get max ladder", "chat_id", c.Id, "error", err)
+		return err
+	}
+
+	_, warn, err := h.service.ProcessLadder(c.Id, u.Id, 30*time.Second, maxLadder)
+	if err != nil {
+		slog.Error("failed to process ladder", "chat_id", c.Id, "user_id", u.Id, "error", err)
+		return err
+	}
+	if warn {
+		_, err := ctx.EffectiveMessage.Reply(
+			b,
+			fmt.Sprintf("Вы превысили лимит в %d сообщений подряд", maxLadder),
+			nil,
+		)
+		return err
 	}
 
 	if err := h.service.Save(c.Id, u.Id); err != nil {

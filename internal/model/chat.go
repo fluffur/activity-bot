@@ -7,6 +7,7 @@ type Chat struct {
 	WeeklyNorm          int32
 	NewbieThresholdDays int32
 	GeminiSystemPrompt  string
+	MaxLadder           int32
 }
 
 type ChatMember struct {

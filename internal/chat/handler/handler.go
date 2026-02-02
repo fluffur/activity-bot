@@ -112,3 +112,32 @@ func (h *Handler) ShowPrompt(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) e
 	return err
 
 }
+
+func (h *Handler) SetMaxLadder(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	ladder, err := strconv.Atoi(cctx.FirstArgument())
+	if err != nil {
+		slog.Error("Failed to parse chat max ladder command arg", err, "arg", cctx.FirstArgument())
+		return err
+	}
+
+	if err := h.service.SetMaxLadder(ctx.EffectiveChat.Id, int32(ladder)); err != nil {
+		slog.Error("Failed to get chat max ladder", err, "arg", cctx.FirstArgument())
+		return err
+	}
+
+	_, err = ctx.EffectiveMessage.Reply(b, "Максимальная лесенка установлена", nil)
+
+	return err
+}
+
+func (h *Handler) ShowMaxLadder(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
+	ladder, err := h.service.GetMaxLadder(ctx.EffectiveChat.Id)
+	if err != nil {
+		slog.Error("Failed to get chat max ladder", "error", err)
+		return err
+	}
+
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Максимальная лесенка в чате: %d", ladder), nil)
+
+	return err
+}

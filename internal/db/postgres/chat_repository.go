@@ -23,6 +23,7 @@ func mapChat(c db.EnsureChatExistsRow) model.Chat {
 		WeeklyNorm:          c.WeeklyNorm,
 		NewbieThresholdDays: c.NewbieThresholdDays,
 		GeminiSystemPrompt:  c.GeminiSystemPrompt.String,
+		MaxLadder:           c.MaxLadder,
 	}
 }
 
@@ -93,5 +94,12 @@ func (r *ChatRepository) SetChatPrompt(ctx context.Context, chatID int64, prompt
 			Valid:  true,
 		},
 		ChatID: chatID,
+	})
+}
+
+func (r *ChatRepository) SetMaxLadder(ctx context.Context, chatID int64, maxLadder int32) error {
+	return r.queries.SetChatMaxLadder(ctx, db.SetChatMaxLadderParams{
+		ChatID:    chatID,
+		MaxLadder: maxLadder,
 	})
 }

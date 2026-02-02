@@ -37,3 +37,13 @@ WHERE id = $1;
 UPDATE chats
 SET gemini_system_prompt = $1
 WHERE id = @chat_id;
+
+-- name: GetChatMaxLadder :one
+SELECT max_ladder FROM chats
+WHERE id = @chat_id
+LIMIT 1;
+
+-- name: SetChatMaxLadder :exec
+UPDATE chats
+SET max_ladder = $1
+WHERE id = @chat_id;

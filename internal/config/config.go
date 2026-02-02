@@ -16,6 +16,7 @@ type Config struct {
 	Debug              bool   `env:"DEBUG" envDefault:"false"`
 	BotOwnerID         int64  `env:"BOT_OWNER_ID"`
 	GeminiAPIKey       string `env:"GEMINI_API_KEY"`
+	RedisADDR          string `env:"REDIS_ADDR" envDefault:"redis:6379"`
 }
 
 func Load() (Config, error) {

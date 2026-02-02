@@ -13,4 +13,5 @@ type Repository interface {
 	GetNewbieThreshold(ctx context.Context, chatID int64) (int, error)
 	GetChat(ctx context.Context, chatID int64) (model.Chat, error)
 	SetChatPrompt(ctx context.Context, chatID int64, prompt string) error
+	SetMaxLadder(ctx context.Context, chatID int64, maxLadder int32) error
 }

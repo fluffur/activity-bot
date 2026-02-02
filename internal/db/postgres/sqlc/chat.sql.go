@@ -16,11 +16,11 @@ WITH ins AS (
     INSERT INTO chats (id, weekly_norm, newbie_threshold_days)
         VALUES ($1, $2, $3)
         ON CONFLICT (id) DO NOTHING
-        RETURNING id, weekly_norm, newbie_threshold_days, gemini_system_prompt)
-SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt
+        RETURNING id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder)
+SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder
 FROM ins
 UNION ALL
-SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt
+SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder
 FROM chats
 WHERE id = $1
 LIMIT 1
@@ -37,6 +37,7 @@ type EnsureChatExistsRow struct {
 	WeeklyNorm          int32       `db:"weekly_norm" json:"weeklyNorm"`
 	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 	GeminiSystemPrompt  pgtype.Text `db:"gemini_system_prompt" json:"geminiSystemPrompt"`
+	MaxLadder           int32       `db:"max_ladder" json:"maxLadder"`
 }
 
 func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error) {
@@ -47,12 +48,13 @@ func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsPara
 		&i.WeeklyNorm,
 		&i.NewbieThresholdDays,
 		&i.GeminiSystemPrompt,
+		&i.MaxLadder,
 	)
 	return i, err
 }
 
 const getChat = `-- name: GetChat :one
-SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt
+SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder
 FROM chats
 WHERE id = $1
 `
@@ -65,15 +67,29 @@ func (q *Queries) GetChat(ctx context.Context, id int64) (Chat, error) {
 		&i.WeeklyNorm,
 		&i.NewbieThresholdDays,
 		&i.GeminiSystemPrompt,
+		&i.MaxLadder,
 	)
 	return i, err
+}
+
+const getChatMaxLadder = `-- name: GetChatMaxLadder :one
+SELECT max_ladder FROM chats
+WHERE id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetChatMaxLadder(ctx context.Context, chatID int64) (int32, error) {
+	row := q.db.QueryRow(ctx, getChatMaxLadder, chatID)
+	var max_ladder int32
+	err := row.Scan(&max_ladder)
+	return max_ladder, err
 }
 
 const getOrCreateChat = `-- name: GetOrCreateChat :one
 INSERT INTO chats(id, weekly_norm)
 VALUES ($1, $2)
 ON CONFLICT(id) DO UPDATE SET weekly_norm = chats.weekly_norm
-RETURNING id, weekly_norm, newbie_threshold_days, gemini_system_prompt
+RETURNING id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder
 `
 
 type GetOrCreateChatParams struct {
@@ -89,6 +105,7 @@ func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams
 		&i.WeeklyNorm,
 		&i.NewbieThresholdDays,
 		&i.GeminiSystemPrompt,
+		&i.MaxLadder,
 	)
 	return i, err
 }
@@ -106,6 +123,22 @@ type SetChatGeminiSystemPromptParams struct {
 
 func (q *Queries) SetChatGeminiSystemPrompt(ctx context.Context, arg SetChatGeminiSystemPromptParams) error {
 	_, err := q.db.Exec(ctx, setChatGeminiSystemPrompt, arg.GeminiSystemPrompt, arg.ChatID)
+	return err
+}
+
+const setChatMaxLadder = `-- name: SetChatMaxLadder :exec
+UPDATE chats
+SET max_ladder = $1
+WHERE id = $2
+`
+
+type SetChatMaxLadderParams struct {
+	MaxLadder int32 `db:"max_ladder" json:"maxLadder"`
+	ChatID    int64 `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) SetChatMaxLadder(ctx context.Context, arg SetChatMaxLadderParams) error {
+	_, err := q.db.Exec(ctx, setChatMaxLadder, arg.MaxLadder, arg.ChatID)
 	return err
 }
 

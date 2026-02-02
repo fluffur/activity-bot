@@ -11,6 +11,7 @@ import (
 	"activity-bot/internal/config"
 	"activity-bot/internal/db/postgres"
 	db "activity-bot/internal/db/postgres/sqlc"
+	redisDB "activity-bot/internal/db/redis"
 	"activity-bot/internal/filter"
 	"activity-bot/internal/guard"
 	helpH "activity-bot/internal/help/handler"
@@ -35,6 +36,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/chatmember"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/message"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"google.golang.org/genai"
 )
 
@@ -77,6 +79,7 @@ func main() {
 	_, err = b.SetMyCommands([]gotgbot.BotCommand{
 		{Command: "stats", Description: "📈 Недельный отчёт"},
 		{Command: "norm", Description: "📊 Норма сообщений"},
+		{Command: "ladder", Description: "🪜 Максимальная лесенка сообщений"},
 		{Command: "rest", Description: "💤 Управление рестом"},
 		{Command: "role", Description: "🎭 Роль пользователя"},
 		{Command: "roles", Description: "📜 Список ролей"},
@@ -95,6 +98,16 @@ func main() {
 	if err != nil {
 		panic("failed to create pool: " + err.Error())
 	}
+
+	rdb := redis.NewClient(&redis.Options{
+		Addr: cfg.RedisADDR,
+	})
+	defer func(rdb *redis.Client) {
+		err := rdb.Close()
+		if err != nil {
+			panic("Failed to close Redis connection: " + err.Error())
+		}
+	}(rdb)
 
 	queries := db.New(pool)
 
@@ -122,6 +135,7 @@ func main() {
 	chatRepository := postgres.NewChatRepository(queries)
 	adminRepository := postgres.NewAdminRepository(queries)
 	messageRepository := postgres.NewMessageRepository(queries)
+	ladderRepository := redisDB.NewLadderRepository(rdb)
 
 	statsService := stats.NewService(statsRepository)
 	restService := rest.NewService(restRepository)
@@ -132,7 +146,7 @@ func main() {
 	statusProvider := adapter.NewTelegramMemberStatusProvider(b)
 	memberService := member.NewService(memberRepository, chatRepository, userRepository, adminsProvider, cfg.DefaultWeeklyNorm)
 	adminService := admin.NewService(adminRepository, statusProvider, cfg.BotOwnerID)
-	messageService := msg.NewService(messageRepository)
+	messageService := msg.NewService(messageRepository, ladderRepository)
 
 	dateParser := rest.NewDateParser()
 
@@ -160,7 +174,7 @@ func main() {
 		WithGuards(groupGuard),
 	)
 
-	dp.AddHandler(cf.New(chatHandler.ShowNorm, "norm", "норма какая", "а норма какая", "норма", "quota", "какая норма", "а какая норма").
+	dp.AddHandler(cf.New(chatHandler.ShowNorm, "norm", "норма какая", "а норма какая", "норма", "норма?", "quota", "какая норма", "а какая норма").
 		AddTriggers("").
 		WithGuards(groupGuard),
 	)
@@ -258,6 +272,16 @@ func main() {
 		WithGuards(groupGuard, adminGuard),
 	)
 
+	dp.AddHandler(cf.New(chatHandler.ShowMaxLadder, "лесенка", "макс лесенка", "сколько лесенка", "ladder").
+		AddTriggers("").
+		WithGuards(groupGuard, adminGuard),
+	)
+	dp.AddHandler(cf.New(chatHandler.SetMaxLadder, "лесенка", "макс лесенка", "ladder").
+		AddTriggers("+").
+		SetArgsCount(1).
+		WithGuards(groupGuard, adminGuard),
+	)
+
 	dp.AddHandler(cf.New(messageHandler.Bot, "крис").
 		AddTriggers("").
 		WithGuards(groupGuard).SetArgsCount(1))
@@ -266,7 +290,6 @@ func main() {
 	dp.AddHandler(handlers.NewMessage(message.NewChatMembers, memberHandler.OnJoinMember))
 	dp.AddHandler(handlers.NewMyChatMember(chatmember.NewStatus("administrator"), memberHandler.OnBotPromote))
 	dp.AddHandler(handlers.NewMessage(filter.OnlyGroups, messageHandler.Message))
-
 	if cfg.WebhookURL != "" {
 		webhookOpts := ext.WebhookOpts{
 			ListenAddr:  fmt.Sprintf("0.0.0.0:%d", cfg.HTTPPort),
