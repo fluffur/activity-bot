@@ -35,7 +35,13 @@ func (r *RateLimiter) Check(ctx *ext.Context, command string) (bool, string) {
 	}
 
 	if count >= r.Limit {
-		return false, "⚠️ Слишком много запросов! Попробуй позже."
+		ttl, err := r.Redis.TTL(cctx, key).Result()
+		if err != nil || ttl < 0 {
+			ttl = r.Interval
+		}
+		seconds := int(ttl.Seconds())
+
+		return false, fmt.Sprintf("⚠️ Слишком много запросов! Попробуйте через %d секунд.", seconds)
 	}
 
 	pipe := r.Redis.TxPipeline()
