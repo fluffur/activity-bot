@@ -113,7 +113,7 @@ func (h *Handler) Message(b *gotgbot.Bot, ctx *ext.Context) error {
 	if warn {
 		_, err := ctx.EffectiveMessage.Reply(
 			b,
-			fmt.Sprintf("Вы превысили лимит в %d сообщений подряд", maxLadder),
+			fmt.Sprintf("Вы превысили лимит в %d сообщений подряд. Попробуйте удалить последнее сообщение и отредактировать предыдущие, чтобы избежать нарушения правил", maxLadder),
 			nil,
 		)
 		return err
