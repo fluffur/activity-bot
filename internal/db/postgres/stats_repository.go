@@ -18,11 +18,7 @@ func NewStatsRepository(queries *db.Queries) stats.Repository {
 	return &StatsRepository{queries}
 }
 
-func (r *StatsRepository) GetReport(
-	ctx context.Context,
-	chatID int64,
-	from, to *time.Time,
-) ([]model.MessageReportMember, error) {
+func (r *StatsRepository) GetReport(ctx context.Context, chatID int64, from, to *time.Time) ([]model.MessageReportMember, error) {
 
 	var fromPg, toPg pgtype.Timestamptz
 
@@ -48,6 +44,49 @@ func (r *StatsRepository) GetReport(
 	}
 
 	return result, nil
+}
+
+func (r *StatsRepository) GetReportOne(ctx context.Context, chatID int64, userID int64) (model.MemberStats, error) {
+	row, err := r.queries.MessageReportOne(ctx, db.MessageReportOneParams{
+		ChatID: chatID,
+		UserID: userID,
+	})
+	if err != nil {
+		return model.MemberStats{}, err
+	}
+
+	return mapMemberStats(row), nil
+}
+
+func mapMemberStats(row db.MessageReportOneRow) model.MemberStats {
+	var username *string
+	if row.Username.Valid {
+		username = &row.Username.String
+	}
+
+	var customTitle *string
+	if row.CustomTitle.Valid {
+		customTitle = &row.CustomTitle.String
+	}
+
+	return model.MemberStats{
+		User: model.User{
+			ID:        row.UserID,
+			FirstName: row.FirstName.String,
+			Username:  username,
+		},
+		DayCount:         int32(row.DayCount),
+		WeekCount:        int32(row.WeekCount),
+		WeekRollingCount: int32(row.WeekRollingCount),
+		MonthCount:       int32(row.MonthCount),
+		AllTime:          int32(row.AllTimeCount),
+
+		WeeklyNorm:      row.WeeklyNorm,
+		JoinedAt:        row.JoinedAt.Time,
+		NewbieThreshold: row.NewbieThresholdDays,
+		Status:          row.Status,
+		CustomTitle:     customTitle,
+	}
 }
 
 func mapWeeklyReportRow(row db.MessageReportRow) model.MessageReportMember {

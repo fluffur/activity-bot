@@ -8,6 +8,7 @@ import (
 	"activity-bot/internal/rest"
 	"activity-bot/internal/stats"
 	"fmt"
+	"html"
 	"log/slog"
 	"strings"
 	"time"
@@ -50,7 +51,7 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context)
 		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now())
 	}
 
-	report, err := h.service.GetMemberStats(ctx.EffectiveChat.Id, from, to)
+	report, err := h.service.GetAllMembersStats(ctx.EffectiveChat.Id, from, to)
 	if err != nil {
 		slog.Error("failed to get member stats for report", "chat_id", ctx.EffectiveChat.Id, "error", err)
 		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить отчёт", nil)
@@ -79,6 +80,72 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context)
 	return err
 }
 
+func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
+	return h.WhoAreUser(b, ctx, ctx.EffectiveSender.Id())
+
+}
+
+func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
+	u := cctx.FirstUser()
+	if u == nil {
+		slog.Error("failed to get user info from context")
+		return nil
+	}
+
+	return h.WhoAreUser(b, ctx, u.ID)
+}
+
+func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) error {
+
+	m, err := h.service.GetMemberStats(ctx.EffectiveChat.Id, userID)
+	if err != nil {
+		slog.Error("failed to get member stats", "chat_id", ctx.EffectiveChat.Id, "error", err)
+		return nil
+	}
+
+	customTitle := "-"
+	if m.CustomTitle != nil && *m.CustomTitle != "" {
+		customTitle = *m.CustomTitle
+	}
+
+	text := fmt.Sprintf(
+		`<b>📊 Инфомрация о пользователе %s</b>
+
+<b>🌟 Активность</b>
+За сутки: %d
+За текущую неделю: %d
+За последние 7 дней: %d
+За месяц: %d
+За всё время: %d
+
+Присоединился: %s
+Статус: %s
+Роль: %s`,
+		helpers.Link(m.User),
+		m.DayCount,
+		m.WeekCount,
+		m.WeekRollingCount,
+		m.MonthCount,
+		m.AllTime,
+		helpers.FormatToHumanDate(m.JoinedAt),
+		htmlEscape(m.Status),
+		htmlEscape(customTitle),
+	)
+
+	_, err = b.SendMessage(ctx.EffectiveChat.Id, text, &gotgbot.SendMessageOpts{
+		ParseMode: "HTML",
+	})
+	if err != nil {
+		slog.Error("failed to send message", "chat_id", ctx.EffectiveChat.Id, "error", err)
+	}
+
+	return nil
+}
+
+func htmlEscape(s string) string {
+	return html.EscapeString(s)
+}
+
 func formatReport(report []model.MessageReportMember, restMembers []model.RestMember, from, to *time.Time) string {
 	var periodHeader string
 	now := time.Now()
@@ -96,7 +163,7 @@ func formatReport(report []model.MessageReportMember, restMembers []model.RestMe
 		periodHeader = fmt.Sprintf("📊 Отчёт за всё время")
 	}
 
-	var passed, failed, newbies, rest []string
+	var passed, failed, newbies, inRest []string
 
 	for _, r := range report {
 		line := fmt.Sprintf("%s — %d сообщений",
@@ -144,7 +211,7 @@ func formatReport(report []model.MessageReportMember, restMembers []model.RestMe
 			helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)),
 			untilText,
 		)
-		rest = append(rest, line)
+		inRest = append(inRest, line)
 	}
 
 	var totalMessages int32
@@ -177,8 +244,8 @@ func formatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	}
 
 	sb.WriteString("\n💤 Рест\n")
-	if len(rest) > 0 {
-		writeNumberedList(&sb, rest)
+	if len(inRest) > 0 {
+		writeNumberedList(&sb, inRest)
 	} else {
 		sb.WriteString("—\n")
 	}

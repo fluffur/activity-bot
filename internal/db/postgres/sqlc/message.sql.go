@@ -123,3 +123,95 @@ func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([
 	}
 	return items, nil
 }
+
+const messageReportOne = `-- name: MessageReportOne :one
+SELECT cm.user_id,
+       u.username,
+       u.first_name,
+       u.last_name,
+
+       COUNT(m.chat_id) FILTER (
+           WHERE m.created_at >= now() - interval '1 day'
+           )            AS day_count,
+       COUNT(m.chat_id) FILTER (
+           WHERE m.created_at >= date_trunc('week', now())
+           )            AS week_count,
+       COUNT(*) FILTER (
+           WHERE m.created_at >= now() - interval '7 days'
+           )            AS week_rolling_count,
+       COUNT(m.chat_id) FILTER (
+           WHERE m.created_at >= date_trunc('month', now())
+           )            AS month_count,
+       COUNT(m.chat_id) AS all_time_count,
+
+       c.weekly_norm,
+       cm.joined_at,
+       c.newbie_threshold_days,
+       cm.status,
+       cm.custom_title
+
+FROM chat_members cm
+         JOIN chats c ON c.id = cm.chat_id
+         JOIN users u ON u.id = cm.user_id
+         LEFT JOIN messages m
+                   ON m.chat_id = cm.chat_id
+                       AND m.user_id = cm.user_id
+
+WHERE cm.chat_id = $1
+  AND cm.user_id = $2
+  AND cm.left_at IS NULL
+
+GROUP BY cm.user_id,
+         u.username,
+         u.first_name,
+         u.last_name,
+         c.weekly_norm,
+         cm.joined_at,
+         c.newbie_threshold_days,
+         cm.status,
+         cm.custom_title
+`
+
+type MessageReportOneParams struct {
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	UserID int64 `db:"user_id" json:"userId"`
+}
+
+type MessageReportOneRow struct {
+	UserID              int64              `db:"user_id" json:"userId"`
+	Username            pgtype.Text        `db:"username" json:"username"`
+	FirstName           pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName            pgtype.Text        `db:"last_name" json:"lastName"`
+	DayCount            int64              `db:"day_count" json:"dayCount"`
+	WeekCount           int64              `db:"week_count" json:"weekCount"`
+	WeekRollingCount    int64              `db:"week_rolling_count" json:"weekRollingCount"`
+	MonthCount          int64              `db:"month_count" json:"monthCount"`
+	AllTimeCount        int64              `db:"all_time_count" json:"allTimeCount"`
+	WeeklyNorm          int32              `db:"weekly_norm" json:"weeklyNorm"`
+	JoinedAt            pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	NewbieThresholdDays int32              `db:"newbie_threshold_days" json:"newbieThresholdDays"`
+	Status              string             `db:"status" json:"status"`
+	CustomTitle         pgtype.Text        `db:"custom_title" json:"customTitle"`
+}
+
+func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOneParams) (MessageReportOneRow, error) {
+	row := q.db.QueryRow(ctx, messageReportOne, arg.ChatID, arg.UserID)
+	var i MessageReportOneRow
+	err := row.Scan(
+		&i.UserID,
+		&i.Username,
+		&i.FirstName,
+		&i.LastName,
+		&i.DayCount,
+		&i.WeekCount,
+		&i.WeekRollingCount,
+		&i.MonthCount,
+		&i.AllTimeCount,
+		&i.WeeklyNorm,
+		&i.JoinedAt,
+		&i.NewbieThresholdDays,
+		&i.Status,
+		&i.CustomTitle,
+	)
+	return i, err
+}

@@ -14,9 +14,14 @@ func NewService(repo Repository) *Service {
 	return &Service{repo}
 }
 
-func (s *Service) GetMemberStats(chatID int64, from, to *time.Time) ([]model.MessageReportMember, error) {
+func (s *Service) GetAllMembersStats(chatID int64, from, to *time.Time) ([]model.MessageReportMember, error) {
 	ctx := context.Background()
 	return s.repo.GetReport(ctx, chatID, from, to)
+}
+
+func (s *Service) GetMemberStats(chatID, userID int64) (model.MemberStats, error) {
+	ctx := context.Background()
+	return s.repo.GetReportOne(ctx, chatID, userID)
 }
 
 type ReportPeriod string

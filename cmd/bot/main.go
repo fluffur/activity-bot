@@ -82,6 +82,9 @@ func main() {
 		{Command: "ladder", Description: "🪜 Максимальная лесенка сообщений"},
 		{Command: "rest", Description: "💤 Управление рестом"},
 		{Command: "role", Description: "🎭 Роль пользователя"},
+		{Command: "whoami", Description: "ℹ️ Информация о себе"},
+		{Command: "whoareu", Description: "👤️ Информация об участнике"},
+		{Command: "role", Description: "🎭 Роль пользователя"},
 		{Command: "roles", Description: "📜 Список ролей"},
 		{Command: "admins", Description: "👮 Администраторы бота"},
 		{Command: "is_admin", Description: "👮 Проверить статус администратора"},
@@ -171,6 +174,14 @@ func main() {
 	dp.AddHandler(cf.New(statsHandler.ShowStats, "stats", "отчёт", "отчет").
 		AddTriggers("").
 		SetArgsCount(1).
+		WithGuards(groupGuard),
+	)
+	dp.AddHandler(cf.New(statsHandler.WhoAmI, "whoami", "хто я", "я кто").
+		AddTriggers("").
+		WithGuards(groupGuard),
+	)
+	dp.AddHandler(cf.New(statsHandler.WhoAreYou, "whoareu", "хто ты", "ты кто").
+		AddTriggers("").
 		WithGuards(groupGuard),
 	)
 
