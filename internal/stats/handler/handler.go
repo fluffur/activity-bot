@@ -138,10 +138,10 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 		htmlEscape(m.Status),
 		helpers.FormatToHumanDate(m.JoinedAt),
 		m.DayCount,
-		m.WeekRollingCount,
 		m.WeekCount,
-		m.MonthRollingCount,
+		m.WeekRollingCount,
 		m.MonthCount,
+		m.MonthRollingCount,
 		m.AllTime,
 		restText,
 	)
