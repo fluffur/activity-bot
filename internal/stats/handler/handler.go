@@ -107,29 +107,41 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 	if m.CustomTitle != nil && *m.CustomTitle != "" {
 		customTitle = *m.CustomTitle
 	}
+	restText := "-"
+	if m.RestUntil != nil {
+		restText = "Рест до " + helpers.FormatToHumanDate(*m.RestUntil)
+	}
 
 	text := fmt.Sprintf(
 		`<b>📊 Инфомрация о пользователе %s</b>
 
-<b>🌟 Активность</b>
-За сутки: %d
-За текущую неделю: %d
-За последние 7 дней: %d
-За месяц: %d
-За всё время: %d
+⚡ <b>Профиль</b>
+• Имя: %s
+• Роль: %s
+• Статус: %s
+• Присоединился: %s
 
-Присоединился: %s
-Статус: %s
-Роль: %s`,
-		helpers.Link(m.User),
+🌟 <b>Активность</b>
+• Сегодня: %d сообщений
+• Неделя: %d сообщений
+• Последние 7 дней: %d сообщений
+• Месяц: %d сообщений
+• Всего: %d сообщений
+
+💤 <b>Рест</b>
+• %s
+`,
+		helpers.LinkWithContent(m.User, fmt.Sprintf("%s (%s)", m.User.FirstName, customTitle)),
+		htmlEscape(m.User.FirstName),
+		htmlEscape(customTitle),
+		htmlEscape(m.Status),
+		helpers.FormatToHumanDate(m.JoinedAt),
 		m.DayCount,
 		m.WeekCount,
 		m.WeekRollingCount,
 		m.MonthCount,
 		m.AllTime,
-		helpers.FormatToHumanDate(m.JoinedAt),
-		htmlEscape(m.Status),
-		htmlEscape(customTitle),
+		restText,
 	)
 
 	_, err = b.SendMessage(ctx.EffectiveChat.Id, text, &gotgbot.SendMessageOpts{

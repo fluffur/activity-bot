@@ -58,7 +58,8 @@ SELECT cm.user_id,
        cm.joined_at,
        c.newbie_threshold_days,
        cm.status,
-       cm.custom_title
+       cm.custom_title,
+       cm.rest_until
 
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
@@ -79,4 +80,5 @@ GROUP BY cm.user_id,
          cm.joined_at,
          c.newbie_threshold_days,
          cm.status,
-         cm.custom_title;
+         cm.custom_title,
+         cm.rest_until;

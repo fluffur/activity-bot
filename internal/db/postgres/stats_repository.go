@@ -68,7 +68,10 @@ func mapMemberStats(row db.MessageReportOneRow) model.MemberStats {
 	if row.CustomTitle.Valid {
 		customTitle = &row.CustomTitle.String
 	}
-
+	var restUntil *time.Time
+	if row.RestUntil.Valid {
+		restUntil = &row.RestUntil.Time
+	}
 	return model.MemberStats{
 		User: model.User{
 			ID:        row.UserID,
@@ -80,6 +83,8 @@ func mapMemberStats(row db.MessageReportOneRow) model.MemberStats {
 		WeekRollingCount: int32(row.WeekRollingCount),
 		MonthCount:       int32(row.MonthCount),
 		AllTime:          int32(row.AllTimeCount),
+
+		RestUntil: restUntil,
 
 		WeeklyNorm:      row.WeeklyNorm,
 		JoinedAt:        row.JoinedAt.Time,

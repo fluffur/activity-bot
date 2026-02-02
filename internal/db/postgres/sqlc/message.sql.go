@@ -148,7 +148,8 @@ SELECT cm.user_id,
        cm.joined_at,
        c.newbie_threshold_days,
        cm.status,
-       cm.custom_title
+       cm.custom_title,
+       cm.rest_until
 
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
@@ -169,7 +170,8 @@ GROUP BY cm.user_id,
          cm.joined_at,
          c.newbie_threshold_days,
          cm.status,
-         cm.custom_title
+         cm.custom_title,
+         cm.rest_until
 `
 
 type MessageReportOneParams struct {
@@ -192,6 +194,7 @@ type MessageReportOneRow struct {
 	NewbieThresholdDays int32              `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 	Status              string             `db:"status" json:"status"`
 	CustomTitle         pgtype.Text        `db:"custom_title" json:"customTitle"`
+	RestUntil           pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
 }
 
 func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOneParams) (MessageReportOneRow, error) {
@@ -212,6 +215,7 @@ func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOnePara
 		&i.NewbieThresholdDays,
 		&i.Status,
 		&i.CustomTitle,
+		&i.RestUntil,
 	)
 	return i, err
 }

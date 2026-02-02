@@ -33,6 +33,7 @@ type MemberStats struct {
 
 	WeeklyNorm      int32
 	JoinedAt        time.Time
+	RestUntil       *time.Time
 	NewbieThreshold int32
 	Status          string
 	CustomTitle     *string
