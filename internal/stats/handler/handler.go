@@ -103,33 +103,33 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 		return nil
 	}
 
-	customTitle := "-"
+	customTitle := "—"
 	if m.CustomTitle != nil && *m.CustomTitle != "" {
 		customTitle = *m.CustomTitle
 	}
-	restText := "-"
+	restText := "—"
 	if m.RestUntil != nil {
-		restText = "Рест до " + helpers.FormatToHumanDate(*m.RestUntil)
+		restText = " • Рест до " + helpers.FormatToHumanDate(*m.RestUntil)
 	}
 
 	text := fmt.Sprintf(
 		`<b>📊 Инфомрация о пользователе %s</b>
 
 ⚡ <b>Профиль</b>
-• Имя: %s
-• Роль: %s
-• Статус: %s
-• Присоединился: %s
+ • Имя: %s
+ • Роль: %s
+ • Статус: %s
+ • Присоединился: %s
 
 🌟 <b>Активность</b>
-• Сегодня: %d сообщений
-• Календарная неделя: %d сообщений
-• Неделя: %d сообщений
-• Месяц: %d сообщений
-• Всего: %d сообщений
+ • Сегодня: %d сообщений
+ • Календарная неделя: %d сообщений
+ • Неделя: %d сообщений
+ • Месяц: %d сообщений
+ • Всего: %d сообщений
 
 💤 <b>Рест</b>
-• %s
+%s
 `,
 		helpers.LinkWithContent(m.User, fmt.Sprintf("%s (%s)", m.User.FirstName, customTitle)),
 		htmlEscape(m.User.FirstName),
