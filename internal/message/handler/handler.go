@@ -105,18 +105,21 @@ func (h *Handler) Message(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	_, warn, err := h.service.ProcessLadder(c.Id, u.Id, 30*time.Second, maxLadder)
-	if err != nil {
-		slog.Error("failed to process ladder", "chat_id", c.Id, "user_id", u.Id, "error", err)
-		return err
-	}
-	if warn {
-		_, err := ctx.EffectiveMessage.Reply(
-			b,
-			fmt.Sprintf("Вы превысили лимит в %d сообщений подряд. Попробуйте удалить последнее сообщение и отредактировать предыдущие, чтобы избежать нарушения правил", maxLadder),
-			nil,
-		)
-		return err
+	if maxLadder > 0 {
+		_, warn, err := h.service.ProcessLadder(c.Id, u.Id, 30*time.Second, maxLadder)
+		if err != nil {
+			slog.Error("failed to process ladder", "chat_id", c.Id, "user_id", u.Id, "error", err)
+			return err
+		}
+		if warn {
+			_, err := ctx.EffectiveMessage.Reply(
+				b,
+				fmt.Sprintf("Вы превысили лимит в %d сообщений подряд. Попробуйте удалить последнее сообщение и отредактировать предыдущие, чтобы избежать нарушения правил", maxLadder),
+				nil,
+			)
+			return err
+		}
+
 	}
 
 	if err := h.service.Save(c.Id, u.Id); err != nil {
