@@ -109,25 +109,29 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 	}
 	restText := "—"
 	if m.RestUntil != nil {
-		restText = " • Рест до " + helpers.FormatToHumanDate(*m.RestUntil)
+		restText = "• Рест до " + helpers.FormatToHumanDate(*m.RestUntil)
 	}
 
 	text := fmt.Sprintf(
-		`<b>📊 Инфомрация о пользователе %s</b>
+		`<b>📊 Информация о пользователе %s</b>
 
-⚡ <b>Профиль</b>
+🌟 <b>Профиль</b>
  • Имя: %s
  • Роль: %s
  • Статус: %s
  • Присоединился: %s
 
-🌟 <b>Активность</b>
- • Сегодня: %d сообщений
- • На этой неделе: %d сообщений
- • Неделя: %d сообщений
- • В этом месяце: %d сообщений
- • Месяц: %d сообщений
- • Всего: %d сообщений
+📅 <b>Активность (календарная)</b>
+• Сегодня: %d сообщений
+• На этой неделе: %d сообщений
+• В этом месяце: %d сообщений
+
+🔄 <b>Активность (rolling)</b>
+• Последние 7 дней: %d сообщений
+• Последние 30 дней: %d сообщений
+
+📝 <b>Всего сообщений</b>
+• Всего: %d сообщений
 
 💤 <b>Рест</b>
 %s
@@ -139,8 +143,8 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 		helpers.FormatToHumanDate(m.JoinedAt),
 		m.DayCount,
 		m.WeekCount,
-		m.WeekRollingCount,
 		m.MonthCount,
+		m.WeekRollingCount,
 		m.MonthRollingCount,
 		m.AllTime,
 		restText,
