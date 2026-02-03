@@ -91,6 +91,10 @@ func main() {
 		{Command: "update", Description: "🔄 Обновить данные чата"},
 		{Command: "newbie", Description: "🐣 Порог новичка"},
 		{Command: "all", Description: "📞 Вызов участников"},
+		{Command: "call_enable", Description: "📞 Созывать всех при инвайте новичка"},
+		{Command: "call_disable", Description: "📞 Не созывать при инвайте новичка"},
+		{Command: "call_message", Description: "📞 Сообщение для созыва"},
+
 		{Command: "help", Description: "❓ Помощь"},
 	}, nil)
 	if err != nil {
