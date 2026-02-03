@@ -32,8 +32,7 @@ func New(service *rest.Service, userService *user.Service, adminService *admin.S
 func (h *Handler) Set(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
 	targetUser := cctx.FirstUser()
 	if targetUser == nil {
-		slog.Error("Failed to find target user in Set SetRest")
-		return nil
+		return cmd.ErrNoUser
 	}
 
 	firstArgument := cctx.FirstArgument()
@@ -61,8 +60,7 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error
 	}
 
 	if err := h.service.SetMemberRest(ctx.EffectiveChat.Id, targetUser.ID, date); err != nil {
-		slog.Error("failed to add member to rest", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
-		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось создать рест", nil)
+		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось создать рест", nil)
 		return err
 	}
 
@@ -104,8 +102,7 @@ func (h *Handler) createRequest(b *gotgbot.Bot, ctx *ext.Context, targetUser *mo
 
 	slog.Info("rest requested", "message_id", msg.MessageId)
 	if err := h.service.CreateRestRequest(ctx.EffectiveChat.Id, targetUser.ID, msg.MessageId, date); err != nil {
-		slog.Error("failed to create rest request", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "message_id", msg.MessageId, "error", err)
-		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось создать заявку", nil)
+		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось создать заявку", nil)
 
 		return err
 	}
@@ -117,8 +114,7 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) erro
 	targetUser := cctx.FirstUser()
 
 	if targetUser == nil {
-		slog.Error("Failed to find target user in Show SetRest")
-		return nil
+		return cmd.ErrNoUser
 	}
 
 	e, err := h.service.GetMemberRest(ctx.EffectiveChat.Id, targetUser.ID)
@@ -148,8 +144,7 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error
 	targetUser := cctx.FirstUser()
 
 	if targetUser == nil {
-		slog.Error("failed to find target user in End SetRest")
-		return nil
+		return cmd.ErrNoUser
 	}
 
 	if targetUser.ID != ctx.EffectiveUser.Id && !h.adminService.CheckIsAdmin(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
@@ -159,8 +154,7 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error
 
 	e, err := h.service.GetMemberRest(ctx.EffectiveChat.Id, targetUser.ID)
 	if err != nil {
-		slog.Error("failed to check member rest status", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
-		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось проверить рест пользователя", nil)
+		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось проверить рест пользователя", nil)
 		return err
 	}
 	if e == nil {
@@ -201,8 +195,7 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 	fromID, err := parseRequestCallbackData(ctx.CallbackQuery.Data)
 	restRequest, err := h.service.GetRestRequest(ctx.EffectiveChat.Id, fromID, ctx.EffectiveMessage.MessageId)
 	if err != nil {
-		slog.Error("rest request not found during approval", "chat_id", ctx.EffectiveChat.Id, "user_id", fromID, "message_id", ctx.EffectiveMessage.MessageId, "error", err)
-		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не найден запрос на рест",
 		})
 		return err
@@ -217,7 +210,6 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 	}
 
 	if err := h.service.ApproveRestRequest(ctx.EffectiveChat.Id, fromID, ctx.EffectiveMessage.MessageId, restRequest.RestUntil); err != nil {
-		slog.Error("failed to approve rest request", "chat_id", ctx.EffectiveChat.Id, "user_id", fromID, "message_id", ctx.EffectiveMessage.MessageId, "error", err)
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не удалось одобрить запрос",
 		})
@@ -225,8 +217,7 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 	}
 	u, err := h.userService.GetUser(fromID)
 	if err != nil {
-		slog.Error("failed to get user during rest approval", "user_id", fromID, "error", err)
-		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не удалось найти пользователя",
 		})
 		return err
@@ -248,8 +239,7 @@ func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 	fromID, err := parseRequestCallbackData(ctx.CallbackQuery.Data)
 	restRequest, err := h.service.GetRestRequest(ctx.EffectiveChat.Id, fromID, ctx.EffectiveMessage.MessageId)
 	if err != nil {
-		slog.Error("rest request not found during rejection", "chat_id", ctx.EffectiveChat.Id, "user_id", fromID, "message_id", ctx.EffectiveMessage.MessageId, "error", err)
-		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не найден запрос на рест",
 		})
 		return err

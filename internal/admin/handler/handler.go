@@ -8,7 +8,6 @@ import (
 	"activity-bot/internal/user"
 	"errors"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -29,8 +28,7 @@ func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) e
 	targetUser := cctx.FirstUser()
 
 	if targetUser == nil {
-		slog.Error("No user in IsAdmin")
-		return nil
+		return cmd.ErrNoUser
 	}
 
 	if h.service.CheckIsAdmin(ctx.EffectiveChat.Id, targetUser.ID) {
@@ -56,8 +54,7 @@ func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) 
 			return err
 		}
 
-		slog.Error("failed to add admin", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
-		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось добавить администратора", nil)
+		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось добавить администратора", nil)
 		return err
 	}
 
@@ -75,8 +72,7 @@ func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Contex
 	targetUser := cctx.FirstUser()
 
 	if targetUser == nil {
-		slog.Error("No user in RemoveAdmin")
-		return nil
+		return cmd.ErrNoUser
 	}
 
 	if err := h.service.RemoveAdmin(ctx.EffectiveChat.Id, targetUser.ID); err != nil {
@@ -92,8 +88,7 @@ func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Contex
 			return err
 		}
 
-		slog.Error("failed to remove admin", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
-		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось удалить администратора", nil)
+		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось удалить администратора", nil)
 
 		return err
 	}
@@ -111,8 +106,7 @@ func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Contex
 func (h *Handler) ListAdmins(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
 	admins, err := h.service.GetAdminsEnsured(ctx.EffectiveChat.Id, h.memberService.SyncChatMembers)
 	if err != nil {
-		slog.Error("failed to list admins", "chat_id", ctx.EffectiveChat.Id, "error", err)
-		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить список администраторов", nil)
+		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось получить список администраторов", nil)
 		return err
 	}
 

@@ -53,21 +53,16 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context)
 
 	report, err := h.service.GetAllMembersStats(ctx.EffectiveChat.Id, from, to)
 	if err != nil {
-		slog.Error("failed to get member stats for report", "chat_id", ctx.EffectiveChat.Id, "error", err)
-		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить отчёт", nil)
 		return err
 
 	}
 
 	restMembers, err := h.restService.GetRestMembers(ctx.EffectiveChat.Id)
 	if err != nil {
-		slog.Error("failed to get rest members for report", "chat_id", ctx.EffectiveChat.Id, "error", err)
-		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить отчёт", nil)
 		return err
 	}
 
 	if len(report) == 0 && len(restMembers) == 0 {
-		_, err = ctx.EffectiveMessage.Reply(b, "Нет данных для отчёта на эту неделю", nil)
 		return err
 	}
 
@@ -88,8 +83,7 @@ func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error
 func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
 	u := cctx.FirstUser()
 	if u == nil {
-		slog.Error("failed to get user info from context")
-		return nil
+		return cmd.ErrNoUser
 	}
 
 	return h.WhoAreUser(b, ctx, u.ID)
@@ -99,8 +93,7 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 
 	m, err := h.service.GetMemberStats(ctx.EffectiveChat.Id, userID)
 	if err != nil {
-		slog.Error("failed to get member stats", "chat_id", ctx.EffectiveChat.Id, "error", err)
-		return nil
+		return err
 	}
 
 	customTitle := "—"
@@ -151,11 +144,10 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 		restText,
 	)
 
-	_, err = b.SendMessage(ctx.EffectiveChat.Id, text, &gotgbot.SendMessageOpts{
+	if _, err = b.SendMessage(ctx.EffectiveChat.Id, text, &gotgbot.SendMessageOpts{
 		ParseMode: "HTML",
-	})
-	if err != nil {
-		slog.Error("failed to send message", "chat_id", ctx.EffectiveChat.Id, "error", err)
+	}); err != nil {
+		return err
 	}
 
 	return nil

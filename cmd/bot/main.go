@@ -137,7 +137,6 @@ func main() {
 	chatRepository := postgres.NewChatRepository(queries)
 	adminRepository := postgres.NewAdminRepository(queries)
 	messageRepository := postgres.NewMessageRepository(queries)
-	//ladderRepository := redisDB.NewLadderRepository(rdb)
 
 	statsService := stats.NewService(statsRepository)
 	restService := rest.NewService(restRepository)
@@ -279,16 +278,6 @@ func main() {
 	dp.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").AddTriggers(""))
 	dp.AddHandler(cf.New(chatHandler.SetPrompt, "промпт").
 		AddTriggers("").
-		SetArgsCount(1).
-		WithGuards(groupGuard, adminGuard),
-	)
-
-	dp.AddHandler(cf.New(chatHandler.ShowMaxLadder, "лесенка", "макс лесенка", "сколько лесенка", "ladder").
-		AddTriggers("").
-		WithGuards(groupGuard, adminGuard),
-	)
-	dp.AddHandler(cf.New(chatHandler.SetMaxLadder, "лесенка", "макс лесенка", "ladder").
-		AddTriggers("+").
 		SetArgsCount(1).
 		WithGuards(groupGuard, adminGuard),
 	)

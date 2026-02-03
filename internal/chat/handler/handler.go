@@ -7,8 +7,6 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/rest"
 	"fmt"
-	"log"
-	"log/slog"
 	"strconv"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -28,9 +26,6 @@ func New(service *chat.Service, adminService *admin.Service, dateParser *rest.Da
 func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
 	norm, err := h.service.GetNorm(ctx.EffectiveChat.Id)
 	if err != nil {
-		log.Println("Failed to show chat norm", err)
-		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось отправить норму чата", nil)
-
 		return err
 	}
 
@@ -42,16 +37,10 @@ func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) err
 func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
 	norm, err := strconv.Atoi(cctx.FirstArgument())
 	if err != nil {
-		log.Println("Failed to set chat norm", err)
-		_, err = ctx.EffectiveMessage.Reply(b, "Норма должна быть числом", nil)
-
 		return err
 	}
 
 	if err := h.service.SetNorm(ctx.EffectiveChat.Id, norm); err != nil {
-		log.Println("Failed to set chat norm", err)
-		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось установить норму чата", nil)
-
 		return err
 	}
 
@@ -63,8 +52,6 @@ func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) e
 func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
 	threshold, err := h.service.GetNewbieThreshold(ctx.EffectiveChat.Id)
 	if err != nil {
-		slog.Error("failed to set newbie threshold", "chat_id", ctx.EffectiveChat.Id, "error", err)
-		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось установить срок для новичков", nil)
 		return err
 	}
 
@@ -75,14 +62,11 @@ func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.C
 func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
 	days, ok := h.dateParser.ParseDays(cctx.FirstArgument())
 	if !ok {
-		slog.Warn("failed to parse newbie days", "arg", cctx.FirstArgument())
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось распознать срок. Используйте формат: 3 дня, неделя, 14 дней или просто число.", nil)
 		return err
 	}
 
 	if err := h.service.SetNewbieThreshold(ctx.EffectiveChat.Id, days); err != nil {
-		slog.Error("failed to set newbie threshold", "chat_id", ctx.EffectiveChat.Id, "error", err)
-		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось установить срок для новичков", nil)
 		return err
 	}
 
@@ -92,7 +76,6 @@ func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd
 
 func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
 	if err := h.service.SetChatPrompt(ctx.EffectiveChat.Id, cctx.FirstArgument()); err != nil {
-		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось установить промпт", nil)
 		return err
 	}
 
@@ -103,41 +86,10 @@ func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context)
 func (h *Handler) ShowPrompt(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
 	c, err := h.service.GetChat(ctx.EffectiveChat.Id)
 	if err != nil {
-		slog.Error("Failed get chat", "error", err)
-		_, err = ctx.EffectiveMessage.Reply(b, "Не удалось получить промпт", nil)
 		return err
 	}
 
 	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Промпт: \"%s\"", c.GeminiSystemPrompt), nil)
 	return err
 
-}
-
-func (h *Handler) SetMaxLadder(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
-	ladder, err := strconv.Atoi(cctx.FirstArgument())
-	if err != nil {
-		slog.Error("Failed to parse chat max ladder command arg", err, "arg", cctx.FirstArgument())
-		return err
-	}
-
-	if err := h.service.SetMaxLadder(ctx.EffectiveChat.Id, int32(ladder)); err != nil {
-		slog.Error("Failed to get chat max ladder", err, "arg", cctx.FirstArgument())
-		return err
-	}
-
-	_, err = ctx.EffectiveMessage.Reply(b, "Максимальная лесенка установлена", nil)
-
-	return err
-}
-
-func (h *Handler) ShowMaxLadder(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
-	ladder, err := h.service.GetMaxLadder(ctx.EffectiveChat.Id)
-	if err != nil {
-		slog.Error("Failed to get chat max ladder", "error", err)
-		return err
-	}
-
-	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Максимальная лесенка в чате: %d", ladder), nil)
-
-	return err
 }

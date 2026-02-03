@@ -2,10 +2,13 @@ package cmd
 
 import (
 	"activity-bot/internal/model"
+	"errors"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
+
+var ErrNoUser = errors.New("failed to get user info from context")
 
 type Response func(b *gotgbot.Bot, ctx *ext.Context, cctx *Context) error
 

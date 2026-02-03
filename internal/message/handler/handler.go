@@ -7,7 +7,6 @@ import (
 	"activity-bot/internal/message"
 	"context"
 	"errors"
-	"log/slog"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
@@ -47,7 +46,6 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error
 	ctxx := context.Background()
 	c, err := h.chatService.GetChat(ctx.EffectiveChat.Id)
 	if err != nil {
-		slog.Error("Failed to get chat", "error", err)
 		return err
 	}
 	result, err := h.geminiClient.Models.GenerateContent(
@@ -59,8 +57,7 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error
 		},
 	)
 	if err != nil {
-		slog.Error("Failed to answer", "error", err)
-		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось отправить ответ", nil)
+		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось отправить ответ", nil)
 		return err
 	}
 
@@ -78,49 +75,22 @@ func (h *Handler) Message(b *gotgbot.Bot, ctx *ext.Context) error {
 	m, err := h.memberService.EnsureMemberExists(c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member")
 
 	if err != nil {
-		slog.Error("failed to ensure member exists on message", "chat_id", c.Id, "user_id", u.Id, "error", err)
 		return err
 	}
 
 	if m.CustomTitle == "" {
 		title, err := h.EnsureMemberCustomTitle(b, c.Id, u.Id)
 		if err != nil {
-			slog.Error("failed to get member custom title or role", "chat_id", c.Id, "user_id", u.Id, "error", err)
 			return err
 		}
 		if m.CustomTitle != title {
 			if err := h.memberService.SetMemberTitle(c.Id, u.Id, &title); err != nil {
-				slog.Error("failed to set member custom title", "chat_id", c.Id, "user_id", u.Id, "error", err)
 				return err
 			}
 		}
 	}
 
-	//maxLadder, err := h.chatService.GetMaxLadder(ctx.EffectiveChat.Id)
-	//if err != nil {
-	//	slog.Error("failed to get max ladder", "chat_id", c.Id, "error", err)
-	//	return err
-	//}
-
-	//if maxLadder > 0 {
-	//	_, warn, err := h.service.ProcessLadder(c.Id, u.Id, 30*time.Second, maxLadder)
-	//	if err != nil {
-	//		slog.Error("failed to process ladder", "chat_id", c.Id, "user_id", u.Id, "error", err)
-	//		return err
-	//	}
-	//	if warn {
-	//		_, err := ctx.EffectiveMessage.Reply(
-	//			b,
-	//			fmt.Sprintf("Вы превысили лимит в %d сообщений подряд. Попробуйте удалить последнее сообщение и отредактировать предыдущие, чтобы избежать нарушения правил", maxLadder),
-	//			nil,
-	//		)
-	//		return err
-	//	}
-	//
-	//}
-
 	if err := h.service.Save(c.Id, u.Id); err != nil {
-		slog.Error("failed to save message activity", "chat_id", c.Id, "user_id", u.Id, "error", err)
 		return err
 	}
 	return nil

@@ -5,7 +5,6 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -32,13 +31,11 @@ func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) erro
 		}
 	}
 	if _, err := h.memberService.SyncChatMembers(ctx.EffectiveChat.Id); err != nil {
-		slog.Error("Failed to sync chat members", "error", err)
 		return err
 	}
 
 	users, err := h.memberService.GetChatMembers(ctx.EffectiveChat.Id)
 	if err != nil {
-		slog.Error("Failed to get chat members", "error", err)
 		return err
 	}
 
