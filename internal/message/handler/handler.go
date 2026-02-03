@@ -50,7 +50,7 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error
 	}
 	result, err := h.geminiClient.Models.GenerateContent(
 		ctxx,
-		"gemini-2.5-flash-lite",
+		"gemini-2.0-flash-lite",
 		genai.Text(cctx.FirstArgument()),
 		&genai.GenerateContentConfig{
 			SystemInstruction: genai.NewContentFromText("Отвечай коротко, 1-2 предложения."+c.GeminiSystemPrompt, genai.RoleUser),
