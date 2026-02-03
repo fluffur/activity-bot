@@ -170,11 +170,11 @@ func main() {
 	dp.AddHandler(cf.New(helpHandler.Start, "start"))
 	dp.AddHandler(cf.New(helpHandler.Help, "help"))
 	dp.AddHandler(cf.New(callHandler.ShowWelcomeCallMessage, "call_message", "call сообщение", "колл сообщение", "калл сообщение").
-		AddTriggers("", "+").
+		AddTriggers("+", "").
 		WithGuards(groupGuard),
 	)
 	dp.AddHandler(cf.New(callHandler.SetWelcomeCallMessage, "call_message", "call сообщение", "колл сообщение", "калл сообщение").
-		AddTriggers("+").
+		AddTriggers("+", "").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
