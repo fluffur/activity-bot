@@ -57,7 +57,7 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error
 			},
 			{
 				Role:    deepseek.ChatMessageRoleUser,
-				Content: cctx.FirstArgument(),
+				Content: ctx.EffectiveSender.FirstName() + ": " + cctx.FirstArgument(),
 			},
 		},
 	}
