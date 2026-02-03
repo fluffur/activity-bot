@@ -3,7 +3,6 @@ package cmd
 import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
-	"log"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -138,8 +137,6 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 		u, err := c.ensureUser(msg.ReplyToMessage.From)
 		if err == nil {
 			addUser(&u)
-		} else {
-			log.Println("Ensure user from reply exists", err)
 		}
 	}
 
@@ -154,8 +151,6 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 				u, err := c.ensureUser(e.User)
 				if err == nil {
 					addUser(&u)
-				} else {
-					log.Println("Ensure user from mention exists", err)
 				}
 			}
 		case "mention":
@@ -166,9 +161,8 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 				u, err := c.userService.GetUserByUsername(username)
 				if err == nil {
 					addUser(&u)
-				} else {
-					log.Println("Ensure user from username mention exists", err)
 				}
+
 			}
 		case "url":
 			start := int(e.Offset)
@@ -178,8 +172,6 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 				u, err := c.userService.GetUserByUsername(username)
 				if err == nil {
 					addUser(&u)
-				} else {
-					log.Println("Ensure user from username mention exists", err)
 				}
 			}
 
@@ -188,16 +180,13 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 
 	if c.fallbackToSender && len(users) == 0 {
 		u, err := c.userService.EnsureUserExists(ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
-		if err != nil {
-			log.Println("Show EnsureUserExists failed", err)
-		} else {
+		if err == nil {
 			addUser(&u)
 		}
 	}
 
 	rest, matched := c.matchCommand(text, b.User.Username)
 	if !matched {
-		log.Println("Command logic mismatch: matchCommand failed in parseArgs")
 		return &Context{args: []string{}, users: []*model.User{}}
 	}
 	words := strings.Fields(rest)
