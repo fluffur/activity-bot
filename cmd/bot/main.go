@@ -34,9 +34,9 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/chatmember"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/message"
+	"github.com/cohesion-org/deepseek-go"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-	"google.golang.org/genai"
 )
 
 func main() {
@@ -113,13 +113,7 @@ func main() {
 
 	queries := db.New(pool)
 
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:  cfg.GeminiAPIKey,
-		Backend: genai.BackendGeminiAPI,
-	})
-	if err != nil {
-		panic("failed to init gemini client " + err.Error())
-	}
+	client := deepseek.NewClient(cfg.DeepseekAPIKey)
 
 	dp := ext.NewDispatcher(&ext.DispatcherOpts{
 		Error: func(b *gotgbot.Bot, ctx *ext.Context, err error) ext.DispatcherAction {

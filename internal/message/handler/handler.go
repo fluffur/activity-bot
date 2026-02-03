@@ -10,18 +10,18 @@ import (
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
-	"google.golang.org/genai"
+	"github.com/cohesion-org/deepseek-go"
 )
 
 type Handler struct {
-	service       *message.Service
-	memberService *member.Service
-	chatService   *chat.Service
-	geminiClient  *genai.Client
+	service        *message.Service
+	memberService  *member.Service
+	chatService    *chat.Service
+	deepseekClient *deepseek.Client
 }
 
-func New(service *message.Service, memberService *member.Service, chatService *chat.Service, geminiClient *genai.Client) *Handler {
-	return &Handler{service, memberService, chatService, geminiClient}
+func New(service *message.Service, memberService *member.Service, chatService *chat.Service, deepseekClient *deepseek.Client) *Handler {
+	return &Handler{service, memberService, chatService, deepseekClient}
 }
 
 func (h *Handler) EnsureMemberCustomTitle(b *gotgbot.Bot, chatID, userID int64) (string, error) {
@@ -48,20 +48,31 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error
 	if err != nil {
 		return err
 	}
-	result, err := h.geminiClient.Models.GenerateContent(
-		ctxx,
-		"gemini-2.0-flash-lite",
-		genai.Text(cctx.FirstArgument()),
-		&genai.GenerateContentConfig{
-			SystemInstruction: genai.NewContentFromText("Отвечай коротко, 1-2 предложения."+c.GeminiSystemPrompt, genai.RoleUser),
+	request := &deepseek.ChatCompletionRequest{
+		Model: deepseek.DeepSeekChat,
+		Messages: []deepseek.ChatCompletionMessage{
+			{
+				Role:    deepseek.ChatMessageRoleSystem,
+				Content: "Отвечай коротко, 1-2 предложения. " + c.GeminiSystemPrompt,
+			},
+			{
+				Role:    deepseek.ChatMessageRoleUser,
+				Content: cctx.FirstArgument(),
+			},
 		},
-	)
+	}
+	resp, err := h.deepseekClient.CreateChatCompletion(ctxx, request)
 	if err != nil {
-		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось отправить ответ", nil)
+		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось получить ответ от бота", nil)
 		return err
 	}
 
-	_, err = ctx.EffectiveMessage.Reply(b, result.Text(), nil)
+	if len(resp.Choices) == 0 {
+		_, _ = ctx.EffectiveMessage.Reply(b, "Бот не вернул ответ", nil)
+		return nil
+	}
+
+	_, err = ctx.EffectiveMessage.Reply(b, resp.Choices[0].Message.Content, nil)
 	return err
 }
 

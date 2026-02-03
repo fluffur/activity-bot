@@ -15,7 +15,7 @@ type Config struct {
 	HTTPPort           int    `env:"HTTP_PORT" envDefault:"8080"`
 	Debug              bool   `env:"DEBUG" envDefault:"false"`
 	BotOwnerID         int64  `env:"BOT_OWNER_ID"`
-	GeminiAPIKey       string `env:"GEMINI_API_KEY"`
+	DeepseekAPIKey     string `env:"DEEPSEEK_API_KEY"`
 	RedisADDR          string `env:"REDIS_ADDR" envDefault:"redis:6379"`
 }
 
