@@ -24,6 +24,8 @@ func mapChat(c db.EnsureChatExistsRow) model.Chat {
 		NewbieThresholdDays: c.NewbieThresholdDays,
 		GeminiSystemPrompt:  c.GeminiSystemPrompt.String,
 		MaxLadder:           c.MaxLadder,
+		WelcomeCallMessage:  c.WelcomeCallMessage.String,
+		CallOnJoin:          c.CallOnJoin,
 	}
 }
 
@@ -101,5 +103,22 @@ func (r *ChatRepository) SetMaxLadder(ctx context.Context, chatID int64, maxLadd
 	return r.queries.SetChatMaxLadder(ctx, db.SetChatMaxLadderParams{
 		ChatID:    chatID,
 		MaxLadder: maxLadder,
+	})
+}
+
+func (r *ChatRepository) SetWelcomeCallMessage(ctx context.Context, chatID int64, message string) error {
+	return r.queries.SetChatWelcomeCallMessage(ctx, db.SetChatWelcomeCallMessageParams{
+		WelcomeCallMessage: pgtype.Text{
+			String: message,
+			Valid:  message != "",
+		},
+		ChatID: chatID,
+	})
+}
+
+func (r *ChatRepository) UpdateCallOnJoin(ctx context.Context, chatID int64, isEnabled bool) error {
+	return r.queries.UpdateChatCallOnJoin(ctx, db.UpdateChatCallOnJoinParams{
+		CallOnJoin: isEnabled,
+		ChatID:     chatID,
 	})
 }

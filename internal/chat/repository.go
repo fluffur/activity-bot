@@ -14,4 +14,6 @@ type Repository interface {
 	GetChat(ctx context.Context, chatID int64) (model.Chat, error)
 	SetChatPrompt(ctx context.Context, chatID int64, prompt string) error
 	SetMaxLadder(ctx context.Context, chatID int64, maxLadder int32) error
+	SetWelcomeCallMessage(ctx context.Context, chatID int64, message string) error
+	UpdateCallOnJoin(ctx context.Context, chatID int64, isEnabled bool) error
 }

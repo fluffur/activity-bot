@@ -8,6 +8,8 @@ type Chat struct {
 	NewbieThresholdDays int32
 	GeminiSystemPrompt  string
 	MaxLadder           int32
+	WelcomeCallMessage  string
+	CallOnJoin          bool
 }
 
 type ChatMember struct {

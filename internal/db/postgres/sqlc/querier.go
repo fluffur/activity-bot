@@ -46,7 +46,9 @@ type Querier interface {
 	RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error
 	SetChatGeminiSystemPrompt(ctx context.Context, arg SetChatGeminiSystemPromptParams) error
 	SetChatMaxLadder(ctx context.Context, arg SetChatMaxLadderParams) error
+	SetChatWelcomeCallMessage(ctx context.Context, arg SetChatWelcomeCallMessageParams) error
 	SetMemberRest(ctx context.Context, arg SetMemberRestParams) error
+	UpdateChatCallOnJoin(ctx context.Context, arg UpdateChatCallOnJoinParams) error
 	UpdateChatMemberTitle(ctx context.Context, arg UpdateChatMemberTitleParams) error
 	UpdateChatNewbieThreshold(ctx context.Context, arg UpdateChatNewbieThresholdParams) error
 	UpdateChatNorm(ctx context.Context, arg UpdateChatNormParams) error

@@ -1,6 +1,8 @@
 package handler
 
 import (
+	service "activity-bot/internal/call"
+	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
@@ -18,11 +20,13 @@ import (
 
 type Handler struct {
 	service     *member.Service
+	chatService *chat.Service
 	userService *user.Service
+	callService *service.Service
 }
 
-func New(service *member.Service, userService *user.Service) *Handler {
-	return &Handler{service, userService}
+func New(service *member.Service, chatService *chat.Service, userService *user.Service, callService *service.Service) *Handler {
+	return &Handler{service, chatService, userService, callService}
 }
 
 func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
@@ -203,8 +207,9 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) 
 	return err
 }
 
-func (h *Handler) OnJoinMember(_ *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *ext.Context) error {
 	joinedMembers := ctx.EffectiveMessage.NewChatMembers
+
 	for _, u := range joinedMembers {
 		if u.IsBot {
 			continue
@@ -213,6 +218,15 @@ func (h *Handler) OnJoinMember(_ *gotgbot.Bot, ctx *ext.Context) error {
 		if _, err := h.service.EnsureMemberExists(ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, "member"); err != nil {
 			return err
 		}
+	}
+
+	chatData, err := h.chatService.GetChat(ctx.EffectiveChat.Id)
+	if err != nil {
+		return err
+	}
+
+	if chatData.CallOnJoin {
+		return h.callService.Call(b, ctx, chatData.WelcomeCallMessage)
 	}
 
 	return nil

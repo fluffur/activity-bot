@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/adapter"
 	"activity-bot/internal/admin"
 	adminH "activity-bot/internal/admin/handler"
+	"activity-bot/internal/call"
 	callH "activity-bot/internal/call/handler"
 	"activity-bot/internal/chat"
 	chatH "activity-bot/internal/chat/handler"
@@ -142,6 +143,7 @@ func main() {
 	memberService := member.NewService(memberRepository, chatRepository, userRepository, adminsProvider, cfg.DefaultWeeklyNorm)
 	adminService := admin.NewService(adminRepository, statusProvider, cfg.BotOwnerID)
 	messageService := msg.NewService(messageRepository)
+	callService := call.NewService(chatRepository, memberService)
 
 	dateParser := rest.NewDateParser()
 
@@ -151,8 +153,8 @@ func main() {
 	restHandler := restH.New(restService, userService, adminService, dateParser)
 	adminHandler := adminH.New(adminService, userService, memberService)
 	messageHandler := messageH.New(messageService, memberService, chatService, client)
-	memberHandler := memberH.New(memberService, userService)
-	callHandler := callH.New(memberService)
+	memberHandler := memberH.New(memberService, chatService, userService, callService)
+	callHandler := callH.New(callService, chatService)
 
 	adminGuard := guard.NewAdminGuard(adminService)
 	creatorGuard := guard.NewCreatorGuard(adminService)
@@ -273,6 +275,25 @@ func main() {
 	dp.AddHandler(cf.New(chatHandler.SetPrompt, "промпт").
 		AddTriggers("").
 		SetArgsCount(1).
+		WithGuards(groupGuard, adminGuard),
+	)
+	dp.AddHandler(cf.New(callHandler.ShowWelcomeCallMessage, "call_message", "call сообщение", "колл сообщение", "калл сообщение").
+		AddTriggers("").
+		WithGuards(groupGuard),
+	)
+	dp.AddHandler(cf.New(callHandler.SetWelcomeCallMessage, "call_message", "call сообщение", "колл сообщение", "калл сообщение").
+		AddTriggers("+").
+		WithGuards(groupGuard, adminGuard).
+		SetArgsCount(1),
+	)
+
+	dp.AddHandler(cf.New(callHandler.EnableCallOnJoin, "call_enable", "включить call", "включить колл", "включить калл").
+		AddTriggers("").
+		WithGuards(groupGuard, adminGuard),
+	)
+
+	dp.AddHandler(cf.New(callHandler.DisableCallOnJoin, "call_disable", "отключить call", "отключить колл", "отключить калл").
+		AddTriggers("").
 		WithGuards(groupGuard, adminGuard),
 	)
 

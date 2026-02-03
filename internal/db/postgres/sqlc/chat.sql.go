@@ -16,11 +16,11 @@ WITH ins AS (
     INSERT INTO chats (id, weekly_norm, newbie_threshold_days)
         VALUES ($1, $2, $3)
         ON CONFLICT (id) DO NOTHING
-        RETURNING id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder)
-SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder
+        RETURNING id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder, call_on_join, welcome_call_message)
+SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder, call_on_join, welcome_call_message
 FROM ins
 UNION ALL
-SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder
+SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder, call_on_join, welcome_call_message
 FROM chats
 WHERE id = $1
 LIMIT 1
@@ -38,6 +38,8 @@ type EnsureChatExistsRow struct {
 	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 	GeminiSystemPrompt  pgtype.Text `db:"gemini_system_prompt" json:"geminiSystemPrompt"`
 	MaxLadder           int32       `db:"max_ladder" json:"maxLadder"`
+	CallOnJoin          bool        `db:"call_on_join" json:"callOnJoin"`
+	WelcomeCallMessage  pgtype.Text `db:"welcome_call_message" json:"welcomeCallMessage"`
 }
 
 func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error) {
@@ -49,12 +51,14 @@ func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsPara
 		&i.NewbieThresholdDays,
 		&i.GeminiSystemPrompt,
 		&i.MaxLadder,
+		&i.CallOnJoin,
+		&i.WelcomeCallMessage,
 	)
 	return i, err
 }
 
 const getChat = `-- name: GetChat :one
-SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder
+SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder, call_on_join, welcome_call_message
 FROM chats
 WHERE id = $1
 `
@@ -68,12 +72,15 @@ func (q *Queries) GetChat(ctx context.Context, id int64) (Chat, error) {
 		&i.NewbieThresholdDays,
 		&i.GeminiSystemPrompt,
 		&i.MaxLadder,
+		&i.CallOnJoin,
+		&i.WelcomeCallMessage,
 	)
 	return i, err
 }
 
 const getChatMaxLadder = `-- name: GetChatMaxLadder :one
-SELECT max_ladder FROM chats
+SELECT max_ladder
+FROM chats
 WHERE id = $1
 LIMIT 1
 `
@@ -89,7 +96,7 @@ const getOrCreateChat = `-- name: GetOrCreateChat :one
 INSERT INTO chats(id, weekly_norm)
 VALUES ($1, $2)
 ON CONFLICT(id) DO UPDATE SET weekly_norm = chats.weekly_norm
-RETURNING id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder
+RETURNING id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder, call_on_join, welcome_call_message
 `
 
 type GetOrCreateChatParams struct {
@@ -106,6 +113,8 @@ func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams
 		&i.NewbieThresholdDays,
 		&i.GeminiSystemPrompt,
 		&i.MaxLadder,
+		&i.CallOnJoin,
+		&i.WelcomeCallMessage,
 	)
 	return i, err
 }
@@ -139,6 +148,38 @@ type SetChatMaxLadderParams struct {
 
 func (q *Queries) SetChatMaxLadder(ctx context.Context, arg SetChatMaxLadderParams) error {
 	_, err := q.db.Exec(ctx, setChatMaxLadder, arg.MaxLadder, arg.ChatID)
+	return err
+}
+
+const setChatWelcomeCallMessage = `-- name: SetChatWelcomeCallMessage :exec
+UPDATE chats
+SET welcome_call_message = $1
+WHERE id = $2
+`
+
+type SetChatWelcomeCallMessageParams struct {
+	WelcomeCallMessage pgtype.Text `db:"welcome_call_message" json:"welcomeCallMessage"`
+	ChatID             int64       `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) SetChatWelcomeCallMessage(ctx context.Context, arg SetChatWelcomeCallMessageParams) error {
+	_, err := q.db.Exec(ctx, setChatWelcomeCallMessage, arg.WelcomeCallMessage, arg.ChatID)
+	return err
+}
+
+const updateChatCallOnJoin = `-- name: UpdateChatCallOnJoin :exec
+UPDATE chats
+SET call_on_join = $1
+WHERE id = $2
+`
+
+type UpdateChatCallOnJoinParams struct {
+	CallOnJoin bool  `db:"call_on_join" json:"callOnJoin"`
+	ChatID     int64 `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) UpdateChatCallOnJoin(ctx context.Context, arg UpdateChatCallOnJoinParams) error {
+	_, err := q.db.Exec(ctx, updateChatCallOnJoin, arg.CallOnJoin, arg.ChatID)
 	return err
 }
 
