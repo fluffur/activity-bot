@@ -169,7 +169,15 @@ func main() {
 
 	dp.AddHandler(cf.New(helpHandler.Start, "start"))
 	dp.AddHandler(cf.New(helpHandler.Help, "help"))
-
+	dp.AddHandler(cf.New(callHandler.ShowWelcomeCallMessage, "call_message", "call сообщение", "колл сообщение", "калл сообщение").
+		AddTriggers("", "+").
+		WithGuards(groupGuard),
+	)
+	dp.AddHandler(cf.New(callHandler.SetWelcomeCallMessage, "call_message", "call сообщение", "колл сообщение", "калл сообщение").
+		AddTriggers("+").
+		WithGuards(groupGuard, adminGuard).
+		SetArgsCount(1),
+	)
 	dp.AddHandler(cf.New(statsHandler.ShowStats, "stats", "отчёт", "отчет").
 		AddTriggers("").
 		SetArgsCount(1).
@@ -280,15 +288,6 @@ func main() {
 		AddTriggers("").
 		SetArgsCount(1).
 		WithGuards(groupGuard, adminGuard),
-	)
-	dp.AddHandler(cf.New(callHandler.ShowWelcomeCallMessage, "call_message", "call сообщение", "колл сообщение", "калл сообщение").
-		AddTriggers("").
-		WithGuards(groupGuard),
-	)
-	dp.AddHandler(cf.New(callHandler.SetWelcomeCallMessage, "call_message", "call сообщение", "колл сообщение", "калл сообщение").
-		AddTriggers("+").
-		WithGuards(groupGuard, adminGuard).
-		SetArgsCount(1),
 	)
 
 	dp.AddHandler(cf.New(callHandler.EnableCallOnJoin, "call_enable", "включить call", "включить колл", "включить калл").
