@@ -216,7 +216,7 @@ func main() {
 
 	dp.AddHandler(cf.New(restHandler.Show, "рест", "rest", "рэст").
 		FallbackToSender().
-		WithGuards(groupGuard, adminGuard).
+		WithGuards(groupGuard).
 		AddTriggers("+", ""),
 	)
 	dp.AddHandler(cf.New(restHandler.Set, "рест", "rest", "рэст").
