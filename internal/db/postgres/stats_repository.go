@@ -18,46 +18,6 @@ func NewStatsRepository(queries *db.Queries) stats.Repository {
 	return &StatsRepository{queries}
 }
 
-func (r *StatsRepository) GetReport(ctx context.Context, chatID int64, from, to *time.Time) ([]model.MessageReportMember, error) {
-
-	var fromPg, toPg pgtype.Timestamptz
-
-	if from != nil {
-		fromPg = pgtype.Timestamptz{Time: *from, Valid: true}
-	}
-	if to != nil {
-		toPg = pgtype.Timestamptz{Time: *to, Valid: true}
-	}
-
-	rows, err := r.queries.MessageReport(ctx, db.MessageReportParams{
-		ChatID:   chatID,
-		FromDate: fromPg,
-		ToDate:   toPg,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]model.MessageReportMember, len(rows))
-	for i, row := range rows {
-		result[i] = mapWeeklyReportRow(row)
-	}
-
-	return result, nil
-}
-
-func (r *StatsRepository) GetReportOne(ctx context.Context, chatID int64, userID int64) (model.MemberStats, error) {
-	row, err := r.queries.MessageReportOne(ctx, db.MessageReportOneParams{
-		ChatID: chatID,
-		UserID: userID,
-	})
-	if err != nil {
-		return model.MemberStats{}, err
-	}
-
-	return mapMemberStats(row), nil
-}
-
 func mapMemberStats(row db.MessageReportOneRow) model.MemberStats {
 	var username *string
 	if row.Username.Valid {
@@ -116,4 +76,68 @@ func mapWeeklyReportRow(row db.MessageReportRow) model.MessageReportMember {
 		CustomTitle:         row.CustomTitle.String,
 		Status:              row.Status,
 	}
+}
+
+func mapMessageActivity(row db.MessageActivityByDayRow) model.MessageActivity {
+	return model.MessageActivity{
+		Count: row.MessagesCount,
+		Date:  row.Day.Time,
+	}
+}
+
+func (r *StatsRepository) GetReport(ctx context.Context, chatID int64, from, to *time.Time) ([]model.MessageReportMember, error) {
+
+	var fromPg, toPg pgtype.Timestamptz
+
+	if from != nil {
+		fromPg = pgtype.Timestamptz{Time: *from, Valid: true}
+	}
+	if to != nil {
+		toPg = pgtype.Timestamptz{Time: *to, Valid: true}
+	}
+
+	rows, err := r.queries.MessageReport(ctx, db.MessageReportParams{
+		ChatID:   chatID,
+		FromDate: fromPg,
+		ToDate:   toPg,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]model.MessageReportMember, len(rows))
+	for i, row := range rows {
+		result[i] = mapWeeklyReportRow(row)
+	}
+
+	return result, nil
+}
+
+func (r *StatsRepository) GetReportOne(ctx context.Context, chatID int64, userID int64) (model.MemberStats, error) {
+	row, err := r.queries.MessageReportOne(ctx, db.MessageReportOneParams{
+		ChatID: chatID,
+		UserID: userID,
+	})
+	if err != nil {
+		return model.MemberStats{}, err
+	}
+
+	return mapMemberStats(row), nil
+}
+
+func (r *StatsRepository) GetMessageActivityByDay(ctx context.Context, chatID int64, userID int64) ([]model.MessageActivity, error) {
+	activities, err := r.queries.MessageActivityByDay(ctx, db.MessageActivityByDayParams{
+		ChatID: chatID,
+		UserID: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]model.MessageActivity, len(activities))
+	for i, activity := range activities {
+		result[i] = mapMessageActivity(activity)
+	}
+
+	return result, nil
 }

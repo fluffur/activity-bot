@@ -41,6 +41,51 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 	return i, err
 }
 
+const messageActivityByDay = `-- name: MessageActivityByDay :many
+SELECT date_trunc('day', m.created_at)::date AS day,
+       COUNT(m.chat_id)                      AS messages_count
+FROM messages m
+         JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = m.user_id
+WHERE m.chat_id = $1
+  AND m.user_id = $2
+  AND m.created_at >= GREATEST(
+        now() - interval '30 days',
+        cm.joined_at
+                      )
+GROUP BY day
+ORDER BY day
+`
+
+type MessageActivityByDayParams struct {
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	UserID int64 `db:"user_id" json:"userId"`
+}
+
+type MessageActivityByDayRow struct {
+	Day           pgtype.Date `db:"day" json:"day"`
+	MessagesCount int64       `db:"messages_count" json:"messagesCount"`
+}
+
+func (q *Queries) MessageActivityByDay(ctx context.Context, arg MessageActivityByDayParams) ([]MessageActivityByDayRow, error) {
+	rows, err := q.db.Query(ctx, messageActivityByDay, arg.ChatID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []MessageActivityByDayRow{}
+	for rows.Next() {
+		var i MessageActivityByDayRow
+		if err := rows.Scan(&i.Day, &i.MessagesCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const messageReport = `-- name: MessageReport :many
 SELECT cm.user_id,
        u.username,
@@ -130,13 +175,13 @@ SELECT cm.user_id,
        u.first_name,
        u.last_name,
 
-       COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now())) AS day_count,
-       COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day') AS day_rolling_count,
-       COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('week', now())) AS week_count,
-       COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '7 days') AS week_rolling_count,
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now()))   AS day_count,
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day')   AS day_rolling_count,
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('week', now()))  AS week_count,
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '7 days')  AS week_rolling_count,
        COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('month', now())) AS month_count,
        COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '30 days') AS month_rolling_count,
-       COUNT(m.chat_id) AS all_time_count,
+       COUNT(m.chat_id)                                                           AS all_time_count,
 
        c.weekly_norm,
        cm.joined_at,

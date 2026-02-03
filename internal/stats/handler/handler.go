@@ -90,8 +90,12 @@ func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context)
 }
 
 func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) error {
-
 	m, err := h.service.GetMemberStats(ctx.EffectiveChat.Id, userID)
+	if err != nil {
+		return err
+	}
+
+	buf, err := h.service.GetMessageActivityGraph(ctx.EffectiveChat.Id, userID)
 	if err != nil {
 		return err
 	}
@@ -144,8 +148,10 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 		restText,
 	)
 
-	if _, err = b.SendMessage(ctx.EffectiveChat.Id, text, &gotgbot.SendMessageOpts{
-		ParseMode: "HTML",
+	if _, err = b.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByReader("activity.png", buf), &gotgbot.SendPhotoOpts{
+		Caption:               text,
+		ParseMode:             "HTML",
+		ShowCaptionAboveMedia: true,
 	}); err != nil {
 		return err
 	}

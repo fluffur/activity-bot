@@ -2,8 +2,13 @@ package stats
 
 import (
 	"activity-bot/internal/model"
+	"bytes"
 	"context"
+	"fmt"
 	"time"
+
+	"github.com/wcharczuk/go-chart/v2"
+	"github.com/wcharczuk/go-chart/v2/drawing"
 )
 
 type Service struct {
@@ -22,6 +27,110 @@ func (s *Service) GetAllMembersStats(chatID int64, from, to *time.Time) ([]model
 func (s *Service) GetMemberStats(chatID, userID int64) (model.MemberStats, error) {
 	ctx := context.Background()
 	return s.repo.GetReportOne(ctx, chatID, userID)
+}
+
+func (s *Service) GetMessageActivityGraph(chatID, userID int64) (*bytes.Buffer, error) {
+	ctx := context.Background()
+
+	activity, err := s.repo.GetMessageActivityByDay(ctx, chatID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(activity) == 0 {
+		return nil, nil
+	}
+
+	activityMap := make(map[string]int64, len(activity))
+	for _, a := range activity {
+		activityMap[a.Date.Format("2006-01-02")] = a.Count
+	}
+
+	start := activity[0].Date
+	start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC)
+
+	today := time.Now()
+	today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.UTC)
+
+	buf := bytes.NewBuffer(nil)
+
+	daysCount := int(today.Sub(start).Hours()/24) + 1
+	width := daysCount * 120
+
+	if width < 400 {
+		width = 400
+	}
+	if width > 1000 {
+		width = 1000
+	}
+	barWidth := width / daysCount * 65 / 100
+
+	if barWidth < 20 {
+		barWidth = 20
+	}
+	if barWidth > 200 {
+		barWidth = 200
+	}
+	var maximum float64
+	for _, val := range activityMap {
+		if float64(val) > maximum {
+			maximum = float64(val)
+		}
+	}
+
+	maximum = maximum * 1.1
+	if maximum < 1 {
+		maximum = 1
+	}
+	minHeight := 300
+	pixelsPerUnit := 10.0
+	extraHeight := 80
+
+	height := int(float64(minHeight) + maximum*pixelsPerUnit + float64(extraHeight))
+
+	if height > 800 {
+		height = 800
+	}
+	graph := chart.BarChart{
+		Title:    "Статистика активности",
+		Width:    width,
+		Height:   height,
+		BarWidth: barWidth,
+		Bars:     []chart.Value{},
+		YAxis: chart.YAxis{
+			Name: "Сообщения",
+			NameStyle: chart.Style{
+				FontSize:  10,
+				FontColor: drawing.Color{A: 155},
+			},
+			Range: &chart.ContinuousRange{
+				Min: 0,
+				Max: maximum,
+			},
+			ValueFormatter: func(v interface{}) string {
+				if val, ok := v.(float64); ok {
+					return fmt.Sprintf("%.0f", val)
+				}
+				return ""
+			},
+		},
+	}
+
+	for d := start; !d.After(today); d = d.AddDate(0, 0, 1) {
+		key := d.Format("2006-01-02")
+
+		graph.Bars = append(graph.Bars, chart.Value{
+			Value: float64(activityMap[key]),
+			Label: d.Format("02.01"),
+		})
+
+	}
+
+	if err := graph.Render(chart.PNG, buf); err != nil {
+		return nil, err
+	}
+
+	return buf, nil
 }
 
 type ReportPeriod string
