@@ -104,34 +104,41 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 	if m.CustomTitle != nil && *m.CustomTitle != "" {
 		customTitle = *m.CustomTitle
 	}
+
 	restText := "—"
 	if m.RestUntil != nil {
-		restText = "• Рест до " + helpers.FormatToHumanDate(*m.RestUntil)
+		restText = "💤 Рест до " + helpers.FormatToHumanDate(*m.RestUntil)
 	}
 
-	weekBar := weekNormBar(m.WeekCount, m.WeeklyNorm)
 	text := fmt.Sprintf(
 		`<b>📊 Информация о пользователе %s</b>
 
 🌟 <b>Профиль</b>
- • Роль: %s
- • Статус: %s
- • Присоединился: %s
+┌───────────────
+│ Роль: %s
+│ Статус: %s
+│ Присоединился: %s
+└───────────────
 
 📅 <b>Активность (календарная)</b>
-• Сегодня: %d сообщений
-• На этой неделе: %s
-• В этом месяце: %d сообщений
+┌───────────────
+│ Сегодня: %d сообщений
+│ На этой неделе: %s сообщений
+│ В этом месяце: %d сообщений
+└───────────────
 
 🔄 <b>Активность (rolling)</b>
-• Сутки: %d сообщений
-• Последние 7 дней: %d сообщений
-• Последние 30 дней: %d сообщений
+┌───────────────
+│ Последние 24ч: %d сообщений
+│ Последние 7 дней: %d сообщений
+│ Последние 30 дней: %d сообщений
+└───────────────
 
 📝 <b>Всего сообщений</b>
-• Всего: %d сообщений
+┌───────────────
+│ Всего: %d сообщений
+└───────────────
 
-💤 <b>Рест</b>
 %s
 `,
 		helpers.LinkWithContent(m.User, fmt.Sprintf("%s (%s)", m.User.FirstName, customTitle)),
@@ -139,7 +146,7 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 		htmlEscape(m.Status),
 		helpers.FormatToHumanDate(m.JoinedAt),
 		m.DayCount,
-		weekBar,
+		fmt.Sprintf("%d из нормы в %d", m.WeekCount, m.WeeklyNorm),
 		m.MonthCount,
 		m.DayRollingCount,
 		m.WeekRollingCount,
@@ -154,31 +161,12 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 		})
 		return err
 	}
-	if _, err = b.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByReader("activity.png", buf), &gotgbot.SendPhotoOpts{
+
+	_, err = b.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByReader("activity.png", buf), &gotgbot.SendPhotoOpts{
 		Caption:   text,
 		ParseMode: "HTML",
-	}); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func weekNormBar(current, norm int32) string {
-	if norm == 0 {
-		return ""
-	}
-
-	percent := float64(current) / float64(norm)
-	if percent > 1 {
-		percent = 1
-	}
-
-	totalBlocks := 10
-	filledBlocks := int(percent * float64(totalBlocks))
-	bar := strings.Repeat("●", filledBlocks) + strings.Repeat("○", totalBlocks-filledBlocks)
-
-	return fmt.Sprintf("%s %d/%d", bar, current, norm)
+	})
+	return err
 }
 
 func htmlEscape(s string) string {
