@@ -146,7 +146,7 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 		htmlEscape(m.Status),
 		helpers.FormatToHumanDate(m.JoinedAt),
 		m.DayCount,
-		fmt.Sprintf("%d из нормы в %d", m.WeekCount, m.WeeklyNorm),
+		fmt.Sprintf("%d/%d", m.WeekCount, m.WeeklyNorm),
 		m.MonthCount,
 		m.DayRollingCount,
 		m.WeekRollingCount,
