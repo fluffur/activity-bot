@@ -141,3 +141,33 @@ func (r *StatsRepository) GetMessageActivityByDay(ctx context.Context, chatID in
 
 	return result, nil
 }
+
+func (r *StatsRepository) GetInactiveMembers(ctx context.Context, chatID int64) ([]model.InactiveMember, error) {
+	members, err := r.queries.InactiveChatMembers(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]model.InactiveMember, len(members))
+	for i, member := range members {
+		var lastMessageAt *time.Time
+		if member.LastMessageAt.Valid {
+			lastMessageAt = &member.LastMessageAt.Time
+		}
+		var username *string
+		if member.Username.Valid {
+			username = &member.Username.String
+		}
+
+		result[i] = model.InactiveMember{
+			User: model.User{
+				ID:        member.ID,
+				FirstName: member.FirstName.String,
+				LastName:  member.LastName.String,
+				Username:  username,
+			},
+			LastActivity: lastMessageAt,
+		}
+	}
+	return result, nil
+}

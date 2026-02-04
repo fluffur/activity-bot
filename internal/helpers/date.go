@@ -32,3 +32,51 @@ func PluralizeDays(n int) string {
 		return "дней"
 	}
 }
+func FormatLastSeen(t time.Time) string {
+	d := time.Since(t)
+
+	switch {
+	case d < time.Minute:
+		return "только что"
+
+	case d < time.Hour:
+		minValue := int(d.Minutes())
+		return fmt.Sprintf(
+			"%d %s назад",
+			minValue,
+			pluralRu(minValue, "минута", "минуты", "минут"),
+		)
+
+	case d < 24*time.Hour:
+		h := int(d.Hours())
+		return fmt.Sprintf(
+			"%d %s назад",
+			h,
+			pluralRu(h, "час", "часа", "часов"),
+		)
+
+	default:
+		days := int(d.Hours() / 24)
+		return fmt.Sprintf(
+			"%d %s назад",
+			days,
+			pluralRu(days, "день", "дня", "дней"),
+		)
+	}
+}
+
+func pluralRu(n int, one, few, many string) string {
+	n = n % 100
+	if n >= 11 && n <= 14 {
+		return many
+	}
+
+	switch n % 10 {
+	case 1:
+		return one
+	case 2, 3, 4:
+		return few
+	default:
+		return many
+	}
+}

@@ -294,3 +294,58 @@ func writeNumberedList(sb *strings.Builder, items []string) {
 		sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, item))
 	}
 }
+
+func (h *Handler) Inactive(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
+	members, err := h.service.GetInactiveMembers(ctx.EffectiveChat.Id)
+	if err != nil {
+		return err
+	}
+
+	if len(members) == 0 {
+		_, err = ctx.EffectiveMessage.Reply(
+			b,
+			"✅ Нет неактивных участников за последние сутки",
+			nil,
+		)
+		return err
+	}
+
+	var sb strings.Builder
+	sb.WriteString("<b>😴 Неактивные участники (более 1 суток)</b>\n\n")
+
+	for i, m := range members {
+		sb.WriteString(fmt.Sprintf(
+			"%d. %s",
+			i+1,
+			helpers.LinkWithContent(
+				m.User,
+				fmt.Sprintf("%s", m.User.FirstName),
+			),
+		))
+
+		if m.LastActivity != nil {
+			sb.WriteString(fmt.Sprintf(
+				" — последний раз: %s (%s)",
+				helpers.FormatToHumanDate(*m.LastActivity),
+				helpers.FormatLastSeen(*m.LastActivity),
+			))
+		} else {
+			sb.WriteString(" — не писал ни разу")
+		}
+
+		sb.WriteString("\n")
+	}
+
+	_, err = ctx.EffectiveMessage.Reply(
+		b,
+		sb.String(),
+		&gotgbot.SendMessageOpts{
+			ParseMode: gotgbot.ParseModeHTML,
+			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+				IsDisabled: true,
+			},
+		},
+	)
+
+	return err
+}

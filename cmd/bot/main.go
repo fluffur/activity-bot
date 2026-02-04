@@ -192,6 +192,10 @@ func main() {
 		WithGuards(groupGuard),
 	)
 
+	dp.AddHandler(cf.New(statsHandler.Inactive, "inactive", "неактив", "инактив").
+		AddTriggers("").
+		WithGuards(groupGuard),
+	)
 	dp.AddHandler(cf.New(chatHandler.ShowNorm, "norm", "норма какая", "а норма какая", "норма", "норма?", "quota", "какая норма", "а какая норма").
 		AddTriggers("").
 		WithGuards(groupGuard),

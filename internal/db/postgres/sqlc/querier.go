@@ -34,6 +34,7 @@ type Querier interface {
 	GetRestRequest(ctx context.Context, arg GetRestRequestParams) (RestRequest, error)
 	GetUser(ctx context.Context, id int64) (User, error)
 	GetUserByUsername(ctx context.Context, lower string) (User, error)
+	InactiveChatMembers(ctx context.Context, chatID int64) ([]InactiveChatMembersRow, error)
 	IsChatAdmin(ctx context.Context, arg IsChatAdminParams) (bool, error)
 	IsChatCreator(ctx context.Context, arg IsChatCreatorParams) (bool, error)
 	MarkChatMembersLeftNotInList(ctx context.Context, arg MarkChatMembersLeftNotInListParams) error

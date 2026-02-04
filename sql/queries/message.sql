@@ -90,3 +90,14 @@ WHERE m.chat_id = @chat_id
                       )
 GROUP BY day
 ORDER BY day;
+
+-- name: InactiveChatMembers :many
+SELECT u.*, cm.custom_title, MAX(m.created_at)::date AS last_message_at
+FROM chat_members cm
+         JOIN users u ON cm.user_id = u.id
+         LEFT JOIN messages m
+                   ON m.user_id = cm.user_id AND m.chat_id = cm.chat_id
+WHERE cm.chat_id = $1
+GROUP BY cm.user_id, u.id, u.first_name, u.last_name, u.username, cm.custom_title
+HAVING MAX(m.created_at) IS NULL
+    OR MAX(m.created_at) < NOW() - INTERVAL '1 days';

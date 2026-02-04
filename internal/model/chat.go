@@ -19,3 +19,8 @@ type ChatMember struct {
 	CustomTitle string
 	Status      string
 }
+
+type InactiveMember struct {
+	User         User
+	LastActivity *time.Time
+}

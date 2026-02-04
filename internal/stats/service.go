@@ -133,6 +133,11 @@ func (s *Service) GetMessageActivityGraph(chatID, userID int64) (*bytes.Buffer, 
 	return buf, nil
 }
 
+func (s *Service) GetInactiveMembers(chatID int64) ([]model.InactiveMember, error) {
+	ctx := context.Background()
+	return s.repo.GetInactiveMembers(ctx, chatID)
+}
+
 type ReportPeriod string
 
 const (

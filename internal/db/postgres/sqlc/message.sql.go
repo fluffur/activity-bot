@@ -41,6 +41,56 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 	return i, err
 }
 
+const inactiveChatMembers = `-- name: InactiveChatMembers :many
+SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, cm.custom_title, MAX(m.created_at)::date AS last_message_at
+FROM chat_members cm
+         JOIN users u ON cm.user_id = u.id
+         LEFT JOIN messages m
+                   ON m.user_id = cm.user_id AND m.chat_id = cm.chat_id
+WHERE cm.chat_id = $1
+GROUP BY cm.user_id, u.id, u.first_name, u.last_name, u.username, cm.custom_title
+HAVING MAX(m.created_at) IS NULL
+    OR MAX(m.created_at) < NOW() - INTERVAL '1 days'
+`
+
+type InactiveChatMembersRow struct {
+	ID            int64              `db:"id" json:"id"`
+	Username      pgtype.Text        `db:"username" json:"username"`
+	FirstName     pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	CustomTitle   pgtype.Text        `db:"custom_title" json:"customTitle"`
+	LastMessageAt pgtype.Date        `db:"last_message_at" json:"lastMessageAt"`
+}
+
+func (q *Queries) InactiveChatMembers(ctx context.Context, chatID int64) ([]InactiveChatMembersRow, error) {
+	rows, err := q.db.Query(ctx, inactiveChatMembers, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []InactiveChatMembersRow{}
+	for rows.Next() {
+		var i InactiveChatMembersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.FirstName,
+			&i.LastName,
+			&i.CreatedAt,
+			&i.CustomTitle,
+			&i.LastMessageAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const messageActivityByDay = `-- name: MessageActivityByDay :many
 SELECT date_trunc('day', m.created_at)::date AS day,
        COUNT(m.chat_id)                      AS messages_count
