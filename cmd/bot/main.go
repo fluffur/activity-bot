@@ -77,27 +77,26 @@ func main() {
 	}
 
 	_, err = b.SetMyCommands([]gotgbot.BotCommand{
-		{Command: "stats", Description: "📈 Недельный отчёт"},
-		{Command: "inactive", Description: "😴 Неактив участники"},
+		{Command: "stats", Description: "📊 Недельный отчёт"},
+		{Command: "inactive", Description: "💤 Неактив участники"},
 		{Command: "norm", Description: "📊 Норма сообщений"},
-		{Command: "ladder", Description: "🪜 Максимальная лесенка сообщений"},
-		{Command: "rest", Description: "💤 Управление рестом"},
-		{Command: "role", Description: "🎭 Роль пользователя"},
-		{Command: "whoami", Description: "ℹ️ Информация о себе"},
-		{Command: "whoareu", Description: "👤️ Информация об участнике"},
-		{Command: "role", Description: "🎭 Роль пользователя"},
-		{Command: "roles", Description: "📜 Список ролей"},
-		{Command: "admins", Description: "👮 Администраторы бота"},
-		{Command: "is_admin", Description: "👮 Проверить статус администратора"},
-		{Command: "update", Description: "🔄 Обновить данные чата"},
-		{Command: "newbie", Description: "🐣 Порог новичка"},
-		{Command: "all", Description: "📞 Вызов участников"},
-		{Command: "call_enable", Description: "📞 Созывать всех при инвайте новичка"},
-		{Command: "call_disable", Description: "📞 Не созывать при инвайте новичка"},
-		{Command: "call_message", Description: "📞 Сообщение для созыва"},
-
-		{Command: "help", Description: "❓ Помощь"},
+		{Command: "ladder", Description: "📶 Максимальная лесенка сообщений"},
+		{Command: "rest", Description: "🛌 Управление рестом"},
+		{Command: "role", Description: "🏷️ Роль пользователя"},
+		{Command: "me", Description: "👁️ Информация о себе"},
+		{Command: "you", Description: "🧑 Информация об участнике"},
+		{Command: "roles", Description: "🗂️ Список ролей"},
+		{Command: "admins", Description: "🛡️ Администраторы бота"},
+		{Command: "is_admin", Description: "🛡️ Проверить статус администратора"},
+		{Command: "update", Description: "🔁 Обновить данные чата"},
+		{Command: "newbie", Description: "🌱 Порог новичка"},
+		{Command: "all", Description: "📣 Вызов участников"},
+		{Command: "call_enable", Description: "📣 Созывать всех при инвайте новичка"},
+		{Command: "call_disable", Description: "📣 Не созывать при инвайте новичка"},
+		{Command: "call_message", Description: "📣 Сообщение для созыва"},
+		{Command: "help", Description: "🆘 Помощь"},
 	}, nil)
+
 	if err != nil {
 		slog.Warn("failed to set bot commands", "error", err)
 	}
@@ -189,7 +188,7 @@ func main() {
 		WithGuards(groupGuard),
 	)
 
-	dp.AddHandler(cf.New(statsHandler.WhoAmI, "я").
+	dp.AddHandler(cf.New(statsHandler.WhoAmI, "я", "me").
 		WithGuards(groupGuard),
 	)
 
@@ -198,7 +197,7 @@ func main() {
 		WithGuards(groupGuard),
 	)
 
-	dp.AddHandler(cf.New(statsHandler.WhoAreYou, "кто", "ты").
+	dp.AddHandler(cf.New(statsHandler.WhoAreYou, "кто", "ты", "you").
 		WithGuards(groupGuard),
 	)
 	dp.AddHandler(cf.New(statsHandler.Inactive, "inactive", "неактив", "инактив").

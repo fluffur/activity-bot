@@ -100,10 +100,15 @@ func (s *Service) GetMessageActivityGraph(chatID, userID int64) (*bytes.Buffer, 
 		BarWidth: barWidth,
 		Bars:     []chart.Value{},
 		YAxis: chart.YAxis{
+			Style: chart.Style{
+				StrokeWidth:     1.0,
+				StrokeColor:     drawing.Color{R: 200, G: 200, B: 200, A: 100},
+				StrokeDashArray: chart.Array{5.0, 3.0},
+			},
 			Name: "Сообщения",
 			NameStyle: chart.Style{
 				FontSize:  10,
-				FontColor: drawing.Color{A: 155},
+				FontColor: drawing.Color{A: 200},
 			},
 			Range: &chart.ContinuousRange{
 				Min: 0,
