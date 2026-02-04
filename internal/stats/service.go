@@ -109,6 +109,13 @@ func (s *Service) GetMessageActivityGraph(chatID, userID int64) (*bytes.Buffer, 
 				Min: 0,
 				Max: maximum,
 			},
+			Ticks: []chart.Tick{
+				{Value: 0},
+				{Value: maximum * 0.25},
+				{Value: maximum * 0.5},
+				{Value: maximum * 0.75},
+				{Value: maximum},
+			},
 			ValueFormatter: func(v interface{}) string {
 				if val, ok := v.(float64); ok {
 					return fmt.Sprintf("%.0f", val)
