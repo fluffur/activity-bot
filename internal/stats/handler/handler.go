@@ -143,7 +143,7 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 `,
 		helpers.LinkWithContent(m.User, fmt.Sprintf("%s (%s)", m.User.FirstName, customTitle)),
 		htmlEscape(customTitle),
-		htmlEscape(m.Status),
+		helpers.TranslateMemberStatus(m.Status),
 		helpers.FormatToHumanDate(m.JoinedAt),
 		m.DayCount,
 		fmt.Sprintf("%d/%d", m.WeekCount, m.WeeklyNorm),
