@@ -42,57 +42,61 @@ func (s *Service) GetMessageActivityGraph(chatID, userID int64) (*bytes.Buffer, 
 		return nil, nil
 	}
 
+	// соберём данные в карту
 	activityMap := make(map[string]int64, len(activity))
+	var maximum float64
 	for _, a := range activity {
 		activityMap[a.Date.Format("2006-01-02")] = a.Count
+		if float64(a.Count) > maximum {
+			maximum = float64(a.Count)
+		}
 	}
 
-	start := activity[0].Date
-	start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC)
-
-	today := time.Now()
-	today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.UTC)
-
-	buf := bytes.NewBuffer(nil)
+	start := activity[0].Date.Truncate(24 * time.Hour)
+	today := time.Now().Truncate(24 * time.Hour)
 
 	daysCount := int(today.Sub(start).Hours()/24) + 1
 	width := daysCount * 120
-
 	if width < 400 {
 		width = 400
 	}
 	if width > 1000 {
 		width = 1000
 	}
-	barWidth := width / daysCount * 65 / 100
 
+	barWidth := width / daysCount * 65 / 100
 	if barWidth < 20 {
 		barWidth = 20
 	}
 	if barWidth > 200 {
 		barWidth = 200
 	}
-	var maximum float64
-	for _, val := range activityMap {
-		if float64(val) > maximum {
-			maximum = float64(val)
-		}
-	}
 
-	maximum = maximum * 1.1
-	maximum = roundUpNice(maximum)
+	// немного увеличиваем максимум сверху
+	if maximum > 0 {
+		maximum = maximum * 1.1
+	}
+	// округляем верхушку, но только если >50
+	if maximum >= 50 {
+		maximum = roundUpNice(maximum)
+	}
 	if maximum < 1 {
 		maximum = 1
 	}
-	minHeight := 300
-	pixelsPerUnit := 10.0
-	extraHeight := 80
 
-	height := int(float64(minHeight) + maximum*pixelsPerUnit + float64(extraHeight))
-
+	// автоматическая высота графика
+	maxGraphHeight := 500.0
+	pixelsPerUnit := maxGraphHeight / maximum
+	if pixelsPerUnit < 5 {
+		pixelsPerUnit = 5
+	}
+	height := int(maximum*pixelsPerUnit + 100) // + заголовок и подписи
 	if height > 800 {
 		height = 800
 	}
+
+	buf := bytes.NewBuffer(nil)
+
 	graph := chart.BarChart{
 		Title:    "Статистика активности",
 		Width:    width,
@@ -109,13 +113,7 @@ func (s *Service) GetMessageActivityGraph(chatID, userID int64) (*bytes.Buffer, 
 				Min: 0,
 				Max: maximum,
 			},
-			Ticks: []chart.Tick{
-				{Value: 0},
-				{Value: maximum * 0.25},
-				{Value: maximum * 0.5},
-				{Value: maximum * 0.75},
-				{Value: maximum},
-			},
+			Ticks: buildNiceTicks(maximum),
 			ValueFormatter: func(v interface{}) string {
 				if val, ok := v.(float64); ok {
 					return fmt.Sprintf("%.0f", val)
@@ -125,14 +123,13 @@ func (s *Service) GetMessageActivityGraph(chatID, userID int64) (*bytes.Buffer, 
 		},
 	}
 
+	// наполняем бары
 	for d := start; !d.After(today); d = d.AddDate(0, 0, 1) {
 		key := d.Format("2006-01-02")
-
 		graph.Bars = append(graph.Bars, chart.Value{
 			Value: float64(activityMap[key]),
 			Label: d.Format("02.01"),
 		})
-
 	}
 
 	if err := graph.Render(chart.PNG, buf); err != nil {
@@ -196,4 +193,25 @@ func roundUpNice(v float64) float64 {
 
 	pow := math.Pow(10, math.Floor(math.Log10(v)))
 	return math.Ceil(v/pow) * pow
+}
+
+func buildNiceTicks(max float64) []chart.Tick {
+	steps := []float64{5, 10, 20, 50, 100, 200, 500}
+	var step float64
+
+	for _, s := range steps {
+		if max/s <= 6 {
+			step = s
+			break
+		}
+	}
+	if step == 0 {
+		step = max / 5
+	}
+
+	var ticks []chart.Tick
+	for v := 0.0; v <= max; v += step {
+		ticks = append(ticks, chart.Tick{Value: v, Label: fmt.Sprintf("%.0f", v)})
+	}
+	return ticks
 }
