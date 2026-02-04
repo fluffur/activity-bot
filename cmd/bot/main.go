@@ -78,6 +78,7 @@ func main() {
 
 	_, err = b.SetMyCommands([]gotgbot.BotCommand{
 		{Command: "stats", Description: "📈 Недельный отчёт"},
+		{Command: "inactive", Description: "😴 Неактив участники"},
 		{Command: "norm", Description: "📊 Норма сообщений"},
 		{Command: "ladder", Description: "🪜 Максимальная лесенка сообщений"},
 		{Command: "rest", Description: "💤 Управление рестом"},
