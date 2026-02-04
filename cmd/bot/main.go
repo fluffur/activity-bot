@@ -188,11 +188,19 @@ func main() {
 		AddTriggers("").
 		WithGuards(groupGuard),
 	)
+
+	dp.AddHandler(cf.New(statsHandler.WhoAmI, "я").
+		WithGuards(groupGuard),
+	)
+
 	dp.AddHandler(cf.New(statsHandler.WhoAreYou, "whoareu", "ктоты", "тыкто").
 		AddTriggers("").
 		WithGuards(groupGuard),
 	)
 
+	dp.AddHandler(cf.New(statsHandler.WhoAreYou, "кто", "ты").
+		WithGuards(groupGuard),
+	)
 	dp.AddHandler(cf.New(statsHandler.Inactive, "inactive", "неактив", "инактив").
 		AddTriggers("").
 		WithGuards(groupGuard),
