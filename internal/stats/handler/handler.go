@@ -105,7 +105,7 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) err
 		customTitle = *m.CustomTitle
 	}
 
-	restText := "—"
+	restText := ""
 	if m.RestUntil != nil {
 		restText = "💤 Рест до " + helpers.FormatToHumanDate(*m.RestUntil)
 	}
