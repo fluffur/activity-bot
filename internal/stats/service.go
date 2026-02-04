@@ -42,7 +42,6 @@ func (s *Service) GetMessageActivityGraph(chatID, userID int64) (*bytes.Buffer, 
 		return nil, nil
 	}
 
-	// соберём данные в карту
 	activityMap := make(map[string]int64, len(activity))
 	var maximum float64
 	for _, a := range activity {
@@ -72,11 +71,9 @@ func (s *Service) GetMessageActivityGraph(chatID, userID int64) (*bytes.Buffer, 
 		barWidth = 200
 	}
 
-	// немного увеличиваем максимум сверху
 	if maximum > 0 {
 		maximum = maximum * 1.1
 	}
-	// округляем верхушку, но только если >50
 	if maximum >= 50 {
 		maximum = roundUpNice(maximum)
 	}
@@ -84,13 +81,12 @@ func (s *Service) GetMessageActivityGraph(chatID, userID int64) (*bytes.Buffer, 
 		maximum = 1
 	}
 
-	// автоматическая высота графика
 	maxGraphHeight := 500.0
 	pixelsPerUnit := maxGraphHeight / maximum
 	if pixelsPerUnit < 5 {
 		pixelsPerUnit = 5
 	}
-	height := int(maximum*pixelsPerUnit + 100) // + заголовок и подписи
+	height := int(maximum*pixelsPerUnit + 100)
 	if height > 800 {
 		height = 800
 	}
@@ -123,7 +119,6 @@ func (s *Service) GetMessageActivityGraph(chatID, userID int64) (*bytes.Buffer, 
 		},
 	}
 
-	// наполняем бары
 	for d := start; !d.After(today); d = d.AddDate(0, 0, 1) {
 		key := d.Format("2006-01-02")
 		graph.Bars = append(graph.Bars, chart.Value{
@@ -194,24 +189,36 @@ func roundUpNice(v float64) float64 {
 	pow := math.Pow(10, math.Floor(math.Log10(v)))
 	return math.Ceil(v/pow) * pow
 }
-
 func buildNiceTicks(max float64) []chart.Tick {
-	steps := []float64{5, 10, 20, 50, 100, 200, 500}
+	if max <= 0 {
+		return []chart.Tick{{Value: 0, Label: "0"}}
+	}
+
+	steps := []float64{1, 2, 5, 10, 20, 50, 100, 200, 500, 1000}
 	var step float64
 
 	for _, s := range steps {
-		if max/s <= 6 {
+		if math.Ceil(max/s) <= 6 {
 			step = s
 			break
 		}
 	}
 	if step == 0 {
-		step = max / 5
+		step = math.Ceil(max / 5)
+	}
+
+	maxTick := math.Floor(max/step) * step
+	if maxTick < max {
+		maxTick += step
 	}
 
 	var ticks []chart.Tick
-	for v := 0.0; v <= max; v += step {
-		ticks = append(ticks, chart.Tick{Value: v, Label: fmt.Sprintf("%.0f", v)})
+	for v := 0.0; v <= maxTick; v += step {
+		ticks = append(ticks, chart.Tick{
+			Value: v,
+			Label: fmt.Sprintf("%.0f", v),
+		})
 	}
+
 	return ticks
 }
