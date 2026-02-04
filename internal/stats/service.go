@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/wcharczuk/go-chart/v2"
@@ -79,6 +80,7 @@ func (s *Service) GetMessageActivityGraph(chatID, userID int64) (*bytes.Buffer, 
 	}
 
 	maximum = maximum * 1.1
+	maximum = roundUpNice(maximum)
 	if maximum < 1 {
 		maximum = 1
 	}
@@ -169,4 +171,22 @@ func ResolvePeriod(period ReportPeriod, now time.Time) (from *time.Time, to *tim
 	}
 
 	return nil, nil
+}
+
+func roundUpNice(v float64) float64 {
+	if v <= 10 {
+		return 10
+	}
+	if v <= 20 {
+		return 20
+	}
+	if v <= 50 {
+		return 50
+	}
+	if v <= 100 {
+		return 100
+	}
+
+	pow := math.Pow(10, math.Floor(math.Log10(v)))
+	return math.Ceil(v/pow) * pow
 }
