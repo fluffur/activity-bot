@@ -300,7 +300,6 @@ func (h *Handler) Inactive(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) err
 	if err != nil {
 		return err
 	}
-
 	if len(members) == 0 {
 		_, err = ctx.EffectiveMessage.Reply(
 			b,
@@ -315,17 +314,18 @@ func (h *Handler) Inactive(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) err
 
 	for i, m := range members {
 		sb.WriteString(fmt.Sprintf(
-			"%d. %s",
+			"%d. %s (%s)",
 			i+1,
 			helpers.LinkWithContent(
-				m.User,
-				fmt.Sprintf("%s", m.User.FirstName),
+				m.Member.User,
+				fmt.Sprintf("%s", m.Member.User.FirstName),
 			),
+			m.Member.CustomTitle,
 		))
 
 		if m.LastActivity != nil {
 			sb.WriteString(fmt.Sprintf(
-				" — последний раз: %s (%s)",
+				" — %s (%s)",
 				helpers.FormatToHumanDate(*m.LastActivity),
 				helpers.FormatLastSeen(*m.LastActivity),
 			))

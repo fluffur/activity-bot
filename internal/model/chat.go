@@ -21,6 +21,6 @@ type ChatMember struct {
 }
 
 type InactiveMember struct {
-	User         User
+	Member       ChatMember
 	LastActivity *time.Time
 }

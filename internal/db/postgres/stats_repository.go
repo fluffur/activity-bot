@@ -158,13 +158,22 @@ func (r *StatsRepository) GetInactiveMembers(ctx context.Context, chatID int64) 
 		if member.Username.Valid {
 			username = &member.Username.String
 		}
+		var restUntil *time.Time
+		if member.RestUntil.Valid {
+			restUntil = &member.RestUntil.Time
+		}
 
 		result[i] = model.InactiveMember{
-			User: model.User{
-				ID:        member.ID,
-				FirstName: member.FirstName.String,
-				LastName:  member.LastName.String,
-				Username:  username,
+			Member: model.ChatMember{
+				User: model.User{
+					ID:        member.ID,
+					FirstName: member.FirstName.String,
+					LastName:  member.LastName.String,
+					Username:  username,
+				},
+				RestUntil:   restUntil,
+				CustomTitle: member.CustomTitle.String,
+				Status:      member.Status,
 			},
 			LastActivity: lastMessageAt,
 		}

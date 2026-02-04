@@ -42,13 +42,15 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 }
 
 const inactiveChatMembers = `-- name: InactiveChatMembers :many
-SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, cm.custom_title, MAX(m.created_at)::date AS last_message_at
+SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, cm.custom_title, cm.status, cm.rest_until, MAX(m.created_at)::date AS last_message_at
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
          LEFT JOIN messages m
                    ON m.user_id = cm.user_id AND m.chat_id = cm.chat_id
-WHERE cm.left_at IS NULL AND cm.chat_id = $1
-GROUP BY cm.user_id, u.id, u.first_name, u.last_name, u.username, cm.custom_title
+WHERE cm.left_at IS NULL
+  AND cm.chat_id = $1
+  AND (cm.rest_until IS NULL OR cm.rest_until < now())
+GROUP BY cm.user_id, u.id, u.first_name, u.last_name, u.username, cm.custom_title, cm.status, cm.rest_until
 HAVING MAX(m.created_at) IS NULL
     OR MAX(m.created_at) < NOW() - INTERVAL '1 days'
 `
@@ -60,6 +62,8 @@ type InactiveChatMembersRow struct {
 	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
 	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
 	CustomTitle   pgtype.Text        `db:"custom_title" json:"customTitle"`
+	Status        string             `db:"status" json:"status"`
+	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
 	LastMessageAt pgtype.Date        `db:"last_message_at" json:"lastMessageAt"`
 }
 
@@ -79,6 +83,8 @@ func (q *Queries) InactiveChatMembers(ctx context.Context, chatID int64) ([]Inac
 			&i.LastName,
 			&i.CreatedAt,
 			&i.CustomTitle,
+			&i.Status,
+			&i.RestUntil,
 			&i.LastMessageAt,
 		); err != nil {
 			return nil, err
