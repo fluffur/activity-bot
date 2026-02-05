@@ -297,7 +297,7 @@ func main() {
 
 	dp.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").AddTriggers(""))
 	dp.AddHandler(cf.New(chatHandler.SetPrompt, "промпт").
-		AddTriggers("").
+		AddTriggers("+", "").
 		SetArgsCount(1).
 		WithGuards(groupGuard, adminGuard),
 	)
