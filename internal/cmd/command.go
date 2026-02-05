@@ -3,6 +3,7 @@ package cmd
 import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
+	"context"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -112,12 +113,11 @@ func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 		}
 	}
 
-	return c.response(b, ctx, c.parseArgs(b, ctx))
+	return c.response(b, c.parseArgs(b, ctx))
 }
 
-func (c *Command) ensureUser(u *gotgbot.User) (model.User, error) {
-	return c.userService.EnsureUserExists(u.Id, u.Username, u.FirstName, u.LastName)
-
+func (c *Command) ensureUser(ctx context.Context, u *gotgbot.User) (model.User, error) {
+	return c.userService.EnsureUserExists(ctx, u.Id, u.Username, u.FirstName, u.LastName)
 }
 func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 	msg := ctx.Message
@@ -134,7 +134,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 	}
 
 	if msg.ReplyToMessage != nil && msg.ReplyToMessage.From != nil && !msg.ReplyToMessage.From.IsBot {
-		u, err := c.ensureUser(msg.ReplyToMessage.From)
+		u, err := c.ensureUser(context.Background(), msg.ReplyToMessage.From)
 		if err == nil {
 			addUser(&u)
 		}
@@ -148,7 +148,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 		switch e.Type {
 		case "text_mention":
 			if e.User != nil {
-				u, err := c.ensureUser(e.User)
+				u, err := c.ensureUser(context.Background(), e.User)
 				if err == nil {
 					addUser(&u)
 				}
@@ -158,7 +158,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 			end := start + int(e.Length)
 			if start >= 0 && end <= len(textRunes) {
 				username := string(textRunes[start+1 : end])
-				u, err := c.userService.GetUserByUsername(username)
+				u, err := c.userService.GetUserByUsername(context.Background(), username)
 				if err == nil {
 					addUser(&u)
 				}
@@ -169,7 +169,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 			end := start + int(e.Length)
 			if start >= 0 && end <= len(textRunes) {
 				username := strings.TrimPrefix(strings.TrimPrefix(string(textRunes[start:end]), "https://"), "t.me/")
-				u, err := c.userService.GetUserByUsername(username)
+				u, err := c.userService.GetUserByUsername(context.Background(), username)
 				if err == nil {
 					addUser(&u)
 				}
@@ -179,7 +179,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 	}
 
 	if c.fallbackToSender && len(users) == 0 {
-		u, err := c.userService.EnsureUserExists(ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
+		u, err := c.userService.EnsureUserExists(context.Background(), ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
 		if err == nil {
 			addUser(&u)
 		}
@@ -187,7 +187,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 
 	rest, matched := c.matchCommand(text, b.User.Username)
 	if !matched {
-		return &Context{args: []string{}, users: []*model.User{}}
+		return &Context{ctx, []string{}, []*model.User{}}
 	}
 	words := strings.Fields(rest)
 	if c.argsCount != ArgsCountAny && c.argsCount > 0 && len(words) > c.argsCount {
@@ -195,10 +195,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 		words = append(words[:c.argsCount-1], last)
 	}
 
-	return &Context{
-		args:  words,
-		users: users,
-	}
+	return &Context{ctx, words, users}
 }
 
 func (c *Command) Name() string {

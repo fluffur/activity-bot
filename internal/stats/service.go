@@ -20,19 +20,15 @@ func NewService(repo Repository) *Service {
 	return &Service{repo}
 }
 
-func (s *Service) GetAllMembersStats(chatID int64, from, to *time.Time) ([]model.MessageReportMember, error) {
-	ctx := context.Background()
+func (s *Service) GetAllMembersStats(ctx context.Context, chatID int64, from, to *time.Time) ([]model.MessageReportMember, error) {
 	return s.repo.GetReport(ctx, chatID, from, to)
 }
 
-func (s *Service) GetMemberStats(chatID, userID int64) (model.MemberStats, error) {
-	ctx := context.Background()
+func (s *Service) GetMemberStats(ctx context.Context, chatID, userID int64) (model.MemberStats, error) {
 	return s.repo.GetReportOne(ctx, chatID, userID)
 }
 
-func (s *Service) GetMessageActivityGraph(chatID, userID int64) (*bytes.Buffer, error) {
-	ctx := context.Background()
-
+func (s *Service) GetMessageActivityGraph(ctx context.Context, chatID, userID int64) (*bytes.Buffer, error) {
 	activity, err := s.repo.GetMessageActivityByDay(ctx, chatID, userID)
 	if err != nil {
 		return nil, err
@@ -139,8 +135,7 @@ func (s *Service) GetMessageActivityGraph(chatID, userID int64) (*bytes.Buffer, 
 	return buf, nil
 }
 
-func (s *Service) GetInactiveMembers(chatID int64) ([]model.InactiveMember, error) {
-	ctx := context.Background()
+func (s *Service) GetInactiveMembers(ctx context.Context, chatID int64) ([]model.InactiveMember, error) {
 	return s.repo.GetInactiveMembers(ctx, chatID)
 }
 

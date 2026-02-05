@@ -4,10 +4,10 @@ import (
 	"activity-bot/internal/call"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
+	"context"
 	"fmt"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type Handler struct {
@@ -19,13 +19,13 @@ func New(service *call.Service, chatService *chat.Service) *Handler {
 	return &Handler{service, chatService}
 }
 
-func (h *Handler) Call(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
-	return h.service.Call(b, ctx, cctx.FirstArgument())
+func (h *Handler) Call(b *gotgbot.Bot, ctx *cmd.Context) error {
+	return h.service.Call(context.Background(), b, ctx.Context, ctx.FirstArgument())
 }
 
-func (h *Handler) SetWelcomeCallMessage(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
-	message := cctx.FirstArgument()
-	if err := h.service.SetWelcomeCallMessage(ctx.EffectiveChat.Id, message); err != nil {
+func (h *Handler) SetWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
+	message := ctx.FirstArgument()
+	if err := h.service.SetWelcomeCallMessage(context.Background(), ctx.EffectiveChat.Id, message); err != nil {
 		return err
 	}
 
@@ -34,8 +34,8 @@ func (h *Handler) SetWelcomeCallMessage(b *gotgbot.Bot, ctx *ext.Context, cctx *
 	return err
 }
 
-func (h *Handler) EnableCallOnJoin(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
-	if err := h.service.EnableCallOnJoin(ctx.EffectiveChat.Id); err != nil {
+func (h *Handler) EnableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
+	if err := h.service.EnableCallOnJoin(context.Background(), ctx.EffectiveChat.Id); err != nil {
 		return err
 	}
 
@@ -44,8 +44,8 @@ func (h *Handler) EnableCallOnJoin(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Cont
 	return err
 }
 
-func (h *Handler) DisableCallOnJoin(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
-	if err := h.service.DisableCallOnJoin(ctx.EffectiveChat.Id); err != nil {
+func (h *Handler) DisableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
+	if err := h.service.DisableCallOnJoin(context.Background(), ctx.EffectiveChat.Id); err != nil {
 		return err
 	}
 
@@ -54,8 +54,8 @@ func (h *Handler) DisableCallOnJoin(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Con
 	return err
 }
 
-func (h *Handler) ShowWelcomeCallMessage(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
-	c, err := h.chatService.GetChat(ctx.EffectiveChat.Id)
+func (h *Handler) ShowWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
+	c, err := h.chatService.GetChat(context.Background(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}

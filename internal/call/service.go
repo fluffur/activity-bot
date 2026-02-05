@@ -23,21 +23,21 @@ func NewService(repo chat.Repository, memberService *member.Service) *Service {
 	return &Service{repo, memberService}
 }
 
-func (s *Service) Call(b *gotgbot.Bot, ctx *ext.Context, message string) error {
-	if _, err := s.memberService.SyncChatMembers(ctx.EffectiveChat.Id); err != nil {
+func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, message string) error {
+	if _, err := s.memberService.SyncChatMembers(ctx, tgCtx.EffectiveChat.Id); err != nil {
 		return err
 	}
 
-	users, err := s.memberService.GetChatMembers(ctx.EffectiveChat.Id)
+	users, err := s.memberService.GetChatMembers(ctx, tgCtx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
 
 	var replyParams *gotgbot.ReplyParameters
-	if ctx.EffectiveMessage.ReplyToMessage != nil {
+	if tgCtx.EffectiveMessage.ReplyToMessage != nil {
 		replyParams = &gotgbot.ReplyParameters{
-			ChatId:    ctx.EffectiveChat.Id,
-			MessageId: ctx.EffectiveMessage.ReplyToMessage.MessageId,
+			ChatId:    tgCtx.EffectiveChat.Id,
+			MessageId: tgCtx.EffectiveMessage.ReplyToMessage.MessageId,
 		}
 	}
 
@@ -59,9 +59,9 @@ func (s *Service) Call(b *gotgbot.Bot, ctx *ext.Context, message string) error {
 			}
 		}
 
-		if len(ctx.EffectiveMessage.Photo) > 0 {
-			lastPhoto := ctx.EffectiveMessage.Photo[len(ctx.EffectiveMessage.Photo)-1]
-			if _, err := b.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByID(lastPhoto.FileId), &gotgbot.SendPhotoOpts{
+		if len(tgCtx.EffectiveMessage.Photo) > 0 {
+			lastPhoto := tgCtx.EffectiveMessage.Photo[len(tgCtx.EffectiveMessage.Photo)-1]
+			if _, err := b.SendPhoto(tgCtx.EffectiveChat.Id, gotgbot.InputFileByID(lastPhoto.FileId), &gotgbot.SendPhotoOpts{
 				ParseMode:       gotgbot.ParseModeHTML,
 				Caption:         sb.String(),
 				ReplyParameters: replyParams,
@@ -69,7 +69,7 @@ func (s *Service) Call(b *gotgbot.Bot, ctx *ext.Context, message string) error {
 				return err
 			}
 		} else {
-			if _, err := b.SendMessage(ctx.EffectiveChat.Id, sb.String(), &gotgbot.SendMessageOpts{
+			if _, err := b.SendMessage(tgCtx.EffectiveChat.Id, sb.String(), &gotgbot.SendMessageOpts{
 				ParseMode: gotgbot.ParseModeHTML,
 				LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 					IsDisabled: true,
@@ -84,22 +84,14 @@ func (s *Service) Call(b *gotgbot.Bot, ctx *ext.Context, message string) error {
 	return nil
 }
 
-func (s *Service) SetWelcomeCallMessage(chatID int64, message string) error {
-	ctx := context.Background()
-
+func (s *Service) SetWelcomeCallMessage(ctx context.Context, chatID int64, message string) error {
 	return s.repo.SetWelcomeCallMessage(ctx, chatID, message)
-
 }
 
-func (s *Service) EnableCallOnJoin(chatID int64) error {
-	ctx := context.Background()
-
+func (s *Service) EnableCallOnJoin(ctx context.Context, chatID int64) error {
 	return s.repo.UpdateCallOnJoin(ctx, chatID, true)
 }
 
-func (s *Service) DisableCallOnJoin(chatID int64) error {
-	ctx := context.Background()
-
+func (s *Service) DisableCallOnJoin(ctx context.Context, chatID int64) error {
 	return s.repo.UpdateCallOnJoin(ctx, chatID, false)
-
 }

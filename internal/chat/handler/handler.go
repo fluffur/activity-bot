@@ -5,11 +5,11 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
+	"context"
 	"fmt"
 	"strconv"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type Handler struct {
@@ -22,8 +22,8 @@ func New(service *chat.Service, adminService *admin.Service, dateParser *helpers
 	return &Handler{service, adminService, dateParser}
 }
 
-func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
-	norm, err := h.service.GetNorm(ctx.EffectiveChat.Id)
+func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
+	norm, err := h.service.GetNorm(context.Background(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
@@ -33,13 +33,13 @@ func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) err
 	return err
 }
 
-func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
-	norm, err := strconv.Atoi(cctx.FirstArgument())
+func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
+	norm, err := strconv.Atoi(ctx.FirstArgument())
 	if err != nil {
 		return err
 	}
 
-	if err := h.service.SetNorm(ctx.EffectiveChat.Id, norm); err != nil {
+	if err := h.service.SetNorm(context.Background(), ctx.EffectiveChat.Id, norm); err != nil {
 		return err
 	}
 
@@ -48,8 +48,8 @@ func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) e
 	return err
 }
 
-func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
-	threshold, err := h.service.GetNewbieThreshold(ctx.EffectiveChat.Id)
+func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *cmd.Context) error {
+	threshold, err := h.service.GetNewbieThreshold(context.Background(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
@@ -58,14 +58,14 @@ func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.C
 	return err
 }
 
-func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
-	days, ok := h.dateParser.ParseDays(cctx.FirstArgument())
+func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *cmd.Context) error {
+	days, ok := h.dateParser.ParseDays(ctx.FirstArgument())
 	if !ok {
 		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось распознать срок. Используйте формат: 3 дня, неделя, 14 дней или просто число.", nil)
 		return err
 	}
 
-	if err := h.service.SetNewbieThreshold(ctx.EffectiveChat.Id, days); err != nil {
+	if err := h.service.SetNewbieThreshold(context.Background(), ctx.EffectiveChat.Id, days); err != nil {
 		return err
 	}
 
@@ -73,8 +73,8 @@ func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd
 	return err
 }
 
-func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
-	if err := h.service.SetChatPrompt(ctx.EffectiveChat.Id, cctx.FirstArgument()); err != nil {
+func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *cmd.Context) error {
+	if err := h.service.SetChatPrompt(context.Background(), ctx.EffectiveChat.Id, ctx.FirstArgument()); err != nil {
 		return err
 	}
 
@@ -82,13 +82,12 @@ func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context)
 	return err
 }
 
-func (h *Handler) ShowPrompt(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
-	c, err := h.service.GetChat(ctx.EffectiveChat.Id)
+func (h *Handler) ShowPrompt(b *gotgbot.Bot, ctx *cmd.Context) error {
+	c, err := h.service.GetChat(context.Background(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
 
 	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Промпт: \"%s\"", c.AISystemPrompt), nil)
 	return err
-
 }

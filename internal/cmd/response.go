@@ -10,9 +10,10 @@ import (
 
 var ErrNoUser = errors.New("failed to get user info from context")
 
-type Response func(b *gotgbot.Bot, ctx *ext.Context, cctx *Context) error
+type Response func(b *gotgbot.Bot, ctx *Context) error
 
 type Context struct {
+	*ext.Context
 	args  []string
 	users []*model.User
 }

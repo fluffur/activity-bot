@@ -24,8 +24,8 @@ func New(service *message.Service, memberService *member.Service, chatService *c
 	return &Handler{service, memberService, chatService, deepseekClient}
 }
 
-func (h *Handler) EnsureMemberCustomTitle(b *gotgbot.Bot, chatID, userID int64) (string, error) {
-	m, err := h.memberService.GetMemberTitle(chatID, userID)
+func (h *Handler) EnsureMemberCustomTitle(ctx context.Context, b *gotgbot.Bot, chatID, userID int64) (string, error) {
+	m, err := h.memberService.GetMemberTitle(ctx, chatID, userID)
 	if err != nil && !errors.Is(err, member.ErrInvalidCustomTitle) {
 		return "", err
 	}
@@ -42,9 +42,8 @@ func (h *Handler) EnsureMemberCustomTitle(b *gotgbot.Bot, chatID, userID int64) 
 	return chatMember.MergeChatMember().CustomTitle, nil
 }
 
-func (h *Handler) Bot(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
-	ctxx := context.Background()
-	c, err := h.chatService.GetChat(ctx.EffectiveChat.Id)
+func (h *Handler) Bot(b *gotgbot.Bot, ctx *cmd.Context) error {
+	c, err := h.chatService.GetChat(context.Background(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
@@ -57,11 +56,11 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error
 			},
 			{
 				Role:    deepseek.ChatMessageRoleUser,
-				Content: ctx.EffectiveSender.FirstName() + ": " + cctx.FirstArgument(),
+				Content: ctx.EffectiveSender.FirstName() + ": " + ctx.FirstArgument(),
 			},
 		},
 	}
-	resp, err := h.deepseekClient.CreateChatCompletion(ctxx, request)
+	resp, err := h.deepseekClient.CreateChatCompletion(context.Background(), request)
 	if err != nil {
 		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось получить ответ от бота", nil)
 		return err
@@ -83,25 +82,25 @@ func (h *Handler) Message(b *gotgbot.Bot, ctx *ext.Context) error {
 		return nil
 	}
 
-	m, err := h.memberService.EnsureMemberExists(c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member")
+	m, err := h.memberService.EnsureMemberExists(context.Background(), c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member")
 
 	if err != nil {
 		return err
 	}
 
 	if m.CustomTitle == "" {
-		title, err := h.EnsureMemberCustomTitle(b, c.Id, u.Id)
+		title, err := h.EnsureMemberCustomTitle(context.Background(), b, c.Id, u.Id)
 		if err != nil {
 			return err
 		}
 		if m.CustomTitle != title {
-			if err := h.memberService.SetMemberTitle(c.Id, u.Id, &title); err != nil {
+			if err := h.memberService.SetMemberTitle(context.Background(), c.Id, u.Id, &title); err != nil {
 				return err
 			}
 		}
 	}
 
-	if err := h.service.Save(c.Id, u.Id); err != nil {
+	if err := h.service.Save(context.Background(), c.Id, u.Id); err != nil {
 		return err
 	}
 	return nil

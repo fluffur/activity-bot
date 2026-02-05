@@ -27,9 +27,8 @@ func NewService(repo Repository, statusProvider ChatMemberStatusProvider, ownerI
 	return &Service{repo, statusProvider, ownerID}
 }
 
-func (s *Service) AddAdmin(chatID int64, userID int64) error {
-	ctx := context.Background()
-	isCreator, err := s.IsCreator(chatID, userID)
+func (s *Service) AddAdmin(ctx context.Context, chatID int64, userID int64) error {
+	isCreator, err := s.IsCreator(ctx, chatID, userID)
 	if err != nil {
 		return err
 	}
@@ -37,7 +36,7 @@ func (s *Service) AddAdmin(chatID int64, userID int64) error {
 		return ErrUserIsAlreadyAdmin
 	}
 
-	isAdmin, err := s.IsAdmin(chatID, userID)
+	isAdmin, err := s.IsAdmin(ctx, chatID, userID)
 	if err != nil {
 		return err
 	}
@@ -49,10 +48,8 @@ func (s *Service) AddAdmin(chatID int64, userID int64) error {
 	return s.repo.Add(ctx, chatID, userID)
 }
 
-func (s *Service) RemoveAdmin(chatID int64, userID int64) error {
-	ctx := context.Background()
-
-	isCreator, err := s.IsCreator(chatID, userID)
+func (s *Service) RemoveAdmin(ctx context.Context, chatID int64, userID int64) error {
+	isCreator, err := s.IsCreator(ctx, chatID, userID)
 	if err != nil {
 		return err
 	}
@@ -60,7 +57,7 @@ func (s *Service) RemoveAdmin(chatID int64, userID int64) error {
 		return ErrUserIsCreator
 	}
 
-	isAdmin, err := s.IsAdmin(chatID, userID)
+	isAdmin, err := s.IsAdmin(ctx, chatID, userID)
 	if err != nil {
 		return err
 	}
@@ -73,11 +70,10 @@ func (s *Service) RemoveAdmin(chatID int64, userID int64) error {
 }
 
 func (s *Service) GetAdminsEnsured(
+	ctx context.Context,
 	chatID int64,
-	sync func(chatID int64) (int, error),
+	sync func(ctx context.Context, chatID int64) (int, error),
 ) ([]model.User, error) {
-	ctx := context.Background()
-
 	admins, err := s.repo.GetFromChat(ctx, chatID)
 	if err != nil {
 		return nil, err
@@ -87,19 +83,17 @@ func (s *Service) GetAdminsEnsured(
 		return admins, nil
 	}
 
-	if _, err := sync(chatID); err != nil {
+	if _, err := sync(ctx, chatID); err != nil {
 		return nil, err
 	}
 
 	return s.repo.GetFromChat(ctx, chatID)
 }
 
-func (s *Service) IsCreator(chatID int64, userID int64) (bool, error) {
+func (s *Service) IsCreator(ctx context.Context, chatID int64, userID int64) (bool, error) {
 	if userID == s.ownerID {
 		return true, nil
 	}
-
-	ctx := context.Background()
 
 	isCreator, err := s.repo.IsCreator(ctx, chatID, userID)
 	if err == nil {
@@ -114,13 +108,12 @@ func (s *Service) IsCreator(chatID int64, userID int64) (bool, error) {
 	return status == "creator", nil
 }
 
-func (s *Service) GetRole(chatID int64, userID int64) (string, error) {
-	ctx := context.Background()
+func (s *Service) GetRole(ctx context.Context, chatID int64, userID int64) (string, error) {
 	return s.repo.GetRole(ctx, chatID, userID)
 }
 
-func (s *Service) CheckIsAdmin(chatID, userID int64) bool {
-	isAdmin, err := s.IsAdmin(chatID, userID)
+func (s *Service) CheckIsAdmin(ctx context.Context, chatID, userID int64) bool {
+	isAdmin, err := s.IsAdmin(ctx, chatID, userID)
 	if err != nil {
 		slog.Error("failed to check admin", "chat_id", chatID, "user_id", userID, "error", err)
 		return false
@@ -128,8 +121,8 @@ func (s *Service) CheckIsAdmin(chatID, userID int64) bool {
 	return isAdmin
 }
 
-func (s *Service) CheckIsCreator(chatID, userID int64) bool {
-	isCreator, err := s.IsCreator(chatID, userID)
+func (s *Service) CheckIsCreator(ctx context.Context, chatID, userID int64) bool {
+	isCreator, err := s.IsCreator(ctx, chatID, userID)
 	if err != nil {
 		slog.Error("failed to check creator", "chat_id", chatID, "user_id", userID, "error", err)
 		return false
@@ -137,12 +130,12 @@ func (s *Service) CheckIsCreator(chatID, userID int64) bool {
 	return isCreator
 }
 
-func (s *Service) IsAdmin(chatID, userID int64) (bool, error) {
+func (s *Service) IsAdmin(ctx context.Context, chatID, userID int64) (bool, error) {
 	if userID == s.ownerID {
 		return true, nil
 	}
 
-	isAdmin, err := s.repo.IsAdmin(context.Background(), chatID, userID)
+	isAdmin, err := s.repo.IsAdmin(ctx, chatID, userID)
 	if err != nil {
 		return false, err
 	}

@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/rest"
 	"activity-bot/internal/stats"
+	"context"
 	"fmt"
 	"html"
 	"log/slog"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type Handler struct {
@@ -27,16 +27,16 @@ func New(service *stats.Service, restService *rest.Service, memberService *membe
 	return &Handler{service, restService, memberService}
 }
 
-func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
-	if _, err := h.memberService.SyncChatMembers(ctx.EffectiveChat.Id); err != nil {
+func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
+	if _, err := h.memberService.SyncChatMembers(context.Background(), ctx.EffectiveChat.Id); err != nil {
 		slog.Warn("failed to auto-update chat members in stats", "chat_id", ctx.EffectiveChat.Id, "error", err)
 	}
 
 	var period string
-	if len(cctx.Args()) == 0 {
+	if len(ctx.Args()) == 0 {
 		period = "неделя"
 	} else {
-		period = cctx.FirstArgument()
+		period = ctx.FirstArgument()
 	}
 
 	var from, to *time.Time
@@ -51,13 +51,12 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context)
 		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now())
 	}
 
-	report, err := h.service.GetAllMembersStats(ctx.EffectiveChat.Id, from, to)
+	report, err := h.service.GetAllMembersStats(context.Background(), ctx.EffectiveChat.Id, from, to)
 	if err != nil {
 		return err
-
 	}
 
-	restMembers, err := h.restService.GetRestMembers(ctx.EffectiveChat.Id)
+	restMembers, err := h.restService.GetRestMembers(context.Background(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
@@ -75,13 +74,12 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context)
 	return err
 }
 
-func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
+func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return h.WhoAreUser(b, ctx, ctx.EffectiveSender.Id())
-
 }
 
-func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error {
-	u := cctx.FirstUser()
+func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
+	u := ctx.FirstUser()
 	if u == nil {
 		return cmd.ErrNoUser
 	}
@@ -89,13 +87,13 @@ func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context)
 	return h.WhoAreUser(b, ctx, u.ID)
 }
 
-func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *ext.Context, userID int64) error {
-	m, err := h.service.GetMemberStats(ctx.EffectiveChat.Id, userID)
+func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *cmd.Context, userID int64) error {
+	m, err := h.service.GetMemberStats(context.Background(), ctx.EffectiveChat.Id, userID)
 	if err != nil {
 		return err
 	}
 
-	buf, err := h.service.GetMessageActivityGraph(ctx.EffectiveChat.Id, userID)
+	buf, err := h.service.GetMessageActivityGraph(context.Background(), ctx.EffectiveChat.Id, userID)
 	if err != nil {
 		slog.Warn("Failed to get graph", "error", err)
 	}
@@ -288,8 +286,8 @@ func writeNumberedList(sb *strings.Builder, items []string) {
 	}
 }
 
-func (h *Handler) Inactive(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) error {
-	members, err := h.service.GetInactiveMembers(ctx.EffectiveChat.Id)
+func (h *Handler) Inactive(b *gotgbot.Bot, ctx *cmd.Context) error {
+	members, err := h.service.GetInactiveMembers(context.Background(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}

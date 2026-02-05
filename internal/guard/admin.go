@@ -3,6 +3,7 @@ package guard
 import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/cmd"
+	"context"
 
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
@@ -16,7 +17,7 @@ func NewAdminGuard(service *admin.Service) cmd.Guard {
 }
 
 func (g *AdminGuard) Check(ctx *ext.Context, _ string) (bool, string) {
-	if !g.service.CheckIsAdmin(ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
+	if !g.service.CheckIsAdmin(context.Background(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
 		return false, "Только создатель и администраторы могут выполнить эту команду"
 	}
 	return true, ""
