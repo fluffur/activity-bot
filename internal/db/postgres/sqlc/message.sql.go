@@ -255,7 +255,6 @@ FROM chat_members cm
 
 WHERE cm.chat_id = $1
   AND cm.user_id = $2
-  AND cm.left_at IS NULL
 
 GROUP BY cm.user_id,
          u.username,
