@@ -15,6 +15,7 @@ import (
 	"activity-bot/internal/filter"
 	"activity-bot/internal/guard"
 	helpH "activity-bot/internal/help/handler"
+	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
 	memberH "activity-bot/internal/member/handler"
@@ -149,7 +150,7 @@ func main() {
 	messageService := msg.NewService(messageRepository)
 	callService := call.NewService(chatRepository, memberService)
 
-	dateParser := rest.NewDateParser()
+	dateParser := helpers.NewDateParser()
 
 	helpHandler := helpH.New(cfg.BotOwnerID)
 	statsHandler := statsH.New(statsService, restService, memberService)

@@ -22,10 +22,10 @@ type Handler struct {
 	service      *rest.Service
 	userService  *user.Service
 	adminService *admin.Service
-	dateParser   *rest.DateParser
+	dateParser   *helpers.DateParser
 }
 
-func New(service *rest.Service, userService *user.Service, adminService *admin.Service, dateParser *rest.DateParser) *Handler {
+func New(service *rest.Service, userService *user.Service, adminService *admin.Service, dateParser *helpers.DateParser) *Handler {
 	return &Handler{service, userService, adminService, dateParser}
 }
 

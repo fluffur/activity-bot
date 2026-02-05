@@ -5,7 +5,6 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
-	"activity-bot/internal/rest"
 	"fmt"
 	"strconv"
 
@@ -16,10 +15,10 @@ import (
 type Handler struct {
 	service      *chat.Service
 	adminService *admin.Service
-	dateParser   *rest.DateParser
+	dateParser   *helpers.DateParser
 }
 
-func New(service *chat.Service, adminService *admin.Service, dateParser *rest.DateParser) *Handler {
+func New(service *chat.Service, adminService *admin.Service, dateParser *helpers.DateParser) *Handler {
 	return &Handler{service, adminService, dateParser}
 }
 
