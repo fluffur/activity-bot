@@ -145,6 +145,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 
 	text, entities := cleanMessage(msg)
 	textRunes := []rune(msg.GetText())
+
 	for _, e := range entities {
 
 		switch e.Type {
@@ -278,11 +279,17 @@ func hasCommandPrefix(text, cmd string) (bool, string) {
 
 func cleanMessage(msg *gotgbot.Message) (string, []gotgbot.MessageEntity) {
 	text := msg.GetText()
+	textRunes := []rune(text)
 	removeRanges := make([][2]int, 0)
 	removedEntities := make([]gotgbot.MessageEntity, 0)
 
 	for _, e := range msg.Entities {
-		start, end := runeIndex(text, int(e.Offset), int(e.Length))
+		start := int(e.Offset)
+		end := start + int(e.Length)
+		if start < 0 || end > len(textRunes) {
+			continue
+		}
+
 		switch e.Type {
 		case "mention", "text_mention", "url":
 			removeRanges = append(removeRanges, [2]int{start, end})
@@ -290,43 +297,10 @@ func cleanMessage(msg *gotgbot.Message) (string, []gotgbot.MessageEntity) {
 		}
 	}
 
-	textRunes := []rune(text)
 	for i := len(removeRanges) - 1; i >= 0; i-- {
 		r := removeRanges[i]
-		if r[0] >= 0 && r[1] <= len(textRunes) {
-			textRunes = append(textRunes[:r[0]], textRunes[r[1]:]...)
-		}
+		textRunes = append(textRunes[:r[0]], textRunes[r[1]:]...)
 	}
 
 	return strings.TrimSpace(string(textRunes)), removedEntities
-}
-
-func runeIndex(text string, offset, length int) (start, end int) {
-	runes := []rune(text)
-	utf16Pos := 0
-	start = -1
-	for i, r := range runes {
-		if utf16Pos == offset {
-			start = i
-		}
-		utf16Pos += utf16Length(r)
-		if utf16Pos >= offset+length {
-			end = i + 1
-			break
-		}
-	}
-	if start == -1 {
-		start = 0
-	}
-	if end == 0 {
-		end = len(runes)
-	}
-	return
-}
-
-func utf16Length(r rune) int {
-	if r > 0xFFFF {
-		return 2
-	}
-	return 1
 }
