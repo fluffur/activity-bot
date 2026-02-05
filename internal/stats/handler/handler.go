@@ -8,7 +8,6 @@ import (
 	"activity-bot/internal/rest"
 	"activity-bot/internal/stats"
 	"fmt"
-	"html"
 	"log/slog"
 	"strings"
 	"time"
@@ -102,54 +101,42 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *cmd.Context, userID int64) err
 		customTitle = *m.CustomTitle
 	}
 
-	restText := ""
+	extraText := ""
 	if m.RestUntil != nil {
-		restText = "💤 Рест до " + helpers.FormatToHumanDate(*m.RestUntil)
+		extraText = fmt.Sprintf("💤 Рест до %s", helpers.FormatToHumanDate(*m.RestUntil))
+	} else {
+		if m.WeeklyNorm <= m.WeekCount {
+			extraText = "<b>✅ Норма</b>"
+		} else {
+			extraText = "<b>❌ Норма</b>"
+		}
+		extraText += fmt.Sprintf(": %d/%d за эту неделю", m.WeekCount, m.WeeklyNorm)
 	}
 
 	text := fmt.Sprintf(
-		`<b>📊 Информация о пользователе %s</b>
+		`<b>📊 Информация о %s</b>
 
-🌟 <b>Профиль</b>
-┌───────────────
-│ Роль: %s
-│ Статус: %s
-│ Присоединился: %s
-└───────────────
+🌟 Статус: <b>%s</b> | Присоединился: <b>%s</b>
 
-📅 <b>Активность (календарная)</b>
-┌───────────────
-│ Сегодня: %d сообщений
-│ На этой неделе: %s сообщений
-│ В этом месяце: %d сообщений
-└───────────────
+<b>📅 Активность</b>: сегодня <b>%d</b> | неделя <b>%d</b> | месяц <b>%d</b>
 
-🔄 <b>Активность (rolling)</b>
-┌───────────────
-│ Последние 24ч: %d сообщений
-│ Последние 7 дней: %d сообщений
-│ Последние 30 дней: %d сообщений
-└───────────────
+<b>🔄 Последние</b>: 24ч <b>%d</b> | 7д <b>%d</b> | 30д <b>%d</b>
 
-📝 <b>Всего сообщений</b>
-┌───────────────
-│ Всего: %d сообщений
-└───────────────
+📝 <b>Всего сообщений:</b> %d
 
 %s
 `,
 		helpers.LinkWithContent(m.User, fmt.Sprintf("%s (%s)", m.User.FirstName, customTitle)),
-		htmlEscape(customTitle),
 		helpers.TranslateMemberStatus(m.Status),
 		helpers.FormatToHumanDate(m.JoinedAt),
 		m.DayCount,
-		fmt.Sprintf("%d/%d", m.WeekCount, m.WeeklyNorm),
+		m.WeekCount,
 		m.MonthCount,
 		m.DayRollingCount,
 		m.WeekRollingCount,
 		m.MonthRollingCount,
 		m.AllTime,
-		restText,
+		extraText,
 	)
 
 	if buf == nil {
@@ -164,10 +151,6 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *cmd.Context, userID int64) err
 		ParseMode: "HTML",
 	})
 	return err
-}
-
-func htmlEscape(s string) string {
-	return html.EscapeString(s)
 }
 
 func formatReport(report []model.MessageReportMember, restMembers []model.RestMember, from, to *time.Time) string {
