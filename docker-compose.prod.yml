@@ -1,6 +1,8 @@
 services:
   app:
-    build: docker/prod
+    build:
+      context: .
+      dockerfile: docker/prod/Dockerfile
     restart: unless-stopped
     depends_on:
       db:
