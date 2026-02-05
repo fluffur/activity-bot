@@ -1,10 +1,12 @@
 services:
   app:
-    build: .
+    build: docker/prod
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     env_file:
       - .env
     ports:
