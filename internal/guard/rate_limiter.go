@@ -25,17 +25,16 @@ func NewRateLimiter(rdb *redis.Client, limit int, interval time.Duration) cmd.Gu
 	}
 }
 
-func (r *RateLimiter) Check(ctx *ext.Context, command string) (bool, string) {
-	cctx := context.Background()
+func (r *RateLimiter) Check(ctx *ext.Context, command string, stdCtx context.Context) (bool, string) {
 	chatID := ctx.EffectiveChat.Id
 	key := fmt.Sprintf("rate:%d:%s", chatID, command)
-	count, err := r.Redis.Get(cctx, key).Int()
+	count, err := r.Redis.Get(stdCtx, key).Int()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return false, ""
 	}
 
 	if count >= r.Limit {
-		ttl, err := r.Redis.TTL(cctx, key).Result()
+		ttl, err := r.Redis.TTL(stdCtx, key).Result()
 		if err != nil || ttl < 0 {
 			ttl = r.Interval
 		}
@@ -45,9 +44,9 @@ func (r *RateLimiter) Check(ctx *ext.Context, command string) (bool, string) {
 	}
 
 	pipe := r.Redis.TxPipeline()
-	pipe.Incr(cctx, key)
-	pipe.Expire(cctx, key, r.Interval)
-	_, _ = pipe.Exec(cctx)
+	pipe.Incr(stdCtx, key)
+	pipe.Expire(stdCtx, key, r.Interval)
+	_, _ = pipe.Exec(stdCtx)
 
 	return true, ""
 }

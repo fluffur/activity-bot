@@ -108,7 +108,7 @@ func (a *App) setupBot() error {
 		{Command: "stats", Description: "📊 Недельный отчёт"},
 		{Command: "inactive", Description: "💤 Неактив участники"},
 		{Command: "norm", Description: "📊 Норма сообщений"},
-		{Command: "ladder", Description: "📶 Максимальная лесенка сообщений"},
+		//{Command: "ladder", Description: "📶 Максимальная лесенка сообщений"},
 		{Command: "rest", Description: "🛌 Управление рестом"},
 		{Command: "role", Description: "🏷️ Роль пользователя"},
 		{Command: "me", Description: "👁️ Информация о себе"},

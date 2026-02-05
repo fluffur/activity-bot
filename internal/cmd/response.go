@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"activity-bot/internal/model"
+	"context"
 	"errors"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -14,6 +15,7 @@ type Response func(b *gotgbot.Bot, ctx *Context) error
 
 type Context struct {
 	*ext.Context
+	ctx   context.Context
 	args  []string
 	users []*model.User
 }
@@ -39,4 +41,8 @@ func (c *Context) Users() []*model.User {
 
 func (c *Context) Args() []string {
 	return c.args
+}
+
+func (c *Context) StdContext() context.Context {
+	return c.ctx
 }

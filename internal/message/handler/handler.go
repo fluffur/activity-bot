@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/message"
 	"context"
 	"errors"
+	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
@@ -43,7 +44,7 @@ func (h *Handler) EnsureMemberCustomTitle(ctx context.Context, b *gotgbot.Bot, c
 }
 
 func (h *Handler) Bot(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.chatService.GetChat(context.Background(), ctx.EffectiveChat.Id)
+	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
@@ -60,7 +61,7 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *cmd.Context) error {
 			},
 		},
 	}
-	resp, err := h.deepseekClient.CreateChatCompletion(context.Background(), request)
+	resp, err := h.deepseekClient.CreateChatCompletion(ctx.StdContext(), request)
 	if err != nil {
 		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось получить ответ от бота", nil)
 		return err
@@ -76,31 +77,33 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) Message(b *gotgbot.Bot, ctx *ext.Context) error {
+	cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	u := ctx.EffectiveSender.User
 	c := ctx.EffectiveChat
 	if u == nil || c == nil || u.IsBot {
 		return nil
 	}
 
-	m, err := h.memberService.EnsureMemberExists(context.Background(), c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member")
+	m, err := h.memberService.EnsureMemberExists(cctx, c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member")
 
 	if err != nil {
 		return err
 	}
 
 	if m.CustomTitle == "" {
-		title, err := h.EnsureMemberCustomTitle(context.Background(), b, c.Id, u.Id)
+		title, err := h.EnsureMemberCustomTitle(cctx, b, c.Id, u.Id)
 		if err != nil {
 			return err
 		}
 		if m.CustomTitle != title {
-			if err := h.memberService.SetMemberTitle(context.Background(), c.Id, u.Id, &title); err != nil {
+			if err := h.memberService.SetMemberTitle(cctx, c.Id, u.Id, &title); err != nil {
 				return err
 			}
 		}
 	}
 
-	if err := h.service.Save(context.Background(), c.Id, u.Id); err != nil {
+	if err := h.service.Save(cctx, c.Id, u.Id); err != nil {
 		return err
 	}
 	return nil

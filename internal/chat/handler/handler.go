@@ -5,7 +5,6 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
-	"context"
 	"fmt"
 	"strconv"
 
@@ -23,7 +22,7 @@ func New(service *chat.Service, adminService *admin.Service, dateParser *helpers
 }
 
 func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
-	norm, err := h.service.GetNorm(context.Background(), ctx.EffectiveChat.Id)
+	norm, err := h.service.GetNorm(ctx.StdContext(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
@@ -39,7 +38,7 @@ func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	if err := h.service.SetNorm(context.Background(), ctx.EffectiveChat.Id, norm); err != nil {
+	if err := h.service.SetNorm(ctx.StdContext(), ctx.EffectiveChat.Id, norm); err != nil {
 		return err
 	}
 
@@ -49,7 +48,7 @@ func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *cmd.Context) error {
-	threshold, err := h.service.GetNewbieThreshold(context.Background(), ctx.EffectiveChat.Id)
+	threshold, err := h.service.GetNewbieThreshold(ctx.StdContext(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
@@ -65,7 +64,7 @@ func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	if err := h.service.SetNewbieThreshold(context.Background(), ctx.EffectiveChat.Id, days); err != nil {
+	if err := h.service.SetNewbieThreshold(ctx.StdContext(), ctx.EffectiveChat.Id, days); err != nil {
 		return err
 	}
 
@@ -74,7 +73,7 @@ func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.SetChatPrompt(context.Background(), ctx.EffectiveChat.Id, ctx.FirstArgument()); err != nil {
+	if err := h.service.SetChatPrompt(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.FirstArgument()); err != nil {
 		return err
 	}
 
@@ -83,7 +82,7 @@ func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) ShowPrompt(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.service.GetChat(context.Background(), ctx.EffectiveChat.Id)
+	c, err := h.service.GetChat(ctx.StdContext(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}

@@ -19,7 +19,7 @@ func (s *Service) Save(ctx context.Context, chatID int64, userID int64) error {
 
 //
 //func (s *Service) ProcessLadder(chatID, userID int64, ttl time.Duration, maxLadder int32) (int64, bool, error) {
-//	ctx := context.Background()
+//	ctx := ctx.StdContext()
 //
 //	count, sameUser, err := s.ladderRepo.Inc(ctx, chatID, userID, ttl)
 //	if err != nil {

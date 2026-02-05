@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/user"
 	"context"
 	"strings"
+	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
@@ -103,8 +104,10 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 }
 
 func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	for _, guard := range c.guards {
-		if ok, message := guard.Check(ctx, c.commands[0]); !ok {
+		if ok, message := guard.Check(ctx, c.commands[0], ctxWithTimeout); !ok {
 			if message != "" {
 				_, err := ctx.EffectiveMessage.Reply(b, message, nil)
 				return err
@@ -113,13 +116,13 @@ func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 		}
 	}
 
-	return c.response(b, c.parseArgs(b, ctx))
+	return c.response(b, c.parseArgs(b, ctx, ctxWithTimeout))
 }
 
 func (c *Command) ensureUser(ctx context.Context, u *gotgbot.User) (model.User, error) {
 	return c.userService.EnsureUserExists(ctx, u.Id, u.Username, u.FirstName, u.LastName)
 }
-func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
+func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Context) *Context {
 	msg := ctx.Message
 	users := make([]*model.User, 0)
 	takenUsers := make(map[int64]struct{})
@@ -134,7 +137,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 	}
 
 	if msg.ReplyToMessage != nil && msg.ReplyToMessage.From != nil && !msg.ReplyToMessage.From.IsBot {
-		u, err := c.ensureUser(context.Background(), msg.ReplyToMessage.From)
+		u, err := c.ensureUser(cctx, msg.ReplyToMessage.From)
 		if err == nil {
 			addUser(&u)
 		}
@@ -148,7 +151,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 		switch e.Type {
 		case "text_mention":
 			if e.User != nil {
-				u, err := c.ensureUser(context.Background(), e.User)
+				u, err := c.ensureUser(cctx, e.User)
 				if err == nil {
 					addUser(&u)
 				}
@@ -158,7 +161,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 			end := start + int(e.Length)
 			if start >= 0 && end <= len(textRunes) {
 				username := string(textRunes[start+1 : end])
-				u, err := c.userService.GetUserByUsername(context.Background(), username)
+				u, err := c.userService.GetUserByUsername(cctx, username)
 				if err == nil {
 					addUser(&u)
 				}
@@ -169,7 +172,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 			end := start + int(e.Length)
 			if start >= 0 && end <= len(textRunes) {
 				username := strings.TrimPrefix(strings.TrimPrefix(string(textRunes[start:end]), "https://"), "t.me/")
-				u, err := c.userService.GetUserByUsername(context.Background(), username)
+				u, err := c.userService.GetUserByUsername(cctx, username)
 				if err == nil {
 					addUser(&u)
 				}
@@ -179,7 +182,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 	}
 
 	if c.fallbackToSender && len(users) == 0 {
-		u, err := c.userService.EnsureUserExists(context.Background(), ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
+		u, err := c.userService.EnsureUserExists(cctx, ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
 		if err == nil {
 			addUser(&u)
 		}
@@ -187,7 +190,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 
 	rest, matched := c.matchCommand(text, b.User.Username)
 	if !matched {
-		return &Context{ctx, []string{}, []*model.User{}}
+		return &Context{ctx, cctx, []string{}, []*model.User{}}
 	}
 	words := strings.Fields(rest)
 	if c.argsCount != ArgsCountAny && c.argsCount > 0 && len(words) > c.argsCount {
@@ -195,7 +198,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context) *Context {
 		words = append(words[:c.argsCount-1], last)
 	}
 
-	return &Context{ctx, words, users}
+	return &Context{ctx, cctx, words, users}
 }
 
 func (c *Command) Name() string {

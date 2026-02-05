@@ -4,7 +4,6 @@ import (
 	"activity-bot/internal/call"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
-	"context"
 	"fmt"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -20,12 +19,12 @@ func New(service *call.Service, chatService *chat.Service) *Handler {
 }
 
 func (h *Handler) Call(b *gotgbot.Bot, ctx *cmd.Context) error {
-	return h.service.Call(context.Background(), b, ctx.Context, ctx.FirstArgument())
+	return h.service.Call(ctx.StdContext(), b, ctx.Context, ctx.FirstArgument())
 }
 
 func (h *Handler) SetWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	message := ctx.FirstArgument()
-	if err := h.service.SetWelcomeCallMessage(context.Background(), ctx.EffectiveChat.Id, message); err != nil {
+	if err := h.service.SetWelcomeCallMessage(ctx.StdContext(), ctx.EffectiveChat.Id, message); err != nil {
 		return err
 	}
 
@@ -35,7 +34,7 @@ func (h *Handler) SetWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error 
 }
 
 func (h *Handler) EnableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.EnableCallOnJoin(context.Background(), ctx.EffectiveChat.Id); err != nil {
+	if err := h.service.EnableCallOnJoin(ctx.StdContext(), ctx.EffectiveChat.Id); err != nil {
 		return err
 	}
 
@@ -45,7 +44,7 @@ func (h *Handler) EnableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) DisableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.DisableCallOnJoin(context.Background(), ctx.EffectiveChat.Id); err != nil {
+	if err := h.service.DisableCallOnJoin(ctx.StdContext(), ctx.EffectiveChat.Id); err != nil {
 		return err
 	}
 
@@ -55,7 +54,7 @@ func (h *Handler) DisableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) ShowWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.chatService.GetChat(context.Background(), ctx.EffectiveChat.Id)
+	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}

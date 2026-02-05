@@ -7,7 +7,6 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/rest"
 	"activity-bot/internal/stats"
-	"context"
 	"fmt"
 	"html"
 	"log/slog"
@@ -28,7 +27,7 @@ func New(service *stats.Service, restService *rest.Service, memberService *membe
 }
 
 func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if _, err := h.memberService.SyncChatMembers(context.Background(), ctx.EffectiveChat.Id); err != nil {
+	if _, err := h.memberService.SyncChatMembers(ctx.StdContext(), ctx.EffectiveChat.Id); err != nil {
 		slog.Warn("failed to auto-update chat members in stats", "chat_id", ctx.EffectiveChat.Id, "error", err)
 	}
 
@@ -51,12 +50,12 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now())
 	}
 
-	report, err := h.service.GetAllMembersStats(context.Background(), ctx.EffectiveChat.Id, from, to)
+	report, err := h.service.GetAllMembersStats(ctx.StdContext(), ctx.EffectiveChat.Id, from, to)
 	if err != nil {
 		return err
 	}
 
-	restMembers, err := h.restService.GetRestMembers(context.Background(), ctx.EffectiveChat.Id)
+	restMembers, err := h.restService.GetRestMembers(ctx.StdContext(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
@@ -88,12 +87,12 @@ func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *cmd.Context, userID int64) error {
-	m, err := h.service.GetMemberStats(context.Background(), ctx.EffectiveChat.Id, userID)
+	m, err := h.service.GetMemberStats(ctx.StdContext(), ctx.EffectiveChat.Id, userID)
 	if err != nil {
 		return err
 	}
 
-	buf, err := h.service.GetMessageActivityGraph(context.Background(), ctx.EffectiveChat.Id, userID)
+	buf, err := h.service.GetMessageActivityGraph(ctx.StdContext(), ctx.EffectiveChat.Id, userID)
 	if err != nil {
 		slog.Warn("Failed to get graph", "error", err)
 	}
@@ -287,7 +286,7 @@ func writeNumberedList(sb *strings.Builder, items []string) {
 }
 
 func (h *Handler) Inactive(b *gotgbot.Bot, ctx *cmd.Context) error {
-	members, err := h.service.GetInactiveMembers(context.Background(), ctx.EffectiveChat.Id)
+	members, err := h.service.GetInactiveMembers(ctx.StdContext(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
