@@ -6,7 +6,7 @@ type Chat struct {
 	ID                  int64
 	WeeklyNorm          int32
 	NewbieThresholdDays int32
-	GeminiSystemPrompt  string
+	AISystemPrompt      string
 	MaxLadder           int32
 	WelcomeCallMessage  string
 	CallOnJoin          bool

@@ -16,11 +16,11 @@ WITH ins AS (
     INSERT INTO chats (id, weekly_norm, newbie_threshold_days)
         VALUES ($1, $2, $3)
         ON CONFLICT (id) DO NOTHING
-        RETURNING id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder, call_on_join, welcome_call_message)
-SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder, call_on_join, welcome_call_message
+        RETURNING id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message)
+SELECT id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message
 FROM ins
 UNION ALL
-SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder, call_on_join, welcome_call_message
+SELECT id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message
 FROM chats
 WHERE id = $1
 LIMIT 1
@@ -36,7 +36,7 @@ type EnsureChatExistsRow struct {
 	ID                  int64       `db:"id" json:"id"`
 	WeeklyNorm          int32       `db:"weekly_norm" json:"weeklyNorm"`
 	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
-	GeminiSystemPrompt  pgtype.Text `db:"gemini_system_prompt" json:"geminiSystemPrompt"`
+	AiSystemPrompt      pgtype.Text `db:"ai_system_prompt" json:"aiSystemPrompt"`
 	MaxLadder           int32       `db:"max_ladder" json:"maxLadder"`
 	CallOnJoin          bool        `db:"call_on_join" json:"callOnJoin"`
 	WelcomeCallMessage  pgtype.Text `db:"welcome_call_message" json:"welcomeCallMessage"`
@@ -49,7 +49,7 @@ func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsPara
 		&i.ID,
 		&i.WeeklyNorm,
 		&i.NewbieThresholdDays,
-		&i.GeminiSystemPrompt,
+		&i.AiSystemPrompt,
 		&i.MaxLadder,
 		&i.CallOnJoin,
 		&i.WelcomeCallMessage,
@@ -58,7 +58,7 @@ func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsPara
 }
 
 const getChat = `-- name: GetChat :one
-SELECT id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder, call_on_join, welcome_call_message
+SELECT id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message
 FROM chats
 WHERE id = $1
 `
@@ -70,7 +70,7 @@ func (q *Queries) GetChat(ctx context.Context, id int64) (Chat, error) {
 		&i.ID,
 		&i.WeeklyNorm,
 		&i.NewbieThresholdDays,
-		&i.GeminiSystemPrompt,
+		&i.AiSystemPrompt,
 		&i.MaxLadder,
 		&i.CallOnJoin,
 		&i.WelcomeCallMessage,
@@ -96,7 +96,7 @@ const getOrCreateChat = `-- name: GetOrCreateChat :one
 INSERT INTO chats(id, weekly_norm)
 VALUES ($1, $2)
 ON CONFLICT(id) DO UPDATE SET weekly_norm = chats.weekly_norm
-RETURNING id, weekly_norm, newbie_threshold_days, gemini_system_prompt, max_ladder, call_on_join, welcome_call_message
+RETURNING id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message
 `
 
 type GetOrCreateChatParams struct {
@@ -111,7 +111,7 @@ func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams
 		&i.ID,
 		&i.WeeklyNorm,
 		&i.NewbieThresholdDays,
-		&i.GeminiSystemPrompt,
+		&i.AiSystemPrompt,
 		&i.MaxLadder,
 		&i.CallOnJoin,
 		&i.WelcomeCallMessage,
@@ -119,19 +119,19 @@ func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams
 	return i, err
 }
 
-const setChatGeminiSystemPrompt = `-- name: SetChatGeminiSystemPrompt :exec
+const setChatAISystemPrompt = `-- name: SetChatAISystemPrompt :exec
 UPDATE chats
-SET gemini_system_prompt = $1
+SET ai_system_prompt = $1
 WHERE id = $2
 `
 
-type SetChatGeminiSystemPromptParams struct {
-	GeminiSystemPrompt pgtype.Text `db:"gemini_system_prompt" json:"geminiSystemPrompt"`
-	ChatID             int64       `db:"chat_id" json:"chatId"`
+type SetChatAISystemPromptParams struct {
+	AiSystemPrompt pgtype.Text `db:"ai_system_prompt" json:"aiSystemPrompt"`
+	ChatID         int64       `db:"chat_id" json:"chatId"`
 }
 
-func (q *Queries) SetChatGeminiSystemPrompt(ctx context.Context, arg SetChatGeminiSystemPromptParams) error {
-	_, err := q.db.Exec(ctx, setChatGeminiSystemPrompt, arg.GeminiSystemPrompt, arg.ChatID)
+func (q *Queries) SetChatAISystemPrompt(ctx context.Context, arg SetChatAISystemPromptParams) error {
+	_, err := q.db.Exec(ctx, setChatAISystemPrompt, arg.AiSystemPrompt, arg.ChatID)
 	return err
 }
 

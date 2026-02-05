@@ -22,7 +22,7 @@ func mapChat(c db.EnsureChatExistsRow) model.Chat {
 		ID:                  c.ID,
 		WeeklyNorm:          c.WeeklyNorm,
 		NewbieThresholdDays: c.NewbieThresholdDays,
-		GeminiSystemPrompt:  c.GeminiSystemPrompt.String,
+		AISystemPrompt:      c.AiSystemPrompt.String,
 		MaxLadder:           c.MaxLadder,
 		WelcomeCallMessage:  c.WelcomeCallMessage.String,
 		CallOnJoin:          c.CallOnJoin,
@@ -90,8 +90,8 @@ func (r *ChatRepository) GetChat(ctx context.Context, chatID int64) (model.Chat,
 }
 
 func (r *ChatRepository) SetChatPrompt(ctx context.Context, chatID int64, prompt string) error {
-	return r.queries.SetChatGeminiSystemPrompt(ctx, db.SetChatGeminiSystemPromptParams{
-		GeminiSystemPrompt: pgtype.Text{
+	return r.queries.SetChatAISystemPrompt(ctx, db.SetChatAISystemPromptParams{
+		AiSystemPrompt: pgtype.Text{
 			String: prompt,
 			Valid:  true,
 		},

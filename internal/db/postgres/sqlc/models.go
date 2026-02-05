@@ -58,7 +58,7 @@ type Chat struct {
 	ID                  int64       `db:"id" json:"id"`
 	WeeklyNorm          int32       `db:"weekly_norm" json:"weeklyNorm"`
 	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
-	GeminiSystemPrompt  pgtype.Text `db:"gemini_system_prompt" json:"geminiSystemPrompt"`
+	AiSystemPrompt      pgtype.Text `db:"ai_system_prompt" json:"aiSystemPrompt"`
 	MaxLadder           int32       `db:"max_ladder" json:"maxLadder"`
 	CallOnJoin          bool        `db:"call_on_join" json:"callOnJoin"`
 	WelcomeCallMessage  pgtype.Text `db:"welcome_call_message" json:"welcomeCallMessage"`

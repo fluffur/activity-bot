@@ -2,7 +2,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: docker/prod/Dockerfile
+      dockerfile: docker/dev/Dockerfile
     restart: unless-stopped
     volumes:
       - .:/app

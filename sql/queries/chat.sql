@@ -33,9 +33,9 @@ SELECT *
 FROM chats
 WHERE id = $1;
 
--- name: SetChatGeminiSystemPrompt :exec
+-- name: SetChatAISystemPrompt :exec
 UPDATE chats
-SET gemini_system_prompt = $1
+SET ai_system_prompt = $1
 WHERE id = @chat_id;
 
 -- name: GetChatMaxLadder :one

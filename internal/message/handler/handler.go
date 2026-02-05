@@ -53,7 +53,7 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *ext.Context, cctx *cmd.Context) error
 		Messages: []deepseek.ChatCompletionMessage{
 			{
 				Role:    deepseek.ChatMessageRoleSystem,
-				Content: "Отвечай коротко, 1-2 предложения. " + c.GeminiSystemPrompt,
+				Content: "Отвечай коротко, 1-2 предложения. " + c.AISystemPrompt,
 			},
 			{
 				Role:    deepseek.ChatMessageRoleUser,

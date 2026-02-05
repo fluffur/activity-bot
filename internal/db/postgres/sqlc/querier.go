@@ -45,7 +45,7 @@ type Querier interface {
 	MoveChatMembersToOldExcept(ctx context.Context, arg MoveChatMembersToOldExceptParams) error
 	RejectRestRequest(ctx context.Context, arg RejectRestRequestParams) error
 	RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error
-	SetChatGeminiSystemPrompt(ctx context.Context, arg SetChatGeminiSystemPromptParams) error
+	SetChatAISystemPrompt(ctx context.Context, arg SetChatAISystemPromptParams) error
 	SetChatMaxLadder(ctx context.Context, arg SetChatMaxLadderParams) error
 	SetChatWelcomeCallMessage(ctx context.Context, arg SetChatWelcomeCallMessageParams) error
 	SetMemberRest(ctx context.Context, arg SetMemberRestParams) error

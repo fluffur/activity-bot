@@ -89,7 +89,7 @@ func (h *Handler) ShowPrompt(b *gotgbot.Bot, ctx *ext.Context, _ *cmd.Context) e
 		return err
 	}
 
-	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Промпт: \"%s\"", c.GeminiSystemPrompt), nil)
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Промпт: \"%s\"", c.AISystemPrompt), nil)
 	return err
 
 }

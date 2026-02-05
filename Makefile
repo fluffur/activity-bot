@@ -13,7 +13,8 @@ up-prod:
 
 
 migrate-up:
-	docker compose exec app ./cmd/migrate up
+	docker compose exec app go run ./cmd/migrate up
+
 
 down:
 	docker compose down
