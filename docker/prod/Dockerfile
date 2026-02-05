@@ -1,8 +1,8 @@
 FROM golang:1.25-alpine AS builder
 WORKDIR /app
-COPY ../../go.mod go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
-COPY ../.. .
+COPY . .
 RUN go build -o bot cmd/bot/main.go
 RUN go build -o migrate cmd/migrate/main.go
 
@@ -11,5 +11,5 @@ WORKDIR /app
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /app/bot .
 COPY --from=builder /app/migrate .
-COPY ../../migrations ./migrations
+COPY migrations ./migrations
 CMD ["./bot"]
