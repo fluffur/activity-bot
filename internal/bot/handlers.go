@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/callbackquery"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/chatmember"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/message"
 )
@@ -212,7 +213,8 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 5, 10*time.Second)).
 		SetArgsCount(1),
 	)
-
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"), restHandler.ApproveRestRequest))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("reject:"), restHandler.RejectRestRequest))
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.NewChatMembers, memberHandler.OnJoinMember))
 	a.Dispatcher.AddHandler(handlers.NewMyChatMember(chatmember.NewStatus("administrator"), memberHandler.OnBotPromote))
