@@ -8,5 +8,5 @@ ALTER TABLE chats
 -- +goose Down
 -- +goose StatementBegin
 ALTER TABLE chats
-    RENAME COLUMN ai_system_prompt TO gemini_system_prompt;
+    DROP week_start_day;
 -- +goose StatementEnd
