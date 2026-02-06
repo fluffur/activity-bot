@@ -16,11 +16,11 @@ WITH ins AS (
     INSERT INTO chats (id, weekly_norm, newbie_threshold_days)
         VALUES ($1, $2, $3)
         ON CONFLICT (id) DO NOTHING
-        RETURNING id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message)
-SELECT id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message
+        RETURNING id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day)
+SELECT id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day
 FROM ins
 UNION ALL
-SELECT id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message
+SELECT id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day
 FROM chats
 WHERE id = $1
 LIMIT 1
@@ -40,6 +40,7 @@ type EnsureChatExistsRow struct {
 	MaxLadder           int32       `db:"max_ladder" json:"maxLadder"`
 	CallOnJoin          bool        `db:"call_on_join" json:"callOnJoin"`
 	WelcomeCallMessage  pgtype.Text `db:"welcome_call_message" json:"welcomeCallMessage"`
+	WeekStartDay        int16       `db:"week_start_day" json:"weekStartDay"`
 }
 
 func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error) {
@@ -53,12 +54,13 @@ func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsPara
 		&i.MaxLadder,
 		&i.CallOnJoin,
 		&i.WelcomeCallMessage,
+		&i.WeekStartDay,
 	)
 	return i, err
 }
 
 const getChat = `-- name: GetChat :one
-SELECT id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message
+SELECT id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day
 FROM chats
 WHERE id = $1
 `
@@ -74,6 +76,7 @@ func (q *Queries) GetChat(ctx context.Context, id int64) (Chat, error) {
 		&i.MaxLadder,
 		&i.CallOnJoin,
 		&i.WelcomeCallMessage,
+		&i.WeekStartDay,
 	)
 	return i, err
 }
@@ -96,7 +99,7 @@ const getOrCreateChat = `-- name: GetOrCreateChat :one
 INSERT INTO chats(id, weekly_norm)
 VALUES ($1, $2)
 ON CONFLICT(id) DO UPDATE SET weekly_norm = chats.weekly_norm
-RETURNING id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message
+RETURNING id, weekly_norm, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day
 `
 
 type GetOrCreateChatParams struct {
@@ -115,6 +118,7 @@ func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams
 		&i.MaxLadder,
 		&i.CallOnJoin,
 		&i.WelcomeCallMessage,
+		&i.WeekStartDay,
 	)
 	return i, err
 }
@@ -212,5 +216,21 @@ type UpdateChatNormParams struct {
 
 func (q *Queries) UpdateChatNorm(ctx context.Context, arg UpdateChatNormParams) error {
 	_, err := q.db.Exec(ctx, updateChatNorm, arg.WeeklyNorm, arg.ID)
+	return err
+}
+
+const updateChatWeekStartDay = `-- name: UpdateChatWeekStartDay :exec
+UPDATE chats
+SET week_start_day = $1
+WHERE id = $2
+`
+
+type UpdateChatWeekStartDayParams struct {
+	WeekStartDay int16 `db:"week_start_day" json:"weekStartDay"`
+	ChatID       int64 `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) UpdateChatWeekStartDay(ctx context.Context, arg UpdateChatWeekStartDayParams) error {
+	_, err := q.db.Exec(ctx, updateChatWeekStartDay, arg.WeekStartDay, arg.ChatID)
 	return err
 }

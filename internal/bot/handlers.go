@@ -57,7 +57,7 @@ func (a *App) RegisterHandlers() {
 	dateParser := helpers.NewDateParser()
 
 	helpHandler := helpH.New(a.Config.BotOwnerID)
-	statsHandler := statsH.New(statsService, restService, memberService)
+	statsHandler := statsH.New(statsService, restService, memberService, chatService)
 	chatHandler := chatH.New(chatService, adminService, dateParser)
 	restHandler := restH.New(restService, userService, adminService, dateParser)
 	adminHandler := adminH.New(adminService, userService, memberService)
@@ -194,6 +194,10 @@ func (a *App) RegisterHandlers() {
 		AddTriggers("+", "").
 		SetArgsCount(1).
 		WithGuards(groupGuard, adminGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(chatHandler.SetWeekStartDay, "weekstart", "начало недели", "начало").
+		AddTriggers("+", "").
+		SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.EnableCallOnJoin, "call_enable", "включить call", "включить колл", "включить калл").
 		AddTriggers("").

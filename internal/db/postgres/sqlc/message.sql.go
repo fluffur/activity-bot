@@ -231,13 +231,26 @@ SELECT cm.user_id,
        u.first_name,
        u.last_name,
 
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now())), 0)::bigint AS day_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day'), 0)::bigint AS day_rolling_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('week', now())), 0)::bigint AS week_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '7 days'), 0)::bigint AS week_rolling_count,
+       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now())), 0)::bigint   AS day_count,
+       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day'),
+                0)::bigint                                                                             AS day_rolling_count,
+       COALESCE(
+                       COUNT(m.chat_id) FILTER (
+                   WHERE m.created_at >= (
+                       date_trunc('day', now())
+                           - ((extract(isodow from now())::int - c.week_start_day + 7) % 7)
+                           * interval '1 day'
+                       )
+                   ),
+                       0
+       )::bigint                                                                                       AS week_count,
+
+       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '7 days'),
+                0)::bigint                                                                             AS week_rolling_count,
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('month', now())), 0)::bigint AS month_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '30 days'), 0)::bigint AS month_rolling_count,
-       COALESCE(COUNT(m.chat_id), 0)::bigint AS all_time_count,
+       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '30 days'),
+                0)::bigint                                                                             AS month_rolling_count,
+       COALESCE(COUNT(m.chat_id), 0)::bigint                                                           AS all_time_count,
 
        c.weekly_norm,
        cm.joined_at,
@@ -245,7 +258,6 @@ SELECT cm.user_id,
        cm.status,
        cm.custom_title,
        cm.rest_until
-
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
@@ -255,7 +267,6 @@ FROM chat_members cm
 
 WHERE cm.chat_id = $1
   AND cm.user_id = $2
-
 GROUP BY cm.user_id,
          u.username,
          u.first_name,

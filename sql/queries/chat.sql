@@ -59,3 +59,8 @@ WHERE id = @chat_id;
 UPDATE chats
 SET call_on_join = $1
 WHERE id = @chat_id;
+
+-- name: UpdateChatWeekStartDay :exec
+UPDATE chats
+SET week_start_day = $1
+WHERE id = @chat_id;

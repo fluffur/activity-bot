@@ -16,4 +16,5 @@ type Repository interface {
 	SetMaxLadder(ctx context.Context, chatID int64, maxLadder int32) error
 	SetWelcomeCallMessage(ctx context.Context, chatID int64, message string) error
 	UpdateCallOnJoin(ctx context.Context, chatID int64, isEnabled bool) error
+	SetWeekStartDay(ctx context.Context, chatID int64, day int) error
 }

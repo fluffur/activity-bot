@@ -43,7 +43,17 @@ SELECT cm.user_id,
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now())), 0)::bigint   AS day_count,
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day'),
                 0)::bigint                                                                             AS day_rolling_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('week', now())), 0)::bigint  AS week_count,
+       COALESCE(
+                       COUNT(m.chat_id) FILTER (
+                   WHERE m.created_at >= (
+                       date_trunc('day', now())
+                           - ((extract(isodow from now())::int - c.week_start_day + 7) % 7)
+                           * interval '1 day'
+                       )
+                   ),
+                       0
+       )::bigint                                                                                       AS week_count,
+
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '7 days'),
                 0)::bigint                                                                             AS week_rolling_count,
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('month', now())), 0)::bigint AS month_count,

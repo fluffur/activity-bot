@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
@@ -19,15 +20,21 @@ type Handler struct {
 	service       *stats.Service
 	restService   *rest.Service
 	memberService *member.Service
+	chatService   *chat.Service
 }
 
-func New(service *stats.Service, restService *rest.Service, memberService *member.Service) *Handler {
-	return &Handler{service, restService, memberService}
+func New(service *stats.Service, restService *rest.Service, memberService *member.Service, chatService *chat.Service) *Handler {
+	return &Handler{service, restService, memberService, chatService}
 }
 
 func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if _, err := h.memberService.SyncChatMembers(ctx.StdContext(), ctx.EffectiveChat.Id); err != nil {
 		slog.Warn("failed to auto-update chat members in stats", "chat_id", ctx.EffectiveChat.Id, "error", err)
+	}
+
+	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.EffectiveChat.Id)
+	if err != nil {
+		return err
 	}
 
 	var period string
@@ -40,13 +47,13 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	var from, to *time.Time
 	switch period {
 	case "неделя":
-		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now())
+		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now(), c.WeekStartDay)
 	case "месяц":
-		from, to = stats.ResolvePeriod(stats.PeriodMonth, time.Now())
+		from, to = stats.ResolvePeriod(stats.PeriodMonth, time.Now(), c.WeekStartDay)
 	case "всё", "все", "всего", "вся":
 		from, to = nil, nil
 	default:
-		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now())
+		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now(), c.WeekStartDay)
 	}
 
 	report, err := h.service.GetAllMembersStats(ctx.StdContext(), ctx.EffectiveChat.Id, from, to)

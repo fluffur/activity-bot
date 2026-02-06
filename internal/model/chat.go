@@ -10,6 +10,7 @@ type Chat struct {
 	MaxLadder           int32
 	WelcomeCallMessage  string
 	CallOnJoin          bool
+	WeekStartDay        int16
 }
 
 type ChatMember struct {

@@ -56,3 +56,8 @@ func (s *Service) GetMaxLadder(ctx context.Context, chatID int64) (int32, error)
 	}
 	return c.MaxLadder, nil
 }
+
+func (s *Service) SetWeekStartDay(ctx context.Context, chatID int64, day int) error {
+
+	return s.repo.SetWeekStartDay(ctx, chatID, day)
+}

@@ -147,18 +147,29 @@ const (
 	PeriodAll   ReportPeriod = "all"
 )
 
-func ResolvePeriod(period ReportPeriod, now time.Time) (from *time.Time, to *time.Time) {
+func ResolvePeriod(period ReportPeriod, now time.Time, weekStartDay int16) (from *time.Time, to *time.Time) {
 	switch period {
 
 	case PeriodWeek:
-		weekday := int(now.Weekday())
-		daysSinceMonday := (weekday + 6) % 7
-		monday := now.AddDate(0, 0, -daysSinceMonday)
-		monday = time.Date(monday.Year(), monday.Month(), monday.Day(), 0, 0, 0, 0, monday.Location())
-		sunday := monday.AddDate(0, 0, 6)
-		sunday = time.Date(sunday.Year(), sunday.Month(), sunday.Day(), 23, 59, 59, 0, sunday.Location())
+		isoWeekday := int(now.Weekday())
+		if isoWeekday == 0 {
+			isoWeekday = 7
+		}
 
-		return &monday, &sunday
+		diff := (isoWeekday - int(weekStartDay) + 7) % 7
+
+		start := now.AddDate(0, 0, -diff)
+		start = time.Date(
+			start.Year(),
+			start.Month(),
+			start.Day(),
+			0, 0, 0, 0,
+			start.Location(),
+		)
+
+		end := start.AddDate(0, 0, 7).Add(-time.Second)
+
+		return &start, &end
 
 	case PeriodMonth:
 		start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())

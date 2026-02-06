@@ -53,6 +53,7 @@ type Querier interface {
 	UpdateChatMemberTitle(ctx context.Context, arg UpdateChatMemberTitleParams) error
 	UpdateChatNewbieThreshold(ctx context.Context, arg UpdateChatNewbieThresholdParams) error
 	UpdateChatNorm(ctx context.Context, arg UpdateChatNormParams) error
+	UpdateChatWeekStartDay(ctx context.Context, arg UpdateChatWeekStartDayParams) error
 	UpdateMemberStatus(ctx context.Context, arg UpdateMemberStatusParams) error
 	UpsertChatMembers(ctx context.Context, arg UpsertChatMembersParams) error
 	UpsertUsers(ctx context.Context, arg UpsertUsersParams) error

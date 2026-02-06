@@ -62,6 +62,7 @@ type Chat struct {
 	MaxLadder           int32       `db:"max_ladder" json:"maxLadder"`
 	CallOnJoin          bool        `db:"call_on_join" json:"callOnJoin"`
 	WelcomeCallMessage  pgtype.Text `db:"welcome_call_message" json:"welcomeCallMessage"`
+	WeekStartDay        int16       `db:"week_start_day" json:"weekStartDay"`
 }
 
 type ChatMember struct {

@@ -26,6 +26,7 @@ func mapChat(c db.EnsureChatExistsRow) model.Chat {
 		MaxLadder:           c.MaxLadder,
 		WelcomeCallMessage:  c.WelcomeCallMessage.String,
 		CallOnJoin:          c.CallOnJoin,
+		WeekStartDay:        c.WeekStartDay,
 	}
 }
 
@@ -120,5 +121,12 @@ func (r *ChatRepository) UpdateCallOnJoin(ctx context.Context, chatID int64, isE
 	return r.queries.UpdateChatCallOnJoin(ctx, db.UpdateChatCallOnJoinParams{
 		CallOnJoin: isEnabled,
 		ChatID:     chatID,
+	})
+}
+
+func (r *ChatRepository) SetWeekStartDay(ctx context.Context, chatID int64, day int) error {
+	return r.queries.UpdateChatWeekStartDay(ctx, db.UpdateChatWeekStartDayParams{
+		ChatID:       chatID,
+		WeekStartDay: int16(day),
 	})
 }
