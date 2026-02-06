@@ -184,7 +184,7 @@ func (a *App) RegisterHandlers() {
 		FallbackToSender().
 		SetArgsCount(1),
 	)
-	a.Dispatcher.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл", "all").
+	a.Dispatcher.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл", "all", "каллалл").
 		AddTriggers("+", "").
 		WithGuards(groupGuard, adminGuard, rateLimiterGuard).
 		SetArgsCount(1),
