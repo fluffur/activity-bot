@@ -156,6 +156,69 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return err
 }
 
+func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
+	members, err := h.service.GetMembersWithTitle(ctx.StdContext(), ctx.EffectiveChat.Id)
+	if err != nil {
+		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось получить список ролей из базы", nil)
+		return err
+	}
+
+	if len(members) == 0 {
+		_, err = ctx.EffectiveMessage.Reply(b, "В базе данных нет сохраненных ролей для этого чата", nil)
+		return err
+	}
+
+	var restoredCount int
+	var errorsCount int
+
+	for _, m := range members {
+		tgMember, err := b.GetChatMember(ctx.EffectiveChat.Id, m.User.ID, nil)
+		if err != nil {
+			slog.Warn("failed to get chat member during restore", "user_id", m.User.ID, "error", err)
+			errorsCount++
+			continue
+		}
+
+		if tgMember.GetStatus() == "creator" {
+			continue
+		}
+
+		status := tgMember.GetStatus()
+		if status == "member" || status == "restricted" {
+			if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, m.User.ID, &gotgbot.PromoteChatMemberOpts{
+				CanPinMessages:  true,
+				CanPostMessages: true,
+				CanEditMessages: true,
+			}); err != nil || !ok {
+				slog.Warn("failed to promote member during restore", "user_id", m.User.ID, "error", err)
+				errorsCount++
+				continue
+			}
+			status = "administrator"
+		}
+
+		if status == "administrator" {
+			merged := tgMember.MergeChatMember()
+			if merged.CanBeEdited || tgMember.GetStatus() == "member" {
+				if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil {
+					slog.Warn("failed to set title during restore", "user_id", m.User.ID, "error", err)
+					errorsCount++
+					continue
+				}
+				restoredCount++
+			}
+		}
+	}
+
+	msgText := fmt.Sprintf("✅ Восстановление ролей завершено.\n\nВосстановлено: %d", restoredCount)
+	if errorsCount > 0 {
+		msgText += fmt.Sprintf("\nОшибок: %d", errorsCount)
+	}
+
+	_, err = ctx.EffectiveMessage.Reply(b, msgText, nil)
+	return err
+}
+
 func (h *Handler) DeleteRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
 
