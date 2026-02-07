@@ -38,6 +38,14 @@ WHERE cm.chat_id = @chat_id
   AND cm.custom_title IS NOT NULL
   AND cm.custom_title <> '';
 
+-- name: GetAnyChatMembersWithTitles :many
+SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username
+FROM chat_members cm
+         JOIN users u ON cm.user_id = u.id
+WHERE cm.chat_id = @chat_id
+  AND cm.custom_title IS NOT NULL
+  AND cm.custom_title <> '';
+
 -- name: UpdateChatMemberTitle :exec
 UPDATE chat_members
 SET custom_title = @custom_title

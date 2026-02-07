@@ -121,6 +121,51 @@ func (q *Queries) EnsureMemberFull(ctx context.Context, arg EnsureMemberFullPara
 	return i, err
 }
 
+const getAnyChatMembersWithTitles = `-- name: GetAnyChatMembersWithTitles :many
+SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username
+FROM chat_members cm
+         JOIN users u ON cm.user_id = u.id
+WHERE cm.chat_id = $1
+  AND cm.custom_title IS NOT NULL
+  AND cm.custom_title <> ''
+`
+
+type GetAnyChatMembersWithTitlesRow struct {
+	UserID      int64       `db:"user_id" json:"userId"`
+	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
+	Status      string      `db:"status" json:"status"`
+	FirstName   pgtype.Text `db:"first_name" json:"firstName"`
+	LastName    pgtype.Text `db:"last_name" json:"lastName"`
+	Username    pgtype.Text `db:"username" json:"username"`
+}
+
+func (q *Queries) GetAnyChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetAnyChatMembersWithTitlesRow, error) {
+	rows, err := q.db.Query(ctx, getAnyChatMembersWithTitles, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetAnyChatMembersWithTitlesRow{}
+	for rows.Next() {
+		var i GetAnyChatMembersWithTitlesRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.CustomTitle,
+			&i.Status,
+			&i.FirstName,
+			&i.LastName,
+			&i.Username,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getChatMember = `-- name: GetChatMember :one
 SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, id, username, first_name, last_name, created_at
 FROM chat_members
