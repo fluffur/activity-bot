@@ -186,7 +186,6 @@ func (a *App) RegisterHandlers() {
 		SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.RestoreRoles, "восстановить роли", "restore_roles").
-		AddTriggers("!", "/").
 		WithGuards(groupGuard, creatorGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл", "all", "каллалл").
