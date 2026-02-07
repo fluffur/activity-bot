@@ -11,6 +11,50 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type ModerationType string
+
+const (
+	ModerationTypeKick ModerationType = "kick"
+	ModerationTypeMute ModerationType = "mute"
+	ModerationTypeBan  ModerationType = "ban"
+	ModerationTypeWarn ModerationType = "warn"
+)
+
+func (e *ModerationType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ModerationType(s)
+	case string:
+		*e = ModerationType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ModerationType: %T", src)
+	}
+	return nil
+}
+
+type NullModerationType struct {
+	ModerationType ModerationType `json:"moderationType"`
+	Valid          bool           `json:"valid"` // Valid is true if ModerationType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullModerationType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ModerationType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ModerationType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullModerationType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ModerationType), nil
+}
+
 type RestStatus string
 
 const (
@@ -63,6 +107,7 @@ type Chat struct {
 	CallOnJoin          bool        `db:"call_on_join" json:"callOnJoin"`
 	WelcomeCallMessage  pgtype.Text `db:"welcome_call_message" json:"welcomeCallMessage"`
 	WeekStartDay        int16       `db:"week_start_day" json:"weekStartDay"`
+	MaxWarns            int32       `db:"max_warns" json:"maxWarns"`
 }
 
 type ChatMember struct {
@@ -80,6 +125,17 @@ type Message struct {
 	UserID    int64              `db:"user_id" json:"userId"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
 	DeletedAt pgtype.Timestamptz `db:"deleted_at" json:"deletedAt"`
+}
+
+type ModerationAction struct {
+	ID        int32            `db:"id" json:"id"`
+	Type      ModerationType   `db:"type" json:"type"`
+	ChatID    int64            `db:"chat_id" json:"chatId"`
+	UserID    int64            `db:"user_id" json:"userId"`
+	ModID     int64            `db:"mod_id" json:"modId"`
+	Reason    pgtype.Text      `db:"reason" json:"reason"`
+	CreatedAt pgtype.Timestamp `db:"created_at" json:"createdAt"`
+	UntilDate pgtype.Timestamp `db:"until_date" json:"untilDate"`
 }
 
 type RestRequest struct {

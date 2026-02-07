@@ -50,8 +50,9 @@ func (a *App) RegisterHandlers() {
 
 	adminsProvider := adapter.NewTelegramChatAdminsProvider(a.Bot)
 	statusProvider := adapter.NewTelegramMemberStatusProvider(a.Bot)
+	moderator := adapter.NewTelegramModerator(a.Bot)
 	memberService := member.NewService(memberRepository, chatRepository, userRepository, adminsProvider, a.Config.DefaultWeeklyNorm)
-	adminService := admin.NewService(adminRepository, statusProvider, a.Config.BotOwnerID)
+	adminService := admin.NewService(adminRepository, statusProvider, moderator, a.Config.BotOwnerID)
 	messageService := msg.NewService(messageRepository)
 	callService := call.NewService(chatRepository, memberService)
 
@@ -61,7 +62,7 @@ func (a *App) RegisterHandlers() {
 	statsHandler := statsH.New(statsService, restService, memberService, chatService)
 	chatHandler := chatH.New(chatService, adminService, dateParser)
 	restHandler := restH.New(restService, userService, adminService, dateParser)
-	adminHandler := adminH.New(adminService, userService, memberService)
+	adminHandler := adminH.New(adminService, userService, memberService, dateParser)
 	messageHandler := messageH.New(messageService, memberService, chatService, a.Deepseek)
 	memberHandler := memberH.New(memberService, chatService, userService, callService)
 	callHandler := callH.New(callService, chatService)
@@ -161,6 +162,44 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.RemoveAdmin, "-администратор", "-админ", "-admin", "-адм", "-модер", "-mod").
 		AddTriggers("").
+		WithGuards(groupGuard, creatorGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Kick, "kick", "кик", "кикнуть", "выгнать").
+		AddTriggers("", "+").
+		WithGuards(groupGuard, adminGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Ban, "ban", "бан", "забанить").
+		AddTriggers("", "+").
+		WithGuards(groupGuard, adminGuard).
+		SetArgsCount(1),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Mute, "mute", "мут", "замутить").
+		AddTriggers("", "+").
+		WithGuards(groupGuard, adminGuard).
+		SetArgsCount(1),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Unban, "unban", "разбан", "разбанить").
+		AddTriggers("", "-").
+		WithGuards(groupGuard, adminGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Unmute, "unmute", "размут", "размутить").
+		AddTriggers("", "-").
+		WithGuards(groupGuard, adminGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Warn, "warn", "варн", "пред", "предупреждение").
+		AddTriggers("", "+").
+		WithGuards(groupGuard, adminGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Unwarn, "unwarn", "анварн", "снятьпред").
+		AddTriggers("", "-", "!").
+		WithGuards(groupGuard, adminGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.ClearWarns, "clearwarns", "очиститьпреды").
+		AddTriggers("!", "/").
+		WithGuards(groupGuard, adminGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.SetMaxWarns, "maxwarns", "лимитпред").
+		AddTriggers("!", "/").
 		WithGuards(groupGuard, creatorGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.UpdateMembersList, "обновить чат", "update chat", "update").
