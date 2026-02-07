@@ -199,7 +199,7 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 		if status == "administrator" {
 			merged := tgMember.MergeChatMember()
-			if merged.CanBeEdited || tgMember.GetStatus() == "member" { // If we just promoted, it might be editable
+			if merged.CanBeEdited || tgMember.GetStatus() == "member" {
 				if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil {
 					slog.Warn("failed to set title during restore", "user_id", m.User.ID, "error", err)
 					errorsCount++
