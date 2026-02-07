@@ -21,6 +21,7 @@ type Querier interface {
 	EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemberExistsParams) (ChatMember, error)
 	EnsureMemberFull(ctx context.Context, arg EnsureMemberFullParams) (ChatMember, error)
 	EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) (User, error)
+	GetAnyChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetAnyChatMembersWithTitlesRow, error)
 	GetChat(ctx context.Context, id int64) (Chat, error)
 	GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdminsRow, error)
 	GetChatMaxLadder(ctx context.Context, chatID int64) (int32, error)

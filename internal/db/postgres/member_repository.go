@@ -123,6 +123,33 @@ func (r *MemberRepository) GetWithCustomTitles(ctx context.Context, chatID int64
 	return res, nil
 }
 
+func (r *MemberRepository) GetAnyWithCustomTitles(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
+	members, err := r.queries.GetAnyChatMembersWithTitles(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]model.ChatMember, len(members))
+	for i, m := range members {
+		var username *string
+		if m.Username.Valid {
+			username = &m.Username.String
+		}
+
+		res[i] = model.ChatMember{
+			ChatID: chatID,
+			User: model.User{
+				Username:  username,
+				FirstName: m.FirstName.String,
+				LastName:  m.LastName.String,
+				ID:        m.UserID,
+			},
+			CustomTitle: m.CustomTitle.String,
+			Status:      m.Status,
+		}
+	}
+	return res, nil
+}
+
 func (r *MemberRepository) UpsertChatMembers(ctx context.Context, chatID int64, users []model.ChatMemberUpdate) error {
 	userIDs := make([]int64, len(users))
 	customTitles := make([]string, len(users))
