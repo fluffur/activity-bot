@@ -307,7 +307,7 @@ func formatReport(report []model.MessageReportMember, restMembers []model.RestMe
 
 	sb.WriteString("🌟 Прошли норму\n")
 	if len(passed) > 0 {
-		writeNumberedList(&sb, passed)
+		writePassedList(&sb, passed)
 	} else {
 		sb.WriteString("—\n")
 	}
@@ -341,6 +341,20 @@ func formatReport(report []model.MessageReportMember, restMembers []model.RestMe
 func writeNumberedList(sb *strings.Builder, items []string) {
 	for i, item := range items {
 		sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, item))
+	}
+}
+func writePassedList(sb *strings.Builder, items []string) {
+	for i, item := range items {
+		prefix := "•"
+
+		switch i {
+		case 0:
+			prefix = "🔥"
+		case 1, 2:
+			prefix = "⚡"
+		}
+
+		sb.WriteString(fmt.Sprintf("%s %s\n", prefix, item))
 	}
 }
 
