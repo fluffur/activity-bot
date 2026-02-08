@@ -39,10 +39,8 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	var period string
-	if len(ctx.Args()) == 0 {
-		period = "неделя"
-	} else {
+	period := "неделя"
+	if len(ctx.Args()) > 0 {
 		period = ctx.FirstArgument()
 	}
 
@@ -69,35 +67,79 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if len(report) == 0 && len(restMembers) == 0 {
+		return nil
+	}
+
+	text := formatReport(report, restMembers, from, to)
+
+	_, err = ctx.EffectiveMessage.Reply(
+		b,
+		text,
+		&gotgbot.SendMessageOpts{
+			ParseMode: gotgbot.ParseModeHTML,
+			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+				IsDisabled: true,
+			},
+		},
+	)
+	return err
+}
+
+func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error {
+	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.EffectiveChat.Id)
+	if err != nil {
 		return err
+	}
+
+	period := "неделя"
+	if len(ctx.Args()) > 0 {
+		period = ctx.FirstArgument()
+	}
+
+	var from, to *time.Time
+	switch period {
+	case "неделя":
+		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now(), c.WeekStartDay)
+	case "месяц":
+		from, to = stats.ResolvePeriod(stats.PeriodMonth, time.Now(), c.WeekStartDay)
+	case "всё", "все", "всего":
+		from, to = nil, nil
+	default:
+		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now(), c.WeekStartDay)
 	}
 
 	buf, err := h.service.GetChatActivityGraph(ctx.StdContext(), ctx.EffectiveChat.Id, from, to)
 	if err != nil {
-		slog.Warn("failed to get chat graph", "chat_id", ctx.EffectiveChat.Id, "error", err)
+		return err
 	}
 
-	msgText := formatReport(report, restMembers, from, to)
-
-	if buf != nil {
-		_, err = b.SendPhoto(
-			ctx.EffectiveChat.Id,
-			gotgbot.InputFileByReader("chat_activity.png", buf),
-			&gotgbot.SendPhotoOpts{
-				Caption:   msgText,
-				ParseMode: gotgbot.ParseModeHTML,
-			},
+	if buf == nil {
+		_, err = ctx.EffectiveMessage.Reply(
+			b,
+			"📉 Недостаточно данных для построения графика",
+			nil,
 		)
 		return err
 	}
 
-	_, err = ctx.EffectiveMessage.Reply(
-		b,
-		msgText,
-		&gotgbot.SendMessageOpts{
+	caption := "📊 <b>Активность чата</b>"
+	if from != nil && to != nil {
+		caption += fmt.Sprintf(
+			"\n%s — %s",
+			helpers.FormatToHumanDate(*from),
+			helpers.FormatToHumanDate(*to),
+		)
+	}
+
+	_, err = b.SendPhoto(
+		ctx.EffectiveChat.Id,
+		gotgbot.InputFileByReader("chat_activity.png", buf),
+		&gotgbot.SendPhotoOpts{
+			Caption:   caption,
 			ParseMode: gotgbot.ParseModeHTML,
 		},
 	)
+
 	return err
 }
 

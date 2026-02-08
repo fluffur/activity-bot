@@ -97,6 +97,11 @@ func (a *App) RegisterHandlers() {
 		SetArgsCount(1).
 		WithGuards(groupGuard, rateLimiterGuard),
 	)
+	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowChatActivityGraph, "stats_graph", "график", "граф").
+		AddTriggers("").
+		SetArgsCount(1).
+		WithGuards(groupGuard, rateLimiterGuard),
+	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "whoami", "ктоя", "я кто").
 		AddTriggers("").
 		WithGuards(groupGuard),
