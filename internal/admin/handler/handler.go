@@ -502,7 +502,10 @@ func (h *Handler) RemoveDeveloper(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
-
+	if targetUser.ID == ctx.EffectiveSender.Id() {
+		_, err := ctx.EffectiveMessage.Reply(b, "Нельзя удалить себя из списка разработчиков", nil)
+		return err
+	}
 	if err := h.service.RemoveDeveloper(ctx.StdContext(), targetUser.ID); err != nil {
 		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось удалить разработчика", nil)
 		return err
