@@ -131,7 +131,6 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		if _, ok := takenUsers[user.ID]; ok {
 			return
 		}
-
 		users = append(users, user)
 		takenUsers[user.ID] = struct{}{}
 	}
@@ -146,7 +145,6 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 	text, entities := cleanMessage(msg)
 	textRunes := []rune(msg.GetText())
 	for _, e := range entities {
-
 		switch e.Type {
 		case "text_mention":
 			if e.User != nil {
@@ -164,7 +162,6 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 				if err == nil {
 					addUser(&u)
 				}
-
 			}
 		case "url":
 			start := int(e.Offset)
@@ -176,7 +173,6 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 					addUser(&u)
 				}
 			}
-
 		}
 	}
 
@@ -189,15 +185,25 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 
 	rest, matched := c.matchCommand(text, b.User.Username)
 	if !matched {
-		return &Context{ctx, cctx, []string{}, []*model.User{}}
-	}
-	words := strings.Fields(rest)
-	if c.argsCount != ArgsCountAny && c.argsCount > 0 && len(words) > c.argsCount {
-		last := strings.Join(words[c.argsCount-1:], " ")
-		words = append(words[:c.argsCount-1], last)
+		return &Context{ctx, cctx, []string{}, users}
 	}
 
-	return &Context{ctx, cctx, words, users}
+	rest = strings.TrimSpace(rest)
+	var args []string
+
+	if c.argsCount == 2 {
+		parts := strings.SplitN(rest, "\n", 2)
+		args = append(args, strings.TrimSpace(parts[0]))
+		if len(parts) > 1 {
+			args = append(args, strings.TrimSpace(parts[1]))
+		} else {
+			args = append(args, "")
+		}
+	} else if c.argsCount == 1 || c.argsCount == ArgsCountNone || c.argsCount == ArgsCountAny {
+		args = append(args, rest)
+	}
+
+	return &Context{ctx, cctx, args, users}
 }
 
 func (c *Command) Name() string {

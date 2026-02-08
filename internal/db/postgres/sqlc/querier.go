@@ -14,17 +14,22 @@ type Querier interface {
 	AddChatAdmin(ctx context.Context, arg AddChatAdminParams) error
 	AddRestRequest(ctx context.Context, arg AddRestRequestParams) error
 	ApproveRestRequest(ctx context.Context, arg ApproveRestRequestParams) error
+	ClearWarns(ctx context.Context, arg ClearWarnsParams) error
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
+	CreateModerationAction(ctx context.Context, arg CreateModerationActionParams) error
 	DeleteChatMember(ctx context.Context, arg DeleteChatMemberParams) error
+	DeleteModerationActionsForUser(ctx context.Context, arg DeleteModerationActionsForUserParams) error
 	EndMemberRest(ctx context.Context, arg EndMemberRestParams) error
 	EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error)
 	EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemberExistsParams) (ChatMember, error)
 	EnsureMemberFull(ctx context.Context, arg EnsureMemberFullParams) (ChatMember, error)
 	EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) (User, error)
 	GetAnyChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetAnyChatMembersWithTitlesRow, error)
+	GetActiveWarnsCount(ctx context.Context, arg GetActiveWarnsCountParams) (int64, error)
 	GetChat(ctx context.Context, id int64) (Chat, error)
 	GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdminsRow, error)
 	GetChatMaxLadder(ctx context.Context, chatID int64) (int32, error)
+	GetChatMaxWarns(ctx context.Context, id int64) (int32, error)
 	GetChatMember(ctx context.Context, arg GetChatMemberParams) (GetChatMemberRow, error)
 	GetChatMemberStatus(ctx context.Context, arg GetChatMemberStatusParams) (string, error)
 	GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMembersRow, error)
@@ -46,11 +51,13 @@ type Querier interface {
 	MoveChatMembersToOldExcept(ctx context.Context, arg MoveChatMembersToOldExceptParams) error
 	RejectRestRequest(ctx context.Context, arg RejectRestRequestParams) error
 	RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error
+	RemoveLatestWarn(ctx context.Context, arg RemoveLatestWarnParams) error
 	SetChatAISystemPrompt(ctx context.Context, arg SetChatAISystemPromptParams) error
 	SetChatMaxLadder(ctx context.Context, arg SetChatMaxLadderParams) error
 	SetChatWelcomeCallMessage(ctx context.Context, arg SetChatWelcomeCallMessageParams) error
 	SetMemberRest(ctx context.Context, arg SetMemberRestParams) error
 	UpdateChatCallOnJoin(ctx context.Context, arg UpdateChatCallOnJoinParams) error
+	UpdateChatMaxWarns(ctx context.Context, arg UpdateChatMaxWarnsParams) error
 	UpdateChatMemberTitle(ctx context.Context, arg UpdateChatMemberTitleParams) error
 	UpdateChatNewbieThreshold(ctx context.Context, arg UpdateChatNewbieThresholdParams) error
 	UpdateChatNorm(ctx context.Context, arg UpdateChatNormParams) error

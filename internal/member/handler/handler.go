@@ -142,10 +142,6 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	if err := h.service.SetMemberRole(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, "administrator"); err != nil {
-		slog.Warn("failed to set role in DB", "chat_id", ctx.EffectiveChat.Id, "user_id", targetUser.ID, "error", err)
-	}
-
 	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Роль пользователя обновлена на \"%s\"", html.EscapeString(role)), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
