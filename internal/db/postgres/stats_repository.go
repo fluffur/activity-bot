@@ -180,3 +180,28 @@ func (r *StatsRepository) GetInactiveMembers(ctx context.Context, chatID int64) 
 	}
 	return result, nil
 }
+func (r *StatsRepository) GetMessageActivityByDayAll(ctx context.Context, chatID int64, from, to *time.Time) ([]model.MessageActivity, error) {
+	var fromPg, toPg pgtype.Timestamptz
+	if from != nil {
+		fromPg = pgtype.Timestamptz{Time: *from, Valid: true}
+	}
+	if to != nil {
+		toPg = pgtype.Timestamptz{Time: *to, Valid: true}
+	}
+
+	rows, err := r.queries.MessageActivityByDayAll(ctx, db.MessageActivityByDayAllParams{
+		ChatID:   chatID,
+		FromDate: fromPg,
+		ToDate:   toPg,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]model.MessageActivity, len(rows))
+	for i, row := range rows {
+		result[i] = mapMessageActivity(db.MessageActivityByDayRow(row))
+	}
+
+	return result, nil
+}

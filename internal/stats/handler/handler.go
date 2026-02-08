@@ -72,12 +72,32 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	_, err = ctx.EffectiveMessage.Reply(b, formatReport(report, restMembers, from, to), &gotgbot.SendMessageOpts{
-		ParseMode: gotgbot.ParseModeHTML,
-		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-			IsDisabled: true,
+	buf, err := h.service.GetChatActivityGraph(ctx.StdContext(), ctx.EffectiveChat.Id, from, to)
+	if err != nil {
+		slog.Warn("failed to get chat graph", "chat_id", ctx.EffectiveChat.Id, "error", err)
+	}
+
+	msgText := formatReport(report, restMembers, from, to)
+
+	if buf != nil {
+		_, err = b.SendPhoto(
+			ctx.EffectiveChat.Id,
+			gotgbot.InputFileByReader("chat_activity.png", buf),
+			&gotgbot.SendPhotoOpts{
+				Caption:   msgText,
+				ParseMode: gotgbot.ParseModeHTML,
+			},
+		)
+		return err
+	}
+
+	_, err = ctx.EffectiveMessage.Reply(
+		b,
+		msgText,
+		&gotgbot.SendMessageOpts{
+			ParseMode: gotgbot.ParseModeHTML,
 		},
-	})
+	)
 	return err
 }
 

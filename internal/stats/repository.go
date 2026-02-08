@@ -11,4 +11,5 @@ type Repository interface {
 	GetReportOne(ctx context.Context, chatID int64, userID int64) (model.MemberStats, error)
 	GetMessageActivityByDay(ctx context.Context, chatID int64, userID int64) ([]model.MessageActivity, error)
 	GetInactiveMembers(ctx context.Context, chatID int64) ([]model.InactiveMember, error)
+	GetMessageActivityByDayAll(ctx context.Context, chatID int64, from *time.Time, to *time.Time) ([]model.MessageActivity, error)
 }

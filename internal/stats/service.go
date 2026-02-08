@@ -28,6 +28,78 @@ func (s *Service) GetMemberStats(ctx context.Context, chatID, userID int64) (mod
 	return s.repo.GetReportOne(ctx, chatID, userID)
 }
 
+func (s *Service) GetChatActivityGraph(ctx context.Context, chatID int64, from, to *time.Time) (*bytes.Buffer, error) {
+	activity, err := s.repo.GetMessageActivityByDayAll(ctx, chatID, from, to)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(activity) == 0 {
+		return nil, nil
+	}
+
+	activityMap := make(map[string]int64, len(activity))
+	var maximum float64
+	for _, a := range activity {
+		activityMap[a.Date.Format("2006-01-02")] = a.Count
+		if float64(a.Count) > maximum {
+			maximum = float64(a.Count)
+		}
+	}
+
+	start := activity[0].Date.Truncate(24 * time.Hour)
+	end := activity[len(activity)-1].Date.Truncate(24 * time.Hour)
+	daysCount := int(end.Sub(start).Hours()/24) + 1
+
+	if daysCount > 30 {
+		start = end.AddDate(0, 0, -29)
+		daysCount = 30
+	}
+
+	width := daysCount * 30
+	if width < 400 {
+		width = 400
+	}
+	height := 300
+
+	buf := bytes.NewBuffer(nil)
+
+	graph := chart.BarChart{
+		Title:    "Активность чата",
+		Width:    width,
+		Height:   height,
+		BarWidth: width / daysCount * 65 / 100,
+		Bars:     []chart.Value{},
+		YAxis: chart.YAxis{
+			Name: "Сообщения",
+			Range: &chart.ContinuousRange{
+				Min: 0,
+				Max: maximum * 1.1,
+			},
+			ValueFormatter: func(v interface{}) string {
+				if val, ok := v.(float64); ok {
+					return fmt.Sprintf("%.0f", val)
+				}
+				return ""
+			},
+		},
+	}
+
+	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
+		key := d.Format("2006-01-02")
+		graph.Bars = append(graph.Bars, chart.Value{
+			Value: float64(activityMap[key]),
+			Label: d.Format("02.01"),
+		})
+	}
+
+	if err := graph.Render(chart.PNG, buf); err != nil {
+		return nil, err
+	}
+
+	return buf, nil
+}
+
 func (s *Service) GetMessageActivityGraph(ctx context.Context, chatID, userID int64) (*bytes.Buffer, error) {
 	activity, err := s.repo.GetMessageActivityByDay(ctx, chatID, userID)
 	if err != nil {

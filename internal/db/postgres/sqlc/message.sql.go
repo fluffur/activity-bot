@@ -143,6 +143,48 @@ func (q *Queries) MessageActivityByDay(ctx context.Context, arg MessageActivityB
 	return items, nil
 }
 
+const messageActivityByDayAll = `-- name: MessageActivityByDayAll :many
+SELECT date_trunc('day', m.created_at)::date AS day,
+       COUNT(*) AS messages_count
+FROM messages m
+WHERE m.chat_id = $1
+  AND m.created_at >= COALESCE($2, now() - interval '30 days')
+  AND m.created_at <= COALESCE($3, now())
+GROUP BY day
+ORDER BY day
+`
+
+type MessageActivityByDayAllParams struct {
+	ChatID   int64              `db:"chat_id" json:"chatId"`
+	FromDate pgtype.Timestamptz `db:"from_date" json:"fromDate"`
+	ToDate   pgtype.Timestamptz `db:"to_date" json:"toDate"`
+}
+
+type MessageActivityByDayAllRow struct {
+	Day           pgtype.Date `db:"day" json:"day"`
+	MessagesCount int64       `db:"messages_count" json:"messagesCount"`
+}
+
+func (q *Queries) MessageActivityByDayAll(ctx context.Context, arg MessageActivityByDayAllParams) ([]MessageActivityByDayAllRow, error) {
+	rows, err := q.db.Query(ctx, messageActivityByDayAll, arg.ChatID, arg.FromDate, arg.ToDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []MessageActivityByDayAllRow{}
+	for rows.Next() {
+		var i MessageActivityByDayAllRow
+		if err := rows.Scan(&i.Day, &i.MessagesCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const messageReport = `-- name: MessageReport :many
 SELECT cm.user_id,
        u.username,

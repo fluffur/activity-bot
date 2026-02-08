@@ -101,6 +101,18 @@ WHERE m.chat_id = @chat_id
 GROUP BY day
 ORDER BY day;
 
+-- name: MessageActivityByDayAll :many
+SELECT date_trunc('day', m.created_at)::date AS day,
+       COUNT(*) AS messages_count
+FROM messages m
+WHERE m.chat_id = $1
+  AND m.created_at >= COALESCE(@from_date, now() - interval '30 days')
+  AND m.created_at <= COALESCE(@to_date, now())
+GROUP BY day
+ORDER BY day;
+
+
+
 -- name: InactiveChatMembers :many
 SELECT u.*, cm.custom_title, cm.status, cm.rest_until, MAX(m.created_at)::timestamptz AS last_message_at
 FROM chat_members cm

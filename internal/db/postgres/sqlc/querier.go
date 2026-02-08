@@ -51,6 +51,7 @@ type Querier interface {
 	IsDeveloper(ctx context.Context, userID int64) (bool, error)
 	MarkChatMembersLeftNotInList(ctx context.Context, arg MarkChatMembersLeftNotInListParams) error
 	MessageActivityByDay(ctx context.Context, arg MessageActivityByDayParams) ([]MessageActivityByDayRow, error)
+	MessageActivityByDayAll(ctx context.Context, arg MessageActivityByDayAllParams) ([]MessageActivityByDayAllRow, error)
 	MessageReport(ctx context.Context, arg MessageReportParams) ([]MessageReportRow, error)
 	MessageReportOne(ctx context.Context, arg MessageReportOneParams) (MessageReportOneRow, error)
 	MoveChatMembersToNew(ctx context.Context, arg MoveChatMembersToNewParams) error
