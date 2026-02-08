@@ -8,6 +8,7 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/rest"
 	"activity-bot/internal/stats"
+	"activity-bot/internal/user"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -20,11 +21,12 @@ type Handler struct {
 	service       *stats.Service
 	restService   *rest.Service
 	memberService *member.Service
+	userService   *user.Service
 	chatService   *chat.Service
 }
 
-func New(service *stats.Service, restService *rest.Service, memberService *member.Service, chatService *chat.Service) *Handler {
-	return &Handler{service, restService, memberService, chatService}
+func New(service *stats.Service, restService *rest.Service, memberService *member.Service, userService *user.Service, chatService *chat.Service) *Handler {
+	return &Handler{service, restService, memberService, userService, chatService}
 }
 
 func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -86,7 +88,12 @@ func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *cmd.Context) error {
 func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 	u := ctx.FirstUser()
 	if u == nil {
-		return cmd.ErrNoUser
+		role := ctx.FirstArgument()
+		us, err := h.userService.GetByCustomTitle(ctx.StdContext(), ctx.EffectiveChat.Id, role)
+		if err != nil {
+			return cmd.ErrNoUser
+		}
+		u = &us
 	}
 
 	return h.WhoAreUser(b, ctx, u.ID)

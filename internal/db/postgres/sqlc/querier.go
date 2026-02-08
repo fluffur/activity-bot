@@ -43,6 +43,7 @@ type Querier interface {
 	GetRestMembers(ctx context.Context, chatID int64) ([]GetRestMembersRow, error)
 	GetRestRequest(ctx context.Context, arg GetRestRequestParams) (RestRequest, error)
 	GetUser(ctx context.Context, id int64) (User, error)
+	GetUserByCustomTitle(ctx context.Context, arg GetUserByCustomTitleParams) (User, error)
 	GetUserByUsername(ctx context.Context, lower string) (User, error)
 	InactiveChatMembers(ctx context.Context, chatID int64) ([]InactiveChatMembersRow, error)
 	IsChatAdmin(ctx context.Context, arg IsChatAdminParams) (bool, error)

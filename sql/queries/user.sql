@@ -2,8 +2,8 @@
 INSERT INTO users(id, username, first_name, last_name)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (id) DO UPDATE SET username   = $2,
-                                first_name = $3,
-                                last_name  = $4
+                               first_name = $3,
+                               last_name  = $4
 RETURNING *;
 
 -- name: GetUser :one
@@ -24,5 +24,13 @@ SELECT unnest(@ids::bigint[]),
        unnest(@first_names::text[]),
        unnest(@last_names::text[])
 ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
-                                first_name = EXCLUDED.first_name,
-                                last_name  = EXCLUDED.last_name;
+                               first_name = EXCLUDED.first_name,
+                               last_name  = EXCLUDED.last_name;
+
+-- name: GetUserByCustomTitle :one
+SELECT u.*
+FROM chat_members cm
+         JOIN users u ON cm.user_id = u.id
+WHERE cm.custom_title = $1
+  AND cm.chat_id = $2
+LIMIT 1;

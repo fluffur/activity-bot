@@ -64,7 +64,7 @@ func (a *App) RegisterHandlers() {
 	dateParser := helpers.NewDateParser()
 
 	helpHandler := helpH.New(a.Config.BotOwnerID)
-	statsHandler := statsH.New(statsService, restService, memberService, chatService)
+	statsHandler := statsH.New(statsService, restService, memberService, userService, chatService)
 	chatHandler := chatH.New(chatService, adminService, dateParser)
 	restHandler := restH.New(restService, userService, adminService, dateParser)
 	adminHandler := adminH.New(adminService, userService, memberService, dateParser)
@@ -105,10 +105,10 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "whoareu", "ктоты", "тыкто").
-		AddTriggers("").
+		AddTriggers("").SetArgsCount(1).
 		WithGuards(groupGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "кто", "ты", "you").
+	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "кто", "ты", "you").SetArgsCount(1).
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.Inactive, "inactive", "неактив", "инактив").

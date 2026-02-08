@@ -97,3 +97,15 @@ func mapUser(u db.User) model.User {
 	}
 	return nu
 }
+
+func (r *UserRepository) GetByCustomTitle(ctx context.Context, chatID int64, title string) (model.User, error) {
+	u, err := r.queries.GetUserByCustomTitle(ctx, db.GetUserByCustomTitleParams{
+		CustomTitle: pgtype.Text{
+			String: title,
+			Valid:  true,
+		},
+		ChatID: chatID,
+	})
+	return mapUser(u), err
+
+}

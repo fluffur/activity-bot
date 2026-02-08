@@ -15,8 +15,8 @@ const ensureUserExists = `-- name: EnsureUserExists :one
 INSERT INTO users(id, username, first_name, last_name)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (id) DO UPDATE SET username   = $2,
-                                first_name = $3,
-                                last_name  = $4
+                               first_name = $3,
+                               last_name  = $4
 RETURNING id, username, first_name, last_name, created_at
 `
 
@@ -64,6 +64,33 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 	return i, err
 }
 
+const getUserByCustomTitle = `-- name: GetUserByCustomTitle :one
+SELECT u.id, u.username, u.first_name, u.last_name, u.created_at
+FROM chat_members cm
+         JOIN users u ON cm.user_id = u.id
+WHERE cm.custom_title = $1
+  AND cm.chat_id = $2
+LIMIT 1
+`
+
+type GetUserByCustomTitleParams struct {
+	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
+	ChatID      int64       `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) GetUserByCustomTitle(ctx context.Context, arg GetUserByCustomTitleParams) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByCustomTitle, arg.CustomTitle, arg.ChatID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.FirstName,
+		&i.LastName,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getUserByUsername = `-- name: GetUserByUsername :one
 SELECT id, username, first_name, last_name, created_at
 FROM users
@@ -90,8 +117,8 @@ SELECT unnest($1::bigint[]),
        unnest($3::text[]),
        unnest($4::text[])
 ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
-                                first_name = EXCLUDED.first_name,
-                                last_name  = EXCLUDED.last_name
+                               first_name = EXCLUDED.first_name,
+                               last_name  = EXCLUDED.last_name
 `
 
 type UpsertUsersParams struct {
