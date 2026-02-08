@@ -24,6 +24,8 @@ import (
 	"activity-bot/internal/stats"
 	statsH "activity-bot/internal/stats/handler"
 	"activity-bot/internal/user"
+	"context"
+	"log"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
@@ -52,7 +54,10 @@ func (a *App) RegisterHandlers() {
 	statusProvider := adapter.NewTelegramMemberStatusProvider(a.Bot)
 	moderator := adapter.NewTelegramModerator(a.Bot)
 	memberService := member.NewService(memberRepository, chatRepository, userRepository, adminsProvider, a.Config.DefaultWeeklyNorm)
-	adminService := admin.NewService(adminRepository, statusProvider, moderator, a.Config.BotOwnerID)
+	adminService := admin.NewService(adminRepository, statusProvider, moderator)
+	if err := adminService.EnsureInitialDeveloper(context.Background(), a.Config.BotOwnerID); err != nil {
+		log.Fatalf("Failed to ensure initial developer: %v", err)
+	}
 	messageService := msg.NewService(messageRepository)
 	callService := call.NewService(chatRepository, memberService)
 
@@ -69,6 +74,8 @@ func (a *App) RegisterHandlers() {
 
 	adminGuard := guard.NewAdminGuard(adminService)
 	creatorGuard := guard.NewCreatorGuard(adminService)
+	ownerGuard := guard.NewDevCreatorGuard(adminService)
+	developerGuard := guard.NewDeveloperGuard(adminService)
 	groupGuard := guard.OnlyGroups()
 	rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 1, 10*time.Second)
 
@@ -201,12 +208,24 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowMaxWarns, "макс преды", "maxwarns", "лимитпред").
 		AddTriggers("").
-		WithGuards(groupGuard, creatorGuard),
+		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.SetMaxWarns, "maxwarns", "макс преды", "лимитпред").
 		AddTriggers("+").
 		SetArgsCount(1).
 		WithGuards(groupGuard, creatorGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.ToggleRights, "права", "rights").
+		WithGuards(developerGuard).SetArgsCount(1),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.AddDeveloper, "адддев", "adddev").
+		WithGuards(ownerGuard).SetArgsCount(1),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.RemoveDeveloper, "ремдев", "remdev").
+		WithGuards(ownerGuard).SetArgsCount(1),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.ListDevelopers, "девс", "devs").
+		WithGuards(developerGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.UpdateMembersList, "обновить чат", "update chat", "update").
 		WithGuards(groupGuard, rateLimiterGuard),

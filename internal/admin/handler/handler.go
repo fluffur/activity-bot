@@ -404,6 +404,114 @@ func (h *Handler) Unwarn(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return err
 }
 
+func (h *Handler) ToggleRights(b *gotgbot.Bot, ctx *cmd.Context) error {
+	arg := ctx.FirstArgument()
+	if arg == "" {
+		role, _ := h.service.GetDevRole(ctx.StdContext(), ctx.EffectiveSender.Id())
+		mapping := map[string]string{
+			admin.DevRoleMember:  "участник",
+			admin.DevRoleAdmin:   "администратор",
+			admin.DevRoleCreator: "создатель",
+		}
+		_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Текущая роль разработчика: %s\n\nИспользуйте: !права [участник|админ|создатель]", mapping[role]), nil)
+		return err
+	}
+
+	var targetRole string
+	switch strings.ToLower(arg) {
+	case "участник", "member":
+		targetRole = admin.DevRoleMember
+	case "админ", "администратор", "admin":
+		targetRole = admin.DevRoleAdmin
+	case "создатель", "creator":
+		targetRole = admin.DevRoleCreator
+	default:
+		_, err := ctx.EffectiveMessage.Reply(b, "Неизвестная роль. Используйте: участник, админ или создатель", nil)
+		return err
+	}
+
+	if err := h.service.SetDevRole(ctx.StdContext(), ctx.EffectiveSender.Id(), targetRole); err != nil {
+		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось сохранить права", nil)
+		return err
+	}
+
+	mapping := map[string]string{
+		admin.DevRoleMember:  "участник",
+		admin.DevRoleAdmin:   "администратор",
+		admin.DevRoleCreator: "создатель",
+	}
+	_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Роль разработчика изменена на: %s", mapping[targetRole]), nil)
+	return err
+}
+
+func (h *Handler) AddDeveloper(b *gotgbot.Bot, ctx *cmd.Context) error {
+	targetUser := ctx.FirstUser()
+	if targetUser == nil {
+		return cmd.ErrNoUser
+	}
+
+	role := admin.DevRoleCreator
+	if arg := ctx.SecondArgument(); arg != "" {
+		switch strings.ToLower(arg) {
+		case "участник", "member":
+			role = admin.DevRoleMember
+		case "админ", "admin":
+			role = admin.DevRoleAdmin
+		case "создатель", "creator":
+			role = admin.DevRoleCreator
+		}
+	}
+
+	if err := h.service.SetDevRole(ctx.StdContext(), targetUser.ID, role); err != nil {
+		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось добавить разработчика", nil)
+		return err
+	}
+
+	_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s назначен разработчиком бота с ролью %s", helpers.Link(*targetUser), role), &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+	})
+	return err
+}
+
+func (h *Handler) RemoveDeveloper(b *gotgbot.Bot, ctx *cmd.Context) error {
+	targetUser := ctx.FirstUser()
+	if targetUser == nil {
+		return cmd.ErrNoUser
+	}
+
+	if err := h.service.RemoveDeveloper(ctx.StdContext(), targetUser.ID); err != nil {
+		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось удалить разработчика", nil)
+		return err
+	}
+
+	_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s удален из списка разработчиков", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+	})
+	return err
+}
+
+func (h *Handler) ListDevelopers(b *gotgbot.Bot, ctx *cmd.Context) error {
+	users, roles, err := h.service.GetAllDevelopers(ctx.StdContext())
+	if err != nil {
+		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось получить список разработчиков", nil)
+		return err
+	}
+
+	var sb strings.Builder
+	sb.WriteString("🛠 Разработчики бота:\n")
+	for i, u := range users {
+		sb.WriteString(fmt.Sprintf("\n%d. %s (%s)", i+1, helpers.Link(u), roles[i]))
+	}
+
+	_, err = ctx.EffectiveMessage.Reply(b, sb.String(), &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+	})
+	return err
+}
+
 func (h *Handler) ClearWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
 	if targetUser == nil {

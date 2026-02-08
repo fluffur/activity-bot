@@ -98,6 +98,11 @@ func (ns NullRestStatus) Value() (driver.Value, error) {
 	return string(ns.RestStatus), nil
 }
 
+type BotDeveloper struct {
+	UserID int64  `db:"user_id" json:"userId"`
+	Role   string `db:"role" json:"role"`
+}
+
 type Chat struct {
 	ID                  int64       `db:"id" json:"id"`
 	WeeklyNorm          int32       `db:"weekly_norm" json:"weeklyNorm"`
@@ -128,14 +133,15 @@ type Message struct {
 }
 
 type ModerationAction struct {
-	ID        int32            `db:"id" json:"id"`
-	Type      ModerationType   `db:"type" json:"type"`
-	ChatID    int64            `db:"chat_id" json:"chatId"`
-	UserID    int64            `db:"user_id" json:"userId"`
-	ModID     int64            `db:"mod_id" json:"modId"`
-	Reason    pgtype.Text      `db:"reason" json:"reason"`
-	CreatedAt pgtype.Timestamp `db:"created_at" json:"createdAt"`
-	UntilDate pgtype.Timestamp `db:"until_date" json:"untilDate"`
+	ID          int64              `db:"id" json:"id"`
+	Type        ModerationType     `db:"type" json:"type"`
+	ChatID      int64              `db:"chat_id" json:"chatId"`
+	UserID      int64              `db:"user_id" json:"userId"`
+	ModeratorID int64              `db:"moderator_id" json:"moderatorId"`
+	Reason      pgtype.Text        `db:"reason" json:"reason"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	RevokedAt   pgtype.Timestamptz `db:"revoked_at" json:"revokedAt"`
+	ExpiresAt   pgtype.Timestamptz `db:"expires_at" json:"expiresAt"`
 }
 
 type RestRequest struct {

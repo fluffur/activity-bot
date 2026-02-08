@@ -1,5 +1,5 @@
 -- name: CreateModerationAction :exec
-INSERT INTO moderation_actions (type, chat_id, user_id, mod_id, reason, until_date)
+INSERT INTO moderation_actions (type, chat_id, user_id, moderator_id, reason, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: GetActiveWarnsCount :one

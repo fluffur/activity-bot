@@ -15,8 +15,8 @@ const ensureUserExists = `-- name: EnsureUserExists :one
 INSERT INTO users(id, username, first_name, last_name)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (id) DO UPDATE SET username   = $2,
-                               first_name = $3,
-                               last_name  = $4
+                                first_name = $3,
+                                last_name  = $4
 RETURNING id, username, first_name, last_name, created_at
 `
 
@@ -90,8 +90,8 @@ SELECT unnest($1::bigint[]),
        unnest($3::text[]),
        unnest($4::text[])
 ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
-                               first_name = EXCLUDED.first_name,
-                               last_name  = EXCLUDED.last_name
+                                first_name = EXCLUDED.first_name,
+                                last_name  = EXCLUDED.last_name
 `
 
 type UpsertUsersParams struct {

@@ -27,17 +27,17 @@ func (q *Queries) ClearWarns(ctx context.Context, arg ClearWarnsParams) error {
 }
 
 const createModerationAction = `-- name: CreateModerationAction :exec
-INSERT INTO moderation_actions (type, chat_id, user_id, mod_id, reason, until_date)
+INSERT INTO moderation_actions (type, chat_id, user_id, moderator_id, reason, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type CreateModerationActionParams struct {
-	Type      ModerationType   `db:"type" json:"type"`
-	ChatID    int64            `db:"chat_id" json:"chatId"`
-	UserID    int64            `db:"user_id" json:"userId"`
-	ModID     int64            `db:"mod_id" json:"modId"`
-	Reason    pgtype.Text      `db:"reason" json:"reason"`
-	UntilDate pgtype.Timestamp `db:"until_date" json:"untilDate"`
+	Type        ModerationType     `db:"type" json:"type"`
+	ChatID      int64              `db:"chat_id" json:"chatId"`
+	UserID      int64              `db:"user_id" json:"userId"`
+	ModeratorID int64              `db:"moderator_id" json:"moderatorId"`
+	Reason      pgtype.Text        `db:"reason" json:"reason"`
+	ExpiresAt   pgtype.Timestamptz `db:"expires_at" json:"expiresAt"`
 }
 
 func (q *Queries) CreateModerationAction(ctx context.Context, arg CreateModerationActionParams) error {
@@ -45,9 +45,9 @@ func (q *Queries) CreateModerationAction(ctx context.Context, arg CreateModerati
 		arg.Type,
 		arg.ChatID,
 		arg.UserID,
-		arg.ModID,
+		arg.ModeratorID,
 		arg.Reason,
-		arg.UntilDate,
+		arg.ExpiresAt,
 	)
 	return err
 }

@@ -9,7 +9,7 @@ import (
 )
 
 func Link(u model.User) string {
-	if u.Username != nil {
+	if u.Username != nil || *u.Username != "" {
 		return fmt.Sprintf(`<a href="https://t.me/%s">%s</a>`, *u.Username, html.EscapeString(u.FirstName))
 	}
 
@@ -17,7 +17,7 @@ func Link(u model.User) string {
 }
 
 func LinkWithContent(u model.User, content string) string {
-	if u.Username != nil {
+	if u.Username != nil || *u.Username != "" {
 		return fmt.Sprintf(`<a href="https://t.me/%s">%s</a>`, *u.Username, html.EscapeString(content))
 	}
 

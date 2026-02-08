@@ -8,6 +8,12 @@ import (
 	"time"
 )
 
+const (
+	DevRoleMember  = "member"
+	DevRoleAdmin   = "admin"
+	DevRoleCreator = "creator"
+)
+
 type ChatMemberStatusProvider interface {
 	GetChatMemberStatus(chatID, userID int64) (string, error)
 }
@@ -31,11 +37,52 @@ type Service struct {
 	repo         Repository
 	memberStatus ChatMemberStatusProvider
 	moderator    Moderator
-	ownerID      int64
 }
 
-func NewService(repo Repository, statusProvider ChatMemberStatusProvider, moderator Moderator, ownerID int64) *Service {
-	return &Service{repo, statusProvider, moderator, ownerID}
+func NewService(repo Repository, statusProvider ChatMemberStatusProvider, moderator Moderator) *Service {
+	return &Service{
+		repo:         repo,
+		memberStatus: statusProvider,
+		moderator:    moderator,
+	}
+}
+
+func (s *Service) EnsureInitialDeveloper(ctx context.Context, ownerID int64) error {
+	count, err := s.repo.GetDevelopersCount(ctx)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		slog.Info("No developers found in database, adding root owner as creator", "ownerID", ownerID)
+		return s.repo.SetDeveloperRole(ctx, ownerID, DevRoleCreator)
+	}
+
+	return nil
+}
+
+func (s *Service) GetDevRole(ctx context.Context, userID int64) (string, error) {
+	role, err := s.repo.GetDeveloperRole(ctx, userID)
+	if err != nil {
+		return DevRoleMember, nil
+	}
+	return role, nil
+}
+
+func (s *Service) SetDevRole(ctx context.Context, userID int64, role string) error {
+	return s.repo.SetDeveloperRole(ctx, userID, role)
+}
+
+func (s *Service) RemoveDeveloper(ctx context.Context, userID int64) error {
+	return s.repo.RemoveDeveloperRole(ctx, userID)
+}
+
+func (s *Service) GetAllDevelopers(ctx context.Context) ([]model.User, []string, error) {
+	return s.repo.GetAllDevelopers(ctx)
+}
+
+func (s *Service) IsDeveloper(ctx context.Context, userID int64) (bool, error) {
+	return s.repo.IsDeveloper(ctx, userID)
 }
 
 func (s *Service) AddAdmin(ctx context.Context, chatID int64, userID int64) error {
@@ -102,7 +149,8 @@ func (s *Service) GetAdminsEnsured(
 }
 
 func (s *Service) IsCreator(ctx context.Context, chatID int64, userID int64) (bool, error) {
-	if userID == s.ownerID {
+	role, _ := s.GetDevRole(ctx, userID)
+	if role == DevRoleCreator {
 		return true, nil
 	}
 
@@ -142,7 +190,8 @@ func (s *Service) CheckIsCreator(ctx context.Context, chatID, userID int64) bool
 }
 
 func (s *Service) IsAdmin(ctx context.Context, chatID, userID int64) (bool, error) {
-	if userID == s.ownerID {
+	role, _ := s.GetDevRole(ctx, userID)
+	if role == DevRoleCreator || role == DevRoleAdmin {
 		return true, nil
 	}
 
@@ -237,7 +286,7 @@ func (s *Service) Unban(ctx context.Context, chatID, userID int64) error {
 	return s.repo.RemoveModerationActions(ctx, chatID, userID)
 }
 
-func (s *Service) Unmute(ctx context.Context, chatID, userID int64) error {
+func (s *Service) Unmute(_ context.Context, chatID, userID int64) error {
 	return s.moderator.Unmute(chatID, userID)
 }
 

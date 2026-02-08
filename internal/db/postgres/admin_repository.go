@@ -75,21 +75,21 @@ func (r *AdminRepository) GetRole(ctx context.Context, chatID int64, userID int6
 }
 
 func (r *AdminRepository) CreateModerationAction(ctx context.Context, actionType string, chatID, userID, modID int64, reason string, until *time.Time) error {
-	var untilDate pgtype.Timestamp
+	var expiresAt pgtype.Timestamptz
 	if until != nil {
-		untilDate = pgtype.Timestamp{
+		expiresAt = pgtype.Timestamptz{
 			Time:  *until,
 			Valid: true,
 		}
 	}
 
 	return r.queries.CreateModerationAction(ctx, db.CreateModerationActionParams{
-		Type:      db.ModerationType(actionType),
-		ChatID:    chatID,
-		UserID:    userID,
-		ModID:     modID,
-		Reason:    pgtype.Text{String: reason, Valid: reason != ""},
-		UntilDate: untilDate,
+		Type:        db.ModerationType(actionType),
+		ChatID:      chatID,
+		UserID:      userID,
+		ModeratorID: modID,
+		Reason:      pgtype.Text{String: reason, Valid: reason != ""},
+		ExpiresAt:   expiresAt,
 	})
 }
 
@@ -131,4 +131,55 @@ func (r *AdminRepository) RemoveLatestWarn(ctx context.Context, chatID, userID i
 		ChatID: chatID,
 		UserID: userID,
 	})
+}
+
+func (r *AdminRepository) GetDeveloperRole(ctx context.Context, userID int64) (string, error) {
+	dev, err := r.queries.GetDeveloper(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+	return dev.Role, nil
+}
+
+func (r *AdminRepository) SetDeveloperRole(ctx context.Context, userID int64, role string) error {
+	return r.queries.SetDeveloper(ctx, db.SetDeveloperParams{
+		UserID: userID,
+		Role:   role,
+	})
+}
+
+func (r *AdminRepository) RemoveDeveloperRole(ctx context.Context, userID int64) error {
+	return r.queries.RemoveDeveloper(ctx, userID)
+}
+
+func (r *AdminRepository) IsDeveloper(ctx context.Context, userID int64) (bool, error) {
+	return r.queries.IsDeveloper(ctx, userID)
+}
+
+func (r *AdminRepository) GetAllDevelopers(ctx context.Context) ([]model.User, []string, error) {
+	rows, err := r.queries.GetAllDevelopers(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	users := make([]model.User, len(rows))
+	roles := make([]string, len(rows))
+	for i, row := range rows {
+		var username *string
+		if row.Username.Valid {
+			username = &row.Username.String
+		}
+		users[i] = model.User{
+			ID:        row.UserID,
+			FirstName: row.FirstName.String,
+			LastName:  row.LastName.String,
+			Username:  username,
+		}
+		roles[i] = row.Role
+	}
+	return users, roles, nil
+}
+
+func (r *AdminRepository) GetDevelopersCount(ctx context.Context) (int64, error) {
+	return r.queries.GetDevelopersCount(ctx)
 }

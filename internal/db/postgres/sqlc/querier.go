@@ -24,8 +24,9 @@ type Querier interface {
 	EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemberExistsParams) (ChatMember, error)
 	EnsureMemberFull(ctx context.Context, arg EnsureMemberFullParams) (ChatMember, error)
 	EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) (User, error)
-	GetAnyChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetAnyChatMembersWithTitlesRow, error)
 	GetActiveWarnsCount(ctx context.Context, arg GetActiveWarnsCountParams) (int64, error)
+	GetAllDevelopers(ctx context.Context) ([]GetAllDevelopersRow, error)
+	GetAnyChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetAnyChatMembersWithTitlesRow, error)
 	GetChat(ctx context.Context, id int64) (Chat, error)
 	GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdminsRow, error)
 	GetChatMaxLadder(ctx context.Context, chatID int64) (int32, error)
@@ -34,6 +35,8 @@ type Querier interface {
 	GetChatMemberStatus(ctx context.Context, arg GetChatMemberStatusParams) (string, error)
 	GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMembersRow, error)
 	GetChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetChatMembersWithTitlesRow, error)
+	GetDeveloper(ctx context.Context, userID int64) (BotDeveloper, error)
+	GetDevelopersCount(ctx context.Context) (int64, error)
 	GetMemberCustomTitle(ctx context.Context, arg GetMemberCustomTitleParams) (pgtype.Text, error)
 	GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams) (Chat, error)
 	GetRestMembers(ctx context.Context, chatID int64) ([]GetRestMembersRow, error)
@@ -43,6 +46,7 @@ type Querier interface {
 	InactiveChatMembers(ctx context.Context, chatID int64) ([]InactiveChatMembersRow, error)
 	IsChatAdmin(ctx context.Context, arg IsChatAdminParams) (bool, error)
 	IsChatCreator(ctx context.Context, arg IsChatCreatorParams) (bool, error)
+	IsDeveloper(ctx context.Context, userID int64) (bool, error)
 	MarkChatMembersLeftNotInList(ctx context.Context, arg MarkChatMembersLeftNotInListParams) error
 	MessageActivityByDay(ctx context.Context, arg MessageActivityByDayParams) ([]MessageActivityByDayRow, error)
 	MessageReport(ctx context.Context, arg MessageReportParams) ([]MessageReportRow, error)
@@ -51,10 +55,12 @@ type Querier interface {
 	MoveChatMembersToOldExcept(ctx context.Context, arg MoveChatMembersToOldExceptParams) error
 	RejectRestRequest(ctx context.Context, arg RejectRestRequestParams) error
 	RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error
+	RemoveDeveloper(ctx context.Context, userID int64) error
 	RemoveLatestWarn(ctx context.Context, arg RemoveLatestWarnParams) error
 	SetChatAISystemPrompt(ctx context.Context, arg SetChatAISystemPromptParams) error
 	SetChatMaxLadder(ctx context.Context, arg SetChatMaxLadderParams) error
 	SetChatWelcomeCallMessage(ctx context.Context, arg SetChatWelcomeCallMessageParams) error
+	SetDeveloper(ctx context.Context, arg SetDeveloperParams) error
 	SetMemberRest(ctx context.Context, arg SetMemberRestParams) error
 	UpdateChatCallOnJoin(ctx context.Context, arg UpdateChatCallOnJoinParams) error
 	UpdateChatMaxWarns(ctx context.Context, arg UpdateChatMaxWarnsParams) error
