@@ -28,7 +28,7 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 		return err
 	}
 
-	users, err := s.memberService.GetChatMembers(ctx, tgCtx.EffectiveChat.Id)
+	members, err := s.memberService.GetChatMembers(ctx, tgCtx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
@@ -41,10 +41,10 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 		}
 	}
 
-	for i := 0; i < len(users); i += mentionsPerMessage {
+	for i := 0; i < len(members); i += mentionsPerMessage {
 		end := i + mentionsPerMessage
-		if end > len(users) {
-			end = len(users)
+		if end > len(members) {
+			end = len(members)
 		}
 
 		var sb strings.Builder
@@ -52,9 +52,12 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 			sb.WriteString(fmt.Sprintf("%s\n\n", message))
 		}
 
-		for j, user := range users[i:end] {
-			sb.WriteString(helpers.Mention(user.User.ID, user.CustomTitle))
-			if j < len(users[i:end])-1 {
+		for j, m := range members[i:end] {
+			if m.User.ID == 1106062335 {
+				continue
+			}
+			sb.WriteString(helpers.Mention(m.User.ID, m.CustomTitle))
+			if j < len(members[i:end])-1 {
 				sb.WriteString(", ")
 			}
 		}
