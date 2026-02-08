@@ -164,42 +164,48 @@ func (a *App) RegisterHandlers() {
 		AddTriggers("").
 		WithGuards(groupGuard, creatorGuard),
 	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Unban, "unban", "-бан", "разбан", "разбанить").
+		AddTriggers("").
+		WithGuards(groupGuard, adminGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Unmute, "unmute", "размут", "размутить", "-мут").
+		AddTriggers("").
+		WithGuards(groupGuard, adminGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Unwarn, "unwarn", "анварн", "снятьпред", "-варн", "-пред").
+		AddTriggers("").
+		WithGuards(groupGuard, adminGuard),
+	)
+
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Kick, "kick", "кик", "кикнуть", "выгнать").
 		AddTriggers("", "+").
+		SetArgsCount(1).
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Ban, "ban", "бан", "забанить").
 		AddTriggers("", "+").
 		WithGuards(groupGuard, adminGuard).
-		SetArgsCount(1),
+		SetArgsCount(2),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Mute, "mute", "мут", "замутить").
 		AddTriggers("", "+").
 		WithGuards(groupGuard, adminGuard).
-		SetArgsCount(1),
-	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.Unban, "unban", "разбан", "разбанить").
-		AddTriggers("", "-").
-		WithGuards(groupGuard, adminGuard),
-	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.Unmute, "unmute", "размут", "размутить").
-		AddTriggers("", "-").
-		WithGuards(groupGuard, adminGuard),
+		SetArgsCount(2),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Warn, "warn", "варн", "пред", "предупреждение").
-		AddTriggers("", "+").
-		WithGuards(groupGuard, adminGuard),
-	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.Unwarn, "unwarn", "анварн", "снятьпред").
-		AddTriggers("", "-", "!").
+		AddTriggers("", "+").SetArgsCount(2).
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ClearWarns, "clearwarns", "очиститьпреды").
-		AddTriggers("!", "/").
 		WithGuards(groupGuard, adminGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.SetMaxWarns, "maxwarns", "лимитпред").
-		AddTriggers("!", "/").
+	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowMaxWarns, "макс преды", "maxwarns", "лимитпред").
+		AddTriggers("").
+		WithGuards(groupGuard, creatorGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.SetMaxWarns, "maxwarns", "макс преды", "лимитпред").
+		AddTriggers("+").
+		SetArgsCount(1).
 		WithGuards(groupGuard, creatorGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.UpdateMembersList, "обновить чат", "update chat", "update").

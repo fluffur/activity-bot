@@ -8,6 +8,7 @@ import (
 	"activity-bot/internal/user"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -138,7 +139,7 @@ func (h *Handler) Kick(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return cmd.ErrNoUser
 	}
 
-	reason := strings.Join(ctx.Args(), " ")
+	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument())
 
 	if err := h.service.Kick(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, ctx.EffectiveSender.Id(), reason); err != nil {
 		if errors.Is(err, admin.ErrUserIsProtected) {
@@ -166,15 +167,14 @@ func (h *Handler) Ban(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return cmd.ErrNoUser
 	}
 
-	var until *time.Time
-	reason := strings.Join(ctx.Args(), " ")
+	until := parseUntil(
+		h.dateParser,
+		ctx.FirstArgument(),
+		0,
+		true,
+	)
 
-	if len(ctx.Args()) > 0 {
-		if t, ok := h.dateParser.Parse(ctx.Args()[0]); ok {
-			until = &t
-			reason = strings.Join(ctx.Args()[1:], " ")
-		}
-	}
+	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument())
 
 	if err := h.service.Ban(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, ctx.EffectiveSender.Id(), until, reason); err != nil {
 		if errors.Is(err, admin.ErrUserIsProtected) {
@@ -188,13 +188,18 @@ func (h *Handler) Ban(b *gotgbot.Bot, ctx *cmd.Context) error {
 	text := fmt.Sprintf("Пользователь %s забанен", helpers.Link(*targetUser))
 	if until != nil {
 		text += fmt.Sprintf(" до %s", helpers.FormatToHumanDate(*until))
+	} else {
+		text += " навсегда"
 	}
 	if reason != "" {
 		text += fmt.Sprintf("\nПричина: %s", reason)
 	}
 
 	_, err := b.SendMessage(ctx.EffectiveChat.Id, text, &gotgbot.SendMessageOpts{
-		ParseMode: gotgbot.ParseModeHTML,
+		ParseMode: "HTML",
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
 	})
 	return err
 }
@@ -204,16 +209,14 @@ func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
+	until := parseUntil(
+		h.dateParser,
+		ctx.FirstArgument(),
+		7*24*time.Hour,
+		true,
+	)
 
-	var until *time.Time
-	reason := strings.Join(ctx.Args(), " ")
-
-	if len(ctx.Args()) > 0 {
-		if t, ok := h.dateParser.Parse(ctx.Args()[0]); ok {
-			until = &t
-			reason = strings.Join(ctx.Args()[1:], " ")
-		}
-	}
+	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument())
 
 	if err := h.service.Mute(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, ctx.EffectiveSender.Id(), until, reason); err != nil {
 		if errors.Is(err, admin.ErrUserIsProtected) {
@@ -223,7 +226,7 @@ func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
 		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось замутить пользователя", nil)
 		return err
 	}
-
+	log.Println(reason)
 	text := fmt.Sprintf("Пользователь %s замучен", helpers.Link(*targetUser))
 	if until != nil {
 		text += fmt.Sprintf(" до %s", helpers.FormatToHumanDate(*until))
@@ -236,6 +239,9 @@ func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	_, err := b.SendMessage(ctx.EffectiveChat.Id, text, &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
 	})
 	return err
 }
@@ -246,8 +252,21 @@ func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return cmd.ErrNoUser
 	}
 
-	reason := strings.Join(ctx.Args(), " ")
-	count, banned, err := h.service.Warn(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, ctx.EffectiveSender.Id(), reason)
+	defaultPeriod := 14 * 24 * time.Hour
+	defaultTime := time.Now().Add(defaultPeriod)
+	until := parseUntil(
+		h.dateParser,
+		ctx.FirstArgument(),
+		defaultPeriod,
+		false,
+	)
+	if until == nil {
+		until = &defaultTime
+	}
+
+	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument())
+
+	count, banned, err := h.service.Warn(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, ctx.EffectiveSender.Id(), reason, until)
 	if err != nil {
 		if errors.Is(err, admin.ErrUserIsProtected) {
 			_, err := ctx.EffectiveMessage.Reply(b, "Нельзя выдать предупреждение администратору или создателю", nil)
@@ -259,7 +278,7 @@ func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	maxWarns, _ := h.service.GetMaxWarns(ctx.StdContext(), ctx.EffectiveChat.Id)
 
-	text := fmt.Sprintf("Пользователю %s выдано предупреждение (%d/%d)", helpers.Link(*targetUser), count, maxWarns)
+	text := fmt.Sprintf("Пользователю %s выдано предупреждение (%d/%d) до %s", helpers.Link(*targetUser), count, maxWarns, helpers.FormatToHumanDate(*until))
 	if reason != "" {
 		text += fmt.Sprintf("\nПричина: %s", reason)
 	}
@@ -270,29 +289,35 @@ func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	_, err = b.SendMessage(ctx.EffectiveChat.Id, text, &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
 	})
 	return err
 }
 
-func (h *Handler) SetMaxWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if ctx.FirstArgument() == "" {
-		max, _ := h.service.GetMaxWarns(ctx.StdContext(), ctx.EffectiveChat.Id)
-		_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Текущий лимит предупреждений: %d", max), nil)
+func (h *Handler) ShowMaxWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
+	maxWarns, err := h.service.GetMaxWarns(ctx.StdContext(), ctx.EffectiveChat.Id)
+	if err != nil {
 		return err
 	}
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Текущий лимит предупреждений: %d", maxWarns), nil)
+	return err
+}
 
-	max, err := strconv.Atoi(ctx.FirstArgument())
-	if err != nil || max <= 0 {
+func (h *Handler) SetMaxWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
+	maxWarns, err := strconv.Atoi(ctx.FirstArgument())
+	if err != nil || maxWarns <= 0 {
 		_, err := ctx.EffectiveMessage.Reply(b, "Лимит предупреждений должен быть положительным числом", nil)
 		return err
 	}
 
-	if err := h.service.SetMaxWarns(ctx.StdContext(), ctx.EffectiveChat.Id, max); err != nil {
+	if err := h.service.SetMaxWarns(ctx.StdContext(), ctx.EffectiveChat.Id, maxWarns); err != nil {
 		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось обновить лимит предупреждений", nil)
 		return err
 	}
 
-	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Лимит предупреждений изменен на %d", max), nil)
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Лимит предупреждений изменен на %d", maxWarns), nil)
 	return err
 }
 
@@ -309,6 +334,9 @@ func (h *Handler) Unban(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	_, err := b.SendMessage(ctx.EffectiveChat.Id, fmt.Sprintf("Пользователь %s разбанен", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
 	})
 	return err
 }
@@ -323,9 +351,32 @@ func (h *Handler) Unmute(b *gotgbot.Bot, ctx *cmd.Context) error {
 		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось размутить пользователя", nil)
 		return err
 	}
+	title, err := h.memberService.GetMemberTitle(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID)
+	if err != nil {
+		return err
+	}
+	if title != "" {
+		if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, targetUser.ID, &gotgbot.PromoteChatMemberOpts{
+			CanPinMessages:  true,
+			CanPostMessages: true,
+			CanEditMessages: true,
+		}); err != nil || !ok {
+			_, _ = ctx.EffectiveMessage.Reply(b, "Пользователь размучен, но не удалось вернуть роль", nil)
+			return err
+		}
 
-	_, err := b.SendMessage(ctx.EffectiveChat.Id, fmt.Sprintf("Пользователь %s размучен", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
+		if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, targetUser.ID, title, nil); err != nil {
+			_, _ = ctx.EffectiveMessage.Reply(b, "Пользователь размучет, но роль уже назначена кем-то другим", nil)
+
+			return err
+		}
+	}
+
+	_, err = b.SendMessage(ctx.EffectiveChat.Id, fmt.Sprintf("Пользователь %s размучен", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
 	})
 	return err
 }
@@ -346,6 +397,9 @@ func (h *Handler) Unwarn(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	_, err = b.SendMessage(ctx.EffectiveChat.Id, fmt.Sprintf("С пользователя %s снято предупреждение (%d/%d)", helpers.Link(*targetUser), count, maxWarns), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
 	})
 	return err
 }
@@ -363,6 +417,39 @@ func (h *Handler) ClearWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	_, err := b.SendMessage(ctx.EffectiveChat.Id, fmt.Sprintf("Все предупреждения пользователя %s были аннулированы", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
 	})
 	return err
+}
+
+func parseUntil(
+	parser *helpers.DateParser,
+	arg string,
+	defaultDuration time.Duration,
+	allowForever bool,
+) *time.Time {
+	if allowForever && arg == "навсегда" {
+		return nil
+	}
+
+	if t, ok := parser.Parse(arg); ok {
+		return &t
+	}
+
+	if defaultDuration > 0 {
+		t := time.Now().Add(defaultDuration)
+		return &t
+	}
+
+	return nil
+}
+
+func getReason(firstArgument, secondArgument string) string {
+	if secondArgument != "" {
+		return secondArgument
+	}
+
+	return firstArgument
 }

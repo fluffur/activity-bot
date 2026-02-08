@@ -27,6 +27,13 @@ func (c *Context) FirstArgument() string {
 	return ""
 }
 
+func (c *Context) SecondArgument() string {
+	if len(c.args) > 1 {
+		return c.args[1]
+	}
+	return ""
+}
+
 func (c *Context) FirstUser() *model.User {
 	if len(c.users) > 0 && c.users[0] != nil {
 		return c.users[0]

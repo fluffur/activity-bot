@@ -198,12 +198,12 @@ func (s *Service) Mute(ctx context.Context, chatID, userID, modID int64, until *
 	return s.repo.CreateModerationAction(ctx, "mute", chatID, userID, modID, reason, until)
 }
 
-func (s *Service) Warn(ctx context.Context, chatID, userID, modID int64, reason string) (int, bool, error) {
+func (s *Service) Warn(ctx context.Context, chatID, userID, modID int64, reason string, until *time.Time) (int, bool, error) {
 	if err := s.checkCanModerate(ctx, chatID, userID); err != nil {
 		return 0, false, err
 	}
 
-	if err := s.repo.CreateModerationAction(ctx, "warn", chatID, userID, modID, reason, nil); err != nil {
+	if err := s.repo.CreateModerationAction(ctx, "warn", chatID, userID, modID, reason, until); err != nil {
 		return 0, false, err
 	}
 
