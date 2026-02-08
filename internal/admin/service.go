@@ -333,3 +333,7 @@ func (s *Service) checkCanModerate(ctx context.Context, chatID, userID int64) er
 
 	return nil
 }
+
+func (s *Service) GetWarnsCount(ctx context.Context, chatID, userID int64) (int64, error) {
+	return s.repo.GetWarnsCount(ctx, chatID, userID)
+}

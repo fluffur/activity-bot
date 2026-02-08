@@ -246,6 +246,30 @@ func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return err
 }
 
+func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
+	targetUser := ctx.FirstUser()
+	if targetUser == nil {
+		return cmd.ErrNoUser
+	}
+
+	count, err := h.service.GetWarnsCount(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID)
+	if err != nil {
+		return err
+	}
+	maxWarns, err := h.service.GetMaxWarns(ctx.StdContext(), ctx.EffectiveChat.Id)
+	if err != nil {
+		return err
+	}
+	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("У пользователя %s %d/%d предупреждений", helpers.Link(*targetUser), count, maxWarns), &gotgbot.SendMessageOpts{
+		ParseMode: "HTML",
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+	})
+
+	return err
+}
+
 func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
 	if targetUser == nil {

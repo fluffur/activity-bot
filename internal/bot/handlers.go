@@ -199,6 +199,10 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(2),
 	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowWarns, "warns", "варны", "преды").
+		AddTriggers("").FallbackToSender().
+		WithGuards(groupGuard, adminGuard),
+	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Warn, "warn", "варн", "пред", "предупреждение").
 		AddTriggers("", "+").SetArgsCount(2).
 		WithGuards(groupGuard, adminGuard),
