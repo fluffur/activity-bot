@@ -235,7 +235,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.DeleteRole, "-роль", "-role", "-title").
 		AddTriggers("").
-		WithGuards(groupGuard),
+		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.ShowRole, "роль", "role", "title",
 		"какая роль", "роль у", "роль кого").
@@ -245,7 +245,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.SetRole, "роль", "role", "title").
 		AddTriggers("+").
-		WithGuards(groupGuard).
+		WithGuards(groupGuard, adminGuard).
 		FallbackToSender().
 		SetArgsCount(1),
 	)
