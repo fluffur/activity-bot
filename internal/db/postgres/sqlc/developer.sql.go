@@ -11,6 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const ensureDeveloperUser = `-- name: EnsureDeveloperUser :exec
+INSERT INTO users (id, first_name, last_name)
+VALUES ($1, 'Developer', '')
+ON CONFLICT (id) DO NOTHING
+`
+
+func (q *Queries) EnsureDeveloperUser(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, ensureDeveloperUser, id)
+	return err
+}
+
 const getAllDevelopers = `-- name: GetAllDevelopers :many
 SELECT bd.user_id, bd.role, u.username, u.first_name, u.last_name
 FROM bot_developers bd

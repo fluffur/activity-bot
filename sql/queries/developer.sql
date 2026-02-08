@@ -1,6 +1,11 @@
 -- name: GetDeveloper :one
 SELECT * FROM bot_developers WHERE user_id = $1;
 
+-- name: EnsureDeveloperUser :exec
+INSERT INTO users (id, first_name, last_name)
+VALUES ($1, 'Developer', '')
+ON CONFLICT (id) DO NOTHING;
+
 -- name: SetDeveloper :exec
 INSERT INTO bot_developers (user_id, role)
 VALUES ($1, $2)

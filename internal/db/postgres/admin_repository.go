@@ -133,6 +133,10 @@ func (r *AdminRepository) RemoveLatestWarn(ctx context.Context, chatID, userID i
 	})
 }
 
+func (r *AdminRepository) EnsureDeveloperUser(ctx context.Context, userID int64) error {
+	return r.queries.EnsureDeveloperUser(ctx, userID)
+}
+
 func (r *AdminRepository) GetDeveloperRole(ctx context.Context, userID int64) (string, error) {
 	dev, err := r.queries.GetDeveloper(ctx, userID)
 	if err != nil {

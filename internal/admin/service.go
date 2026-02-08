@@ -55,6 +55,9 @@ func (s *Service) EnsureInitialDeveloper(ctx context.Context, ownerID int64) err
 
 	if count == 0 {
 		slog.Info("No developers found in database, adding root owner as creator", "ownerID", ownerID)
+		if err := s.repo.EnsureDeveloperUser(ctx, ownerID); err != nil {
+			return err
+		}
 		return s.repo.SetDeveloperRole(ctx, ownerID, DevRoleCreator)
 	}
 

@@ -22,6 +22,7 @@ type Querier interface {
 	EndMemberRest(ctx context.Context, arg EndMemberRestParams) error
 	EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error)
 	EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemberExistsParams) (ChatMember, error)
+	EnsureDeveloperUser(ctx context.Context, id int64) error
 	EnsureMemberFull(ctx context.Context, arg EnsureMemberFullParams) (ChatMember, error)
 	EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) (User, error)
 	GetActiveWarnsCount(ctx context.Context, arg GetActiveWarnsCountParams) (int64, error)

@@ -14,6 +14,7 @@ type Repository interface {
 	IsCreator(ctx context.Context, chatID int64, userID int64) (bool, error)
 	GetRole(ctx context.Context, chatID int64, userID int64) (string, error)
 
+	EnsureDeveloperUser(ctx context.Context, userID int64) error
 	GetDeveloperRole(ctx context.Context, userID int64) (string, error)
 	SetDeveloperRole(ctx context.Context, userID int64, role string) error
 	RemoveDeveloperRole(ctx context.Context, userID int64) error
