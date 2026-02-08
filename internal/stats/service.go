@@ -49,55 +49,23 @@ func (s *Service) GetChatActivityGraph(ctx context.Context, chatID int64, from, 
 
 	start := activity[0].Date.Truncate(24 * time.Hour)
 	end := activity[len(activity)-1].Date.Truncate(24 * time.Hour)
-	daysCount := int(end.Sub(start).Hours()/24) + 1
 
-	if daysCount > 30 {
-		start = end.AddDate(0, 0, -29)
-		daysCount = 30
+	if from == nil || to == nil {
+		if end.Sub(start).Hours()/24 > 30 {
+			start = end.AddDate(0, 0, -29)
+		}
 	}
 
-	width := daysCount * 30
-	if width < 400 {
-		width = 400
-	}
-	height := 300
-
-	buf := bytes.NewBuffer(nil)
-
-	graph := chart.BarChart{
-		Title:    "Активность чата",
-		Width:    width,
-		Height:   height,
-		BarWidth: width / daysCount * 65 / 100,
-		Bars:     []chart.Value{},
-		YAxis: chart.YAxis{
-			Name: "Сообщения",
-			Range: &chart.ContinuousRange{
-				Min: 0,
-				Max: maximum * 1.1,
-			},
-			ValueFormatter: func(v interface{}) string {
-				if val, ok := v.(float64); ok {
-					return fmt.Sprintf("%.0f", val)
-				}
-				return ""
-			},
-		},
-	}
-
+	var values []chart.Value
 	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
 		key := d.Format("2006-01-02")
-		graph.Bars = append(graph.Bars, chart.Value{
+		values = append(values, chart.Value{
 			Value: float64(activityMap[key]),
 			Label: d.Format("02.01"),
 		})
 	}
 
-	if err := graph.Render(chart.PNG, buf); err != nil {
-		return nil, err
-	}
-
-	return buf, nil
+	return s.renderBarChart("Активность чата", values, maximum)
 }
 
 func (s *Service) GetMessageActivityGraph(ctx context.Context, chatID, userID int64) (*bytes.Buffer, error) {
@@ -122,61 +90,79 @@ func (s *Service) GetMessageActivityGraph(ctx context.Context, chatID, userID in
 	start := activity[0].Date.Truncate(24 * time.Hour)
 	today := time.Now().Truncate(24 * time.Hour)
 
-	daysCount := int(today.Sub(start).Hours()/24) + 1
-	width := daysCount * 120
-	if width < 400 {
-		width = 400
-	}
-	if width > 1000 {
-		width = 1000
+	// Limit user activity graph to last 30 days as well for consistency
+	if today.Sub(start).Hours()/24 > 30 {
+		start = today.AddDate(0, 0, -29)
 	}
 
-	barWidth := width / daysCount * 65 / 100
-	if barWidth < 20 {
-		barWidth = 20
-	}
-	if barWidth > 200 {
-		barWidth = 200
-	}
-
-	if maximum > 0 {
-		maximum = maximum * 1.1
-	}
-	if maximum >= 50 {
-		maximum = roundUpNice(maximum)
-	}
-	if maximum < 1 {
-		maximum = 1
+	var values []chart.Value
+	for d := start; !d.After(today); d = d.AddDate(0, 0, 1) {
+		key := d.Format("2006-01-02")
+		values = append(values, chart.Value{
+			Value: float64(activityMap[key]),
+			Label: d.Format("02.01"),
+		})
 	}
 
-	maxGraphHeight := 500.0
-	pixelsPerUnit := maxGraphHeight / maximum
-	if pixelsPerUnit < 5 {
-		pixelsPerUnit = 5
-	}
-	height := int(maximum*pixelsPerUnit + 100)
-	if height > 800 {
-		height = 800
+	return s.renderBarChart("Статистика активности", values, maximum)
+}
+
+func (s *Service) renderBarChart(title string, values []chart.Value, maximum float64) (*bytes.Buffer, error) {
+	width := 1024
+	height := 512
+
+	count := len(values)
+	barWidth := 20.0
+	if count > 0 {
+		barWidth = float64(width) * 0.8 / float64(count)
+		if barWidth > 80 {
+			barWidth = 80
+		}
+		if barWidth < 5 {
+			barWidth = 5
+		}
 	}
 
-	buf := bytes.NewBuffer(nil)
+	if maximum <= 0 {
+		maximum = 10
+	}
+	maximum = roundUpNice(maximum * 1.1)
+
+	if count > 15 {
+		step := count / 10
+		if step < 2 {
+			step = 2
+		}
+		for i := range values {
+			if i%step != 0 && i != count-1 {
+				values[i].Label = ""
+			}
+		}
+	}
 
 	graph := chart.BarChart{
-		Title:    "Статистика активности",
-		Width:    width,
-		Height:   height,
-		BarWidth: barWidth,
-		Bars:     []chart.Value{},
+		Title: title,
+		TitleStyle: chart.Style{
+			FontColor: drawing.ColorFromHex("333333"),
+			FontSize:  16,
+		},
+		Width:      width,
+		Height:     height,
+		BarWidth:   int(barWidth),
+		BarSpacing: int(barWidth * 0.3),
+		Bars:       values,
+		Background: chart.Style{
+			Padding: chart.Box{
+				Top: 40, Bottom: 20, Left: 20, Right: 20,
+			},
+		},
+		Canvas: chart.Style{
+			FillColor: drawing.ColorFromHex("fefefe"),
+		},
 		YAxis: chart.YAxis{
 			Style: chart.Style{
-				StrokeWidth:     1.0,
-				StrokeColor:     drawing.Color{R: 200, G: 200, B: 200, A: 100},
-				StrokeDashArray: chart.Array{5.0, 3.0},
-			},
-			Name: "Сообщения",
-			NameStyle: chart.Style{
-				FontSize:  10,
-				FontColor: drawing.Color{A: 200},
+				StrokeWidth: 1.0,
+				StrokeColor: drawing.ColorFromHex("e0e0e0"),
 			},
 			Range: &chart.ContinuousRange{
 				Min: 0,
@@ -190,16 +176,23 @@ func (s *Service) GetMessageActivityGraph(ctx context.Context, chatID, userID in
 				return ""
 			},
 		},
+		XAxis: chart.Style{
+			StrokeColor: drawing.ColorFromHex("e0e0e0"),
+			FontSize:    10,
+			FontColor:   drawing.ColorFromHex("666666"),
+		},
 	}
 
-	for d := start; !d.After(today); d = d.AddDate(0, 0, 1) {
-		key := d.Format("2006-01-02")
-		graph.Bars = append(graph.Bars, chart.Value{
-			Value: float64(activityMap[key]),
-			Label: d.Format("02.01"),
-		})
+	primaryColor := drawing.ColorFromHex("3399FF")
+	for i := range graph.Bars {
+		graph.Bars[i].Style = chart.Style{
+			FillColor:   primaryColor,
+			StrokeColor: primaryColor,
+			StrokeWidth: 1,
+		}
 	}
 
+	buf := bytes.NewBuffer(nil)
 	if err := graph.Render(chart.PNG, buf); err != nil {
 		return nil, err
 	}
