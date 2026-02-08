@@ -90,7 +90,6 @@ func (s *Service) GetMessageActivityGraph(ctx context.Context, chatID, userID in
 	start := activity[0].Date.Truncate(24 * time.Hour)
 	today := time.Now().Truncate(24 * time.Hour)
 
-	// Limit user activity graph to last 30 days as well for consistency
 	if today.Sub(start).Hours()/24 > 30 {
 		start = today.AddDate(0, 0, -29)
 	}
@@ -111,15 +110,19 @@ func (s *Service) renderBarChart(title string, values []chart.Value, maximum flo
 	width := 1024
 	height := 512
 
+	paddingLeft := 40
+	paddingRight := 20
+	usableWidth := float64(width - paddingLeft - paddingRight)
 	count := len(values)
 	barWidth := 20.0
 	if count > 0 {
-		barWidth = float64(width) * 0.8 / float64(count)
+		barWidth = usableWidth / (1.3*float64(count) - 0.3)
+
 		if barWidth > 80 {
 			barWidth = 80
 		}
-		if barWidth < 5 {
-			barWidth = 5
+		if barWidth < 2 {
+			barWidth = 2
 		}
 	}
 
@@ -153,7 +156,7 @@ func (s *Service) renderBarChart(title string, values []chart.Value, maximum flo
 		Bars:       values,
 		Background: chart.Style{
 			Padding: chart.Box{
-				Top: 40, Bottom: 20, Left: 20, Right: 20,
+				Top: 40, Bottom: 20, Left: paddingLeft, Right: paddingRight,
 			},
 		},
 		Canvas: chart.Style{
