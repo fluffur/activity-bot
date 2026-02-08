@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -32,37 +33,31 @@ func PluralizeDays(n int) string {
 		return "дней"
 	}
 }
+
 func FormatLastSeen(t time.Time) string {
 	d := time.Since(t)
 
-	switch {
-	case d < time.Minute:
+	if d < time.Minute {
 		return "только что"
-
-	case d < time.Hour:
-		minValue := int(d.Minutes())
-		return fmt.Sprintf(
-			"%d %s назад",
-			minValue,
-			pluralRu(minValue, "минута", "минуты", "минут"),
-		)
-
-	case d < 24*time.Hour:
-		h := int(d.Hours())
-		return fmt.Sprintf(
-			"%d %s назад",
-			h,
-			pluralRu(h, "час", "часа", "часов"),
-		)
-
-	default:
-		days := int(d.Hours() / 24)
-		return fmt.Sprintf(
-			"%d %s назад",
-			days,
-			pluralRu(days, "день", "дня", "дней"),
-		)
 	}
+
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	minutes := int(d.Minutes()) % 60
+
+	var parts []string
+
+	if days > 0 {
+		parts = append(parts, fmt.Sprintf("%d %s", days, pluralRu(days, "день", "дня", "дней")))
+	}
+	if hours > 0 {
+		parts = append(parts, fmt.Sprintf("%d %s", hours, pluralRu(hours, "час", "часа", "часов")))
+	}
+	if days == 0 && hours == 0 && minutes > 0 {
+		parts = append(parts, fmt.Sprintf("%d %s", minutes, pluralRu(minutes, "минута", "минуты", "минут")))
+	}
+
+	return strings.Join(parts, " ")
 }
 
 func pluralRu(n int, one, few, many string) string {
