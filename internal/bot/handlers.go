@@ -228,9 +228,11 @@ func (a *App) RegisterHandlers() {
 		WithGuards(developerGuard).SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.AddDeveloper, "дев", "adddev").
-		WithGuards(ownerGuard).SetArgsCount(1).AddAliases("+"),
+		WithGuards(ownerGuard).SetArgsCount(1).
+		AddTriggers("+"),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.RemoveDeveloper, "-дев", "remdev").AddAliases("").
+	a.Dispatcher.AddHandler(cf.New(adminHandler.RemoveDeveloper, "-дев", "remdev").
+		AddTriggers("").
 		WithGuards(ownerGuard).SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ListDevelopers, "девс", "devs").
