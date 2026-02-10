@@ -9,6 +9,7 @@ import (
 	"activity-bot/internal/rest"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/user"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -46,14 +47,19 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	var from, to *time.Time
 	switch period {
-	case "неделя":
+	case "неделя", "":
 		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now(), c.WeekStartDay)
 	case "месяц":
 		from, to = stats.ResolvePeriod(stats.PeriodMonth, time.Now(), c.WeekStartDay)
 	case "всё", "все", "всего", "вся":
 		from, to = nil, nil
 	default:
-		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now(), c.WeekStartDay)
+		dp := helpers.NewDateParser()
+		if f, t, ok := dp.ParseRange(ctx.Args()); ok {
+			from, to = f, t
+		} else {
+			return errors.New("invalid date range")
+		}
 	}
 
 	report, err := h.service.GetAllMembersStats(ctx.StdContext(), ctx.EffectiveChat.Id, from, to)
@@ -105,7 +111,12 @@ func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error 
 	case "всё", "все", "всего":
 		from, to = nil, nil
 	default:
-		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now(), c.WeekStartDay)
+		dp := helpers.NewDateParser()
+		if f, t, ok := dp.ParseRange(ctx.Args()); ok {
+			from, to = f, t
+		} else {
+			from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now(), c.WeekStartDay)
+		}
 	}
 
 	buf, err := h.service.GetChatActivityGraph(ctx.StdContext(), ctx.EffectiveChat.Id, from, to)
