@@ -22,9 +22,9 @@ FROM chat_members cm
                    ON m.chat_id = cm.chat_id
                        AND m.user_id = cm.user_id
                        AND (
-                          @from_date::timestamptz IS NULL
-                              OR (m.created_at >= @from_date AND m.created_at < @to_date)
-                          )
+                          (m.created_at >= @from_date OR @from_date::timestamptz IS NULL)
+                          AND (m.created_at < @to_date OR @to_date::timestamptz IS NULL)
+                       )
 WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())

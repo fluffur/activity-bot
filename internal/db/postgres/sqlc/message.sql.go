@@ -204,9 +204,9 @@ FROM chat_members cm
                    ON m.chat_id = cm.chat_id
                        AND m.user_id = cm.user_id
                        AND (
-                          $1::timestamptz IS NULL
-                              OR (m.created_at >= $1 AND m.created_at < $2)
-                          )
+                          (m.created_at >= $1 OR $1::timestamptz IS NULL)
+                          AND (m.created_at < $2 OR $2::timestamptz IS NULL)
+                       )
 WHERE cm.chat_id = $3
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())

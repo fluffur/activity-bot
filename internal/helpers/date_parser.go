@@ -63,12 +63,17 @@ func (p *DateParser) ParseRange(args []string) (*time.Time, *time.Time, bool) {
 	}
 
 	fullStr := strings.TrimSpace(strings.ToLower(strings.Join(args, " ")))
+	if fullStr == "" {
+		return nil, nil, false
+	}
+	// Split by space to get individual words for keyword matching
+	args = strings.Fields(fullStr)
 
 	if len(args) == 1 {
 		if days, err := strconv.Atoi(args[0]); err == nil && days > 0 {
 			from := p.startOfDay(p.now()).AddDate(0, 0, -days)
-			to := p.startOfDay(p.now())
-			return &from, &to, true
+			// For "last N days", we want to include everything until now
+			return &from, nil, true
 		}
 	}
 
@@ -82,14 +87,25 @@ func (p *DateParser) ParseRange(args []string) (*time.Time, *time.Time, bool) {
 			d2, err2 := strconv.Atoi(p2)
 			if err1 == nil && err2 == nil && d1 >= 1 && d1 <= 31 && d2 >= 1 && d2 <= 31 {
 				now := p.now()
-				from := time.Date(now.Year(), now.Month(), d1, 0, 0, 0, 0, now.Location())
-				to := time.Date(now.Year(), now.Month(), d2, 0, 0, 0, 0, now.Location()).AddDate(0, 0, 1).Add(-time.Second)
+				// Start from smaller day to larger day
+				startDay := d1
+				endDay := d2
+				if d1 > d2 {
+					startDay = d2
+					endDay = d1
+				}
+				from := time.Date(now.Year(), now.Month(), startDay, 0, 0, 0, 0, now.Location())
+				to := time.Date(now.Year(), now.Month(), endDay, 0, 0, 0, 0, now.Location()).AddDate(0, 0, 1).Add(-time.Second)
 				return &from, &to, true
 			}
 
 			from, ok1 := p.Parse(p1)
 			to, ok2 := p.Parse(p2)
 			if ok1 && ok2 {
+				// Ensure chronological order if both are dates
+				if from.After(to) {
+					from, to = to, from
+				}
 				to = to.AddDate(0, 0, 1).Add(-time.Second)
 				return &from, &to, true
 			}
@@ -97,44 +113,50 @@ func (p *DateParser) ParseRange(args []string) (*time.Time, *time.Time, bool) {
 	}
 
 	var from, to *time.Time
-	var currentFrom, currentTo []string
-	mode := 0
 
-	for _, arg := range args {
+	fromIdx := -1
+	toIdx := -1
+	for i, arg := range args {
 		arg = strings.ToLower(arg)
-		processed := false
-		if arg == "от" || arg == "с" {
-			mode = 1
-			processed = true
-		} else if arg == "до" || arg == "по" {
-			mode = 2
-			processed = true
-		}
-
-		if processed {
-			continue
-		}
-
-		if mode == 1 {
-			currentFrom = append(currentFrom, arg)
-		} else if mode == 2 {
-			currentTo = append(currentTo, arg)
-		} else {
-			currentFrom = append(currentFrom, arg)
+		if (arg == "от" || arg == "с") && fromIdx == -1 {
+			fromIdx = i
+		} else if (arg == "до" || arg == "по") && toIdx == -1 {
+			toIdx = i
 		}
 	}
 
-	if len(currentFrom) > 0 {
-		t, ok := p.Parse(strings.Join(currentFrom, " "))
-		if ok {
+	// Case 1: Both "от" and "до" are present
+	if fromIdx != -1 && toIdx != -1 {
+		var fromPart, toPart string
+		if fromIdx < toIdx {
+			fromPart = strings.Join(args[fromIdx+1:toIdx], " ")
+			toPart = strings.Join(args[toIdx+1:], " ")
+		} else {
+			toPart = strings.Join(args[toIdx+1:fromIdx], " ")
+			fromPart = strings.Join(args[fromIdx+1:], " ")
+		}
+
+		if t, ok := p.Parse(fromPart); ok {
 			from = &t
 		}
-	}
-	if len(currentTo) > 0 {
-		t, ok := p.Parse(strings.Join(currentTo, " "))
-		if ok {
+		if t, ok := p.Parse(toPart); ok {
 			t = t.AddDate(0, 0, 1).Add(-time.Second)
 			to = &t
+		}
+	} else if fromIdx != -1 { // Case 2: Only "от" is present
+		fromPart := strings.Join(args[fromIdx+1:], " ")
+		if t, ok := p.Parse(fromPart); ok {
+			from = &t
+		}
+	} else if toIdx != -1 { // Case 3: Only "до" is present
+		toPart := strings.Join(args[toIdx+1:], " ")
+		if t, ok := p.Parse(toPart); ok {
+			t = t.AddDate(0, 0, 1).Add(-time.Second)
+			to = &t
+		}
+	} else { // Case 4: No keywords at all
+		if t, ok := p.Parse(fullStr); ok {
+			from = &t
 		}
 	}
 

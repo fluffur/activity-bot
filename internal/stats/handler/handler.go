@@ -55,7 +55,9 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		from, to = nil, nil
 	default:
 		dp := helpers.NewDateParser()
-		if f, t, ok := dp.ParseRange(ctx.Args()); ok {
+		f, t, ok := dp.ParseRange(ctx.Args())
+		slog.Info("stats range parse", "args", ctx.Args(), "from", f, "to", t, "ok", ok)
+		if ok {
 			from, to = f, t
 		} else {
 			return errors.New("invalid date range")
