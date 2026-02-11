@@ -9,7 +9,6 @@ import (
 	"activity-bot/internal/rest"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/user"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -60,7 +59,8 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		if ok {
 			from, to = f, t
 		} else {
-			return errors.New("invalid date range")
+			_, err = ctx.EffectiveMessage.Reply(b, "❌ <b>Неверный формат даты или диапазона.</b>\n\nИспользуйте: <code>01.02-10.02</code>, <code>10</code> (за последние 10 дней), <code>от вчера до сегодня</code> и т.д.", &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+			return err
 		}
 	}
 
@@ -75,7 +75,8 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if len(report) == 0 && len(restMembers) == 0 {
-		return nil
+		_, err = ctx.EffectiveMessage.Reply(b, "📭 <b>За выбранный период активности не найдено.</b>", &gotgbot.SendMessageOpts{ParseMode: "HTML"})
+		return err
 	}
 
 	text := formatReport(report, restMembers, from, to)
@@ -358,7 +359,7 @@ func writeNumberedList(sb *strings.Builder, items []string) {
 }
 func writePassedList(sb *strings.Builder, items []string) {
 	for i, item := range items {
-		prefix := fmt.Sprintf("%d", i+1)
+		prefix := fmt.Sprintf("%d.", i+1)
 
 		switch i {
 		case 0:
