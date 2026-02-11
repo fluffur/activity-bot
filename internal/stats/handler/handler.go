@@ -5,13 +5,12 @@ import (
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
-	"activity-bot/internal/model"
 	"activity-bot/internal/rest"
 	"activity-bot/internal/stats"
+	"activity-bot/internal/stats/view"
 	"activity-bot/internal/user"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -79,7 +78,7 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	text := formatReport(report, restMembers, from, to)
+	text := view.FormatReport(report, restMembers, from, to)
 
 	_, err = ctx.EffectiveMessage.Reply(
 		b,
@@ -186,48 +185,7 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *cmd.Context, userID int64) err
 		slog.Warn("Failed to get graph", "error", err)
 	}
 
-	customTitle := "—"
-	if m.CustomTitle != nil && *m.CustomTitle != "" {
-		customTitle = *m.CustomTitle
-	}
-
-	extraText := ""
-	if m.RestUntil != nil {
-		extraText = fmt.Sprintf("💤 Рест до %s", helpers.FormatToHumanDate(*m.RestUntil))
-	} else {
-		if m.WeeklyNorm <= m.WeekCount {
-			extraText = "<b>✅ Норма</b>"
-		} else {
-			extraText = "<b>❌ Норма</b>"
-		}
-		extraText += fmt.Sprintf(": %d/%d за эту неделю", m.WeekCount, m.WeeklyNorm)
-	}
-
-	text := fmt.Sprintf(
-		`<b>📊 Информация о %s</b>
-
-🌟 Статус: <b>%s</b> | Присоединился: <b>%s</b>
-
-<b>📅 Активность</b>: сегодня <b>%d</b> | неделя <b>%d</b> | месяц <b>%d</b>
-
-<b>🔄 Активность в последние</b>: 24ч <b>%d</b> | 7д <b>%d</b> | 30д <b>%d</b>
-
-📝 <b>Всего сообщений:</b> %d
-
-%s
-`,
-		helpers.LinkWithContent(m.User, fmt.Sprintf("%s (%s)", m.User.FirstName, customTitle)),
-		helpers.TranslateMemberStatus(m.Status),
-		helpers.FormatToHumanDate(m.JoinedAt),
-		m.DayCount,
-		m.WeekCount,
-		m.MonthCount,
-		m.DayRollingCount,
-		m.WeekRollingCount,
-		m.MonthRollingCount,
-		m.AllTime,
-		extraText,
-	)
+	text := view.FormatProfile(m)
 
 	if buf == nil {
 		_, err = b.SendMessage(ctx.EffectiveChat.Id, text, &gotgbot.SendMessageOpts{
@@ -241,135 +199,6 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *cmd.Context, userID int64) err
 		ParseMode: "HTML",
 	})
 	return err
-}
-
-func formatReport(report []model.MessageReportMember, restMembers []model.RestMember, from, to *time.Time) string {
-	var periodHeader string
-	now := time.Now()
-
-	if from != nil && to != nil {
-		periodHeader = fmt.Sprintf("📊 Отчёт за период: %s — %s",
-			helpers.FormatToHumanDate(*from),
-			helpers.FormatToHumanDate(*to),
-		)
-	} else if from != nil {
-		periodHeader = fmt.Sprintf("📊 Отчёт с %s", helpers.FormatToHumanDate(*from))
-	} else if to != nil {
-		periodHeader = fmt.Sprintf("📊 Отчёт до %s", helpers.FormatToHumanDate(*to))
-	} else {
-		periodHeader = fmt.Sprintf("📊 Отчёт за всё время")
-	}
-
-	var passed, failed, newbies, inRest []string
-
-	for _, r := range report {
-		line := fmt.Sprintf("%s — %d сообщений",
-			helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)),
-			r.MessagesCount,
-		)
-
-		isNewbie := false
-		if r.NewbieThresholdDays > 0 {
-			newbieUntil := r.JoinedAt.AddDate(0, 0, int(r.NewbieThresholdDays))
-			if newbieUntil.After(now) {
-				isNewbie = true
-			}
-		}
-
-		if isNewbie && r.NormDone {
-			line = fmt.Sprintf("%s 🐣 — %d сообщений",
-				helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)),
-				r.MessagesCount,
-			)
-			passed = append(passed, line)
-			continue
-		}
-
-		if isNewbie {
-			newbies = append(newbies, line)
-			continue
-		}
-
-		if r.NormDone {
-			passed = append(passed, line)
-		} else {
-			failed = append(failed, line)
-		}
-	}
-
-	for _, r := range restMembers {
-		var untilText string
-		if !r.RestUntil.IsZero() {
-			untilText = helpers.FormatToHumanDate(r.RestUntil)
-		} else {
-			untilText = "неизвестно"
-		}
-		line := fmt.Sprintf("%s до %s",
-			helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)),
-			untilText,
-		)
-		inRest = append(inRest, line)
-	}
-
-	var totalMessages int32
-	for _, r := range report {
-		totalMessages += r.MessagesCount
-	}
-
-	var sb strings.Builder
-	sb.WriteString(periodHeader + "\n\n")
-
-	sb.WriteString("🌟 Прошли норму\n")
-	if len(passed) > 0 {
-		writePassedList(&sb, passed)
-	} else {
-		sb.WriteString("—\n")
-	}
-
-	sb.WriteString("\n❌ Не прошли норму️ \n")
-	if len(failed) > 0 {
-		writeNumberedList(&sb, failed)
-	} else {
-		sb.WriteString("—\n")
-	}
-
-	sb.WriteString("\n🐣 Новички\n")
-	if len(newbies) > 0 {
-		writeNumberedList(&sb, newbies)
-	} else {
-		sb.WriteString("—\n")
-	}
-
-	sb.WriteString("\n💤 Рест\n")
-	if len(inRest) > 0 {
-		writeNumberedList(&sb, inRest)
-	} else {
-		sb.WriteString("—\n")
-	}
-
-	sb.WriteString(fmt.Sprintf("\n📝 Всего сообщений: %d\n", totalMessages))
-
-	return sb.String()
-}
-
-func writeNumberedList(sb *strings.Builder, items []string) {
-	for i, item := range items {
-		sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, item))
-	}
-}
-func writePassedList(sb *strings.Builder, items []string) {
-	for i, item := range items {
-		prefix := fmt.Sprintf("%d.", i+1)
-
-		switch i {
-		case 0:
-			prefix = "🔥"
-		case 1, 2:
-			prefix = "⚡"
-		}
-
-		sb.WriteString(fmt.Sprintf("%s %s\n", prefix, item))
-	}
 }
 
 func (h *Handler) Inactive(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -386,36 +215,11 @@ func (h *Handler) Inactive(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	var sb strings.Builder
-	sb.WriteString("<b>😴 Неактивные участники (более 1 суток)</b>\n\n")
-
-	for i, m := range members {
-		sb.WriteString(fmt.Sprintf(
-			"%d. %s (%s)",
-			i+1,
-			helpers.LinkWithContent(
-				m.Member.User,
-				fmt.Sprintf("%s", m.Member.User.FirstName),
-			),
-			m.Member.CustomTitle,
-		))
-
-		if m.LastActivity != nil {
-			sb.WriteString(fmt.Sprintf(
-				" — %s (%s)",
-				helpers.FormatToHumanDate(*m.LastActivity),
-				helpers.FormatLastSeen(*m.LastActivity),
-			))
-		} else {
-			sb.WriteString(" — не писал ни разу")
-		}
-
-		sb.WriteString("\n")
-	}
+	text := view.FormatInactiveMembers(members)
 
 	_, err = ctx.EffectiveMessage.Reply(
 		b,
-		sb.String(),
+		text,
 		&gotgbot.SendMessageOpts{
 			ParseMode: gotgbot.ParseModeHTML,
 			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
