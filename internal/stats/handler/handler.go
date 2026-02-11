@@ -358,7 +358,7 @@ func writeNumberedList(sb *strings.Builder, items []string) {
 }
 func writePassedList(sb *strings.Builder, items []string) {
 	for i, item := range items {
-		prefix := "•"
+		prefix := fmt.Sprintf("%d", i+1)
 
 		switch i {
 		case 0:
