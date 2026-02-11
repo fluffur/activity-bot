@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"activity-bot/internal/rest"
+	"activity-bot/internal/rest/view"
 	"activity-bot/internal/user"
 	"context"
 	"errors"
@@ -39,21 +40,15 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 	firstArgument := ctx.FirstArgument()
 
 	if firstArgument == "" {
-		_, err := ctx.EffectiveMessage.Reply(b, "Вы забыли указать срок реста, попробуйте написать +рест 2 недели в ответ пользователю", nil)
-
-		return err
+		return ctx.Reply(b, "Вы забыли указать срок реста, попробуйте написать +рест 2 недели в ответ пользователю", nil)
 	}
 
 	date, ok := h.dateParser.Parse(firstArgument)
 	if !ok {
-		_, err := ctx.EffectiveMessage.Reply(b, "Не понял формат. Примеры:\n+рест 12.01\n+рест 2 недели\n+рест месяц", nil)
-
-		return err
+		return ctx.Reply(b, "Не понял формат. Примеры:\n+рест 12.01\n+рест 2 недели\n+рест месяц", nil)
 	}
 	if date.Before(time.Now()) {
-		_, err := ctx.EffectiveMessage.Reply(b, "Нельзя указывать прошедшую дату", nil)
-
-		return err
+		return ctx.Reply(b, "Нельзя указывать прошедшую дату", nil)
 	}
 
 	if !h.adminService.CheckIsAdmin(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
@@ -61,21 +56,13 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if err := h.service.SetMemberRest(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, date); err != nil {
-		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось создать рест", nil)
+		_ = ctx.Reply(b, "Не удалось создать рест", nil)
 		return err
 	}
 
-	var text string
-	if targetUser.ID == ctx.EffectiveUser.Id {
-		text = fmt.Sprintf("Вы добавлены в рест до %s", helpers.FormatToHumanDate(date))
-	} else {
-		text = fmt.Sprintf("Пользователь %s добавлен в рест до %s", helpers.Link(*targetUser), helpers.FormatToHumanDate(date))
-	}
-
-	_, err := ctx.EffectiveMessage.Reply(b, text, &gotgbot.SendMessageOpts{
-		ParseMode: gotgbot.ParseModeHTML,
-	})
-	return err
+	isSelf := targetUser.ID == ctx.EffectiveUser.Id
+	text := view.FormatRestSet(*targetUser, date, isSelf)
+	return ctx.ReplyHTML(b, text)
 }
 
 func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *model.User, date time.Time) error {
@@ -89,11 +76,7 @@ func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *mo
 		},
 	}
 
-	msg, err := b.SendMessage(ctx.EffectiveChat.Id, fmt.Sprintf(
-		"Для пользователя %s запрошен рест до %s",
-		helpers.Link(*targetUser),
-		helpers.FormatToHumanDate(date),
-	), &gotgbot.SendMessageOpts{
+	msg, err := b.SendMessage(ctx.EffectiveChat.Id, view.FormatRestRequest(*targetUser, date), &gotgbot.SendMessageOpts{
 		ParseMode:   gotgbot.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
@@ -103,7 +86,7 @@ func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *mo
 
 	slog.Info("rest requested", "message_id", msg.MessageId)
 	if err := h.service.CreateRestRequest(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, msg.MessageId, date); err != nil {
-		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось создать заявку", nil)
+		_ = ctx.Reply(b, "Не удалось создать заявку", nil)
 
 		return err
 	}
@@ -119,25 +102,11 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	e, err := h.service.GetMemberRest(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID)
-	if err != nil || e == nil {
-		_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s не находится в ресте", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
-			ParseMode: gotgbot.ParseModeHTML,
-			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-				IsDisabled: true,
-			},
-		})
-
+	if err != nil {
 		return err
 	}
 
-	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s находится в ресте до %s", helpers.Link(*targetUser), helpers.FormatToHumanDate(*e)), &gotgbot.SendMessageOpts{
-		ParseMode: gotgbot.ParseModeHTML,
-		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-			IsDisabled: true,
-		},
-	})
-
-	return err
+	return ctx.ReplyHTML(b, view.FormatRestShow(*targetUser, e))
 
 }
 
@@ -149,47 +118,25 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if targetUser.ID != ctx.EffectiveUser.Id && !h.adminService.CheckIsAdmin(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
-		_, err := ctx.EffectiveMessage.Reply(b, "Вы можете удалить из реста только себя", nil)
-		return err
+		return ctx.Reply(b, "Вы можете удалить из реста только себя", nil)
 	}
 
 	e, err := h.service.GetMemberRest(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID)
 	if err != nil {
-		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось проверить рест пользователя", nil)
-		return err
+		return ctx.Reply(b, "Не удалось проверить рест пользователя", nil)
 	}
 	if e == nil {
-		if targetUser.ID == ctx.EffectiveUser.Id {
-			_, err := ctx.EffectiveMessage.Reply(b, "Вы не находитесь в ресте", nil)
-			return err
-		}
-
-		_, err := ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s не находится в ресте", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
-			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-				IsDisabled: true,
-			},
-			ParseMode: gotgbot.ParseModeHTML,
-		})
-		return err
+		isSelf := targetUser.ID == ctx.EffectiveUser.Id
+		return ctx.ReplyHTML(b, view.FormatRestNotInRest(*targetUser, isSelf))
 	}
 
 	if err := h.service.EndMemberRest(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID); err != nil {
-		_, err := ctx.EffectiveMessage.Reply(b, "Не удалось удалить пользователя из реста", nil)
+		_ = ctx.Reply(b, "Не удалось удалить пользователя из реста", nil)
 		return err
 	}
 
-	if targetUser.ID == ctx.EffectiveUser.Id {
-		_, err := ctx.EffectiveMessage.Reply(b, "Вы успешно удалены из реста", nil)
-		return err
-	}
-
-	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Пользователь %s успешно удалён из реста", helpers.Link(*targetUser)), &gotgbot.SendMessageOpts{
-		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-			IsDisabled: true,
-		},
-		ParseMode: gotgbot.ParseModeHTML,
-	})
-	return err
+	isSelf := targetUser.ID == ctx.EffectiveUser.Id
+	return ctx.ReplyHTML(b, view.FormatRestEnded(*targetUser, isSelf))
 }
 
 func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -227,15 +174,11 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	_, _, err = b.EditMessageText(fmt.Sprintf(`Запрос одобрен. У %s рест до %s`,
-		helpers.Link(u),
-		helpers.FormatToHumanDate(restRequest.RestUntil),
-	), &gotgbot.EditMessageTextOpts{
+	_, _, err = b.EditMessageText(view.FormatRestRequestApproved(u, restRequest.RestUntil), &gotgbot.EditMessageTextOpts{
 		ChatId:    ctx.EffectiveChat.Id,
 		MessageId: ctx.EffectiveMessage.MessageId,
 		ParseMode: gotgbot.ParseModeHTML,
 	})
-
 	return err
 }
 
@@ -268,25 +211,23 @@ func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 
 	u, err := h.userService.GetUser(cctx, fromID)
 	if err != nil {
-		_, _, err = b.EditMessageText("Запрос на рест отклонён",
+		_, _, err = b.EditMessageText(view.FormatRestRequestRejected(nil),
 			&gotgbot.EditMessageTextOpts{
 				ChatId:    ctx.EffectiveChat.Id,
 				MessageId: ctx.EffectiveMessage.MessageId,
 				ParseMode: gotgbot.ParseModeHTML,
 			},
 		)
-
 		return err
 	}
 
-	_, _, err = b.EditMessageText(fmt.Sprintf("Запрос на рест для %s отклонён", helpers.Link(u)),
+	_, _, err = b.EditMessageText(view.FormatRestRequestRejected(&u),
 		&gotgbot.EditMessageTextOpts{
 			ChatId:    ctx.EffectiveChat.Id,
 			MessageId: ctx.EffectiveMessage.MessageId,
 			ParseMode: gotgbot.ParseModeHTML,
 		},
 	)
-
 	return err
 }
 

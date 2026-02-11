@@ -63,17 +63,18 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 	resp, err := h.deepseekClient.CreateChatCompletion(ctx.StdContext(), request)
 	if err != nil {
-		_, _ = ctx.EffectiveMessage.Reply(b, "Не удалось получить ответ от бота", nil)
+		_ = ctx.Reply(b, "Не удалось получить ответ от бота", nil)
 		return err
 	}
 
 	if len(resp.Choices) == 0 {
-		_, _ = ctx.EffectiveMessage.Reply(b, "Бот не вернул ответ", nil)
+		_ = ctx.Reply(b, "Бот не вернул ответ", nil)
 		return nil
 	}
 
-	_, err = ctx.EffectiveMessage.Reply(b, resp.Choices[0].Message.Content, nil)
-	return err
+	return ctx.Reply(b, resp.Choices[0].Message.Content, &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeMarkdown,
+	})
 }
 
 func (h *Handler) Message(b *gotgbot.Bot, ctx *ext.Context) error {

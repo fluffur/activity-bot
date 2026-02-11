@@ -11,10 +11,10 @@ import (
 )
 
 type MessageRepository struct {
-	queries db.Querier
+	queries *db.Queries
 }
 
-func NewMessageRepository(queries db.Querier) message.Repository {
+func NewMessageRepository(queries *db.Queries) message.Repository {
 	return &MessageRepository{queries}
 }
 

@@ -81,17 +81,15 @@ func TestService_UpdateChatMembers(t *testing.T) {
 			},
 			wantErr: false,
 			verifyFunc: func(t *testing.T, memberRepo *mockMemberRepository, chatRepo *mockChatRepository, userRepo *mockUserRepository) {
-				// Verify chat was ensured
+
 				if chatRepo.chats[1] == nil {
 					t.Error("Chat was not ensured")
 				}
 
-				// Verify users were upserted
 				if userRepo.users[100] == nil || userRepo.users[200] == nil {
 					t.Error("Users were not upserted")
 				}
 
-				// Verify members were upserted
 				if memberRepo.members[1] == nil {
 					t.Error("Members were not upserted")
 				}
@@ -182,7 +180,6 @@ func TestService_ProcessLeftMember(t *testing.T) {
 				t.Errorf("ProcessLeftMember() title = %v, want %v", title, tt.wantTitle)
 			}
 
-			// Verify member was removed
 			if !tt.wantErr {
 				_, err := repo.Get(context.Background(), tt.chatID, tt.userID)
 				if err != ErrMemberNotFound {
@@ -211,7 +208,7 @@ func TestService_SyncChatMembers(t *testing.T) {
 					{User: model.User{ID: 200}, Status: "administrator"},
 					{User: model.User{ID: 300}, Status: "member"},
 				})
-				// Add an old member that should be marked as left
+
 				repo.members[1] = map[int64]*model.ChatMember{
 					999: {ChatID: 1, User: model.User{ID: 999}, Status: "member"},
 				}
@@ -219,12 +216,11 @@ func TestService_SyncChatMembers(t *testing.T) {
 			wantCount: 3,
 			wantErr:   false,
 			verifyFunc: func(t *testing.T, repo *mockMemberRepository) {
-				// Verify new members were added
-				if len(repo.members[1]) != 4 { // 3 new + 1 old
+
+				if len(repo.members[1]) != 4 {
 					t.Errorf("Expected 4 members, got %d", len(repo.members[1]))
 				}
 
-				// Verify old member was marked as left
 				if !repo.leftMembers[1][999] {
 					t.Error("Old member was not marked as left")
 				}

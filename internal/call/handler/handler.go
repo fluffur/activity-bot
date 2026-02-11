@@ -2,9 +2,9 @@ package handler
 
 import (
 	"activity-bot/internal/call"
+	"activity-bot/internal/call/view"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
-	"fmt"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 )
@@ -28,9 +28,7 @@ func (h *Handler) SetWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error 
 		return err
 	}
 
-	_, err := ctx.EffectiveMessage.Reply(b, "Новое сообщение для call установлено", nil)
-
-	return err
+	return ctx.Reply(b, view.FormatWelcomeCallMessageSet(), nil)
 }
 
 func (h *Handler) EnableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -38,9 +36,7 @@ func (h *Handler) EnableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	_, err := ctx.EffectiveMessage.Reply(b, "Теперь при инвайте новых участников будет вызываться call", nil)
-
-	return err
+	return ctx.Reply(b, view.FormatCallOnJoinEnabled(), nil)
 }
 
 func (h *Handler) DisableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -48,9 +44,7 @@ func (h *Handler) DisableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	_, err := ctx.EffectiveMessage.Reply(b, "Теперь при инвайте новых участников не будет вызываться call", nil)
-
-	return err
+	return ctx.Reply(b, view.FormatCallOnJoinDisabled(), nil)
 }
 
 func (h *Handler) ShowWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -58,13 +52,5 @@ func (h *Handler) ShowWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error
 	if err != nil {
 		return err
 	}
-	if c.WelcomeCallMessage == "" {
-		_, err = ctx.EffectiveMessage.Reply(b, "Сообщение ещё не указано", nil)
-
-		return err
-	}
-
-	_, err = ctx.EffectiveMessage.Reply(b, fmt.Sprintf("Сообщение: %s", c.WelcomeCallMessage), nil)
-
-	return err
+	return ctx.Reply(b, view.FormatWelcomeCallMessage(c.WelcomeCallMessage), nil)
 }

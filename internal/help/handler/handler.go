@@ -2,8 +2,7 @@ package handler
 
 import (
 	"activity-bot/internal/cmd"
-	"activity-bot/internal/helpers"
-	"fmt"
+	"activity-bot/internal/help/view"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 )
@@ -17,63 +16,9 @@ func New(ownerID int64) *Handler {
 }
 
 func (h *Handler) Start(b *gotgbot.Bot, ctx *cmd.Context) error {
-	_, err := ctx.EffectiveMessage.Reply(b, "Привет! Я могу следить за еженедельной нормой сообщений в группе. Добавь меня в группу или введи команду /help.", nil)
-
-	return err
+	return ctx.Reply(b, view.FormatStartMessage(), nil)
 }
 
 func (h *Handler) Help(b *gotgbot.Bot, ctx *cmd.Context) error {
-	helpText := fmt.Sprintf(`
-📌 <b>Команды бота</b>
-
-📊 <b>Активность</b>
-<code>!я</code> — информация о себе
-<code>!ты</code> <code>@участник</code> — информация о пользователе
-<code>отчёт</code> — недельный отчёт по активности
-<code>неактив</code> — показать неактивных участников
-
-🛌 <b>Рест</b>
-<code>рест</code> — показать текущий рест
-<code>рест</code> <i>период</i> — установить рест (например: неделя, 2 недели, месяц)
-<code>-рест</code> — досрочно завершить рест
-
-🎭 <b>Роли</b>
-<code>роль</code> — показать свою роль
-<code>роль</code> <code>@участник</code> — показать роль пользователя
-<code>+роль</code> <code>@участник</code> <i>название</i> — установить роль (только админы)
-<code>-роль</code> <code>@участник</code> — удалить роль
-<code>роли</code> — список всех ролей в чате
-
-👮 <b>Администрирование</b>
-<code>админы</code> — список администраторов бота
-<code>админ</code> — проверить статус администратора
-<code>+адм</code> <code>@участник</code> — добавить администратора
-<code>-адм</code> <code>@участник</code> — удалить администратора (только создатель)
-<code>обновить чат</code> — синхронизировать участников и роли
-
-📞 <b>Вызовы и уведомления</b>
-<code>калл</code> <i>текст</i> — вызвать участников (только админы)
-<code>калл сообщение</code> — показать текущее сообщение для вызова
-<code>калл сообщение</code> <i>текст</i> — установить сообщение для вызова (только админы)
-<code>включить калл</code> — включить вызовы при присоединении новичка
-<code>отключить калл</code> — отключить вызовы при присоединении новичка
-
-📌 <b>Норма и порог новичка</b>
-<code>норма</code> — показать текущую норму сообщений
-<code>!норма</code> <i>число</i> — установить норму (только админы)
-<code>новички</code> — показать порог новичка
-<code>!новички</code> <i>число</i> — установить порог новичка (только админы)
-
-💡 <b>Промпт</b>
-<code>промпт</code> — показать текущий промпт
-<code>+промпт</code> <i>текст</i> — установить промпт (только админы)
-
-📬 По вопросам и багам — %s
-`, helpers.Mention(h.ownerID, "напишите разработчику"))
-
-	_, err := ctx.EffectiveMessage.Reply(b, helpText, &gotgbot.SendMessageOpts{
-		ParseMode: gotgbot.ParseModeHTML,
-	})
-
-	return err
+	return ctx.ReplyHTML(b, view.FormatHelpText(h.ownerID))
 }

@@ -66,13 +66,13 @@ func (p *DateParser) ParseRange(args []string) (*time.Time, *time.Time, bool) {
 	if fullStr == "" {
 		return nil, nil, false
 	}
-	// Split by space to get individual words for keyword matching
+
 	args = strings.Fields(fullStr)
 
 	if len(args) == 1 {
 		if days, err := strconv.Atoi(args[0]); err == nil && days > 0 {
 			from := p.startOfDay(p.now()).AddDate(0, 0, -days)
-			// For "last N days", we want to include everything until now
+
 			return &from, nil, true
 		}
 	}
@@ -87,7 +87,7 @@ func (p *DateParser) ParseRange(args []string) (*time.Time, *time.Time, bool) {
 			d2, err2 := strconv.Atoi(p2)
 			if err1 == nil && err2 == nil && d1 >= 1 && d1 <= 31 && d2 >= 1 && d2 <= 31 {
 				now := p.now()
-				// Start from smaller day to larger day
+
 				startDay := d1
 				endDay := d2
 				if d1 > d2 {
@@ -102,7 +102,7 @@ func (p *DateParser) ParseRange(args []string) (*time.Time, *time.Time, bool) {
 			from, ok1 := p.Parse(p1)
 			to, ok2 := p.Parse(p2)
 			if ok1 && ok2 {
-				// Ensure chronological order if both are dates
+
 				if from.After(to) {
 					from, to = to, from
 				}
@@ -125,7 +125,6 @@ func (p *DateParser) ParseRange(args []string) (*time.Time, *time.Time, bool) {
 		}
 	}
 
-	// Case 1: Both "от" and "до" are present
 	if fromIdx != -1 && toIdx != -1 {
 		var fromPart, toPart string
 		if fromIdx < toIdx {
@@ -143,18 +142,18 @@ func (p *DateParser) ParseRange(args []string) (*time.Time, *time.Time, bool) {
 			t = t.AddDate(0, 0, 1).Add(-time.Second)
 			to = &t
 		}
-	} else if fromIdx != -1 { // Case 2: Only "от" is present
+	} else if fromIdx != -1 {
 		fromPart := strings.Join(args[fromIdx+1:], " ")
 		if t, ok := p.Parse(fromPart); ok {
 			from = &t
 		}
-	} else if toIdx != -1 { // Case 3: Only "до" is present
+	} else if toIdx != -1 {
 		toPart := strings.Join(args[toIdx+1:], " ")
 		if t, ok := p.Parse(toPart); ok {
 			t = t.AddDate(0, 0, 1).Add(-time.Second)
 			to = &t
 		}
-	} else { // Case 4: No keywords at all
+	} else {
 		if t, ok := p.Parse(fullStr); ok {
 			from = &t
 		}

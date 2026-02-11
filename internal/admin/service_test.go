@@ -20,7 +20,7 @@ func TestService_AddAdmin(t *testing.T) {
 			chatID: 1,
 			userID: 100,
 			setupMocks: func(repo *mockRepository, status *mockChatMemberStatusProvider) {
-				// User is not admin or creator
+
 			},
 			wantErr: false,
 		},
@@ -69,7 +69,7 @@ func TestService_AddAdmin(t *testing.T) {
 			}
 
 			if !tt.wantErr {
-				// Verify user was added
+
 				isAdmin, _ := repo.IsAdmin(context.Background(), tt.chatID, tt.userID)
 				if !isAdmin {
 					t.Error("User was not added as admin")
@@ -102,7 +102,7 @@ func TestService_RemoveAdmin(t *testing.T) {
 			chatID: 1,
 			userID: 100,
 			setupMocks: func(repo *mockRepository) {
-				// User is not admin
+
 			},
 			wantErr:       true,
 			expectedError: ErrUserIsNotAdmin,
@@ -193,7 +193,7 @@ func TestService_IsAdmin(t *testing.T) {
 			chatID: 1,
 			userID: 100,
 			setupMocks: func(repo *mockRepository, status *mockChatMemberStatusProvider) {
-				// No special status
+
 			},
 			want: false,
 		},
@@ -242,7 +242,7 @@ func TestService_Kick(t *testing.T) {
 			modID:  200,
 			reason: "spam",
 			setupMocks: func(repo *mockRepository, status *mockChatMemberStatusProvider) {
-				// Regular user
+
 			},
 			wantErr: false,
 		},
@@ -295,7 +295,7 @@ func TestService_Kick(t *testing.T) {
 			}
 
 			if !tt.wantErr {
-				// Verify kick was called
+
 				if !moderator.kicked[tt.chatID][tt.userID] {
 					t.Error("Moderator.Kick was not called")
 				}
@@ -337,7 +337,7 @@ func TestService_Warn(t *testing.T) {
 			reason: "spam",
 			setupMocks: func(repo *mockRepository) {
 				repo.maxWarns[1] = 3
-				repo.warns[1] = map[int64]int64{100: 2} // Already has 2 warns
+				repo.warns[1] = map[int64]int64{100: 2}
 			},
 			wantCount:  3,
 			wantBanned: true,
@@ -415,7 +415,7 @@ func TestService_Unwarn(t *testing.T) {
 			chatID: 1,
 			userID: 100,
 			setupMocks: func(repo *mockRepository) {
-				// No warns
+
 			},
 			wantCount: 0,
 		},
@@ -457,7 +457,7 @@ func TestService_EnsureInitialDeveloper(t *testing.T) {
 			name:    "add owner as creator when no developers exist",
 			ownerID: 100,
 			setupMocks: func(repo *mockRepository) {
-				// No developers
+
 			},
 			wantRole: DevRoleCreator,
 		},
@@ -467,7 +467,7 @@ func TestService_EnsureInitialDeveloper(t *testing.T) {
 			setupMocks: func(repo *mockRepository) {
 				repo.developers[200] = DevRoleCreator
 			},
-			wantRole: "", // Owner should not be added
+			wantRole: "",
 		},
 	}
 

@@ -169,7 +169,7 @@ func (a *App) startPolling() error {
 		return err
 	}
 	slog.Info("Bot has been started with long polling", "bot_username", a.Bot.User.Username)
-	// Removed Idle() logic from here as it is handled in Run
+
 	return nil
 }
 

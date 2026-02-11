@@ -2,13 +2,13 @@ package handler
 
 import (
 	"activity-bot/internal/admin"
+	"activity-bot/internal/admin/view"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"activity-bot/internal/user"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -57,7 +57,7 @@ func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Пользователь %s назначен администратором бота", helpers.Link(*targetUser)))
+	return ctx.ReplyHTML(b, view.FormatAdminAdded(*targetUser))
 
 }
 
@@ -82,7 +82,7 @@ func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Пользователь %s удалён из администраторов бота", helpers.Link(*targetUser)))
+	return ctx.ReplyHTML(b, view.FormatAdminRemoved(*targetUser))
 }
 
 func (h *Handler) ListAdmins(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -96,12 +96,7 @@ func (h *Handler) ListAdmins(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "Список администраторов пуст", nil)
 	}
 
-	var sb strings.Builder
-	sb.WriteString("👮 Администраторы бота:\n")
-	for i, a := range admins {
-		sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, helpers.Link(a)))
-	}
-	return ctx.ReplyHTML(b, sb.String())
+	return ctx.ReplyHTML(b, view.FormatAdminsList(admins))
 }
 
 func (h *Handler) Kick(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -120,12 +115,7 @@ func (h *Handler) Kick(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	text := fmt.Sprintf("Пользователь %s был кикнут из чата", helpers.Link(*targetUser))
-	if reason != "" {
-		text += fmt.Sprintf("\nПричина: %s", reason)
-	}
-
-	_, err := b.SendMessage(ctx.EffectiveChat.Id, text, &gotgbot.SendMessageOpts{
+	_, err := b.SendMessage(ctx.EffectiveChat.Id, view.FormatModerationAction(*targetUser, "kick", nil, reason), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 	})
 	return err
@@ -154,17 +144,7 @@ func (h *Handler) Ban(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	text := fmt.Sprintf("Пользователь %s забанен", helpers.Link(*targetUser))
-	if until != nil {
-		text += fmt.Sprintf(" до %s", helpers.FormatToHumanDate(*until))
-	} else {
-		text += " навсегда"
-	}
-	if reason != "" {
-		text += fmt.Sprintf("\nПричина: %s", reason)
-	}
-
-	return ctx.ReplyHTML(b, text)
+	return ctx.ReplyHTML(b, view.FormatModerationAction(*targetUser, "ban", until, reason))
 }
 
 func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -188,18 +168,7 @@ func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
 		_ = ctx.Reply(b, "Не удалось замутить пользователя", nil)
 		return err
 	}
-	log.Println(reason)
-	text := fmt.Sprintf("Пользователь %s замучен", helpers.Link(*targetUser))
-	if until != nil {
-		text += fmt.Sprintf(" до %s", helpers.FormatToHumanDate(*until))
-	} else {
-		text += " навсегда"
-	}
-	if reason != "" {
-		text += fmt.Sprintf("\nПричина: %s", reason)
-	}
-
-	return ctx.ReplyHTML(b, text)
+	return ctx.ReplyHTML(b, view.FormatModerationAction(*targetUser, "mute", until, reason))
 }
 
 func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -216,7 +185,7 @@ func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
-	return ctx.ReplyHTML(b, fmt.Sprintf("У пользователя %s %d/%d предупреждений", helpers.Link(*targetUser), count, maxWarns))
+	return ctx.ReplyHTML(b, view.FormatWarnsCount(*targetUser, int(count), maxWarns))
 }
 
 func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -250,16 +219,7 @@ func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	maxWarns, _ := h.service.GetMaxWarns(ctx.StdContext(), ctx.EffectiveChat.Id)
 
-	text := fmt.Sprintf("Пользователю %s выдано предупреждение (%d/%d) до %s", helpers.Link(*targetUser), count, maxWarns, helpers.FormatToHumanDate(*until))
-	if reason != "" {
-		text += fmt.Sprintf("\nПричина: %s", reason)
-	}
-
-	if banned {
-		text += "\n\nПользователь забанен за превышение лимита предупреждений."
-	}
-
-	return ctx.ReplyHTML(b, text)
+	return ctx.ReplyHTML(b, view.FormatWarnInfo(*targetUser, count, maxWarns, until, reason, banned))
 }
 
 func (h *Handler) ShowMaxWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -329,7 +289,7 @@ func (h *Handler) Unmute(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Пользователь %s размучен", helpers.Link(*targetUser)))
+	return ctx.ReplyHTML(b, view.FormatUnmuteInfo(*targetUser))
 }
 
 func (h *Handler) Unwarn(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -346,7 +306,7 @@ func (h *Handler) Unwarn(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	maxWarns, _ := h.service.GetMaxWarns(ctx.StdContext(), ctx.EffectiveChat.Id)
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("С пользователя %s снято предупреждение (%d/%d)", helpers.Link(*targetUser), count, maxWarns))
+	return ctx.ReplyHTML(b, view.FormatUnwarnInfo(*targetUser, count, maxWarns))
 }
 
 func (h *Handler) ToggleRights(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -409,7 +369,7 @@ func (h *Handler) AddDeveloper(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Пользователь %s назначен разработчиком бота с ролью %s", helpers.Link(*targetUser), role))
+	return ctx.ReplyHTML(b, view.FormatDeveloperAdded(*targetUser, role))
 }
 
 func (h *Handler) RemoveDeveloper(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -425,7 +385,7 @@ func (h *Handler) RemoveDeveloper(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Пользователь %s удален из списка разработчиков", helpers.Link(*targetUser)))
+	return ctx.ReplyHTML(b, view.FormatDeveloperRemoved(*targetUser))
 }
 
 func (h *Handler) ListDevelopers(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -435,13 +395,7 @@ func (h *Handler) ListDevelopers(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	var sb strings.Builder
-	sb.WriteString("🛠 Разработчики бота:\n")
-	for i, u := range users {
-		sb.WriteString(fmt.Sprintf("\n%d. %s (%s)", i+1, helpers.Link(u), roles[i]))
-	}
-
-	return ctx.ReplyHTML(b, sb.String())
+	return ctx.ReplyHTML(b, view.FormatDevelopersList(users, roles))
 }
 
 func (h *Handler) ClearWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -455,7 +409,7 @@ func (h *Handler) ClearWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Все предупреждения пользователя %s были аннулированы", helpers.Link(*targetUser)))
+	return ctx.ReplyHTML(b, view.FormatWarnsCleared(*targetUser))
 }
 
 func parseUntil(

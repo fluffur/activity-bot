@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
+	"activity-bot/internal/member/view"
 	"activity-bot/internal/user"
 	"context"
 	"errors"
@@ -13,7 +14,6 @@ import (
 	"html"
 	"log"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -38,7 +38,7 @@ func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.Reply(b, fmt.Sprintf("Чат обновлён. Найдено %d участников", count), nil)
+	return ctx.Reply(b, view.FormatSyncResult(count), nil)
 }
 
 func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -55,13 +55,7 @@ func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "В чате нет установленных ролей", nil)
 	}
 
-	var sb strings.Builder
-	sb.WriteString("🎭 Роли всех участников:\n")
-	for i, m := range members {
-		sb.WriteString(fmt.Sprintf("\n%d. %s — %s", i+1, helpers.Link(m.User), html.EscapeString(m.CustomTitle)))
-	}
-
-	return ctx.ReplyHTML(b, sb.String())
+	return ctx.ReplyHTML(b, view.FormatRolesList(members))
 }
 
 func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -125,7 +119,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Роль пользователя обновлена на \"%s\"", html.EscapeString(role)))
+	return ctx.ReplyHTML(b, view.FormatRoleUpdated(*targetUser, role))
 }
 
 func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -225,7 +219,7 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.ReplyHTML(b, fmt.Sprintf("У пользователя %s нет роли", helpers.Link(*targetUser)))
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Роль пользователя %s — %s", helpers.Link(*targetUser), html.EscapeString(mTitle)))
+	return ctx.ReplyHTML(b, view.FormatMemberRole(*targetUser, mTitle))
 }
 
 func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *ext.Context) error {

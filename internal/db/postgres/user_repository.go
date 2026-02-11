@@ -10,10 +10,10 @@ import (
 )
 
 type UserRepository struct {
-	queries db.Querier
+	queries *db.Queries
 }
 
-func NewUserRepository(queries db.Querier) user.Repository {
+func NewUserRepository(queries *db.Queries) user.Repository {
 	return &UserRepository{queries}
 }
 

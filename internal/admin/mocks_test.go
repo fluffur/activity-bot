@@ -6,13 +6,12 @@ import (
 	"time"
 )
 
-// mockRepository implements Repository interface for testing
 type mockRepository struct {
-	admins            map[int64]map[int64]bool  // chatID -> userID -> isAdmin
-	creators          map[int64]map[int64]bool  // chatID -> userID -> isCreator
-	developers        map[int64]string          // userID -> role
-	warns             map[int64]map[int64]int64 // chatID -> userID -> count
-	maxWarns          map[int64]int             // chatID -> maxWarns
+	admins            map[int64]map[int64]bool
+	creators          map[int64]map[int64]bool
+	developers        map[int64]string
+	warns             map[int64]map[int64]int64
+	maxWarns          map[int64]int
 	moderationActions []mockModerationAction
 }
 
@@ -133,7 +132,7 @@ func (m *mockRepository) GetChatMaxWarns(ctx context.Context, chatID int64) (int
 	if maxWarns, ok := m.maxWarns[chatID]; ok {
 		return maxWarns, nil
 	}
-	return 3, nil // default
+	return 3, nil
 }
 
 func (m *mockRepository) UpdateChatMaxWarns(ctx context.Context, chatID int64, maxWarns int) error {
@@ -181,9 +180,8 @@ func (m *mockRepository) IsDeveloper(ctx context.Context, userID int64) (bool, e
 	return ok, nil
 }
 
-// mockChatMemberStatusProvider implements ChatMemberStatusProvider for testing
 type mockChatMemberStatusProvider struct {
-	statuses map[int64]map[int64]string // chatID -> userID -> status
+	statuses map[int64]map[int64]string
 }
 
 func newMockChatMemberStatusProvider() *mockChatMemberStatusProvider {
@@ -209,7 +207,6 @@ func (m *mockChatMemberStatusProvider) setStatus(chatID, userID int64, status st
 	m.statuses[chatID][userID] = status
 }
 
-// mockModerator implements Moderator interface for testing
 type mockModerator struct {
 	kicked   map[int64]map[int64]bool
 	banned   map[int64]map[int64]bool

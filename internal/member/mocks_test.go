@@ -7,10 +7,9 @@ import (
 	"context"
 )
 
-// mockMemberRepository implements Repository interface for testing
 type mockMemberRepository struct {
-	members     map[int64]map[int64]*model.ChatMember // chatID -> userID -> member
-	leftMembers map[int64]map[int64]bool              // chatID -> userID -> isLeft
+	members     map[int64]map[int64]*model.ChatMember
+	leftMembers map[int64]map[int64]bool
 }
 
 func newMockMemberRepository() *mockMemberRepository {
@@ -159,7 +158,6 @@ func (m *mockMemberRepository) SetNewbies(ctx context.Context, chatID int64, use
 	return nil
 }
 
-// mockChatRepository implements chat.Repository interface for testing
 type mockChatRepository struct {
 	chats map[int64]*model.Chat
 }
@@ -220,7 +218,6 @@ func (m *mockChatRepository) SetWeekStartDay(ctx context.Context, chatID int64, 
 	return nil
 }
 
-// mockUserRepository implements user.Repository interface for testing
 type mockUserRepository struct {
 	users map[int64]*model.User
 }
@@ -270,9 +267,8 @@ func (m *mockUserRepository) GetByCustomTitle(ctx context.Context, chatID int64,
 	return model.User{}, nil
 }
 
-// mockChatAdminsProvider implements ChatAdminsProvider interface for testing
 type mockChatAdminsProvider struct {
-	admins map[int64][]model.ChatMemberUpdate // chatID -> admins
+	admins map[int64][]model.ChatMemberUpdate
 }
 
 func newMockChatAdminsProvider() *mockChatAdminsProvider {
@@ -292,7 +288,6 @@ func (m *mockChatAdminsProvider) setAdmins(chatID int64, admins []model.ChatMemb
 	m.admins[chatID] = admins
 }
 
-// Ensure interfaces are implemented
 var _ Repository = (*mockMemberRepository)(nil)
 var _ chat.Repository = (*mockChatRepository)(nil)
 var _ user.Repository = (*mockUserRepository)(nil)
