@@ -67,18 +67,39 @@ func NewApp(cfg config.Config) (*App, error) {
 	}, nil
 }
 
-func (a *App) Run() error {
+func (a *App) Run(ctx context.Context) error {
 	if err := a.setupBot(); err != nil {
 		slog.Warn("bot setup failed", "error", err)
 	}
 
 	a.RegisterHandlers()
 
+	stopFunc := func() error { return nil }
+
 	if a.Config.WebhookURL != "" {
-		return a.startWebhook()
+		if err := a.startWebhook(); err != nil {
+			return err
+		}
+		stopFunc = func() error {
+			return a.Updater.Stop()
+		}
+	} else {
+		if err := a.startPolling(); err != nil {
+			return err
+		}
+		stopFunc = func() error {
+			return a.Updater.Stop()
+		}
 	}
 
-	return a.startPolling()
+	<-ctx.Done()
+	slog.Info("Shutting down bot...")
+
+	if err := stopFunc(); err != nil {
+		slog.Error("Failed to stop updater", "error", err)
+	}
+
+	return nil
 }
 
 func (a *App) setupBot() error {
@@ -104,26 +125,7 @@ func (a *App) setupBot() error {
 		return err
 	}
 
-	_, err = a.Bot.SetMyCommands([]gotgbot.BotCommand{
-		{Command: "stats", Description: "📊 Недельный отчёт"},
-		{Command: "inactive", Description: "💤 Неактивные участники"},
-		{Command: "norm", Description: "📈 Норма сообщений"},
-		{Command: "rest", Description: "🛌 Управление рестом"},
-		{Command: "role", Description: "🏷️ Роль участника"},
-		{Command: "me", Description: "👁️ Информация о себе"},
-		{Command: "you", Description: "🧑 Информация об участнике"},
-		{Command: "roles", Description: "🗂️ Список ролей"},
-		{Command: "admins", Description: "🛡️ Администраторы бота"},
-		{Command: "is_admin", Description: "🛡️ Проверить статус администратора"},
-		{Command: "update", Description: "🔁 Обновить данные чата"},
-		{Command: "newbie", Description: "🌱 Порог новичка"},
-		{Command: "all", Description: "📣 Созвать участников"},
-		{Command: "call_enable", Description: "📣 Включить созыв при входе новичка"},
-		{Command: "call_disable", Description: "📣 Отключить созыв при входе новичка"},
-		{Command: "call_message", Description: "💬 Сообщение для созыва"},
-		{Command: "week_start", Description: "📅 День начала недели"},
-		{Command: "help", Description: "🆘 Помощь"},
-	}, nil)
+	_, err = a.Bot.SetMyCommands(a.Config.BotCommands, nil)
 
 	return err
 }
@@ -167,7 +169,7 @@ func (a *App) startPolling() error {
 		return err
 	}
 	slog.Info("Bot has been started with long polling", "bot_username", a.Bot.User.Username)
-	a.Updater.Idle()
+	// Removed Idle() logic from here as it is handled in Run
 	return nil
 }
 

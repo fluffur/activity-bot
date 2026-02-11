@@ -3,7 +3,11 @@ package main
 import (
 	"activity-bot/internal/bot"
 	"activity-bot/internal/config"
+	"context"
 	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -18,7 +22,10 @@ func main() {
 	}
 	defer app.Close()
 
-	if err := app.Run(); err != nil {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	if err := app.Run(ctx); err != nil {
 		slog.Error("Bot execution failed", "error", err)
 	}
 }

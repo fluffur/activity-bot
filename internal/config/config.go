@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/caarlos0/env/v11"
 )
 
@@ -16,6 +17,7 @@ type Config struct {
 	BotOwnerID         int64  `env:"BOT_OWNER_ID"`
 	DeepseekAPIKey     string `env:"DEEPSEEK_API_KEY"`
 	RedisADDR          string `env:"REDIS_ADDR" envDefault:"redis:6379"`
+	BotCommands        []gotgbot.BotCommand
 }
 
 func Load() (Config, error) {
@@ -24,6 +26,8 @@ func Load() (Config, error) {
 	if err := env.Parse(&cfg); err != nil {
 		return Config{}, err
 	}
+
+	cfg.BotCommands = BotCommands
 
 	return cfg, nil
 
