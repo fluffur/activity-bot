@@ -53,3 +53,18 @@ func (c *Context) Args() []string {
 func (c *Context) StdContext() context.Context {
 	return c.ctx
 }
+
+func (c *Context) Reply(b *gotgbot.Bot, text string, opts *gotgbot.SendMessageOpts) error {
+	_, err := c.EffectiveMessage.Reply(b, text, opts)
+	return err
+}
+
+func (c *Context) ReplyHTML(b *gotgbot.Bot, text string) error {
+	_, err := c.EffectiveMessage.Reply(b, text, &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+	})
+	return err
+}

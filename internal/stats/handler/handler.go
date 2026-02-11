@@ -58,8 +58,7 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		if ok {
 			from, to = f, t
 		} else {
-			_, err = ctx.EffectiveMessage.Reply(b, "❌ <b>Неверный формат даты или диапазона.</b>\n\nИспользуйте: <code>01.02-10.02</code>, <code>10</code> (за последние 10 дней), <code>от вчера до сегодня</code> и т.д.", &gotgbot.SendMessageOpts{ParseMode: "HTML"})
-			return err
+			return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>\n\nИспользуйте: <code>01.02-10.02</code>, <code>10</code> (за последние 10 дней), <code>от вчера до сегодня</code> и т.д.")
 		}
 	}
 
@@ -74,23 +73,12 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if len(report) == 0 && len(restMembers) == 0 {
-		_, err = ctx.EffectiveMessage.Reply(b, "📭 <b>За выбранный период активности не найдено.</b>", &gotgbot.SendMessageOpts{ParseMode: "HTML"})
-		return err
+		return ctx.ReplyHTML(b, "📭 <b>За выбранный период активности не найдено.</b>")
 	}
 
 	text := view.FormatReport(report, restMembers, from, to)
 
-	_, err = ctx.EffectiveMessage.Reply(
-		b,
-		text,
-		&gotgbot.SendMessageOpts{
-			ParseMode: gotgbot.ParseModeHTML,
-			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-				IsDisabled: true,
-			},
-		},
-	)
-	return err
+	return ctx.ReplyHTML(b, text)
 }
 
 func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -127,12 +115,11 @@ func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error 
 	}
 
 	if buf == nil {
-		_, err = ctx.EffectiveMessage.Reply(
+		return ctx.Reply(
 			b,
 			"📉 Недостаточно данных для построения графика",
 			nil,
 		)
-		return err
 	}
 
 	caption := "📊 <b>Активность чата</b>"
@@ -188,10 +175,7 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *cmd.Context, userID int64) err
 	text := view.FormatProfile(m)
 
 	if buf == nil {
-		_, err = b.SendMessage(ctx.EffectiveChat.Id, text, &gotgbot.SendMessageOpts{
-			ParseMode: "HTML",
-		})
-		return err
+		return ctx.ReplyHTML(b, text)
 	}
 
 	_, err = b.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByReader("activity.png", buf), &gotgbot.SendPhotoOpts{
@@ -207,26 +191,14 @@ func (h *Handler) Inactive(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 	if len(members) == 0 {
-		_, err = ctx.EffectiveMessage.Reply(
+		return ctx.Reply(
 			b,
 			"✅ Нет неактивных участников за последние сутки",
 			nil,
 		)
-		return err
 	}
 
 	text := view.FormatInactiveMembers(members)
 
-	_, err = ctx.EffectiveMessage.Reply(
-		b,
-		text,
-		&gotgbot.SendMessageOpts{
-			ParseMode: gotgbot.ParseModeHTML,
-			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-				IsDisabled: true,
-			},
-		},
-	)
-
-	return err
+	return ctx.ReplyHTML(b, text)
 }
