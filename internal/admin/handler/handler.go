@@ -105,7 +105,7 @@ func (h *Handler) Kick(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return cmd.ErrNoUser
 	}
 
-	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument())
+	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument(), nil)
 
 	if err := h.service.Kick(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, ctx.EffectiveSender.Id(), reason); err != nil {
 		if errors.Is(err, admin.ErrUserIsProtected) {
@@ -134,7 +134,7 @@ func (h *Handler) Ban(b *gotgbot.Bot, ctx *cmd.Context) error {
 		true,
 	)
 
-	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument())
+	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument(), until)
 
 	if err := h.service.Ban(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, ctx.EffectiveSender.Id(), until, reason); err != nil {
 		if errors.Is(err, admin.ErrUserIsProtected) {
@@ -159,7 +159,7 @@ func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
 		true,
 	)
 
-	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument())
+	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument(), until)
 
 	if err := h.service.Mute(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, ctx.EffectiveSender.Id(), until, reason); err != nil {
 		if errors.Is(err, admin.ErrUserIsProtected) {
@@ -202,11 +202,12 @@ func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
 		defaultPeriod,
 		false,
 	)
+
+	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument(), until)
+
 	if until == nil {
 		until = &defaultTime
 	}
-
-	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument())
 
 	count, banned, err := h.service.Warn(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, ctx.EffectiveSender.Id(), reason, until)
 	if err != nil {
@@ -434,10 +435,12 @@ func parseUntil(
 	return nil
 }
 
-func getReason(firstArgument, secondArgument string) string {
+func getReason(firstArgument, secondArgument string, until *time.Time) string {
 	if secondArgument != "" {
 		return secondArgument
 	}
-
+	if until != nil {
+		return ""
+	}
 	return firstArgument
 }
