@@ -136,14 +136,6 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		takenUsers[user.ID] = struct{}{}
 	}
 
-	if msg.ReplyToMessage != nil && msg.ReplyToMessage.From != nil && !msg.ReplyToMessage.From.IsBot {
-		u, err := c.ensureUser(cctx, msg.ReplyToMessage.From)
-		if err == nil {
-			log.Println("Reply user", u.FirstName, u.Username, u.ID)
-			addUser(&u)
-		}
-	}
-
 	text, entities := cleanMessage(msg)
 	textRunes := []rune(msg.GetText())
 	for _, e := range entities {
@@ -177,7 +169,13 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 			}
 		}
 	}
-
+	if msg.ReplyToMessage != nil && msg.ReplyToMessage.From != nil && !msg.ReplyToMessage.From.IsBot {
+		u, err := c.ensureUser(cctx, msg.ReplyToMessage.From)
+		if err == nil {
+			log.Println("Reply user", u.FirstName, u.Username, u.ID)
+			addUser(&u)
+		}
+	}
 	if c.fallbackToSender && len(users) == 0 {
 		u, err := c.userService.EnsureUserExists(cctx, ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
 		if err == nil {
