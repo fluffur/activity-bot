@@ -32,5 +32,5 @@ SELECT *
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.custom_title ILIKE '%' || @custom_title || '%'
-  AND cm.chat_id = @chat_id
+  AND cm.chat_id = @chat_id AND cm.left_at IS NULL
 LIMIT 10;
