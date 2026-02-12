@@ -116,10 +116,7 @@ func (h *Handler) Kick(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	_, err := b.SendMessage(ctx.EffectiveChat.Id, view.FormatModerationAction(*targetUser, "kick", nil, reason), &gotgbot.SendMessageOpts{
-		ParseMode: gotgbot.ParseModeHTML,
-	})
-	return err
+	return ctx.ReplyHTML(b, view.FormatModerationAction(*targetUser, "kick", nil, reason))
 }
 
 func (h *Handler) Ban(b *gotgbot.Bot, ctx *cmd.Context) error {

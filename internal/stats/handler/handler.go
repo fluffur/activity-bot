@@ -137,7 +137,12 @@ func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error 
 		ctx.EffectiveChat.Id,
 		gotgbot.InputFileByReader("chat_activity.png", buf),
 		&gotgbot.SendPhotoOpts{
-			Caption:   caption,
+			Caption: caption,
+			ReplyParameters: &gotgbot.ReplyParameters{
+				MessageId:                ctx.EffectiveMessage.MessageId,
+				ChatId:                   ctx.EffectiveChat.Id,
+				AllowSendingWithoutReply: true,
+			},
 			ParseMode: gotgbot.ParseModeHTML,
 		},
 	)
@@ -146,7 +151,7 @@ func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error 
 }
 
 func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *cmd.Context) error {
-	return h.WhoAreUser(b, ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
 }
 
 func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -163,7 +168,7 @@ func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 
 		if len(users) == 1 {
-			return h.WhoAreUser(b, ctx.StdContext(), ctx.EffectiveChat.Id, users[0].User.ID)
+			return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.EffectiveChat.Id, users[0].User.ID)
 		}
 
 		var buttons [][]gotgbot.InlineKeyboardButton
@@ -184,7 +189,7 @@ func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 		})
 	}
 
-	return h.WhoAreUser(b, ctx.StdContext(), ctx.EffectiveChat.Id, u.ID)
+	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.EffectiveChat.Id, u.ID)
 }
 
 func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -204,6 +209,7 @@ func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *ext.Context) error {
 		return h.WhoAreUser(
 			b,
 			context.Background(),
+			ctx,
 			chatID,
 			userID,
 		)
@@ -247,13 +253,14 @@ func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *ext.Context) error {
 	return h.WhoAreUser(
 		b,
 		context.Background(),
+		ctx,
 		chatID,
 		userID,
 	)
 
 }
 
-func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx context.Context, chatID int64, userID int64) error {
+func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx context.Context, tgCtx *ext.Context, chatID int64, userID int64) error {
 	m, err := h.service.GetMemberStats(ctx, chatID, userID)
 	if err != nil {
 		return err
@@ -267,7 +274,7 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx context.Context, chatID int64, 
 	text := view.FormatProfile(m)
 
 	if buf == nil {
-		_, err = b.SendMessage(chatID, text, &gotgbot.SendMessageOpts{
+		_, err = tgCtx.EffectiveMessage.Reply(b, text, &gotgbot.SendMessageOpts{
 			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 				IsDisabled: true,
 			},
@@ -277,8 +284,13 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx context.Context, chatID int64, 
 	}
 
 	_, err = b.SendPhoto(chatID, gotgbot.InputFileByReader("activity.png", buf), &gotgbot.SendPhotoOpts{
-		Caption:   text,
-		ParseMode: "HTML",
+		Caption: text,
+		ReplyParameters: &gotgbot.ReplyParameters{
+			MessageId:                tgCtx.EffectiveMessage.MessageId,
+			ChatId:                   chatID,
+			AllowSendingWithoutReply: true,
+		},
+		ParseMode: gotgbot.ParseModeHTML,
 	})
 	return err
 }

@@ -76,7 +76,7 @@ func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *mo
 		},
 	}
 
-	msg, err := b.SendMessage(ctx.EffectiveChat.Id, view.FormatRestRequest(*targetUser, date), &gotgbot.SendMessageOpts{
+	msg, err := ctx.EffectiveMessage.Reply(b, view.FormatRestRequest(*targetUser, date), &gotgbot.SendMessageOpts{
 		ParseMode:   gotgbot.ParseModeHTML,
 		ReplyMarkup: kb,
 	})

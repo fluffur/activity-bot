@@ -72,7 +72,7 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 				return err
 			}
 		} else {
-			if _, err := b.SendMessage(tgCtx.EffectiveChat.Id, sb.String(), &gotgbot.SendMessageOpts{
+			if _, err := tgCtx.EffectiveMessage.Reply(b, sb.String(), &gotgbot.SendMessageOpts{
 				ParseMode: gotgbot.ParseModeHTML,
 				LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 					IsDisabled: true,
