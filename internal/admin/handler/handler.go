@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
+	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"errors"
 	"fmt"
@@ -180,15 +181,56 @@ func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return cmd.ErrNoUser
 	}
 
-	count, err := h.service.GetWarnsCount(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID)
+	warns, err := h.service.GetWarns(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID)
 	if err != nil {
 		return err
 	}
+
 	maxWarns, err := h.service.GetMaxWarns(ctx.StdContext(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
-	return ctx.ReplyHTML(b, view.FormatWarnsCount(*targetUser, int(count), maxWarns))
+
+	now := time.Now()
+	activeWarns := make([]model.Warn, 0, len(warns))
+	for _, w := range warns {
+		if w.ExpiresAt.IsZero() || w.ExpiresAt.After(now) {
+			activeWarns = append(activeWarns, w)
+		}
+	}
+
+	if len(activeWarns) == 0 {
+		return ctx.ReplyHTML(b, fmt.Sprintf("У пользователя %s нет активных варнов ✅", helpers.Link(*targetUser)))
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("⚠️ Варны пользователя %s (активные: %d/%d):\n\n",
+		helpers.Link(*targetUser), len(activeWarns), maxWarns))
+
+	for i, w := range activeWarns {
+		createdStr := helpers.FormatToHumanDate(w.CreatedAt)
+		expireStr := ""
+		if !w.ExpiresAt.IsZero() {
+			expireStr = fmt.Sprintf(", истекает %s", helpers.FormatToHumanDate(w.ExpiresAt))
+		}
+
+		modName := helpers.Link(w.Moderator)
+
+		reasonStr := ""
+		if w.Reason != "" {
+			reasonStr = fmt.Sprintf(", причина: %s", w.Reason)
+		}
+
+		sb.WriteString(fmt.Sprintf("%d. Выдан %s модератором %s%s%s\n",
+			i+1,
+			createdStr,
+			modName,
+			expireStr,
+			reasonStr,
+		))
+	}
+
+	return ctx.ReplyHTML(b, sb.String())
 }
 
 func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {

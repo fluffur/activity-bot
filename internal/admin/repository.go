@@ -28,4 +28,5 @@ type Repository interface {
 	UpdateChatMaxWarns(ctx context.Context, chatID int64, maxWarns int) error
 	RemoveModerationActions(ctx context.Context, chatID, userID int64) error
 	RemoveLatestWarn(ctx context.Context, chatID, userID int64) error
+	GetActiveWarns(ctx context.Context, chatID, userID int64) ([]model.Warn, error)
 }

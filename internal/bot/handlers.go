@@ -137,10 +137,10 @@ func (a *App) RegisterHandlers() {
 		AddTriggers("+").
 		WithGuards(groupGuard, creatorGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowNewbieThreshold, "newbie", "новички", "нью").
+	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowNewbieThreshold, "newbie", "новички", "новички после").
 		WithGuards(groupGuard, adminGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.SetNewbieThreshold, "newbie", "новички", "нью").
+	a.Dispatcher.AddHandler(cf.New(chatHandler.SetNewbieThreshold, "newbie", "новички", "новички после").
 		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
@@ -206,7 +206,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowWarns, "warns", "варны", "преды").
 		AddTriggers("").FallbackToSender().
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Warn, "warn", "варн", "пред", "предупреждение").
 		AddTriggers("", "+").SetArgsCount(2).

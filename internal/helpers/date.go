@@ -18,7 +18,7 @@ func FormatToHumanDate(date time.Time) string {
 	timePart := fmt.Sprintf("%02d:%02d", hour, minute)
 
 	if time.Now().Year() == date.Year() && time.Now().YearDay() == date.YearDay() {
-		return fmt.Sprintf("%s", timePart)
+		return fmt.Sprintf("сегодня в %s", timePart)
 	}
 
 	if time.Now().Year() == date.Year() {

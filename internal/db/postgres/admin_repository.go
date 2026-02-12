@@ -100,6 +100,32 @@ func (r *AdminRepository) GetWarnsCount(ctx context.Context, chatID, userID int6
 	})
 }
 
+func (r *AdminRepository) GetActiveWarns(ctx context.Context, chatID, userID int64) ([]model.Warn, error) {
+	warns, err := r.queries.GetActiveWarns(ctx, db.GetActiveWarnsParams{
+		ChatID: chatID,
+		UserID: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	results := make([]model.Warn, len(warns))
+	for i, warn := range warns {
+		results[i] = model.Warn{
+			ID: warn.ID,
+			Moderator: model.User{
+				ID:        warn.ModeratorID,
+				FirstName: warn.FirstName.String,
+				LastName:  warn.LastName.String,
+				Username:  &warn.Username.String,
+			},
+			Reason:    warn.Reason.String,
+			CreatedAt: warn.CreatedAt.Time,
+			ExpiresAt: warn.ExpiresAt.Time,
+		}
+	}
+	return results, nil
+}
+
 func (r *AdminRepository) ClearWarns(ctx context.Context, chatID, userID int64) error {
 	return r.queries.ClearWarns(ctx, db.ClearWarnsParams{
 		ChatID: chatID,

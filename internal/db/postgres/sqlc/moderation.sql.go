@@ -12,8 +12,11 @@ import (
 )
 
 const clearWarns = `-- name: ClearWarns :exec
-DELETE FROM moderation_actions 
-WHERE chat_id = $1 AND user_id = $2 AND type = 'warn'
+DELETE
+FROM moderation_actions
+WHERE chat_id = $1
+  AND user_id = $2
+  AND type = 'warn'
 `
 
 type ClearWarnsParams struct {
@@ -53,7 +56,10 @@ func (q *Queries) CreateModerationAction(ctx context.Context, arg CreateModerati
 }
 
 const deleteModerationActionsForUser = `-- name: DeleteModerationActionsForUser :exec
-DELETE FROM moderation_actions WHERE chat_id = $1 AND user_id = $2
+DELETE
+FROM moderation_actions
+WHERE chat_id = $1
+  AND user_id = $2
 `
 
 type DeleteModerationActionsForUserParams struct {
@@ -66,9 +72,79 @@ func (q *Queries) DeleteModerationActionsForUser(ctx context.Context, arg Delete
 	return err
 }
 
+const getActiveWarns = `-- name: GetWarns :many
+SELECT ma.id, type, chat_id, user_id, moderator_id, reason, ma.created_at, revoked_at, expires_at, u.id, username, first_name, last_name, u.created_at
+FROM moderation_actions ma
+         JOIN users u ON ma.moderator_id = u.id
+WHERE ma.chat_id = $1
+  AND ma.user_id = $2
+  AND ma.type = 'warn'
+ORDER BY ma.created_at
+`
+
+type GetActiveWarnsParams struct {
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	UserID int64 `db:"user_id" json:"userId"`
+}
+
+type GetActiveWarnsRow struct {
+	ID          int64              `db:"id" json:"id"`
+	Type        ModerationType     `db:"type" json:"type"`
+	ChatID      int64              `db:"chat_id" json:"chatId"`
+	UserID      int64              `db:"user_id" json:"userId"`
+	ModeratorID int64              `db:"moderator_id" json:"moderatorId"`
+	Reason      pgtype.Text        `db:"reason" json:"reason"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	RevokedAt   pgtype.Timestamptz `db:"revoked_at" json:"revokedAt"`
+	ExpiresAt   pgtype.Timestamptz `db:"expires_at" json:"expiresAt"`
+	ID_2        int64              `db:"id_2" json:"id2"`
+	Username    pgtype.Text        `db:"username" json:"username"`
+	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt_2 pgtype.Timestamptz `db:"created_at_2" json:"createdAt2"`
+}
+
+func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) ([]GetActiveWarnsRow, error) {
+	rows, err := q.db.Query(ctx, getActiveWarns, arg.ChatID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetActiveWarnsRow{}
+	for rows.Next() {
+		var i GetActiveWarnsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.ChatID,
+			&i.UserID,
+			&i.ModeratorID,
+			&i.Reason,
+			&i.CreatedAt,
+			&i.RevokedAt,
+			&i.ExpiresAt,
+			&i.ID_2,
+			&i.Username,
+			&i.FirstName,
+			&i.LastName,
+			&i.CreatedAt_2,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getActiveWarnsCount = `-- name: GetActiveWarnsCount :one
-SELECT count(*) FROM moderation_actions
-WHERE chat_id = $1 AND user_id = $2 AND type = 'warn'
+SELECT count(*)
+FROM moderation_actions
+WHERE chat_id = $1
+  AND user_id = $2
+  AND type = 'warn'
 `
 
 type GetActiveWarnsCountParams struct {
@@ -84,7 +160,9 @@ func (q *Queries) GetActiveWarnsCount(ctx context.Context, arg GetActiveWarnsCou
 }
 
 const getChatMaxWarns = `-- name: GetChatMaxWarns :one
-SELECT max_warns FROM chats WHERE id = $1
+SELECT max_warns
+FROM chats
+WHERE id = $1
 `
 
 func (q *Queries) GetChatMaxWarns(ctx context.Context, id int64) (int32, error) {
@@ -95,13 +173,15 @@ func (q *Queries) GetChatMaxWarns(ctx context.Context, id int64) (int32, error) 
 }
 
 const removeLatestWarn = `-- name: RemoveLatestWarn :exec
-DELETE FROM moderation_actions
-WHERE id = (
-    SELECT ma.id FROM moderation_actions ma
-    WHERE ma.chat_id = $1 AND ma.user_id = $2 AND ma.type = 'warn'
-    ORDER BY ma.created_at DESC
-    LIMIT 1
-)
+DELETE
+FROM moderation_actions
+WHERE id = (SELECT ma.id
+            FROM moderation_actions ma
+            WHERE ma.chat_id = $1
+              AND ma.user_id = $2
+              AND ma.type = 'warn'
+            ORDER BY ma.created_at DESC
+            LIMIT 1)
 `
 
 type RemoveLatestWarnParams struct {
@@ -115,7 +195,9 @@ func (q *Queries) RemoveLatestWarn(ctx context.Context, arg RemoveLatestWarnPara
 }
 
 const updateChatMaxWarns = `-- name: UpdateChatMaxWarns :exec
-UPDATE chats SET max_warns = $1 WHERE id = $2
+UPDATE chats
+SET max_warns = $1
+WHERE id = $2
 `
 
 type UpdateChatMaxWarnsParams struct {

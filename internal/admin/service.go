@@ -347,3 +347,7 @@ func (s *Service) checkCanModerate(ctx context.Context, chatID, userID int64) er
 func (s *Service) GetWarnsCount(ctx context.Context, chatID, userID int64) (int64, error) {
 	return s.repo.GetWarnsCount(ctx, chatID, userID)
 }
+
+func (s *Service) GetWarns(ctx context.Context, chatID, userID int64) ([]model.Warn, error) {
+	return s.repo.GetActiveWarns(ctx, chatID, userID)
+}
