@@ -139,6 +139,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 	if msg.ReplyToMessage != nil && msg.ReplyToMessage.From != nil && !msg.ReplyToMessage.From.IsBot {
 		u, err := c.ensureUser(cctx, msg.ReplyToMessage.From)
 		if err == nil {
+			log.Println("Reply user", u.FirstName, u.Username, u.ID)
 			addUser(&u)
 		}
 	}
