@@ -92,7 +92,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 			return err
 		}
-	} else {
+	} else if m.GetStatus() == "member" {
 		if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, targetUser.ID, &gotgbot.PromoteChatMemberOpts{
 			CanPinMessages:  true,
 			CanPostMessages: true,
@@ -107,6 +107,9 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 			return err
 		}
+
+	} else {
+		return ctx.Reply(b, "Пользователь не является полноправным участником чата", nil)
 	}
 
 	if err := h.service.SetMemberTitle(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, &role); err != nil {
