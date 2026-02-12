@@ -163,12 +163,7 @@ func (s *Service) IsCreator(ctx context.Context, chatID int64, userID int64) (bo
 		return isCreator, nil
 	}
 
-	status, err := s.memberStatus.GetChatMemberStatus(chatID, userID)
-	if err != nil {
-		return false, err
-	}
-
-	return status == "creator", nil
+	return false, nil
 }
 
 func (s *Service) GetRole(ctx context.Context, chatID int64, userID int64) (string, error) {
