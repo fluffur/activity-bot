@@ -11,11 +11,21 @@ func FormatToHumanDate(date time.Time) string {
 		"января", "февраля", "марта", "апреля", "мая", "июня",
 		"июля", "августа", "сентября", "октября", "ноября", "декабря",
 	}
-	if time.Now().Year() == date.Year() {
-		return fmt.Sprintf("%d %s", date.Day(), months[date.Month()-1])
+
+	hour := date.Hour()
+	minute := date.Minute()
+
+	timePart := fmt.Sprintf("%02d:%02d", hour, minute)
+
+	if time.Now().Year() == date.Year() && time.Now().YearDay() == date.YearDay() {
+		return fmt.Sprintf("%s", timePart)
 	}
 
-	return fmt.Sprintf("%d %s %d", date.Day(), months[date.Month()-1], date.Year())
+	if time.Now().Year() == date.Year() {
+		return fmt.Sprintf("%d %s, %s", date.Day(), months[date.Month()-1], timePart)
+	}
+
+	return fmt.Sprintf("%d %s %d, %s", date.Day(), months[date.Month()-1], date.Year(), timePart)
 }
 
 func PluralizeDays(n int) string {

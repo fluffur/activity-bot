@@ -31,6 +31,7 @@ var (
 	ErrUserIsAlreadyAdmin = errors.New("user is already admin")
 	ErrUserIsCreator      = errors.New("user is creator")
 	ErrUserIsProtected    = errors.New("user is protected (admin or creator)")
+	ErrInvalidRange       = errors.New("invalid range")
 )
 
 type Service struct {
@@ -241,6 +242,15 @@ func (s *Service) Ban(ctx context.Context, chatID, userID, modID int64, until *t
 func (s *Service) Mute(ctx context.Context, chatID, userID, modID int64, until *time.Time, reason string) error {
 	if err := s.checkCanModerate(ctx, chatID, userID); err != nil {
 		return err
+	}
+
+	if until != nil {
+		now := time.Now()
+		duration := until.Sub(now)
+
+		if duration < 30*time.Second || duration > 366*24*time.Hour {
+			return ErrInvalidRange
+		}
 	}
 
 	if err := s.moderator.Mute(chatID, userID, until); err != nil {

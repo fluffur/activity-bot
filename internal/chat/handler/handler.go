@@ -54,16 +54,16 @@ func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *cmd.Context) error {
-	days, ok := h.dateParser.ParseDays(ctx.FirstArgument())
+	days, ok := h.dateParser.ParseDuration(ctx.FirstArgument())
 	if !ok {
 		return ctx.Reply(b, "Не удалось распознать срок. Используйте формат: 3 дня, неделя, 14 дней или просто число.", nil)
 	}
 
-	if err := h.service.SetNewbieThreshold(ctx.StdContext(), ctx.EffectiveChat.Id, days); err != nil {
+	if err := h.service.SetNewbieThreshold(ctx.StdContext(), ctx.EffectiveChat.Id, int(days.Hours()/24)); err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, view.FormatNewbieThresholdSet(days), nil)
+	return ctx.Reply(b, view.FormatNewbieThresholdSet(int(days.Hours()/24)), nil)
 }
 
 func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *cmd.Context) error {

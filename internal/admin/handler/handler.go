@@ -165,6 +165,9 @@ func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
 		if errors.Is(err, admin.ErrUserIsProtected) {
 			return ctx.Reply(b, "Нельзя замутить администратора или создателя", nil)
 		}
+		if errors.Is(err, admin.ErrInvalidRange) {
+			return ctx.Reply(b, "Срок ограничения должен быть от 30 секунд до 366 дней", nil)
+		}
 		_ = ctx.Reply(b, "Не удалось замутить пользователя", nil)
 		return err
 	}
