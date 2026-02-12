@@ -72,7 +72,7 @@ func (q *Queries) DeleteModerationActionsForUser(ctx context.Context, arg Delete
 	return err
 }
 
-const getActiveWarns = `-- name: GetWarns :many
+const getActiveWarns = `-- name: GetActiveWarns :many
 SELECT ma.id, type, chat_id, user_id, moderator_id, reason, ma.created_at, revoked_at, expires_at, u.id, username, first_name, last_name, u.created_at
 FROM moderation_actions ma
          JOIN users u ON ma.moderator_id = u.id

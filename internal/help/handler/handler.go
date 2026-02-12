@@ -3,6 +3,7 @@ package handler
 import (
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/help/view"
+	"fmt"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 )
@@ -16,9 +17,30 @@ func New(ownerID int64) *Handler {
 }
 
 func (h *Handler) Start(b *gotgbot.Bot, ctx *cmd.Context) error {
-	return ctx.Reply(b, view.FormatStartMessage(), nil)
+	return ctx.Reply(b, view.FormatStartMessage(), &gotgbot.SendMessageOpts{
+		ParseMode:   gotgbot.ParseModeHTML,
+		ReplyMarkup: getKb(b),
+	})
 }
 
 func (h *Handler) Help(b *gotgbot.Bot, ctx *cmd.Context) error {
-	return ctx.ReplyHTML(b, view.FormatHelpText(h.ownerID))
+
+	return ctx.Reply(b, view.FormatHelpText(h.ownerID), &gotgbot.SendMessageOpts{
+		ParseMode:   gotgbot.ParseModeHTML,
+		ReplyMarkup: getKb(b),
+	})
+}
+
+func getKb(b *gotgbot.Bot) gotgbot.InlineKeyboardMarkup {
+
+	return gotgbot.InlineKeyboardMarkup{
+		InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
+			{
+				{Text: "Команды бота", Url: "https://teletype.in/@flood_cm/commands"},
+			},
+			{
+				{Text: "Добавить бота в группу", Url: fmt.Sprintf("https://t.me/%s?startgroup=true", b.User.Username)},
+			},
+		},
+	}
 }

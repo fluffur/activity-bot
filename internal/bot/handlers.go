@@ -215,11 +215,11 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ClearWarns, "clear_warns", "очистить преды").
 		WithGuards(groupGuard, adminGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowMaxWarns, "макс преды", "max_warns", "лимитпред").
+	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowMaxWarns, "макс преды", "макс варны", "max_warns").
 		AddTriggers("").
 		WithGuards(groupGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.SetMaxWarns, "max_warns", "макс преды", "лимитпред").
+	a.Dispatcher.AddHandler(cf.New(adminHandler.SetMaxWarns, "max_warns", "макс преды", "макс варны").
 		AddTriggers("+").
 		SetArgsCount(1).
 		WithGuards(groupGuard, creatorGuard),

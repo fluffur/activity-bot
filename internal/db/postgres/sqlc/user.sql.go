@@ -68,18 +68,18 @@ const getUserByCustomTitle = `-- name: GetUserByCustomTitle :one
 SELECT u.id, u.username, u.first_name, u.last_name, u.created_at
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
-WHERE cm.custom_title = $1
+WHERE cm.custom_title ILIKE '%' || $1 || '%'
   AND cm.chat_id = $2
 LIMIT 1
 `
 
 type GetUserByCustomTitleParams struct {
-	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
-	ChatID      int64       `db:"chat_id" json:"chatId"`
+	Column1 pgtype.Text `db:"column_1" json:"column1"`
+	ChatID  int64       `db:"chat_id" json:"chatId"`
 }
 
 func (q *Queries) GetUserByCustomTitle(ctx context.Context, arg GetUserByCustomTitleParams) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByCustomTitle, arg.CustomTitle, arg.ChatID)
+	row := q.db.QueryRow(ctx, getUserByCustomTitle, arg.Column1, arg.ChatID)
 	var i User
 	err := row.Scan(
 		&i.ID,
