@@ -31,6 +31,6 @@ ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
 SELECT u.*
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
-WHERE cm.custom_title ILIKE '%' || $1 || '%'
-  AND cm.chat_id = $2
+WHERE cm.custom_title ILIKE '%' || @custom_title || '%'
+  AND cm.chat_id = @chat_id
 LIMIT 1;

@@ -74,12 +74,12 @@ LIMIT 1
 `
 
 type GetUserByCustomTitleParams struct {
-	Column1 pgtype.Text `db:"column_1" json:"column1"`
-	ChatID  int64       `db:"chat_id" json:"chatId"`
+	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
+	ChatID      int64       `db:"chat_id" json:"chatId"`
 }
 
 func (q *Queries) GetUserByCustomTitle(ctx context.Context, arg GetUserByCustomTitleParams) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByCustomTitle, arg.Column1, arg.ChatID)
+	row := q.db.QueryRow(ctx, getUserByCustomTitle, arg.CustomTitle, arg.ChatID)
 	var i User
 	err := row.Scan(
 		&i.ID,
