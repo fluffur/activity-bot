@@ -64,33 +64,6 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 	return i, err
 }
 
-const getUserByCustomTitle = `-- name: GetUserByCustomTitle :one
-SELECT u.id, u.username, u.first_name, u.last_name, u.created_at
-FROM chat_members cm
-         JOIN users u ON cm.user_id = u.id
-WHERE cm.custom_title ILIKE '%' || $1 || '%'
-  AND cm.chat_id = $2
-LIMIT 1
-`
-
-type GetUserByCustomTitleParams struct {
-	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
-	ChatID      int64       `db:"chat_id" json:"chatId"`
-}
-
-func (q *Queries) GetUserByCustomTitle(ctx context.Context, arg GetUserByCustomTitleParams) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByCustomTitle, arg.CustomTitle, arg.ChatID)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Username,
-		&i.FirstName,
-		&i.LastName,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
 const getUserByUsername = `-- name: GetUserByUsername :one
 SELECT id, username, first_name, last_name, created_at
 FROM users
@@ -108,6 +81,68 @@ func (q *Queries) GetUserByUsername(ctx context.Context, lower string) (User, er
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getUsersByCustomTitle = `-- name: GetUsersByCustomTitle :many
+SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, id, username, first_name, last_name, created_at
+FROM chat_members cm
+         JOIN users u ON cm.user_id = u.id
+WHERE cm.custom_title ILIKE '%' || $1 || '%'
+  AND cm.chat_id = $2
+LIMIT 10
+`
+
+type GetUsersByCustomTitleParams struct {
+	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
+	ChatID      int64       `db:"chat_id" json:"chatId"`
+}
+
+type GetUsersByCustomTitleRow struct {
+	ChatID      int64              `db:"chat_id" json:"chatId"`
+	UserID      int64              `db:"user_id" json:"userId"`
+	JoinedAt    pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
+	Status      string             `db:"status" json:"status"`
+	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	ID          int64              `db:"id" json:"id"`
+	Username    pgtype.Text        `db:"username" json:"username"`
+	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+}
+
+func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCustomTitleParams) ([]GetUsersByCustomTitleRow, error) {
+	rows, err := q.db.Query(ctx, getUsersByCustomTitle, arg.CustomTitle, arg.ChatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetUsersByCustomTitleRow{}
+	for rows.Next() {
+		var i GetUsersByCustomTitleRow
+		if err := rows.Scan(
+			&i.ChatID,
+			&i.UserID,
+			&i.JoinedAt,
+			&i.RestUntil,
+			&i.CustomTitle,
+			&i.Status,
+			&i.LeftAt,
+			&i.ID,
+			&i.Username,
+			&i.FirstName,
+			&i.LastName,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const upsertUsers = `-- name: UpsertUsers :exec

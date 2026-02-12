@@ -9,11 +9,13 @@ import (
 	"activity-bot/internal/stats"
 	"activity-bot/internal/stats/view"
 	"activity-bot/internal/user"
+	"context"
 	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type Handler struct {
@@ -144,30 +146,65 @@ func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error 
 }
 
 func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *cmd.Context) error {
-	return h.WhoAreUser(b, ctx, ctx.EffectiveSender.Id())
+	return h.WhoAreUser(b, ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
 }
 
 func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 	u := ctx.FirstUser()
 	if u == nil {
 		role := ctx.FirstArgument()
-		us, err := h.userService.GetByCustomTitle(ctx.StdContext(), ctx.EffectiveChat.Id, role)
-		if err != nil {
-			return cmd.ErrNoUser
+		if role == "" {
+			return fmt.Errorf("no role no user")
 		}
-		u = &us
+
+		users, err := h.userService.GetByCustomTitle(ctx.StdContext(), ctx.EffectiveChat.Id, role)
+		if err != nil || len(users) == 0 {
+			return fmt.Errorf("user with role %s not found", role)
+		}
+
+		if len(users) == 1 {
+			return h.WhoAreUser(b, ctx.StdContext(), ctx.EffectiveChat.Id, users[0].User.ID)
+		}
+
+		var buttons [][]gotgbot.InlineKeyboardButton
+		for _, u := range users {
+			btn := gotgbot.InlineKeyboardButton{
+				Text:         fmt.Sprintf("%s (%s)", u.User.FirstName, u.CustomTitle),
+				CallbackData: fmt.Sprintf("whoareyou:%d", u.User.ID),
+			}
+			buttons = append(buttons, []gotgbot.InlineKeyboardButton{btn})
+		}
+
+		kb := gotgbot.InlineKeyboardMarkup{
+			InlineKeyboard: buttons,
+		}
+
+		return ctx.Reply(b, "Выберите пользователя:", &gotgbot.SendMessageOpts{
+			ReplyMarkup: kb,
+		})
 	}
 
-	return h.WhoAreUser(b, ctx, u.ID)
+	return h.WhoAreUser(b, ctx.StdContext(), ctx.EffectiveChat.Id, u.ID)
 }
 
-func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *cmd.Context, userID int64) error {
-	m, err := h.service.GetMemberStats(ctx.StdContext(), ctx.EffectiveChat.Id, userID)
+func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *ext.Context) error {
+	var userID int64
+	if _, err := fmt.Sscanf(ctx.CallbackQuery.Data, "whoareyou:%d", &userID); err != nil {
+		return err
+	}
+	if _, err := ctx.CallbackQuery.Answer(b, nil); err != nil {
+		return err
+	}
+	return h.WhoAreUser(b, context.Background(), ctx.EffectiveChat.Id, userID)
+}
+
+func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx context.Context, chatID int64, userID int64) error {
+	m, err := h.service.GetMemberStats(ctx, chatID, userID)
 	if err != nil {
 		return err
 	}
 
-	buf, err := h.service.GetMessageActivityGraph(ctx.StdContext(), ctx.EffectiveChat.Id, userID)
+	buf, err := h.service.GetMessageActivityGraph(ctx, chatID, userID)
 	if err != nil {
 		slog.Warn("Failed to get graph", "error", err)
 	}
@@ -175,10 +212,16 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx *cmd.Context, userID int64) err
 	text := view.FormatProfile(m)
 
 	if buf == nil {
-		return ctx.ReplyHTML(b, text)
+		_, err = b.SendMessage(chatID, text, &gotgbot.SendMessageOpts{
+			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+				IsDisabled: true,
+			},
+			ParseMode: gotgbot.ParseModeHTML,
+		})
+		return err
 	}
 
-	_, err = b.SendPhoto(ctx.EffectiveChat.Id, gotgbot.InputFileByReader("activity.png", buf), &gotgbot.SendPhotoOpts{
+	_, err = b.SendPhoto(chatID, gotgbot.InputFileByReader("activity.png", buf), &gotgbot.SendPhotoOpts{
 		Caption:   text,
 		ParseMode: "HTML",
 	})

@@ -25,6 +25,6 @@ func (s *Service) EnsureUserExists(ctx context.Context, id int64, username, firs
 	return s.repo.Ensure(ctx, id, username, firstName, lastName)
 }
 
-func (s *Service) GetByCustomTitle(ctx context.Context, chatID int64, title string) (model.User, error) {
+func (s *Service) GetByCustomTitle(ctx context.Context, chatID int64, title string) ([]model.ChatMember, error) {
 	return s.repo.GetByCustomTitle(ctx, chatID, title)
 }

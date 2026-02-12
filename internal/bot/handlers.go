@@ -113,6 +113,7 @@ func (a *App) RegisterHandlers() {
 		AddTriggers("").SetArgsCount(1).
 		WithGuards(groupGuard),
 	)
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("whoareyou:"), statsHandler.CallbackWhoAreYou))
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "кто", "ты", "you").SetArgsCount(1).
 		WithGuards(groupGuard),
 	)
