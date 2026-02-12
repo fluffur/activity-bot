@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"context"
+	"log"
 	"strings"
 	"time"
 
@@ -202,7 +203,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 	} else if c.argsCount == 1 || c.argsCount == ArgsCountNone || c.argsCount == ArgsCountAny {
 		args = append(args, rest)
 	}
-
+	log.Println("users", users)
 	return &Context{ctx, cctx, args, users}
 }
 

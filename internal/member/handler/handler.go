@@ -60,6 +60,7 @@ func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
+	log.Println("targetUser setRole", targetUser)
 	role := ctx.FirstArgument()
 
 	if targetUser == nil {
