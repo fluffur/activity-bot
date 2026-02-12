@@ -78,10 +78,8 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return ctx.Reply(b, "Не удалось получить информацию о пользователе", nil)
 	}
+	log.Println("role", m.GetStatus())
 
-	if m.GetStatus() == "creator" {
-		return ctx.Reply(b, "Я не могу изменить роль создателя чата", nil)
-	}
 	mergedMember := m.MergeChatMember()
 
 	if m.GetStatus() == "administrator" {
