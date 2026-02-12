@@ -163,7 +163,7 @@ func (s *Service) IsCreator(ctx context.Context, chatID int64, userID int64) (bo
 		return isCreator, nil
 	}
 
-	return false, nil
+	return false, err
 }
 
 func (s *Service) GetRole(ctx context.Context, chatID int64, userID int64) (string, error) {
