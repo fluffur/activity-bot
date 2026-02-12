@@ -203,7 +203,9 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 	} else if c.argsCount == 1 || c.argsCount == ArgsCountNone || c.argsCount == ArgsCountAny {
 		args = append(args, rest)
 	}
-	log.Printf("users\n %+v", users)
+	for _, u := range users {
+		log.Println("user", *u)
+	}
 	return &Context{ctx, cctx, args, users}
 }
 
