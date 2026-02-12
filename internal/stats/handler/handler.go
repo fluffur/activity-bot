@@ -192,10 +192,65 @@ func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *ext.Context) error {
 	if _, err := fmt.Sscanf(ctx.CallbackQuery.Data, "whoareyou:%d", &userID); err != nil {
 		return err
 	}
-	if _, err := ctx.CallbackQuery.Answer(b, nil); err != nil {
-		return err
+
+	_, _ = ctx.CallbackQuery.Answer(b, nil)
+
+	chatID := ctx.EffectiveChat.Id
+
+	var buttons [][]gotgbot.InlineKeyboardButton
+
+	msg := ctx.EffectiveMessage
+	if msg == nil || msg.ReplyMarkup == nil {
+		return h.WhoAreUser(
+			b,
+			context.Background(),
+			chatID,
+			userID,
+		)
 	}
-	return h.WhoAreUser(b, context.Background(), ctx.EffectiveChat.Id, userID)
+
+	for _, row := range msg.ReplyMarkup.InlineKeyboard {
+		var newRow []gotgbot.InlineKeyboardButton
+
+		for _, button := range row {
+			var currentUserID int64
+			if _, err := fmt.Sscanf(button.CallbackData, "whoareyou:%d", &currentUserID); err != nil {
+				continue
+			}
+
+			if currentUserID == userID {
+				continue
+			}
+
+			newRow = append(newRow, button)
+		}
+
+		if len(newRow) > 0 {
+			buttons = append(buttons, newRow)
+		}
+	}
+
+	if len(buttons) == 0 {
+		if _, _, err := ctx.CallbackQuery.Message.EditText(b, "✅ Выбраны все участники из списка", nil); err != nil {
+			return err
+		}
+	} else {
+		if _, _, err := ctx.CallbackQuery.Message.EditReplyMarkup(b, &gotgbot.EditMessageReplyMarkupOpts{
+			ReplyMarkup: gotgbot.InlineKeyboardMarkup{
+				InlineKeyboard: buttons,
+			},
+		}); err != nil {
+			return err
+		}
+	}
+
+	return h.WhoAreUser(
+		b,
+		context.Background(),
+		chatID,
+		userID,
+	)
+
 }
 
 func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx context.Context, chatID int64, userID int64) error {
