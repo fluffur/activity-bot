@@ -157,7 +157,6 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 	for _, m := range members {
 		tgMember, err := b.GetChatMember(ctx.EffectiveChat.Id, m.User.ID, nil)
 		if err != nil {
-			slog.Warn("failed to get chat member during restore", "user_id", m.User.ID, "error", err)
 			errorsCount++
 			continue
 		}
@@ -173,22 +172,24 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 				CanPostMessages: true,
 				CanEditMessages: true,
 			}); err != nil || !ok {
-				slog.Warn("failed to promote member during restore", "user_id", m.User.ID, "error", err)
 				errorsCount++
 				continue
 			}
 			status = "administrator"
+
+			// 🔹 пауза 0.5–1 секунда чтобы избежать 429
+			time.Sleep(600 * time.Millisecond)
 		}
 
 		if status == "administrator" {
 			merged := tgMember.MergeChatMember()
 			if merged.CanBeEdited || tgMember.GetStatus() == "member" {
 				if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil {
-					slog.Warn("failed to set title during restore", "user_id", m.User.ID, "error", err)
 					errorsCount++
 					continue
 				}
 				restoredCount++
+				time.Sleep(600 * time.Millisecond)
 			}
 		}
 	}
