@@ -12,16 +12,16 @@ import (
 )
 
 const createMessage = `-- name: CreateMessage :one
-INSERT INTO messages(chat_id, user_id, created_at, deleted_at)
+INSERT INTO messages(chat_id, user_id, created_at, message_id)
 VALUES ($1, $2, $3, $4)
-RETURNING chat_id, user_id, created_at, deleted_at
+RETURNING chat_id, user_id, created_at, id, message_id
 `
 
 type CreateMessageParams struct {
 	ChatID    int64              `db:"chat_id" json:"chatId"`
 	UserID    int64              `db:"user_id" json:"userId"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	DeletedAt pgtype.Timestamptz `db:"deleted_at" json:"deletedAt"`
+	MessageID pgtype.Int8        `db:"message_id" json:"messageId"`
 }
 
 func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error) {
@@ -29,14 +29,15 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		arg.ChatID,
 		arg.UserID,
 		arg.CreatedAt,
-		arg.DeletedAt,
+		arg.MessageID,
 	)
 	var i Message
 	err := row.Scan(
 		&i.ChatID,
 		&i.UserID,
 		&i.CreatedAt,
-		&i.DeletedAt,
+		&i.ID,
+		&i.MessageID,
 	)
 	return i, err
 }

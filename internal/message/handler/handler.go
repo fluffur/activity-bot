@@ -104,8 +104,5 @@ func (h *Handler) Message(b *gotgbot.Bot, ctx *ext.Context) error {
 		}
 	}
 
-	if err := h.service.Save(cctx, c.Id, u.Id); err != nil {
-		return err
-	}
-	return nil
+	return h.service.Save(cctx, c.Id, u.Id, ctx.EffectiveMessage.MessageId)
 }

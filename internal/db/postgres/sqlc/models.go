@@ -129,7 +129,8 @@ type Message struct {
 	ChatID    int64              `db:"chat_id" json:"chatId"`
 	UserID    int64              `db:"user_id" json:"userId"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	DeletedAt pgtype.Timestamptz `db:"deleted_at" json:"deletedAt"`
+	ID        int64              `db:"id" json:"id"`
+	MessageID pgtype.Int8        `db:"message_id" json:"messageId"`
 }
 
 type ModerationAction struct {

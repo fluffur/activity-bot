@@ -1,5 +1,5 @@
 -- name: CreateMessage :one
-INSERT INTO messages(chat_id, user_id, created_at, deleted_at)
+INSERT INTO messages(chat_id, user_id, created_at, message_id)
 VALUES ($1, $2, $3, $4)
 RETURNING *;
 

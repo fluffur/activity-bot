@@ -20,6 +20,10 @@ func NewMessageRepository(queries *db.Queries) message.Repository {
 
 func (r *MessageRepository) Save(ctx context.Context, m model.Message) error {
 	if _, err := r.queries.CreateMessage(ctx, db.CreateMessageParams{
+		MessageID: pgtype.Int8{
+			Int64: m.MessageID,
+			Valid: true,
+		},
 		ChatID: m.ChatID,
 		UserID: m.UserID,
 		CreatedAt: pgtype.Timestamptz{

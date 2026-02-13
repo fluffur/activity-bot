@@ -3,8 +3,9 @@ package model
 import "time"
 
 type Message struct {
-	ChatID int64
-	UserID int64
+	MessageID int64
+	ChatID    int64
+	UserID    int64
 }
 
 type MessageActivity struct {
@@ -12,9 +13,10 @@ type MessageActivity struct {
 	Date  time.Time
 }
 
-func NewMessage(chatID int64, userID int64) Message {
+func NewMessage(chatID, userID, id int64) Message {
 	return Message{
-		ChatID: chatID,
-		UserID: userID,
+		MessageID: id,
+		ChatID:    chatID,
+		UserID:    userID,
 	}
 }

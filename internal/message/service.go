@@ -13,6 +13,6 @@ func NewService(repo Repository) *Service {
 	return &Service{repo}
 }
 
-func (s *Service) Save(ctx context.Context, chatID int64, userID int64) error {
-	return s.repo.Save(ctx, model.NewMessage(chatID, userID))
+func (s *Service) Save(ctx context.Context, chatID, userID, msgID int64) error {
+	return s.repo.Save(ctx, model.NewMessage(chatID, userID, msgID))
 }
