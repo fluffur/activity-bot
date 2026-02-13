@@ -177,7 +177,6 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 			}
 			status = "administrator"
 
-			// 🔹 пауза 0.5–1 секунда чтобы избежать 429
 			time.Sleep(600 * time.Millisecond)
 		}
 
