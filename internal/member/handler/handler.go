@@ -57,10 +57,8 @@ func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	return ctx.ReplyHTML(b, view.FormatRolesList(members))
 }
-
 func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
-	log.Println("targetUser setRole", targetUser)
 	role := ctx.FirstArgument()
 
 	if targetUser == nil {
@@ -83,41 +81,60 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if m.GetStatus() == "creator" {
 		return ctx.Reply(b, "Я не могу изменить роль создателя чата", nil)
 	}
+
 	mergedMember := m.MergeChatMember()
+
+	var tgErr error
 
 	if m.GetStatus() == "administrator" {
 		if !mergedMember.CanBeEdited {
-			return ctx.Reply(b, "Я не могу изменить этого администратора (он назначен другим админом)", nil)
+			return ctx.Reply(b, "Я не могу изменить этого администратора", nil)
 		}
-		if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, targetUser.ID, role, nil); err != nil {
-			_ = ctx.Reply(b, "Не удалось изменить роль в Telegram", nil)
 
-			return err
-		}
+		_, tgErr = b.SetChatAdministratorCustomTitle(
+			ctx.EffectiveChat.Id,
+			targetUser.ID,
+			role,
+			nil,
+		)
+
 	} else if m.GetStatus() == "member" {
 		if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, targetUser.ID, &gotgbot.PromoteChatMemberOpts{
 			CanPinMessages:  true,
 			CanPostMessages: true,
 			CanEditMessages: true,
 		}); err != nil || !ok {
-			_ = ctx.Reply(b, "Не удалось назначить пользователя администратором. Проверьте права бота.", nil)
-			return err
-		}
-
-		if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, targetUser.ID, role, nil); err != nil {
-			_ = ctx.Reply(b, "Пользовтель назначен администратором, но не удалось изменить роль", nil)
-
-			return err
+			tgErr = err
+		} else {
+			_, tgErr = b.SetChatAdministratorCustomTitle(
+				ctx.EffectiveChat.Id,
+				targetUser.ID,
+				role,
+				nil,
+			)
 		}
 
 	} else {
-		return ctx.Reply(b, "Пользователь не является полноправным участником чата", nil)
+		return ctx.Reply(b, "Пользователь не является участником чата", nil)
 	}
 
-	if err := h.service.SetMemberTitle(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, &role); err != nil {
-		_ = ctx.Reply(b, "Роль в Telegram изменена, но не удалось сохранить у бота, можно попробовать !обновить чат", nil)
+	serviceErr := h.service.SetMemberTitle(
+		ctx.StdContext(),
+		ctx.EffectiveChat.Id,
+		targetUser.ID,
+		&role,
+	)
 
-		return err
+	if tgErr != nil && serviceErr != nil {
+		return ctx.Reply(b, "Ошибка в Telegram и при сохранении роли у бота", nil)
+	}
+
+	if tgErr != nil {
+		return ctx.Reply(b, "Роль сохранена у бота, но не удалось установить в Telegram", nil)
+	}
+
+	if serviceErr != nil {
+		return ctx.Reply(b, "Роль изменена в Telegram, но не удалось сохранить у бота", nil)
 	}
 
 	return ctx.ReplyHTML(b, view.FormatRoleUpdated(*targetUser, role))
