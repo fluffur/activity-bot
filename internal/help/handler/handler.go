@@ -36,7 +36,7 @@ func getKb(b *gotgbot.Bot) gotgbot.InlineKeyboardMarkup {
 	return gotgbot.InlineKeyboardMarkup{
 		InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
 			{
-				{Text: "Команды бота", Url: "https://teletype.in/@flood_cm/commands"},
+				{Text: "Команды бота", Url: "https://telegra.ph/Komandy-bota-02-15-2"},
 			},
 			{
 				{Text: "Добавить бота в группу", Url: fmt.Sprintf("https://t.me/%s?startgroup=true", b.User.Username)},
