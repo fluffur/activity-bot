@@ -16,6 +16,8 @@ import (
 	"log/slog"
 	"time"
 
+	"golang.org/x/time/rate"
+
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
@@ -154,7 +156,11 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 	var restoredCount int
 	var errorsCount int
 
+	limiter := rate.NewLimiter(rate.Every(100*time.Millisecond), 1)
 	for _, m := range members {
+		if err := limiter.Wait(ctx.StdContext()); err != nil {
+			return err
+		}
 		tgMember, err := b.GetChatMember(ctx.EffectiveChat.Id, m.User.ID, nil)
 		if err != nil {
 			errorsCount++
@@ -167,6 +173,10 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 		status := tgMember.GetStatus()
 		if status == "member" || status == "restricted" {
+
+			if err := limiter.Wait(ctx.StdContext()); err != nil {
+				return err
+			}
 			if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, m.User.ID, &gotgbot.PromoteChatMemberOpts{
 				CanPinMessages:  true,
 				CanPostMessages: true,
@@ -176,19 +186,21 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 				continue
 			}
 			status = "administrator"
-
-			time.Sleep(600 * time.Millisecond)
 		}
 
 		if status == "administrator" {
 			merged := tgMember.MergeChatMember()
 			if merged.CanBeEdited || tgMember.GetStatus() == "member" {
+
+				if err := limiter.Wait(ctx.StdContext()); err != nil {
+					return err
+				}
+
 				if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil {
 					errorsCount++
 					continue
 				}
 				restoredCount++
-				time.Sleep(600 * time.Millisecond)
 			}
 		}
 	}
