@@ -238,14 +238,19 @@ func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	defaultPeriod := 14 * 24 * time.Hour
 	defaultTime := time.Now().Add(defaultPeriod)
-	until := parseUntil(
-		h.dateParser,
-		ctx.FirstArgument(),
-		defaultPeriod,
-		false,
-	)
+	arg := ctx.FirstArgument()
 
-	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument(), until)
+	var until *time.Time
+	var reason string
+
+	if t, ok := h.dateParser.Parse(arg); ok {
+		until = &t
+		reason = ctx.SecondArgument()
+	} else {
+		tt := time.Now().Add(defaultPeriod)
+		until = &tt
+		reason = arg
+	}
 
 	if until == nil {
 		until = &defaultTime
