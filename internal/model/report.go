@@ -7,8 +7,8 @@ import (
 type MessageReportMember struct {
 	User                User
 	MessagesCount       int32
-	WeeklyNorm          int32
-	NormDone            bool
+	NormWarn            int32
+	NormBan             int32
 	NewbieThresholdDays int32
 	Status              string
 	CustomTitle         string
@@ -33,7 +33,8 @@ type MemberStats struct {
 	MonthRollingCount int32
 	AllTime           int32
 
-	WeeklyNorm      int32
+	NormBan         int32
+	NormWarn        int32
 	JoinedAt        time.Time
 	RestUntil       *time.Time
 	NewbieThreshold int32

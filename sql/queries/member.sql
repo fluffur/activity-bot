@@ -67,9 +67,9 @@ WHERE chat_id = @chat_id
 
 -- name: EnsureMemberFull :one
 WITH chat_upsert AS (
-    INSERT INTO chats (id, weekly_norm)
-        VALUES (@chat_id, @weekly_norm)
-        ON CONFLICT (id) DO UPDATE SET weekly_norm = chats.weekly_norm
+    INSERT INTO chats (id, norm_warn)
+        VALUES (@chat_id, @norm_warn)
+        ON CONFLICT (id) DO UPDATE SET norm_warn = chats.norm_warn
         RETURNING id),
      user_upsert AS (
          INSERT INTO users (id, username, first_name, last_name)

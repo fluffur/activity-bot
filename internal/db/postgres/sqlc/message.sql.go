@@ -192,8 +192,8 @@ SELECT cm.user_id,
        u.first_name,
        u.last_name,
        COUNT(m.chat_id)                    AS messages_count,
-       c.weekly_norm,
-       (COUNT(m.chat_id) >= c.weekly_norm) AS norm_done,
+       c.norm_warn,
+       c.norm_ban,
        cm.joined_at,
        c.newbie_threshold_days,
        cm.status,
@@ -212,7 +212,7 @@ WHERE cm.chat_id = $3
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
 GROUP BY cm.user_id, u.username, u.first_name, u.last_name,
-         c.weekly_norm, cm.joined_at, c.newbie_threshold_days,
+         c.norm_warn, c.norm_ban, cm.joined_at, c.newbie_threshold_days,
          cm.status, cm.custom_title
 ORDER BY messages_count DESC
 `
@@ -229,8 +229,8 @@ type MessageReportRow struct {
 	FirstName           pgtype.Text        `db:"first_name" json:"firstName"`
 	LastName            pgtype.Text        `db:"last_name" json:"lastName"`
 	MessagesCount       int64              `db:"messages_count" json:"messagesCount"`
-	WeeklyNorm          int32              `db:"weekly_norm" json:"weeklyNorm"`
-	NormDone            bool               `db:"norm_done" json:"normDone"`
+	NormWarn            int32              `db:"norm_warn" json:"normWarn"`
+	NormBan             pgtype.Int4        `db:"norm_ban" json:"normBan"`
 	JoinedAt            pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
 	NewbieThresholdDays int32              `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 	Status              string             `db:"status" json:"status"`
@@ -252,8 +252,8 @@ func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([
 			&i.FirstName,
 			&i.LastName,
 			&i.MessagesCount,
-			&i.WeeklyNorm,
-			&i.NormDone,
+			&i.NormWarn,
+			&i.NormBan,
 			&i.JoinedAt,
 			&i.NewbieThresholdDays,
 			&i.Status,
@@ -296,7 +296,8 @@ SELECT cm.user_id,
                 0)::bigint                                                                             AS month_rolling_count,
        COALESCE(COUNT(m.chat_id), 0)::bigint                                                           AS all_time_count,
 
-       c.weekly_norm,
+       c.norm_ban,
+       c.norm_warn,
        cm.joined_at,
        c.newbie_threshold_days,
        cm.status,
@@ -315,7 +316,8 @@ GROUP BY cm.user_id,
          u.username,
          u.first_name,
          u.last_name,
-         c.weekly_norm,
+         c.norm_warn,
+         c.norm_ban,
          cm.joined_at,
          c.newbie_threshold_days,
          cm.status,
@@ -340,7 +342,8 @@ type MessageReportOneRow struct {
 	MonthCount          int64              `db:"month_count" json:"monthCount"`
 	MonthRollingCount   int64              `db:"month_rolling_count" json:"monthRollingCount"`
 	AllTimeCount        int64              `db:"all_time_count" json:"allTimeCount"`
-	WeeklyNorm          int32              `db:"weekly_norm" json:"weeklyNorm"`
+	NormBan             pgtype.Int4        `db:"norm_ban" json:"normBan"`
+	NormWarn            int32              `db:"norm_warn" json:"normWarn"`
 	JoinedAt            pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
 	NewbieThresholdDays int32              `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 	Status              string             `db:"status" json:"status"`
@@ -363,7 +366,8 @@ func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOnePara
 		&i.MonthCount,
 		&i.MonthRollingCount,
 		&i.AllTimeCount,
-		&i.WeeklyNorm,
+		&i.NormBan,
+		&i.NormWarn,
 		&i.JoinedAt,
 		&i.NewbieThresholdDays,
 		&i.Status,

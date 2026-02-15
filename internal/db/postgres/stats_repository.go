@@ -48,7 +48,8 @@ func mapMemberStats(row db.MessageReportOneRow) model.MemberStats {
 
 		RestUntil: restUntil,
 
-		WeeklyNorm:      row.WeeklyNorm,
+		NormBan:         row.NormBan.Int32,
+		NormWarn:        row.NormWarn,
 		JoinedAt:        row.JoinedAt.Time,
 		NewbieThreshold: row.NewbieThresholdDays,
 		Status:          row.Status,
@@ -69,8 +70,8 @@ func mapWeeklyReportRow(row db.MessageReportRow) model.MessageReportMember {
 			Username:  username,
 		},
 		MessagesCount:       int32(row.MessagesCount),
-		WeeklyNorm:          row.WeeklyNorm,
-		NormDone:            row.NormDone,
+		NormWarn:            row.NormWarn,
+		NormBan:             row.NormBan.Int32,
 		JoinedAt:            row.JoinedAt.Time,
 		NewbieThresholdDays: row.NewbieThresholdDays,
 		CustomTitle:         row.CustomTitle.String,

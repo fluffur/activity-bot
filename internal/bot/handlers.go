@@ -47,13 +47,13 @@ func (a *App) RegisterHandlers() {
 
 	statsService := stats.NewService(statsRepository)
 	restService := rest.NewService(restRepository)
-	chatService := chat.NewService(chatRepository, a.Config.DefaultWeeklyNorm)
+	chatService := chat.NewService(chatRepository, a.Config.DefaultNormWarn)
 	userService := user.NewService(userRepository)
 
 	adminsProvider := adapter.NewTelegramChatAdminsProvider(a.Bot)
 	statusProvider := adapter.NewTelegramMemberStatusProvider(a.Bot)
 	moderator := adapter.NewTelegramModerator(a.Bot)
-	memberService := member.NewService(memberRepository, chatRepository, userRepository, adminsProvider, a.Config.DefaultWeeklyNorm)
+	memberService := member.NewService(memberRepository, chatRepository, userRepository, adminsProvider, a.Config.DefaultNormWarn)
 	adminService := admin.NewService(adminRepository, statusProvider, moderator)
 	if err := adminService.EnsureInitialDeveloper(context.Background(), a.Config.BotOwnerID); err != nil {
 		log.Fatalf("Failed to ensure initial developer: %v", err)
@@ -128,7 +128,7 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(chatHandler.SetNorm, "norm", "норма", "quota").
 		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard).
-		SetArgsCount(1),
+		SetArgsCount(2),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.SetNewbies, "новички все").
 		AddTriggers("+").

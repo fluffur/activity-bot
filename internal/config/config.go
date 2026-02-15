@@ -8,7 +8,7 @@ import (
 type Config struct {
 	BotToken           string `env:"BOT_TOKEN"`
 	DBDSN              string `env:"DB_DSN"`
-	DefaultWeeklyNorm  int32  `env:"DEFAULT_WEEKLY_NORM" envDefault:"100"`
+	DefaultNormWarn    int32  `env:"DEFAULT_NORM_WARN" envDefault:"100"`
 	WebhookURL         string `env:"WEBHOOK_URL"`
 	WebhookPath        string `env:"WEBHOOK_PATH" envDefault:"telegram/webhook"`
 	WebhookSecretToken string `env:"WEBHOOK_SECRET_TOKEN"`

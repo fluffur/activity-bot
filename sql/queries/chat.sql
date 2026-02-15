@@ -1,6 +1,6 @@
 -- name: EnsureChatExists :one
 WITH ins AS (
-    INSERT INTO chats (id, weekly_norm, newbie_threshold_days)
+    INSERT INTO chats (id, norm_warn, newbie_threshold_days)
         VALUES ($1, $2, $3)
         ON CONFLICT (id) DO NOTHING
         RETURNING *)
@@ -13,15 +13,22 @@ WHERE id = $1
 LIMIT 1;
 
 -- name: GetOrCreateChat :one
-INSERT INTO chats(id, weekly_norm)
+INSERT INTO chats(id, norm_warn)
 VALUES ($1, $2)
-ON CONFLICT(id) DO UPDATE SET weekly_norm = chats.weekly_norm
+ON CONFLICT(id) DO UPDATE SET norm = chats.norm
 RETURNING *;
 
--- name: UpdateChatNorm :exec
+-- name: UpdateChatWarnNorm :exec
 UPDATE chats
-SET weekly_norm = $1
+SET norm_warn = $1
 WHERE id = $2;
+
+
+-- name: UpdateChatBanNorm :exec
+UPDATE chats
+SET norm_ban = $1
+WHERE id = $2;
+
 
 -- name: UpdateChatNewbieThreshold :exec
 UPDATE chats

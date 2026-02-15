@@ -25,14 +25,21 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 		periodHeader = fmt.Sprintf("📊 Отчёт за всё время")
 	}
 
-	var passed, failed, newbies, inRest []string
+	var passed, failedWarn, failedBan, newbies, inRest []string
 
 	for _, r := range report {
+		normWarnDone := r.MessagesCount >= r.NormWarn
+		normBanDone := true
+		if r.NormBan > 0 {
+			normBanDone = r.MessagesCount >= r.NormBan
+		}
+
 		line := fmt.Sprintf("%s — %d сообщений",
 			helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)),
 			r.MessagesCount,
 		)
 
+		// Проверка новичков
 		isNewbie := false
 		if r.NewbieThresholdDays > 0 {
 			newbieUntil := r.JoinedAt.AddDate(0, 0, int(r.NewbieThresholdDays))
@@ -41,7 +48,7 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 			}
 		}
 
-		if isNewbie && r.NormDone {
+		if isNewbie && normWarnDone {
 			line = fmt.Sprintf("%s 🐣 — %d сообщений",
 				helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)),
 				r.MessagesCount,
@@ -55,10 +62,12 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 			continue
 		}
 
-		if r.NormDone {
-			passed = append(passed, line)
+		if !normBanDone && r.NormBan > 0 {
+			failedBan = append(failedBan, line)
+		} else if !normWarnDone {
+			failedWarn = append(failedWarn, line)
 		} else {
-			failed = append(failed, line)
+			passed = append(passed, line)
 		}
 	}
 
@@ -91,9 +100,16 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 		sb.WriteString("—\n")
 	}
 
-	sb.WriteString("\n❌ Не прошли норму️ \n")
-	if len(failed) > 0 {
-		writeNumberedList(&sb, failed)
+	sb.WriteString("\n❌ Не прошли норму️ (варн) \n")
+	if len(failedWarn) > 0 {
+		writeNumberedList(&sb, failedWarn)
+	} else {
+		sb.WriteString("—\n")
+	}
+
+	sb.WriteString("\n🚫 Не прошли норму (бан) \n")
+	if len(failedBan) > 0 {
+		writeNumberedList(&sb, failedBan)
 	} else {
 		sb.WriteString("—\n")
 	}

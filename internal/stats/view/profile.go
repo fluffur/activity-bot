@@ -11,17 +11,37 @@ func FormatProfile(m model.MemberStats) string {
 	if m.CustomTitle != nil && *m.CustomTitle != "" {
 		customTitle = *m.CustomTitle
 	}
-
 	extraText := ""
+
 	if m.RestUntil != nil {
 		extraText = fmt.Sprintf("💤 Рест до %s", helpers.FormatToHumanDate(*m.RestUntil))
 	} else {
-		if m.WeeklyNorm <= m.WeekCount {
-			extraText = "<b>✅ Норма</b>"
-		} else {
-			extraText = "<b>❌ Норма</b>"
+		if m.NormWarn > 0 {
+			warnEmoji := "❌"
+			if m.WeekCount >= m.NormWarn {
+				warnEmoji = "✅"
+			}
+			extraText += fmt.Sprintf(
+				"%s <b>Норма (варн)</b>: %d/%d за эту неделю",
+				warnEmoji,
+				m.WeekCount,
+				m.NormWarn,
+			)
+
 		}
-		extraText += fmt.Sprintf(": %d/%d за эту неделю", m.WeekCount, m.WeeklyNorm)
+
+		if m.NormBan > 0 {
+			banEmoji := "❌"
+			if m.WeekCount >= m.NormBan {
+				banEmoji = "✅"
+			}
+			extraText += fmt.Sprintf(
+				"\n%s <b>Норма (бан)</b>: %d/%d за эту неделю",
+				banEmoji,
+				m.WeekCount,
+				m.NormBan,
+			)
+		}
 	}
 
 	return fmt.Sprintf(

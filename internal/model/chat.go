@@ -4,7 +4,8 @@ import "time"
 
 type Chat struct {
 	ID                  int64
-	WeeklyNorm          int32
+	NormWarn            int32
+	NormBan             int32
 	NewbieThresholdDays int32
 	AISystemPrompt      string
 	MaxLadder           int32

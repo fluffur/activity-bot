@@ -60,9 +60,9 @@ func (q *Queries) EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemb
 
 const ensureMemberFull = `-- name: EnsureMemberFull :one
 WITH chat_upsert AS (
-    INSERT INTO chats (id, weekly_norm)
+    INSERT INTO chats (id, norm_warn)
         VALUES ($2, $3)
-        ON CONFLICT (id) DO UPDATE SET weekly_norm = chats.weekly_norm
+        ON CONFLICT (id) DO UPDATE SET norm_warn = chats.norm_warn
         RETURNING id),
      user_upsert AS (
          INSERT INTO users (id, username, first_name, last_name)
@@ -89,20 +89,20 @@ RETURNING chat_id, user_id, joined_at, rest_until, custom_title, status, left_at
 `
 
 type EnsureMemberFullParams struct {
-	Status     string      `db:"status" json:"status"`
-	ChatID     int64       `db:"chat_id" json:"chatId"`
-	WeeklyNorm int32       `db:"weekly_norm" json:"weeklyNorm"`
-	UserID     int64       `db:"user_id" json:"userId"`
-	Username   pgtype.Text `db:"username" json:"username"`
-	FirstName  pgtype.Text `db:"first_name" json:"firstName"`
-	LastName   pgtype.Text `db:"last_name" json:"lastName"`
+	Status    string      `db:"status" json:"status"`
+	ChatID    int64       `db:"chat_id" json:"chatId"`
+	NormWarn  int32       `db:"norm_warn" json:"normWarn"`
+	UserID    int64       `db:"user_id" json:"userId"`
+	Username  pgtype.Text `db:"username" json:"username"`
+	FirstName pgtype.Text `db:"first_name" json:"firstName"`
+	LastName  pgtype.Text `db:"last_name" json:"lastName"`
 }
 
 func (q *Queries) EnsureMemberFull(ctx context.Context, arg EnsureMemberFullParams) (ChatMember, error) {
 	row := q.db.QueryRow(ctx, ensureMemberFull,
 		arg.Status,
 		arg.ChatID,
-		arg.WeeklyNorm,
+		arg.NormWarn,
 		arg.UserID,
 		arg.Username,
 		arg.FirstName,

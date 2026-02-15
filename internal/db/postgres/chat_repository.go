@@ -20,7 +20,8 @@ func NewChatRepository(queries *db.Queries) chat.Repository {
 func mapChat(c db.EnsureChatExistsRow) model.Chat {
 	return model.Chat{
 		ID:                  c.ID,
-		WeeklyNorm:          c.WeeklyNorm,
+		NormWarn:            c.NormWarn,
+		NormBan:             c.NormBan.Int32,
 		NewbieThresholdDays: c.NewbieThresholdDays,
 		AISystemPrompt:      c.AiSystemPrompt.String,
 		MaxLadder:           c.MaxLadder,
@@ -33,7 +34,7 @@ func mapChat(c db.EnsureChatExistsRow) model.Chat {
 func (r *ChatRepository) Ensure(ctx context.Context, c model.Chat) (model.Chat, error) {
 	ch, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{
 		ID:                  c.ID,
-		WeeklyNorm:          c.WeeklyNorm,
+		NormWarn:            c.NormWarn,
 		NewbieThresholdDays: 3,
 	})
 	if err != nil {
@@ -43,13 +44,19 @@ func (r *ChatRepository) Ensure(ctx context.Context, c model.Chat) (model.Chat, 
 	return mapChat(ch), nil
 }
 
-func (r *ChatRepository) SetNorm(ctx context.Context, chatID int64, norm int32) error {
-	return r.queries.UpdateChatNorm(ctx, db.UpdateChatNormParams{
-		WeeklyNorm: norm,
-		ID:         chatID,
+func (r *ChatRepository) SetWarnNorm(ctx context.Context, chatID int64, norm int32) error {
+	return r.queries.UpdateChatWarnNorm(ctx, db.UpdateChatWarnNormParams{
+		NormWarn: norm,
+		ID:       chatID,
 	})
 }
 
+func (r *ChatRepository) SetBanNorm(ctx context.Context, chatID int64, norm int32) error {
+	return r.queries.UpdateChatBanNorm(ctx, db.UpdateChatBanNormParams{
+		NormBan: pgtype.Int4{Int32: norm, Valid: true},
+		ID:      chatID,
+	})
+}
 func (r *ChatRepository) SetNewbieThreshold(ctx context.Context, chatID int64, threshold int32) error {
 	return r.queries.UpdateChatNewbieThreshold(ctx, db.UpdateChatNewbieThresholdParams{
 		NewbieThresholdDays: threshold,
@@ -60,7 +67,7 @@ func (r *ChatRepository) SetNewbieThreshold(ctx context.Context, chatID int64, t
 func (r *ChatRepository) GetNewbieThreshold(ctx context.Context, chatID int64) (int, error) {
 	c, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{
 		ID:                  chatID,
-		WeeklyNorm:          100,
+		NormWarn:            100,
 		NewbieThresholdDays: 3,
 	})
 	if err != nil {
@@ -71,13 +78,13 @@ func (r *ChatRepository) GetNewbieThreshold(ctx context.Context, chatID int64) (
 
 func (r *ChatRepository) GetNorm(ctx context.Context, chatID int64, fallbackNorm int32) (int, error) {
 	c, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{
-		ID:         chatID,
-		WeeklyNorm: fallbackNorm,
+		ID:       chatID,
+		NormWarn: fallbackNorm,
 	})
 	if err != nil {
 		return 0, err
 	}
-	return int(c.WeeklyNorm), nil
+	return int(c.NormWarn), nil
 }
 
 func (r *ChatRepository) GetChat(ctx context.Context, chatID int64) (model.Chat, error) {
