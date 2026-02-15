@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-func FormatNorm(norm int, normBan int) string {
+func FormatNorm(norm, normBan int32) string {
 	banInfo := ""
 	if normBan != 0 {
 		banInfo = fmt.Sprintf("\nЕсли сообщений вместе с тем меньше, чем %d, то выдаётся бан", normBan)
