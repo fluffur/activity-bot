@@ -10,6 +10,7 @@ import (
 	"activity-bot/internal/user"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -108,6 +109,11 @@ func (h *Handler) Kick(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument(), nil)
 
+	dmText := view.FormatDirectModerationAction(ctx.EffectiveChat.Title, "kick", nil, reason)
+	if _, err := b.SendMessage(targetUser.ID, dmText, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML}); err != nil {
+		slog.Warn("Failed to send kick DM notification", "user_id", targetUser.ID, "error", err)
+	}
+
 	if err := h.service.Kick(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, ctx.EffectiveSender.Id(), reason); err != nil {
 		if errors.Is(err, admin.ErrUserIsProtected) {
 			return ctx.Reply(b, "Нельзя кикнуть администратора или создателя", nil)
@@ -133,6 +139,11 @@ func (h *Handler) Ban(b *gotgbot.Bot, ctx *cmd.Context) error {
 	)
 
 	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument(), until)
+
+	dmText := view.FormatDirectModerationAction(ctx.EffectiveChat.Title, "ban", until, reason)
+	if _, err := b.SendMessage(targetUser.ID, dmText, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML}); err != nil {
+		slog.Warn("Failed to send ban DM notification", "user_id", targetUser.ID, "error", err)
+	}
 
 	if err := h.service.Ban(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, ctx.EffectiveSender.Id(), until, reason); err != nil {
 		if errors.Is(err, admin.ErrUserIsProtected) {

@@ -90,10 +90,6 @@ func FormatWarnInfo(user model.User, count, maxWarns int, until *time.Time, reas
 	return text
 }
 
-func FormatWarnsCount(user model.User, count, maxWarns int) string {
-	return fmt.Sprintf("У пользователя %s %d/%d предупреждений", helpers.Link(user), count, maxWarns)
-}
-
 func FormatUnwarnInfo(user model.User, count, maxWarns int) string {
 	return fmt.Sprintf("С пользователя %s снято предупреждение (%d/%d)", helpers.Link(user), count, maxWarns)
 }
@@ -102,10 +98,34 @@ func FormatWarnsCleared(user model.User) string {
 	return fmt.Sprintf("Все предупреждения пользователя %s были аннулированы", helpers.Link(user))
 }
 
-func FormatUnbanInfo(user model.User) string {
-	return fmt.Sprintf("Пользователь %s разбанен", helpers.Link(user))
-}
-
 func FormatUnmuteInfo(user model.User) string {
 	return fmt.Sprintf("Пользователь %s размучен", helpers.Link(user))
+}
+
+func FormatDirectModerationAction(chatTitle string, action string, until *time.Time, reason string) string {
+	var actionText string
+	switch action {
+	case "ban":
+		actionText = "забанены"
+	case "kick":
+		actionText = "кикнуты"
+	default:
+		actionText = action
+	}
+
+	text := fmt.Sprintf("Вы были %s в чате <b>%s</b>", actionText, chatTitle)
+
+	if action == "ban" {
+		if until != nil {
+			text += fmt.Sprintf(" до %s", helpers.FormatToHumanDate(*until))
+		} else {
+			text += " навсегда"
+		}
+	}
+
+	if reason != "" {
+		text += fmt.Sprintf("\nПричина: %s", reason)
+	}
+
+	return text
 }
