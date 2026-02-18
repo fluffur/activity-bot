@@ -158,20 +158,11 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	limiter := rate.NewLimiter(rate.Every(100*time.Millisecond), 1)
 	for _, m := range members {
-		if err := limiter.Wait(ctx.StdContext()); err != nil {
-			return err
-		}
-		tgMember, err := b.GetChatMember(ctx.EffectiveChat.Id, m.User.ID, nil)
-		if err != nil {
-			errorsCount++
+		if m.Status == "creator" {
 			continue
 		}
 
-		if tgMember.GetStatus() == "creator" {
-			continue
-		}
-
-		status := tgMember.GetStatus()
+		status := m.Status
 		if status == "member" || status == "restricted" {
 
 			if err := limiter.Wait(ctx.StdContext()); err != nil {
@@ -189,13 +180,19 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 
 		if status == "administrator" {
+			if err := limiter.Wait(ctx.StdContext()); err != nil {
+				return err
+			}
+			tgMember, err := b.GetChatMember(ctx.EffectiveChat.Id, m.User.ID, nil)
+			if err != nil {
+				errorsCount++
+				continue
+			}
 			merged := tgMember.MergeChatMember()
 			if merged.CanBeEdited || tgMember.GetStatus() == "member" {
-
 				if err := limiter.Wait(ctx.StdContext()); err != nil {
 					return err
 				}
-
 				if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil {
 					errorsCount++
 					continue
