@@ -1,12 +1,9 @@
 package bot
 
 import (
-	"activity-bot/internal/adapter"
-	"activity-bot/internal/admin"
 	adminH "activity-bot/internal/admin/handler"
 	"activity-bot/internal/call"
 	callH "activity-bot/internal/call/handler"
-	"activity-bot/internal/chat"
 	chatH "activity-bot/internal/chat/handler"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/db/postgres"
@@ -15,7 +12,6 @@ import (
 	"activity-bot/internal/guard"
 	helpH "activity-bot/internal/help/handler"
 	"activity-bot/internal/helpers"
-	"activity-bot/internal/member"
 	memberH "activity-bot/internal/member/handler"
 	msg "activity-bot/internal/message"
 	messageH "activity-bot/internal/message/handler"
@@ -23,9 +19,6 @@ import (
 	restH "activity-bot/internal/rest/handler"
 	"activity-bot/internal/stats"
 	statsH "activity-bot/internal/stats/handler"
-	"activity-bot/internal/user"
-	"context"
-	"log"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
@@ -39,47 +32,36 @@ func (a *App) RegisterHandlers() {
 
 	statsRepository := postgres.NewStatsRepository(queries)
 	restRepository := postgres.NewRestRepository(queries, a.Pool)
-	memberRepository := postgres.NewMemberRepository(queries)
-	userRepository := postgres.NewUserRepository(queries)
 	chatRepository := postgres.NewChatRepository(queries)
-	adminRepository := postgres.NewAdminRepository(queries)
 	messageRepository := postgres.NewMessageRepository(queries)
 
 	statsService := stats.NewService(statsRepository)
 	restService := rest.NewService(restRepository)
-	chatService := chat.NewService(chatRepository, a.Config.DefaultNormWarn)
-	userService := user.NewService(userRepository)
-
-	adminsProvider := adapter.NewTelegramChatAdminsProvider(a.Bot)
-	statusProvider := adapter.NewTelegramMemberStatusProvider(a.Bot)
-	moderator := adapter.NewTelegramModerator(a.Bot)
-	memberService := member.NewService(memberRepository, chatRepository, userRepository, adminsProvider, a.Config.DefaultNormWarn)
-	adminService := admin.NewService(adminRepository, statusProvider, moderator)
-	if err := adminService.EnsureInitialDeveloper(context.Background(), a.Config.BotOwnerID); err != nil {
-		log.Fatalf("Failed to ensure initial developer: %v", err)
-	}
 	messageService := msg.NewService(messageRepository)
-	callService := call.NewService(chatRepository, memberService)
+
+	callService := call.NewService(chatRepository, a.MemberService)
 
 	dateParser := helpers.NewDateParser()
 
 	helpHandler := helpH.New(a.Config.BotOwnerID)
-	statsHandler := statsH.New(statsService, restService, memberService, userService, chatService)
-	chatHandler := chatH.New(chatService, adminService, dateParser)
-	restHandler := restH.New(restService, userService, adminService, dateParser)
-	adminHandler := adminH.New(adminService, userService, memberService, dateParser)
-	messageHandler := messageH.New(messageService, memberService, chatService, a.Deepseek)
-	memberHandler := memberH.New(memberService, chatService, userService, callService)
-	callHandler := callH.New(callService, chatService)
+	statsHandler := statsH.New(statsService, restService, a.MemberService, a.UserService, a.ChatService)
+	chatHandler := chatH.New(a.ChatService, a.AdminService, dateParser)
+	restHandler := restH.New(restService, a.UserService, a.AdminService, dateParser)
 
-	adminGuard := guard.NewAdminGuard(adminService)
-	creatorGuard := guard.NewCreatorGuard(adminService)
-	ownerGuard := guard.NewDevCreatorGuard(adminService)
-	developerGuard := guard.NewDeveloperGuard(adminService)
+	adminHandler := adminH.New(a.AdminService, a.UserService, a.MemberService, dateParser, a.AsyncClient)
+
+	messageHandler := messageH.New(messageService, a.MemberService, a.ChatService, a.Deepseek)
+	memberHandler := memberH.New(a.MemberService, a.ChatService, a.UserService, callService)
+	callHandler := callH.New(callService, a.ChatService)
+
+	adminGuard := guard.NewAdminGuard(a.AdminService)
+	creatorGuard := guard.NewCreatorGuard(a.AdminService)
+	ownerGuard := guard.NewDevCreatorGuard(a.AdminService)
+	developerGuard := guard.NewDeveloperGuard(a.AdminService)
 	groupGuard := guard.OnlyGroups()
 	rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 1, 10*time.Second)
 
-	cf := cmd.NewFactory(userService, "/", "!", ".")
+	cf := cmd.NewFactory(a.UserService, "/", "!", ".")
 
 	a.Dispatcher.AddHandler(cf.New(helpHandler.Start, "start"))
 	a.Dispatcher.AddHandler(cf.New(helpHandler.Help, "help"))

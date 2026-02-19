@@ -14,7 +14,8 @@ import (
 const addChatAdmin = `-- name: AddChatAdmin :exec
 UPDATE chat_members
 SET status = 'administrator'
-WHERE chat_id = $1 AND user_id = $2
+WHERE chat_id = $1
+  AND user_id = $2
 `
 
 type AddChatAdminParams struct {
@@ -31,7 +32,8 @@ const getChatAdmins = `-- name: GetChatAdmins :many
 SELECT u.id, u.username, u.first_name, u.last_name, cm.joined_at as created_at
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
-WHERE cm.chat_id = $1 AND cm.status IN ('administrator', 'creator')
+WHERE cm.chat_id = $1
+  AND cm.status IN ('administrator', 'creator')
 ORDER BY cm.joined_at
 `
 
@@ -88,6 +90,43 @@ func (q *Queries) GetChatMemberStatus(ctx context.Context, arg GetChatMemberStat
 	return status, err
 }
 
+const getMembersWithExpiredMute = `-- name: GetMembersWithExpiredMute :many
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at
+FROM moderation_actions ma
+         JOIN chat_members cm ON ma.chat_id = cm.chat_id AND ma.user_id = cm.user_id
+WHERE ma.type = 'mute'
+  AND ma.revoked_at IS NULL
+  AND ma.expires_at <= NOW()
+`
+
+func (q *Queries) GetMembersWithExpiredMute(ctx context.Context) ([]ChatMember, error) {
+	rows, err := q.db.Query(ctx, getMembersWithExpiredMute)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ChatMember{}
+	for rows.Next() {
+		var i ChatMember
+		if err := rows.Scan(
+			&i.ChatID,
+			&i.UserID,
+			&i.JoinedAt,
+			&i.RestUntil,
+			&i.CustomTitle,
+			&i.Status,
+			&i.LeftAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const isChatAdmin = `-- name: IsChatAdmin :one
 SELECT EXISTS(SELECT 1
               FROM chat_members
@@ -131,7 +170,8 @@ func (q *Queries) IsChatCreator(ctx context.Context, arg IsChatCreatorParams) (b
 const removeChatAdmin = `-- name: RemoveChatAdmin :exec
 UPDATE chat_members
 SET status = 'member'
-WHERE chat_id = $1 AND user_id = $2
+WHERE chat_id = $1
+  AND user_id = $2
 `
 
 type RemoveChatAdminParams struct {

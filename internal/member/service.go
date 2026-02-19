@@ -43,6 +43,10 @@ func (s *Service) GetMemberTitle(ctx context.Context, chatID int64, userID int64
 	return s.repo.GetCustomTitle(ctx, chatID, userID)
 }
 
+func (s *Service) GetChatMember(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error) {
+	return s.repo.Get(ctx, chatID, userID)
+}
+
 func (s *Service) GetChatMembers(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
 	return s.repo.FindByChatID(ctx, chatID)
 }

@@ -8,6 +8,7 @@ import (
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/hibiken/asynq"
 )
 
 type Handler struct {
@@ -23,10 +25,11 @@ type Handler struct {
 	userService   *user.Service
 	memberService *member.Service
 	dateParser    *helpers.DateParser
+	asyncClient   *asynq.Client
 }
 
-func New(service *admin.Service, userService *user.Service, memberService *member.Service, dateParser *helpers.DateParser) *Handler {
-	return &Handler{service, userService, memberService, dateParser}
+func New(service *admin.Service, userService *user.Service, memberService *member.Service, dateParser *helpers.DateParser, asyncClient *asynq.Client) *Handler {
+	return &Handler{service, userService, memberService, dateParser, asyncClient}
 }
 
 func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -161,6 +164,7 @@ func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
+
 	until := parseUntil(
 		h.dateParser,
 		ctx.FirstArgument(),
@@ -180,6 +184,19 @@ func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
 		_ = ctx.Reply(b, "Не удалось замутить пользователя", nil)
 		return err
 	}
+
+	if until != nil {
+		payload, _ := json.Marshal(model.RestoreRolePayload{
+			ChatID: ctx.EffectiveChat.Id,
+			UserID: targetUser.ID,
+		})
+		task := asynq.NewTask("role:restore", payload)
+		_, err := h.asyncClient.Enqueue(task, asynq.ProcessAt(*until))
+		if err != nil {
+			slog.Error("Failed to enqueue restore task", "error", err)
+		}
+	}
+
 	return ctx.ReplyHTML(b, view.FormatModerationAction(*targetUser, "mute", until, reason))
 }
 
@@ -342,7 +359,7 @@ func (h *Handler) Unmute(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 
 		if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, targetUser.ID, title, nil); err != nil {
-			_ = ctx.Reply(b, "Пользователь размучет, но роль уже назначена кем-то другим", nil)
+			_ = ctx.Reply(b, "Пользователь размучен, но роль уже назначена кем-то другим", nil)
 
 			return err
 		}
