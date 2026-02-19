@@ -40,17 +40,17 @@ func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if h.service.CheckIsAdmin(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID) {
-		return ctx.Reply(b, "Пользователь является администратором чата", nil)
+		return ctx.Reply(b, "Участник является администратором чата", nil)
 	}
 
-	return ctx.Reply(b, "Пользователь не является администратором чата", nil)
+	return ctx.Reply(b, "Участник не является администратором чата", nil)
 }
 
 func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
 
 	if targetUser == nil {
-		return ctx.Reply(b, "Вы забыли указать пользователя, которого хотите сделать админом, либо он был не найден в чате", nil)
+		return ctx.Reply(b, "Вы забыли указать участника, которого хотите сделать админом, либо он был не найден в чате", nil)
 	}
 
 	if err := h.service.AddAdmin(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID); err != nil {

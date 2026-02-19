@@ -11,12 +11,12 @@ func FormatRestSet(user model.User, date time.Time, isSelf bool) string {
 	if isSelf {
 		return fmt.Sprintf("Вы добавлены в рест до %s", helpers.FormatToHumanDate(date))
 	}
-	return fmt.Sprintf("Пользователь %s добавлен в рест до %s", helpers.Link(user), helpers.FormatToHumanDate(date))
+	return fmt.Sprintf("Участник %s добавлен в рест до %s", helpers.Link(user), helpers.FormatToHumanDate(date))
 }
 
 func FormatRestRequest(user model.User, date time.Time) string {
 	return fmt.Sprintf(
-		"Для пользователя %s запрошен рест до %s",
+		"Для участника %s запрошен рест до %s",
 		helpers.Link(user),
 		helpers.FormatToHumanDate(date),
 	)
@@ -24,16 +24,16 @@ func FormatRestRequest(user model.User, date time.Time) string {
 
 func FormatRestShow(user model.User, restUntil *time.Time) string {
 	if restUntil == nil {
-		return fmt.Sprintf("Пользователь %s не находится в ресте", helpers.Link(user))
+		return fmt.Sprintf("Участник %s не находится в ресте", helpers.Link(user))
 	}
-	return fmt.Sprintf("Пользователь %s находится в ресте до %s", helpers.Link(user), helpers.FormatToHumanDate(*restUntil))
+	return fmt.Sprintf("Участник %s находится в ресте до %s", helpers.Link(user), helpers.FormatToHumanDate(*restUntil))
 }
 
 func FormatRestEnded(user model.User, isSelf bool) string {
 	if isSelf {
 		return "Вы успешно удалены из реста"
 	}
-	return fmt.Sprintf("Пользователь %s успешно удалён из реста", helpers.Link(user))
+	return fmt.Sprintf("Участник %s успешно удалён из реста", helpers.Link(user))
 }
 
 func FormatRestNotInRest(user model.User, isSelf bool) string {

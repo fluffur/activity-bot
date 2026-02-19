@@ -10,6 +10,7 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
+	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"context"
 	"encoding/json"
@@ -144,10 +145,7 @@ func (a *App) Run(ctx context.Context) error {
 func (a *App) registerWorkerHandlers() *asynq.ServeMux {
 	mux := asynq.NewServeMux()
 	mux.HandleFunc("role:restore", func(ctx context.Context, t *asynq.Task) error {
-		var p struct {
-			ChatID int64 `json:"chat_id"`
-			UserID int64 `json:"user_id"`
-		}
+		var p model.RestoreRolePayload
 		if err := json.Unmarshal(t.Payload(), &p); err != nil {
 			return err
 		}

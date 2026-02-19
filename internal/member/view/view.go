@@ -18,11 +18,11 @@ func FormatRolesList(members []model.ChatMember) string {
 }
 
 func FormatRoleUpdated(user model.User, role string) string {
-	return fmt.Sprintf("Роль пользователя %s обновлена на \"%s\"", helpers.Link(user), html.EscapeString(role))
+	return fmt.Sprintf("Роль участника %s обновлена на \"%s\"", helpers.Link(user), html.EscapeString(role))
 }
 
 func FormatMemberRole(user model.User, title string) string {
-	return fmt.Sprintf("Роль пользователя %s — %s", helpers.Link(user), html.EscapeString(title))
+	return fmt.Sprintf("Роль участника %s — %s", helpers.Link(user), html.EscapeString(title))
 }
 
 func FormatSyncResult(count int) string {

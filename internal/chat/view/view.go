@@ -19,11 +19,11 @@ func FormatNormSet(norm int, action string) string {
 }
 
 func FormatNewbieThreshold(days int) string {
-	return fmt.Sprintf("Пользователи считаются новичками первые %d %s", days, helpers.PluralizeDays(days))
+	return fmt.Sprintf("Участники считаются новичками первые %d %s", days, helpers.PluralizeDays(days))
 }
 
 func FormatNewbieThresholdSet(days int) string {
-	return fmt.Sprintf("Теперь пользователи считаются новичками первые %d %s", days, helpers.PluralizeDays(days))
+	return fmt.Sprintf("Теперь участники считаются новичками первые %d %s", days, helpers.PluralizeDays(days))
 }
 
 func FormatPrompt(prompt string) string {

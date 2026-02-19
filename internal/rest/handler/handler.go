@@ -40,7 +40,7 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 	firstArgument := ctx.FirstArgument()
 
 	if firstArgument == "" {
-		return ctx.Reply(b, "Вы забыли указать срок реста, попробуйте написать +рест 2 недели в ответ пользователю", nil)
+		return ctx.Reply(b, "Вы забыли указать срок реста, попробуйте написать +рест 2 недели в ответ участнику", nil)
 	}
 
 	date, ok := h.dateParser.Parse(firstArgument)

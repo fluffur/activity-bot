@@ -18,11 +18,11 @@ func FormatAdminsList(admins []model.User) string {
 }
 
 func FormatAdminAdded(user model.User) string {
-	return fmt.Sprintf("Пользователь %s назначен администратором бота", helpers.Link(user))
+	return fmt.Sprintf("Участник %s назначен администратором бота", helpers.Link(user))
 }
 
 func FormatAdminRemoved(user model.User) string {
-	return fmt.Sprintf("Пользователь %s удалён из администраторов бота", helpers.Link(user))
+	return fmt.Sprintf("Участник %s удалён из администраторов бота", helpers.Link(user))
 }
 
 func FormatDevelopersList(users []model.User, roles []string) string {
@@ -35,11 +35,11 @@ func FormatDevelopersList(users []model.User, roles []string) string {
 }
 
 func FormatDeveloperAdded(user model.User, role string) string {
-	return fmt.Sprintf("Пользователь %s назначен разработчиком бота с ролью %s", helpers.Link(user), role)
+	return fmt.Sprintf("Участник %s назначен разработчиком бота с ролью %s", helpers.Link(user), role)
 }
 
 func FormatDeveloperRemoved(user model.User) string {
-	return fmt.Sprintf("Пользователь %s удален из списка разработчиков", helpers.Link(user))
+	return fmt.Sprintf("Участник %s удален из списка разработчиков", helpers.Link(user))
 }
 
 func FormatModerationAction(user model.User, action string, until *time.Time, reason string) string {
