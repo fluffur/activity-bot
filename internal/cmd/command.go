@@ -174,6 +174,8 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		if err == nil {
 			log.Println("Reply user", u.FirstName, u.Username, u.ID)
 			addUser(&u)
+		} else {
+			log.Println(err)
 		}
 	}
 	if c.fallbackToSender && len(users) == 0 {
