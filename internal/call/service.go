@@ -12,7 +12,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-const mentionsPerMessage = 7
+const mentionsPerMessage = 5
 
 type Service struct {
 	repo          chat.Repository
