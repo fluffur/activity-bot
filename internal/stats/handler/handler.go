@@ -172,10 +172,13 @@ func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 
 		var buttons [][]gotgbot.InlineKeyboardButton
-		for _, u := range users {
+		for i, u := range users {
 			btn := gotgbot.InlineKeyboardButton{
 				Text:         fmt.Sprintf("%s (%s)", u.User.FirstName, u.CustomTitle),
 				CallbackData: fmt.Sprintf("whoareyou:%d", u.User.ID),
+			}
+			if i == 0 {
+				btn.Style = "primary"
 			}
 			buttons = append(buttons, []gotgbot.InlineKeyboardButton{btn})
 		}

@@ -3,7 +3,7 @@ module activity-bot
 go 1.25
 
 require (
-	github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.33
+	github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.33.0.20260210230949-86881f40bfaa
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/cohesion-org/deepseek-go v1.3.3
 	github.com/jackc/pgx/v5 v5.8.0
@@ -19,7 +19,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect

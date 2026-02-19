@@ -70,8 +70,8 @@ func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *mo
 	kb := gotgbot.InlineKeyboardMarkup{
 		InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
 			{
-				{Text: "✅ Одобрить", CallbackData: fmt.Sprintf("approve:%d", targetUser.ID)},
-				{Text: "❌ Отклонить", CallbackData: fmt.Sprintf("reject:%d", targetUser.ID)},
+				{Text: "Одобрить", CallbackData: fmt.Sprintf("approve:%d", targetUser.ID), Style: "success"},
+				{Text: "Отклонить", CallbackData: fmt.Sprintf("reject:%d", targetUser.ID), Style: "danger"},
 			},
 		},
 	}
@@ -79,6 +79,9 @@ func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *mo
 	msg, err := ctx.EffectiveMessage.Reply(b, view.FormatRestRequest(*targetUser, date), &gotgbot.SendMessageOpts{
 		ParseMode:   gotgbot.ParseModeHTML,
 		ReplyMarkup: kb,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
 	})
 	if err != nil {
 		return err
