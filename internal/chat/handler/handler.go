@@ -144,3 +144,25 @@ func parseWeekStartDay(arg string) (int, bool) {
 		return 0, false
 	}
 }
+
+func (h *Handler) ShowPrefix(b *gotgbot.Bot, ctx *cmd.Context) error {
+	c, err := h.service.GetChat(ctx.StdContext(), ctx.EffectiveChat.Id)
+	if err != nil {
+		return err
+	}
+
+	return ctx.Reply(b, view.FormatPrefix(c.CommandPrefix), nil)
+}
+
+func (h *Handler) SetPrefix(b *gotgbot.Bot, ctx *cmd.Context) error {
+	prefix := strings.TrimSpace(ctx.FirstArgument())
+	if prefix == "" {
+		return ctx.Reply(b, "❌ Укажите префикс", nil)
+	}
+
+	if err := h.service.SetCommandPrefix(ctx.StdContext(), ctx.EffectiveChat.Id, prefix); err != nil {
+		return err
+	}
+
+	return ctx.Reply(b, view.FormatPrefixSet(prefix), nil)
+}

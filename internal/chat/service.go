@@ -65,3 +65,7 @@ func (s *Service) SetWeekStartDay(ctx context.Context, chatID int64, day int) er
 
 	return s.repo.SetWeekStartDay(ctx, chatID, day)
 }
+
+func (s *Service) SetCommandPrefix(ctx context.Context, chatID int64, prefix string) error {
+	return s.repo.SetCommandPrefix(ctx, chatID, prefix)
+}

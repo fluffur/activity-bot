@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"activity-bot/internal/chat"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"context"
@@ -18,20 +19,26 @@ const ArgsCountNone = 0
 var defaultTriggers = []string{"/"}
 
 type Factory struct {
-	userService *user.Service
-	triggers    []string
+	userService  *user.Service
+	chatService  *chat.Service
+	uniquePrefix string
+	triggers     []string
 }
 
-func NewFactory(userService *user.Service, triggers ...string) *Factory {
+func NewFactory(userService *user.Service, chatService *chat.Service, uniquePrefix string, triggers ...string) *Factory {
 	if len(triggers) == 0 {
 		triggers = defaultTriggers
 	}
 
-	return &Factory{userService, triggers}
+	for i, t := range triggers {
+		triggers[i] = strings.ToLower(t)
+	}
+
+	return &Factory{userService, chatService, strings.ToLower(uniquePrefix), triggers}
 }
 
 func (f *Factory) New(r Response, c string, aliases ...string) *Command {
-	return New(append(aliases, c), f.triggers, r, f.userService)
+	return New(append(aliases, c), f.triggers, r, f.userService, f.chatService, f.uniquePrefix)
 }
 
 type Command struct {
@@ -41,10 +48,12 @@ type Command struct {
 	argsCount        int
 	fallbackToSender bool
 	userService      *user.Service
+	chatService      *chat.Service
+	uniquePrefix     string
 	guards           []Guard
 }
 
-func New(commands []string, triggers []string, response Response, userService *user.Service) *Command {
+func New(commands []string, triggers []string, response Response, userService *user.Service, chatService *chat.Service, uniquePrefix string) *Command {
 	for i, c := range commands {
 		commands[i] = strings.ToLower(c)
 	}
@@ -56,6 +65,8 @@ func New(commands []string, triggers []string, response Response, userService *u
 		fallbackToSender: false,
 		argsCount:        ArgsCountNone,
 		userService:      userService,
+		chatService:      chatService,
+		uniquePrefix:     uniquePrefix,
 		guards:           make([]Guard, 0),
 	}
 }
@@ -101,7 +112,10 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 		return false
 	}
 
-	return c.checkMessage(b, ctx.Message)
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	return c.checkMessage(ctxWithTimeout, b, ctx.Message)
 }
 
 func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -185,7 +199,15 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		}
 	}
 
-	rest, matched := c.matchCommand(text, b.User.Username)
+	chatPrefix := ""
+	if c.chatService != nil {
+		chat, err := c.chatService.GetChat(cctx, msg.Chat.Id)
+		if err == nil {
+			chatPrefix = strings.ToLower(chat.CommandPrefix)
+		}
+	}
+
+	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix)
 	if !matched {
 		return &Context{ctx, cctx, []string{}, users}
 	}
@@ -218,13 +240,21 @@ func (c *Command) Name() string {
 
 }
 
-func (c *Command) checkMessage(b *gotgbot.Bot, msg *gotgbot.Message) bool {
+func (c *Command) checkMessage(ctx context.Context, b *gotgbot.Bot, msg *gotgbot.Message) bool {
 	text, _ := cleanMessage(msg)
 	if text == "" {
 		return false
 	}
 
-	rest, matched := c.matchCommand(text, b.User.Username)
+	chatPrefix := ""
+	if c.chatService != nil {
+		chat, err := c.chatService.GetChat(ctx, msg.Chat.Id)
+		if err == nil {
+			chatPrefix = strings.ToLower(chat.CommandPrefix)
+		}
+	}
+
+	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix)
 	if !matched {
 		return false
 	}
@@ -245,15 +275,49 @@ func (c *Command) findTrigger(text string) (string, bool) {
 	return "", false
 }
 
-func (c *Command) matchCommand(text string, botUsername string) (string, bool) {
+func (c *Command) matchCommand(text string, botUsername string, chatPrefix string) (string, bool) {
 	botUsername = strings.ToLower(botUsername)
+	textLower := strings.ToLower(text)
 
-	trigger, found := c.findTrigger(text)
+	// Try prefixes first
+	prefixes := make([]string, 0)
+	if c.uniquePrefix != "" {
+		prefixes = append(prefixes, c.uniquePrefix)
+	}
+	if chatPrefix != "" {
+		prefixes = append(prefixes, chatPrefix)
+	}
+
+	for _, p := range prefixes {
+		// Try prefix with trigger: !фм варн
+		for _, t := range c.triggers {
+			if strings.HasPrefix(textLower, t+p) {
+				inner := strings.TrimSpace(text[len(t+p):])
+				if rest, matched := c.matchCommandName(inner, botUsername); matched {
+					return rest, true
+				}
+			}
+		}
+		// Try prefix without trigger: фм варн
+		if strings.HasPrefix(textLower, p) {
+			inner := strings.TrimSpace(text[len(p):])
+			if rest, matched := c.matchCommandName(inner, botUsername); matched {
+				return rest, true
+			}
+		}
+	}
+
+	// Try standard triggers
+	trigger, found := c.findTrigger(textLower)
 	if !found {
 		return "", false
 	}
 
-	text = strings.TrimSpace(strings.TrimPrefix(text, trigger))
+	textAfterTrigger := strings.TrimSpace(text[len(trigger):])
+	return c.matchCommandName(textAfterTrigger, botUsername)
+}
+
+func (c *Command) matchCommandName(text string, botUsername string) (string, bool) {
 	textLower := strings.ToLower(text)
 	for _, cmd := range c.commands {
 		if hasPrefix, sep := hasCommandPrefix(textLower, cmd); hasPrefix {
@@ -267,7 +331,6 @@ func (c *Command) matchCommand(text string, botUsername string) (string, bool) {
 			return rest, true
 		}
 	}
-
 	return "", false
 }
 

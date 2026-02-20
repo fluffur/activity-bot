@@ -29,3 +29,14 @@ func FormatNewbieThresholdSet(days int) string {
 func FormatPrompt(prompt string) string {
 	return fmt.Sprintf("Промпт: \"%s\"", prompt)
 }
+
+func FormatPrefix(prefix string) string {
+	if prefix == "" {
+		return "В этом чате не установлен кастомный префикс."
+	}
+	return fmt.Sprintf("Текущий префикс чата: `%s`", prefix)
+}
+
+func FormatPrefixSet(prefix string) string {
+	return fmt.Sprintf("Установлен новый префикс чата: `%s`", prefix)
+}

@@ -17,6 +17,7 @@ type Config struct {
 	BotOwnerID         int64  `env:"BOT_OWNER_ID"`
 	DeepseekAPIKey     string `env:"DEEPSEEK_API_KEY"`
 	RedisADDR          string `env:"REDIS_ADDR" envDefault:"redis:6379"`
+	UniquePrefix       string `env:"UNIQUE_PREFIX" envDefault:"фм"`
 	BotCommands        []gotgbot.BotCommand
 }
 

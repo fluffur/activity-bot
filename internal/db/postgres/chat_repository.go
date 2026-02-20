@@ -28,6 +28,7 @@ func mapChat(c db.EnsureChatExistsRow) model.Chat {
 		WelcomeCallMessage:  c.WelcomeCallMessage.String,
 		CallOnJoin:          c.CallOnJoin,
 		WeekStartDay:        c.WeekStartDay,
+		CommandPrefix:       c.CommandPrefix.String,
 	}
 }
 
@@ -135,5 +136,15 @@ func (r *ChatRepository) SetWeekStartDay(ctx context.Context, chatID int64, day 
 	return r.queries.UpdateChatWeekStartDay(ctx, db.UpdateChatWeekStartDayParams{
 		ChatID:       chatID,
 		WeekStartDay: int16(day),
+	})
+}
+
+func (r *ChatRepository) SetCommandPrefix(ctx context.Context, chatID int64, prefix string) error {
+	return r.queries.UpdateChatCommandPrefix(ctx, db.UpdateChatCommandPrefixParams{
+		ChatID: chatID,
+		CommandPrefix: pgtype.Text{
+			String: prefix,
+			Valid:  true,
+		},
 	})
 }

@@ -9,6 +9,7 @@ func TestCommand_matchCommand(t *testing.T) {
 		name        string
 		command     *Command
 		botUsername string
+		chatPrefix  string
 		text        string
 		wantRest    string
 		wantMatched bool
@@ -135,13 +136,76 @@ func TestCommand_matchCommand(t *testing.T) {
 			wantMatched: true,
 		},
 		{
-			name: "Russian command",
+			name: "Global UniquePrefix: фм start",
 			command: &Command{
-				commands: []string{"старт"},
-				triggers: []string{"!"},
+				commands:     []string{"start"},
+				triggers:     []string{"!", "/"},
+				uniquePrefix: "фм",
 			},
 			botUsername: "Bot",
-			text:        "! старт",
+			text:        "фм start",
+			wantRest:    "",
+			wantMatched: true,
+		},
+		{
+			name: "Global UniquePrefix with trigger: !фм start",
+			command: &Command{
+				commands:     []string{"start"},
+				triggers:     []string{"!", "/"},
+				uniquePrefix: "фм",
+			},
+			botUsername: "Bot",
+			text:        "!фм start",
+			wantRest:    "",
+			wantMatched: true,
+		},
+		{
+			name: "Chat-specific prefix: bot start",
+			command: &Command{
+				commands: []string{"start"},
+				triggers: []string{"!", "/"},
+			},
+			botUsername: "Bot",
+			chatPrefix:  "bot",
+			text:        "bot start",
+			wantRest:    "",
+			wantMatched: true,
+		},
+		{
+			name: "Chat-specific prefix with trigger: /bot start",
+			command: &Command{
+				commands: []string{"start"},
+				triggers: []string{"!", "/"},
+			},
+			botUsername: "Bot",
+			chatPrefix:  "bot",
+			text:        "/bot start",
+			wantRest:    "",
+			wantMatched: true,
+		},
+		{
+			name: "Both prefixes: bot start",
+			command: &Command{
+				commands:     []string{"start"},
+				triggers:     []string{"!"},
+				uniquePrefix: "фм",
+			},
+			botUsername: "Bot",
+			chatPrefix:  "bot",
+			text:        "bot start",
+			wantRest:    "",
+			wantMatched: true,
+		},
+		{
+			name: "Both prefixes with trigger: !bot start",
+			command: &Command{
+				commands:     []string{"start"},
+				triggers:     []string{"!"},
+				uniquePrefix: "фм",
+			},
+			botUsername: "Bot",
+			chatPrefix:  "bot",
+			text:        "!bot start",
 			wantRest:    "",
 			wantMatched: true,
 		},
@@ -149,7 +213,7 @@ func TestCommand_matchCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotRest, gotMatched := tt.command.matchCommand(tt.text, tt.botUsername)
+			gotRest, gotMatched := tt.command.matchCommand(tt.text, tt.botUsername, tt.chatPrefix)
 			if gotMatched != tt.wantMatched {
 				t.Errorf("matchCommand() matched = %v, want %v", gotMatched, tt.wantMatched)
 			}

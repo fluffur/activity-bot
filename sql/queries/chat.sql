@@ -71,3 +71,8 @@ WHERE id = @chat_id;
 UPDATE chats
 SET week_start_day = $1
 WHERE id = @chat_id;
+
+-- name: UpdateChatCommandPrefix :exec
+UPDATE chats
+SET command_prefix = $1
+WHERE id = @chat_id;

@@ -18,4 +18,5 @@ type Repository interface {
 	SetWelcomeCallMessage(ctx context.Context, chatID int64, message string) error
 	UpdateCallOnJoin(ctx context.Context, chatID int64, isEnabled bool) error
 	SetWeekStartDay(ctx context.Context, chatID int64, day int) error
+	SetCommandPrefix(ctx context.Context, chatID int64, prefix string) error
 }

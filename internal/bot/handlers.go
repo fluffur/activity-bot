@@ -61,7 +61,7 @@ func (a *App) RegisterHandlers() {
 	groupGuard := guard.OnlyGroups()
 	rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 1, 10*time.Second)
 
-	cf := cmd.NewFactory(a.UserService, "/", "!", ".")
+	cf := cmd.NewFactory(a.UserService, a.ChatService, a.Config.UniquePrefix, "/", "!", ".")
 
 	a.Dispatcher.AddHandler(cf.New(helpHandler.Start, "start"))
 	a.Dispatcher.AddHandler(cf.New(helpHandler.Help, "help"))
@@ -259,6 +259,14 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.SetWeekStartDay, "week_start", "начало недели", "начало").
 		AddTriggers("+", "").
+		SetArgsCount(1),
+	)
+	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrefix, "prefix", "префикс").
+		WithGuards(groupGuard, adminGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(chatHandler.SetPrefix, "prefix", "префикс").
+		AddTriggers("+").
+		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.EnableCallOnJoin, "call_enable", "включить call", "включить колл", "включить калл").

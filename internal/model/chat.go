@@ -12,6 +12,7 @@ type Chat struct {
 	WelcomeCallMessage  string
 	CallOnJoin          bool
 	WeekStartDay        int16
+	CommandPrefix       string
 }
 
 type ChatMember struct {

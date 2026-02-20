@@ -114,6 +114,7 @@ type Chat struct {
 	WeekStartDay        int16       `db:"week_start_day" json:"weekStartDay"`
 	MaxWarns            int32       `db:"max_warns" json:"maxWarns"`
 	NormBan             pgtype.Int4 `db:"norm_ban" json:"normBan"`
+	CommandPrefix       pgtype.Text `db:"command_prefix" json:"commandPrefix"`
 }
 
 type ChatMember struct {
