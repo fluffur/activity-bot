@@ -76,3 +76,8 @@ WHERE id = @chat_id;
 UPDATE chats
 SET command_prefix = $1
 WHERE id = @chat_id;
+
+-- name: UpdateChatModerationEnabled :exec
+UPDATE chats
+SET moderation_enabled = $1
+WHERE id = @chat_id;

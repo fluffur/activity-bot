@@ -60,6 +60,7 @@ func (a *App) RegisterHandlers() {
 	developerGuard := guard.NewDeveloperGuard(a.AdminService)
 	groupGuard := guard.OnlyGroups()
 	rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 1, 10*time.Second)
+	moderationGuard := guard.NewModerationGuard(a.ChatService)
 
 	cf := cmd.NewFactory(a.UserService, a.ChatService, a.Config.UniquePrefix, "/", "!", ".")
 
@@ -161,30 +162,30 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Unban, "unban", "-бан", "разбан", "разбанить").
 		AddTriggers("").
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard, adminGuard, moderationGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Unmute, "unmute", "размут", "размутить", "-мут").
 		AddTriggers("").
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard, adminGuard, moderationGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Unwarn, "unwarn", "анварн", "снятьпред", "-варн", "-пред").
 		AddTriggers("").
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard, adminGuard, moderationGuard),
 	)
 
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Kick, "kick", "кик", "выгнать").
 		AddTriggers("", "+").
 		SetArgsCount(1).
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard, adminGuard, moderationGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Ban, "ban", "бан").
 		AddTriggers("", "+").
-		WithGuards(groupGuard, adminGuard).
+		WithGuards(groupGuard, adminGuard, moderationGuard).
 		SetArgsCount(2),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Mute, "mute", "мут", "замутить").
 		AddTriggers("", "+").
-		WithGuards(groupGuard, adminGuard).
+		WithGuards(groupGuard, adminGuard, moderationGuard).
 		SetArgsCount(2),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowWarns, "warns", "варны", "преды").
@@ -193,10 +194,10 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Warn, "warn", "варн", "пред", "предупреждение").
 		AddTriggers("", "+").SetArgsCount(2).
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard, adminGuard, moderationGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ClearWarns, "clear_warns", "очистить преды").
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard, adminGuard, moderationGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowMaxWarns, "макс преды", "макс варны", "max_warns").
 		AddTriggers("").
@@ -269,6 +270,11 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
+	a.Dispatcher.AddHandler(cf.New(chatHandler.SetModerationEnabled, "модерация", "moderation").
+		AddTriggers("+", "-").
+		WithGuards(groupGuard, adminGuard),
+	)
+
 	a.Dispatcher.AddHandler(cf.New(callHandler.EnableCallOnJoin, "call_enable", "включить call", "включить колл", "включить калл").
 		AddTriggers("").
 		WithGuards(groupGuard, adminGuard),
