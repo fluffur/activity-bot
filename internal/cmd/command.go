@@ -201,9 +201,9 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 
 	chatPrefix := ""
 	if c.chatService != nil {
-		chat, err := c.chatService.GetChat(cctx, msg.Chat.Id)
+		cht, err := c.chatService.GetChat(cctx, msg.Chat.Id)
 		if err == nil {
-			chatPrefix = strings.ToLower(chat.CommandPrefix)
+			chatPrefix = strings.ToLower(cht.CommandPrefix)
 		}
 	}
 
@@ -248,9 +248,9 @@ func (c *Command) checkMessage(ctx context.Context, b *gotgbot.Bot, msg *gotgbot
 
 	chatPrefix := ""
 	if c.chatService != nil {
-		chat, err := c.chatService.GetChat(ctx, msg.Chat.Id)
+		cht, err := c.chatService.GetChat(ctx, msg.Chat.Id)
 		if err == nil {
-			chatPrefix = strings.ToLower(chat.CommandPrefix)
+			chatPrefix = strings.ToLower(cht.CommandPrefix)
 		}
 	}
 
@@ -289,7 +289,6 @@ func (c *Command) matchCommand(text string, botUsername string, chatPrefix strin
 	}
 
 	for _, p := range prefixes {
-		// Try prefix with trigger: !фм варн
 		for _, t := range c.triggers {
 			if strings.HasPrefix(textLower, t+p) {
 				inner := strings.TrimSpace(text[len(t+p):])
@@ -298,7 +297,6 @@ func (c *Command) matchCommand(text string, botUsername string, chatPrefix strin
 				}
 			}
 		}
-		// Try prefix without trigger: фм варн
 		if strings.HasPrefix(textLower, p) {
 			inner := strings.TrimSpace(text[len(p):])
 			if rest, matched := c.matchCommandName(inner, botUsername); matched {
@@ -307,7 +305,6 @@ func (c *Command) matchCommand(text string, botUsername string, chatPrefix strin
 		}
 	}
 
-	// Try standard triggers
 	trigger, found := c.findTrigger(textLower)
 	if !found {
 		return "", false
