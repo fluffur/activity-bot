@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/member"
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -56,6 +57,8 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 			title := m.User.FirstName
 			if m.CustomTitle != "" {
 				title = fmt.Sprintf("%s (%s)", m.User.FirstName, m.CustomTitle)
+			} else {
+				log.Printf("call member %#+v \n", m)
 			}
 			sb.WriteString(helpers.Mention(m.User.ID, title))
 			if j < len(members[i:end])-1 {
