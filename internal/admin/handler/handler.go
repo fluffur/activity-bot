@@ -125,6 +125,10 @@ func (h *Handler) Kick(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
+	if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID); err != nil {
+		return err
+	}
+
 	return ctx.ReplyHTML(b, view.FormatModerationAction(*targetUser, "kick", nil, reason))
 }
 
@@ -153,6 +157,10 @@ func (h *Handler) Ban(b *gotgbot.Bot, ctx *cmd.Context) error {
 			return ctx.Reply(b, "Нельзя забанить администратора или создателя", nil)
 		}
 		_ = ctx.Reply(b, "Не удалось забанить пользователя", nil)
+		return err
+	}
+
+	if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID); err != nil {
 		return err
 	}
 

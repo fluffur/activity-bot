@@ -172,12 +172,12 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard),
 	)
 
-	a.Dispatcher.AddHandler(cf.New(adminHandler.Kick, "kick", "кик", "кикнуть", "выгнать").
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Kick, "kick", "кик", "выгнать").
 		AddTriggers("", "+").
 		SetArgsCount(1).
 		WithGuards(groupGuard, adminGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.Ban, "ban", "бан", "забанить").
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Ban, "ban", "бан").
 		AddTriggers("", "+").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(2),
