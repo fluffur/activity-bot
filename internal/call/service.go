@@ -53,10 +53,11 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 		}
 
 		for j, m := range members[i:end] {
-			if m.User.ID == 1106062335 {
-				continue
+			title := m.User.FirstName
+			if m.CustomTitle != "" {
+				title = fmt.Sprintf("%s (%s)", m.User.FirstName, m.CustomTitle)
 			}
-			sb.WriteString(helpers.Mention(m.User.ID, m.CustomTitle))
+			sb.WriteString(helpers.Mention(m.User.ID, title))
 			if j < len(members[i:end])-1 {
 				sb.WriteString(", ")
 			}

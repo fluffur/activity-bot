@@ -25,6 +25,9 @@ func LinkWithContent(u model.User, content string) string {
 }
 
 func Mention(id int64, value string) string {
+	if value == "" {
+		value = "?"
+	}
 	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, id, value)
 }
 
