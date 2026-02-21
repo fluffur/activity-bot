@@ -6,9 +6,12 @@ import (
 )
 
 func FormatNorm(norm, normBan int32) string {
+	if norm == normBan {
+		return fmt.Sprintf("Норма: %d сообщений", norm)
+	}
 	banInfo := ""
 	if normBan != 0 {
-		banInfo = fmt.Sprintf("\nЕсли сообщений вместе с тем меньше, чем %d, то выдаётся бан", normBan)
+		banInfo = fmt.Sprintf("\nЕсли сообщений меньше, чем %d, то выдаётся бан", normBan)
 	}
 
 	return fmt.Sprintf("Если сообщений меньше %d, то выдается варн. %s", norm, banInfo)
