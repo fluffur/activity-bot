@@ -95,6 +95,15 @@ func (s *Service) SyncChatMembers(ctx context.Context, chatID int64) (int, error
 		return 0, err
 	}
 
+	userIDs := make([]int64, len(members))
+	for i, m := range members {
+		userIDs[i] = m.User.ID
+	}
+
+	if err := s.repo.MarkLeftNotInList(ctx, chatID, userIDs); err != nil {
+		return 0, err
+	}
+
 	return len(members), nil
 }
 

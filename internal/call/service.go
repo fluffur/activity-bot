@@ -25,10 +25,6 @@ func NewService(repo chat.Repository, memberService *member.Service) *Service {
 }
 
 func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, message string) error {
-	if _, err := s.memberService.SyncChatMembers(ctx, tgCtx.EffectiveChat.Id); err != nil {
-		return err
-	}
-
 	members, err := s.memberService.GetChatMembers(ctx, tgCtx.EffectiveChat.Id)
 	if err != nil {
 		return err
