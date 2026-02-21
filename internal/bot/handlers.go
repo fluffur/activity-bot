@@ -225,7 +225,7 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, rateLimiterGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.ListRoles, "роли", "roles", "titles").
-		WithGuards(groupGuard, rateLimiterGuard),
+		WithGuards(groupGuard, rateLimiterGuard).AddTriggers(""),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.DeleteRole, "-роль", "-role", "-title").
 		AddTriggers("").
