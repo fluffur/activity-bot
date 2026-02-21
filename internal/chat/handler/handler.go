@@ -166,17 +166,3 @@ func (h *Handler) SetPrefix(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	return ctx.Reply(b, view.FormatPrefixSet(prefix), nil)
 }
-
-func (h *Handler) SetModerationEnabled(b *gotgbot.Bot, ctx *cmd.Context) error {
-
-	enabled := true
-	if strings.HasPrefix(ctx.Message.Text, "-") {
-		enabled = false
-	}
-
-	if err := h.service.SetModerationEnabled(ctx.StdContext(), ctx.EffectiveChat.Id, enabled); err != nil {
-		return err
-	}
-
-	return ctx.Reply(b, view.FormatModerationEnabledSet(enabled), nil)
-}

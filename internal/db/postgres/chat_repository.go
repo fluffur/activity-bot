@@ -29,7 +29,6 @@ func mapChat(c db.EnsureChatExistsRow) model.Chat {
 		CallOnJoin:          c.CallOnJoin,
 		WeekStartDay:        c.WeekStartDay,
 		CommandPrefix:       c.CommandPrefix.String,
-		ModerationEnabled:   c.ModerationEnabled,
 	}
 }
 
@@ -147,12 +146,5 @@ func (r *ChatRepository) SetCommandPrefix(ctx context.Context, chatID int64, pre
 			String: prefix,
 			Valid:  true,
 		},
-	})
-}
-
-func (r *ChatRepository) SetModerationEnabled(ctx context.Context, chatID int64, enabled bool) error {
-	return r.queries.UpdateChatModerationEnabled(ctx, db.UpdateChatModerationEnabledParams{
-		ChatID:            chatID,
-		ModerationEnabled: enabled,
 	})
 }

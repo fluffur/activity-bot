@@ -43,11 +43,3 @@ func FormatPrefix(prefix string) string {
 func FormatPrefixSet(prefix string) string {
 	return fmt.Sprintf("Установлен новый префикс чата: `%s`", prefix)
 }
-
-func FormatModerationEnabledSet(enabled bool) string {
-	status := "включен"
-	if !enabled {
-		status = "отключен"
-	}
-	return fmt.Sprintf("Модуль модерации %s", status)
-}
