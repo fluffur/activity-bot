@@ -62,7 +62,7 @@ func (a *App) RegisterHandlers() {
 	ownerGuard := guard.NewDevCreatorGuard(a.AdminService)
 	developerGuard := guard.NewDeveloperGuard(a.AdminService)
 	groupGuard := guard.OnlyGroups(sessionService)
-	rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 1, 10*time.Second, sessionService)
+	rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 1, 5*time.Second, sessionService)
 
 	cf := cmd.NewFactory(a.UserService, a.ChatService, sessionService, a.Config.UniquePrefix, "/", "!", ".")
 
