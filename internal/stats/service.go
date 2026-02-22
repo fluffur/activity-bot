@@ -65,7 +65,7 @@ func (s *Service) GetChatActivityGraph(ctx context.Context, chatID int64, from, 
 		})
 	}
 
-	return s.renderBarChart("Активность чата", values, maximum)
+	return s.renderActivityChart("Активность чата", values, maximum)
 }
 
 func (s *Service) GetMessageActivityGraph(ctx context.Context, chatID, userID int64) (*bytes.Buffer, error) {
@@ -103,33 +103,52 @@ func (s *Service) GetMessageActivityGraph(ctx context.Context, chatID, userID in
 		})
 	}
 
-	return s.renderBarChart("Статистика активности", values, maximum)
+	return s.renderActivityChart("Статистика активности", values, maximum)
 }
 
-func (s *Service) renderBarChart(title string, values []chart.Value, maximum float64) (*bytes.Buffer, error) {
-	width := 1024
-	height := 512
-
-	paddingLeft := 40
-	paddingRight := 20
-	usableWidth := float64(width - paddingLeft - paddingRight)
-	count := len(values)
-	barWidth := 20.0
-	if count > 0 {
-		barWidth = usableWidth / (1.3*float64(count) - 0.3)
-
-		if barWidth > 80 {
-			barWidth = 80
-		}
-		if barWidth < 2 {
-			barWidth = 2
-		}
+func (s *Service) renderActivityChart(title string, values []chart.Value, maximum float64) (*bytes.Buffer, error) {
+	if len(values) == 0 {
+		return nil, nil
 	}
 
 	if maximum <= 0 {
 		maximum = 10
 	}
 	maximum = roundUpNice(maximum * 1.1)
+
+	count := len(values)
+
+	if count > 45 {
+		return s.renderLineChart(title, values, maximum)
+	}
+
+	return s.renderBarChart(title, values, maximum)
+}
+
+func (s *Service) renderBarChart(title string, values []chart.Value, maximum float64) (*bytes.Buffer, error) {
+	count := len(values)
+	paddingLeft := 40
+	paddingRight := 20
+
+	// Dynamic width based on bar count
+	const minBarWidth = 25.0
+	const spacingRatio = 0.4
+
+	barWidth := minBarWidth
+	if count > 0 {
+		// If we have few bars, they can be wider
+		if count < 10 {
+			barWidth = 60
+		} else if count < 20 {
+			barWidth = 40
+		}
+	}
+
+	width := paddingLeft + paddingRight + int(float64(count)*(barWidth*(1+spacingRatio)))
+	if width < 1024 {
+		width = 1024
+	}
+	height := 512
 
 	if count > 15 {
 		step := count / 10
@@ -152,7 +171,7 @@ func (s *Service) renderBarChart(title string, values []chart.Value, maximum flo
 		Width:      width,
 		Height:     height,
 		BarWidth:   int(barWidth),
-		BarSpacing: int(barWidth * 0.3),
+		BarSpacing: int(barWidth * spacingRatio),
 		Bars:       values,
 		Background: chart.Style{
 			Padding: chart.Box{
@@ -193,6 +212,92 @@ func (s *Service) renderBarChart(title string, values []chart.Value, maximum flo
 			StrokeColor: primaryColor,
 			StrokeWidth: 1,
 		}
+	}
+
+	buf := bytes.NewBuffer(nil)
+	if err := graph.Render(chart.PNG, buf); err != nil {
+		return nil, err
+	}
+
+	return buf, nil
+}
+
+func (s *Service) renderLineChart(title string, values []chart.Value, maximum float64) (*bytes.Buffer, error) {
+	width := 1024
+	height := 512
+
+	xValues := make([]float64, len(values))
+	yValues := make([]float64, len(values))
+	ticks := make([]chart.Tick, 0)
+
+	step := len(values) / 10
+	if step < 1 {
+		step = 1
+	}
+
+	for i, v := range values {
+		xValues[i] = float64(i)
+		yValues[i] = v.Value
+		if i%step == 0 || i == len(values)-1 {
+			ticks = append(ticks, chart.Tick{
+				Value: float64(i),
+				Label: v.Label,
+			})
+		}
+	}
+
+	graph := chart.Chart{
+		Title: title,
+		TitleStyle: chart.Style{
+			FontColor: drawing.ColorFromHex("333333"),
+			FontSize:  16,
+		},
+		Width:  width,
+		Height: height,
+		Background: chart.Style{
+			Padding: chart.Box{
+				Top: 40, Bottom: 20, Left: 40, Right: 20,
+			},
+		},
+		Canvas: chart.Style{
+			FillColor: drawing.ColorFromHex("fefefe"),
+		},
+		XAxis: chart.XAxis{
+			Style: chart.Style{
+				StrokeColor: drawing.ColorFromHex("e0e0e0"),
+				FontSize:    10,
+				FontColor:   drawing.ColorFromHex("666666"),
+			},
+			Ticks: ticks,
+		},
+		YAxis: chart.YAxis{
+			Style: chart.Style{
+				StrokeWidth: 1.0,
+				StrokeColor: drawing.ColorFromHex("e0e0e0"),
+			},
+			Range: &chart.ContinuousRange{
+				Min: 0,
+				Max: maximum,
+			},
+			Ticks: buildNiceTicks(maximum),
+			ValueFormatter: func(v interface{}) string {
+				if val, ok := v.(float64); ok {
+					return fmt.Sprintf("%.0f", val)
+				}
+				return ""
+			},
+		},
+		Series: []chart.Series{
+			chart.ContinuousSeries{
+				Style: chart.Style{
+					StrokeColor: drawing.ColorFromHex("3399FF"),
+					StrokeWidth: 2,
+					FillColor:   drawing.ColorFromHex("3399FF").WithAlpha(64),
+				},
+				XValues: xValues,
+				YValues: yValues,
+			},
+		},
 	}
 
 	buf := bytes.NewBuffer(nil)

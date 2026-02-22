@@ -55,7 +55,7 @@ func (a *App) RegisterHandlers() {
 
 	messageHandler := messageH.New(messageService, a.MemberService, a.ChatService, a.Deepseek)
 	memberHandler := memberH.New(a.MemberService, a.ChatService, a.UserService, callService)
-	callHandler := callH.New(callService, a.ChatService)
+	callHandler := callH.New(callService, a.ChatService, a.AdminService)
 
 	adminGuard := guard.NewAdminGuard(a.AdminService, sessionService)
 	creatorGuard := guard.NewCreatorGuard(a.AdminService, sessionService)
@@ -88,7 +88,7 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "whoami", "ктоя", "я кто").
 		WithGuards(groupGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "я", "me").
+	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "я", "me").ForcePrefix().
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "whoareu", "ктоты", "тыкто").
