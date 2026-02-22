@@ -78,9 +78,9 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 
 		for j, m := range members[i:end] {
 			var parts []string
+			emoji := callEmojis[rand.Intn(len(callEmojis))]
 
 			if chatSettings.MentionTypes&MentionTypeEmoji > 0 {
-				emoji := callEmojis[rand.Intn(len(callEmojis))]
 				parts = append(parts, emoji)
 			}
 			if chatSettings.MentionTypes&MentionTypeName > 0 {
@@ -90,9 +90,8 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 				parts = append(parts, "("+m.CustomTitle+")")
 			}
 
-			// Default to name if nothing selected or for safety
 			if len(parts) == 0 {
-				parts = append(parts, m.User.FirstName)
+				parts = append(parts, emoji)
 			}
 
 			title := strings.Join(parts, " ")
