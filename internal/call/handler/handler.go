@@ -90,9 +90,9 @@ func (h *Handler) getCallTypesKeyboard(currentTypes int32) gotgbot.InlineKeyboar
 
 	var rows [][]gotgbot.InlineKeyboardButton
 	for _, t := range types {
-		status := "danger"
+		status := ""
 		if currentTypes&t.bit > 0 {
-			status = "success"
+			status = "primary"
 		}
 		rows = append(rows, []gotgbot.InlineKeyboardButton{{
 			Text:         fmt.Sprintf("%s", t.name),
