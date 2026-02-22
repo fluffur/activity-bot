@@ -97,7 +97,7 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 			title := strings.Join(parts, " ")
 			sb.WriteString(helpers.Mention(m.User.ID, title))
 			if j < len(members[i:end])-1 {
-				sb.WriteString(", ")
+				sb.WriteString(" ")
 			}
 		}
 
