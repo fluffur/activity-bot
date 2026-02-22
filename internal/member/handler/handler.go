@@ -132,7 +132,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if tgErr != nil {
-		return ctx.Reply(b, "Роль сохранена у бота, но не удалось установить в Telegram", nil)
+		return ctx.Reply(b, "Роль сохранена у бота, но не удалось установить в Telegram\n"+tgErr.Error(), nil)
 	}
 
 	if serviceErr != nil {
