@@ -133,7 +133,6 @@ func (a *App) Run(ctx context.Context) error {
 		if err := a.startPolling(); err != nil {
 			return err
 		}
-		slog.Info("Bot is polling. Waiting for signals...")
 		<-ctx.Done()
 	}
 
