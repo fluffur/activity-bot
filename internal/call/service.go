@@ -95,6 +95,9 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 			}
 
 			title := strings.Join(parts, " ")
+			if strings.TrimSpace(title) == "" {
+				title = emoji
+			}
 			sb.WriteString(helpers.Mention(m.User.ID, title))
 			if j < len(members[i:end])-1 {
 				sb.WriteString(" ")
