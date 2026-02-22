@@ -66,33 +66,30 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(helpHandler.Start, "start"))
 	a.Dispatcher.AddHandler(cf.New(helpHandler.Help, "help"))
 	a.Dispatcher.AddHandler(cf.New(callHandler.ShowWelcomeCallMessage, "call_message", "call сообщение", "колл сообщение", "калл сообщение").
-		AddTriggers("+", "").
+		AddTriggers("+").
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.SetWelcomeCallMessage, "call_message", "call сообщение", "колл сообщение", "калл сообщение").
-		AddTriggers("+", "").
+		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowStats, "stats", "отчёт", "отчет").
-		AddTriggers("").
 		SetArgsCount(1).
 		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 4*time.Second)),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowChatActivityGraph, "stats_graph", "график", "граф").
-		AddTriggers("").
 		SetArgsCount(1).
 		WithGuards(groupGuard, rateLimiterGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "whoami", "ктоя", "я кто").
-		AddTriggers("").
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "я", "me").
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "whoareu", "ктоты", "тыкто").
-		AddTriggers("").SetArgsCount(1).
+		SetArgsCount(1).
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("whoareyou:"), statsHandler.CallbackWhoAreYou))
@@ -100,11 +97,9 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.Inactive, "inactive", "неактив", "инактив").
-		AddTriggers("").
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowNorm, "norm", "норма какая", "а норма какая", "норма", "норма?", "quota", "какая норма", "а какая норма").
-		AddTriggers("").
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.SetNorm, "norm", "норма", "quota").
@@ -131,18 +126,17 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(restHandler.Show, "рест", "rest", "рэст").
 		FallbackToSender().
 		WithGuards(groupGuard).
-		AddTriggers("+", ""),
+		AddTriggers("+"),
 	)
 	a.Dispatcher.AddHandler(cf.New(restHandler.Set, "рест", "rest", "рэст").
 		FallbackToSender().
-		AddTriggers("+", "").
+		AddTriggers("+").
 		WithGuards(groupGuard).
 		SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(restHandler.End, "-рест", "-rest", "-рэст").
 		FallbackToSender().
-		WithGuards(groupGuard).
-		AddTriggers(""),
+		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ListAdmins, "admins", "админы", "админчики", "администраторы", "адмы", "модеры", "mods").
 		WithGuards(groupGuard, rateLimiterGuard),
@@ -152,54 +146,48 @@ func (a *App) RegisterHandlers() {
 		FallbackToSender(),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.AddAdmin, "+админ", "+admin", "+адм", "+модер", "+mod").
-		AddTriggers("").
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.RemoveAdmin, "-администратор", "-админ", "-admin", "-адм", "-модер", "-mod").
-		AddTriggers("").
 		WithGuards(groupGuard, creatorGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Unban, "unban", "-бан", "разбан", "разбанить").
-		AddTriggers("").
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Unmute, "unmute", "размут", "размутить", "-мут").
-		AddTriggers("").
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Unwarn, "unwarn", "анварн", "снятьпред", "-варн", "-пред").
-		AddTriggers("").
 		WithGuards(groupGuard, adminGuard),
 	)
 
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Kick, "kick", "кик", "выгнать").
-		AddTriggers("", "+").
+		AddTriggers("+").
 		SetArgsCount(1).
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Ban, "ban", "бан").
-		AddTriggers("", "+").
+		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(2),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Mute, "mute", "мут", "замутить").
-		AddTriggers("", "+").
+		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(2),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowWarns, "warns", "варны", "преды").
-		AddTriggers("").FallbackToSender().
+		FallbackToSender().
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Warn, "warn", "варн", "пред", "предупреждение").
-		AddTriggers("", "+").SetArgsCount(2).
+		AddTriggers("+").SetArgsCount(2).
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ClearWarns, "clear_warns", "очистить преды").
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowMaxWarns, "макс преды", "макс варны", "max_warns").
-		AddTriggers("").
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.SetMaxWarns, "max_warns", "макс преды", "макс варны").
@@ -215,7 +203,6 @@ func (a *App) RegisterHandlers() {
 		AddTriggers("+"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.RemoveDeveloper, "-дев", "remdev").
-		AddTriggers("").
 		WithGuards(ownerGuard).SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ListDevelopers, "девс", "devs").
@@ -225,15 +212,13 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, rateLimiterGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.ListRoles, "роли", "roles", "titles").
-		WithGuards(groupGuard, rateLimiterGuard).AddTriggers(""),
+		WithGuards(groupGuard, rateLimiterGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.DeleteRole, "-роль", "-role", "-title").
-		AddTriggers("").
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.ShowRole, "роль", "role", "title",
 		"какая роль", "роль у", "роль кого").
-		AddTriggers("").
 		WithGuards(groupGuard).
 		FallbackToSender(),
 	)
@@ -247,38 +232,45 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, creatorGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл", "all", "каллалл").
-		AddTriggers("+", "").
+		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard, rateLimiterGuard).
 		SetArgsCount(1),
 	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").AddTriggers(""))
+	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт"))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.SetPrompt, "промпт").
-		AddTriggers("+", "").
+		AddTriggers("+").
 		SetArgsCount(1).
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.SetWeekStartDay, "week_start", "начало недели", "начало").
-		AddTriggers("+", "").
+		AddTriggers("+").
 		SetArgsCount(1),
 	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrefix, "prefix", "префикс").
+	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrefix, "custom_prefix", "кастом префикс").
 		WithGuards(groupGuard, adminGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.SetPrefix, "prefix", "префикс").
+	a.Dispatcher.AddHandler(cf.New(chatHandler.SetPrefix, "custom_prefix", "кастом префикс").
 		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
+	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrefixes, "префиксы", "prefixes").
+		WithGuards(groupGuard, adminGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(chatHandler.DisablePrefixes, "-префиксы", "-prefixes").
+		WithGuards(groupGuard, adminGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(chatHandler.EnablePrefixes, "префиксы", "prefixes").
+		AddTriggers("+").
+		WithGuards(groupGuard, adminGuard),
+	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.EnableCallOnJoin, "call_enable", "включить call", "включить колл", "включить калл").
-		AddTriggers("").
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.DisableCallOnJoin, "call_disable", "отключить call", "отключить колл", "отключить калл").
-		AddTriggers("").
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(messageHandler.Bot, "крис").
-		AddTriggers("").
 		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 5, 10*time.Second)).
 		SetArgsCount(1),
 	)

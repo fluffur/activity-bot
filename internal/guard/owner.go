@@ -40,7 +40,7 @@ func (g *DevCreatorGuard) Check(ctx *ext.Context, _ string, stdCtx context.Conte
 
 	role, _ := g.service.GetDevRole(stdCtx, userID)
 	if role != admin.DevRoleCreator {
-		return false, "Эта команда доступна только создателям бота"
+		return false, ""
 	}
 
 	return true, ""

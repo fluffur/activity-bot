@@ -29,6 +29,7 @@ func mapChat(c db.EnsureChatExistsRow) model.Chat {
 		CallOnJoin:          c.CallOnJoin,
 		WeekStartDay:        c.WeekStartDay,
 		CommandPrefix:       c.CommandPrefix.String,
+		AllowPrefixless:     c.AllowPrefixless,
 	}
 }
 
@@ -146,5 +147,12 @@ func (r *ChatRepository) SetCommandPrefix(ctx context.Context, chatID int64, pre
 			String: prefix,
 			Valid:  true,
 		},
+	})
+}
+
+func (r *ChatRepository) SetAllowPrefixless(ctx context.Context, chatID int64, allow bool) error {
+	return r.queries.UpdateChatAllowPrefixless(ctx, db.UpdateChatAllowPrefixlessParams{
+		ChatID:          chatID,
+		AllowPrefixless: allow,
 	})
 }

@@ -51,6 +51,7 @@ type Command struct {
 	chatService      *chat.Service
 	uniquePrefix     string
 	guards           []Guard
+	forcePrefix      bool
 }
 
 func New(commands []string, triggers []string, response Response, userService *user.Service, chatService *chat.Service, uniquePrefix string) *Command {
@@ -68,6 +69,7 @@ func New(commands []string, triggers []string, response Response, userService *u
 		chatService:      chatService,
 		uniquePrefix:     uniquePrefix,
 		guards:           make([]Guard, 0),
+		forcePrefix:      false,
 	}
 }
 
@@ -78,6 +80,11 @@ func (c *Command) WithGuards(guards ...Guard) *Command {
 
 func (c *Command) FallbackToSender() *Command {
 	c.fallbackToSender = true
+	return c
+}
+
+func (c *Command) ForcePrefix() *Command {
+	c.forcePrefix = true
 	return c
 }
 
@@ -204,15 +211,17 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		}
 	}
 
+	allowPrefixless := true
 	chatPrefix := ""
 	if c.chatService != nil {
 		cht, err := c.chatService.GetChat(cctx, msg.Chat.Id)
 		if err == nil {
 			chatPrefix = strings.ToLower(cht.CommandPrefix)
+			allowPrefixless = cht.AllowPrefixless
 		}
 	}
 
-	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix)
+	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix, allowPrefixless && !c.forcePrefix)
 	if !matched {
 		return &Context{ctx, cctx, []string{}, users}
 	}
@@ -251,15 +260,17 @@ func (c *Command) checkMessage(ctx context.Context, b *gotgbot.Bot, msg *gotgbot
 		return false
 	}
 
+	allowPrefixless := true
 	chatPrefix := ""
 	if c.chatService != nil {
 		cht, err := c.chatService.GetChat(ctx, msg.Chat.Id)
 		if err == nil {
 			chatPrefix = strings.ToLower(cht.CommandPrefix)
+			allowPrefixless = cht.AllowPrefixless
 		}
 	}
 
-	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix)
+	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix, allowPrefixless && !c.forcePrefix)
 	if !matched {
 		return false
 	}
@@ -280,7 +291,7 @@ func (c *Command) findTrigger(text string) (string, bool) {
 	return "", false
 }
 
-func (c *Command) matchCommand(text string, botUsername string, chatPrefix string) (string, bool) {
+func (c *Command) matchCommand(text string, botUsername string, chatPrefix string, allowPrefixless bool) (string, bool) {
 	botUsername = strings.ToLower(botUsername)
 	textLower := strings.ToLower(text)
 
@@ -312,6 +323,14 @@ func (c *Command) matchCommand(text string, botUsername string, chatPrefix strin
 
 	trigger, found := c.findTrigger(textLower)
 	if !found {
+		if !allowPrefixless {
+			return "", false
+		}
+		// Try without trigger
+		return c.matchCommandName(text, botUsername)
+	}
+
+	if trigger == "" && !allowPrefixless {
 		return "", false
 	}
 

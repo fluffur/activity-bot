@@ -43,3 +43,14 @@ func FormatPrefix(prefix string) string {
 func FormatPrefixSet(prefix string) string {
 	return fmt.Sprintf("Установлен новый префикс чата: `%s`", prefix)
 }
+
+func FormatPrefixlessToggle(enabled bool) string {
+	return "Теперь " + FormatPrefixlessStatus(enabled)
+}
+
+func FormatPrefixlessStatus(enabled bool) string {
+	if !enabled {
+		return "Бот не отвечает на сообщения без префиксов"
+	}
+	return "Бот отвечает на сообщения без префиксов"
+}

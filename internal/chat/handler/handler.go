@@ -166,3 +166,25 @@ func (h *Handler) SetPrefix(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	return ctx.Reply(b, view.FormatPrefixSet(prefix), nil)
 }
+
+func (h *Handler) EnablePrefixes(b *gotgbot.Bot, ctx *cmd.Context) error {
+	if err := h.service.SetAllowPrefixless(ctx.StdContext(), ctx.EffectiveChat.Id, true); err != nil {
+		return err
+	}
+	return ctx.ReplyHTML(b, view.FormatPrefixlessToggle(true))
+}
+
+func (h *Handler) DisablePrefixes(b *gotgbot.Bot, ctx *cmd.Context) error {
+	if err := h.service.SetAllowPrefixless(ctx.StdContext(), ctx.EffectiveChat.Id, false); err != nil {
+		return err
+	}
+	return ctx.ReplyHTML(b, view.FormatPrefixlessToggle(false))
+}
+
+func (h *Handler) ShowPrefixes(b *gotgbot.Bot, ctx *cmd.Context) error {
+	c, err := h.service.GetChat(ctx.StdContext(), ctx.EffectiveChat.Id)
+	if err != nil {
+		return err
+	}
+	return ctx.ReplyHTML(b, view.FormatPrefixlessStatus(c.AllowPrefixless))
+}

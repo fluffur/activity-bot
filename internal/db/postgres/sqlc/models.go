@@ -115,6 +115,7 @@ type Chat struct {
 	MaxWarns            int32       `db:"max_warns" json:"maxWarns"`
 	NormBan             pgtype.Int4 `db:"norm_ban" json:"normBan"`
 	CommandPrefix       pgtype.Text `db:"command_prefix" json:"commandPrefix"`
+	AllowPrefixless     bool        `db:"allow_prefixless" json:"allowPrefixless"`
 }
 
 type ChatMember struct {

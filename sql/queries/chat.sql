@@ -76,3 +76,8 @@ WHERE id = @chat_id;
 UPDATE chats
 SET command_prefix = $1
 WHERE id = @chat_id;
+
+-- name: UpdateChatAllowPrefixless :exec
+UPDATE chats
+SET allow_prefixless = $1
+WHERE id = @chat_id;
