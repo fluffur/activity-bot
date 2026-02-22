@@ -19,13 +19,18 @@ const ArgsCountNone = 0
 var defaultTriggers = []string{"/"}
 
 type Factory struct {
-	userService  *user.Service
-	chatService  *chat.Service
+	userService    *user.Service
+	chatService    *chat.Service
+	sessionService interface {
+		GetActiveChat(ctx context.Context, userID int64) (int64, error)
+	}
 	uniquePrefix string
 	triggers     []string
 }
 
-func NewFactory(userService *user.Service, chatService *chat.Service, uniquePrefix string, triggers ...string) *Factory {
+func NewFactory(userService *user.Service, chatService *chat.Service, sessionService interface {
+	GetActiveChat(ctx context.Context, userID int64) (int64, error)
+}, uniquePrefix string, triggers ...string) *Factory {
 	if len(triggers) == 0 {
 		triggers = defaultTriggers
 	}
@@ -34,11 +39,11 @@ func NewFactory(userService *user.Service, chatService *chat.Service, uniquePref
 		triggers[i] = strings.ToLower(t)
 	}
 
-	return &Factory{userService, chatService, strings.ToLower(uniquePrefix), triggers}
+	return &Factory{userService, chatService, sessionService, strings.ToLower(uniquePrefix), triggers}
 }
 
 func (f *Factory) New(r Response, c string, aliases ...string) *Command {
-	return New(append(aliases, c), f.triggers, r, f.userService, f.chatService, f.uniquePrefix)
+	return New(append(aliases, c), f.triggers, r, f.userService, f.chatService, f.sessionService, f.uniquePrefix)
 }
 
 type Command struct {
@@ -49,12 +54,17 @@ type Command struct {
 	fallbackToSender bool
 	userService      *user.Service
 	chatService      *chat.Service
-	uniquePrefix     string
-	guards           []Guard
-	forcePrefix      bool
+	sessionService   interface {
+		GetActiveChat(ctx context.Context, userID int64) (int64, error)
+	}
+	uniquePrefix string
+	guards       []Guard
+	forcePrefix  bool
 }
 
-func New(commands []string, triggers []string, response Response, userService *user.Service, chatService *chat.Service, uniquePrefix string) *Command {
+func New(commands []string, triggers []string, response Response, userService *user.Service, chatService *chat.Service, sessionService interface {
+	GetActiveChat(ctx context.Context, userID int64) (int64, error)
+}, uniquePrefix string) *Command {
 	for i, c := range commands {
 		commands[i] = strings.ToLower(c)
 	}
@@ -67,6 +77,7 @@ func New(commands []string, triggers []string, response Response, userService *u
 		argsCount:        ArgsCountNone,
 		userService:      userService,
 		chatService:      chatService,
+		sessionService:   sessionService,
 		uniquePrefix:     uniquePrefix,
 		guards:           make([]Guard, 0),
 		forcePrefix:      false,
@@ -223,7 +234,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 
 	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix, allowPrefixless && !c.forcePrefix)
 	if !matched {
-		return &Context{ctx, cctx, []string{}, users}
+		return &Context{ctx, cctx, []string{}, users, c.sessionService}
 	}
 
 	rest = strings.TrimSpace(rest)
@@ -243,7 +254,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 	for _, u := range users {
 		log.Println("user", *u)
 	}
-	return &Context{ctx, cctx, args, users}
+	return &Context{ctx, cctx, args, users, c.sessionService}
 }
 
 func (c *Command) Name() string {
@@ -295,7 +306,6 @@ func (c *Command) matchCommand(text string, botUsername string, chatPrefix strin
 	botUsername = strings.ToLower(botUsername)
 	textLower := strings.ToLower(text)
 
-	// Try prefixes first
 	prefixes := make([]string, 0)
 	if c.uniquePrefix != "" {
 		prefixes = append(prefixes, c.uniquePrefix)
@@ -326,7 +336,6 @@ func (c *Command) matchCommand(text string, botUsername string, chatPrefix strin
 		if !allowPrefixless {
 			return "", false
 		}
-		// Try without trigger
 		return c.matchCommandName(text, botUsername)
 	}
 

@@ -9,15 +9,28 @@ import (
 )
 
 type AdminGuard struct {
-	service *admin.Service
+	service        *admin.Service
+	sessionService interface {
+		GetActiveChat(ctx context.Context, userID int64) (int64, error)
+	}
 }
 
-func NewAdminGuard(service *admin.Service) cmd.Guard {
-	return &AdminGuard{service}
+func NewAdminGuard(service *admin.Service, sessionService interface {
+	GetActiveChat(ctx context.Context, userID int64) (int64, error)
+}) cmd.Guard {
+	return &AdminGuard{service, sessionService}
 }
 
 func (g *AdminGuard) Check(ctx *ext.Context, _ string, stdCtx context.Context) (bool, string) {
-	if !g.service.CheckIsAdmin(stdCtx, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
+	chatID := ctx.EffectiveChat.Id
+	if ctx.EffectiveChat.Type == "private" && g.sessionService != nil {
+		targetID, err := g.sessionService.GetActiveChat(stdCtx, ctx.EffectiveSender.Id())
+		if err == nil && targetID != 0 {
+			chatID = targetID
+		}
+	}
+
+	if !g.service.CheckIsAdmin(stdCtx, chatID, ctx.EffectiveSender.Id()) {
 		return false, ""
 	}
 	return true, ""

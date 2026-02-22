@@ -28,6 +28,30 @@ func (q *Queries) AddChatAdmin(ctx context.Context, arg AddChatAdminParams) erro
 	return err
 }
 
+const getAllChatIDs = `-- name: GetAllChatIDs :many
+SELECT id FROM chats
+`
+
+func (q *Queries) GetAllChatIDs(ctx context.Context) ([]int64, error) {
+	rows, err := q.db.Query(ctx, getAllChatIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []int64{}
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getChatAdmins = `-- name: GetChatAdmins :many
 SELECT u.id, u.username, u.first_name, u.last_name, cm.joined_at as created_at
 FROM chat_members cm
@@ -88,6 +112,33 @@ func (q *Queries) GetChatMemberStatus(ctx context.Context, arg GetChatMemberStat
 	var status string
 	err := row.Scan(&status)
 	return status, err
+}
+
+const getChatsWhereUserIsAdmin = `-- name: GetChatsWhereUserIsAdmin :many
+SELECT c.id
+FROM chats c
+JOIN chat_members cm ON c.id = cm.chat_id
+WHERE cm.user_id = $1 AND cm.status IN ('administrator', 'creator')
+`
+
+func (q *Queries) GetChatsWhereUserIsAdmin(ctx context.Context, userID int64) ([]int64, error) {
+	rows, err := q.db.Query(ctx, getChatsWhereUserIsAdmin, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []int64{}
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getMembersWithExpiredMute = `-- name: GetMembersWithExpiredMute :many

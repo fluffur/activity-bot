@@ -164,3 +164,9 @@ type User struct {
 	LastName  pgtype.Text        `db:"last_name" json:"lastName"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
 }
+
+type UserPmSession struct {
+	UserID       int64              `db:"user_id" json:"userId"`
+	TargetChatID int64              `db:"target_chat_id" json:"targetChatId"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updatedAt"`
+}

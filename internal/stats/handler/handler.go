@@ -31,7 +31,7 @@ func New(service *stats.Service, restService *rest.Service, memberService *membe
 }
 
 func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.EffectiveChat.Id)
+	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
 	}
@@ -60,12 +60,12 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 	}
 
-	report, err := h.service.GetAllMembersStats(ctx.StdContext(), ctx.EffectiveChat.Id, from, to)
+	report, err := h.service.GetAllMembersStats(ctx.StdContext(), ctx.TargetChatID(), from, to)
 	if err != nil {
 		return err
 	}
 
-	restMembers, err := h.restService.GetRestMembers(ctx.StdContext(), ctx.EffectiveChat.Id)
+	restMembers, err := h.restService.GetRestMembers(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.EffectiveChat.Id)
+	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error 
 		}
 	}
 
-	buf, err := h.service.GetChatActivityGraph(ctx.StdContext(), ctx.EffectiveChat.Id, from, to)
+	buf, err := h.service.GetChatActivityGraph(ctx.StdContext(), ctx.TargetChatID(), from, to)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error 
 }
 
 func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *cmd.Context) error {
-	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.TargetChatID(), ctx.EffectiveSender.Id())
 }
 
 func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -158,13 +158,13 @@ func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 			return fmt.Errorf("no role no user")
 		}
 
-		users, err := h.userService.GetByCustomTitle(ctx.StdContext(), ctx.EffectiveChat.Id, role)
+		users, err := h.userService.GetByCustomTitle(ctx.StdContext(), ctx.TargetChatID(), role)
 		if err != nil || len(users) == 0 {
 			return fmt.Errorf("user with role %s not found", role)
 		}
 
 		if len(users) == 1 {
-			return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.EffectiveChat.Id, users[0].User.ID)
+			return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.TargetChatID(), users[0].User.ID)
 		}
 
 		var buttons [][]gotgbot.InlineKeyboardButton
@@ -188,7 +188,7 @@ func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 		})
 	}
 
-	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.EffectiveChat.Id, u.ID)
+	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.TargetChatID(), u.ID)
 }
 
 func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -256,16 +256,15 @@ func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *ext.Context) error {
 		chatID,
 		userID,
 	)
-
 }
 
-func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx context.Context, tgCtx *ext.Context, chatID int64, userID int64) error {
-	m, err := h.service.GetMemberStats(ctx, chatID, userID)
+func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx context.Context, tgCtx *ext.Context, dataChatID int64, userID int64) error {
+	m, err := h.service.GetMemberStats(ctx, dataChatID, userID)
 	if err != nil {
 		return err
 	}
 
-	buf, err := h.service.GetMessageActivityGraph(ctx, chatID, userID)
+	buf, err := h.service.GetMessageActivityGraph(ctx, dataChatID, userID)
 	if err != nil {
 		slog.Warn("Failed to get graph", "error", err)
 	}
@@ -282,11 +281,11 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx context.Context, tgCtx *ext.Con
 		return err
 	}
 
-	_, err = b.SendPhoto(chatID, gotgbot.InputFileByReader("activity.png", buf), &gotgbot.SendPhotoOpts{
+	_, err = b.SendPhoto(tgCtx.EffectiveChat.Id, gotgbot.InputFileByReader("activity.png", buf), &gotgbot.SendPhotoOpts{
 		Caption: text,
 		ReplyParameters: &gotgbot.ReplyParameters{
 			MessageId:                tgCtx.EffectiveMessage.MessageId,
-			ChatId:                   chatID,
+			ChatId:                   tgCtx.EffectiveChat.Id,
 			AllowSendingWithoutReply: true,
 		},
 		ParseMode: gotgbot.ParseModeHTML,
@@ -295,7 +294,7 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx context.Context, tgCtx *ext.Con
 }
 
 func (h *Handler) Inactive(b *gotgbot.Bot, ctx *cmd.Context) error {
-	members, err := h.service.GetInactiveMembers(ctx.StdContext(), ctx.EffectiveChat.Id)
+	members, err := h.service.GetInactiveMembers(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
 	}

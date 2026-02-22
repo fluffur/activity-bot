@@ -13,6 +13,8 @@ type Repository interface {
 	IsAdmin(ctx context.Context, chatID int64, userID int64) (bool, error)
 	IsCreator(ctx context.Context, chatID int64, userID int64) (bool, error)
 	GetRole(ctx context.Context, chatID int64, userID int64) (string, error)
+	GetChatsWhereUserIsAdmin(ctx context.Context, userID int64) ([]int64, error)
+	GetAllChatIDs(ctx context.Context) ([]int64, error)
 
 	EnsureDeveloperUser(ctx context.Context, userID int64) error
 	GetDeveloperRole(ctx context.Context, userID int64) (string, error)

@@ -17,6 +17,7 @@ import (
 	messageH "activity-bot/internal/message/handler"
 	"activity-bot/internal/rest"
 	restH "activity-bot/internal/rest/handler"
+	"activity-bot/internal/session"
 	"activity-bot/internal/stats"
 	statsH "activity-bot/internal/stats/handler"
 	"time"
@@ -34,18 +35,20 @@ func (a *App) RegisterHandlers() {
 	restRepository := postgres.NewRestRepository(queries, a.Pool)
 	chatRepository := postgres.NewChatRepository(queries)
 	messageRepository := postgres.NewMessageRepository(queries)
+	sessionRepository := postgres.NewSessionRepository(queries)
 
 	statsService := stats.NewService(statsRepository)
 	restService := rest.NewService(restRepository)
 	messageService := msg.NewService(messageRepository)
 
 	callService := call.NewService(chatRepository, a.MemberService)
+	sessionService := session.NewService(sessionRepository)
 
 	dateParser := helpers.NewDateParser()
 
 	helpHandler := helpH.New(a.Config.BotOwnerID)
 	statsHandler := statsH.New(statsService, restService, a.MemberService, a.UserService, a.ChatService)
-	chatHandler := chatH.New(a.ChatService, a.AdminService, dateParser)
+	chatHandler := chatH.New(a.ChatService, a.AdminService, sessionService, dateParser)
 	restHandler := restH.New(restService, a.UserService, a.AdminService, dateParser)
 
 	adminHandler := adminH.New(a.AdminService, a.UserService, a.MemberService, dateParser, a.AsyncClient)
@@ -54,14 +57,14 @@ func (a *App) RegisterHandlers() {
 	memberHandler := memberH.New(a.MemberService, a.ChatService, a.UserService, callService)
 	callHandler := callH.New(callService, a.ChatService)
 
-	adminGuard := guard.NewAdminGuard(a.AdminService)
-	creatorGuard := guard.NewCreatorGuard(a.AdminService)
+	adminGuard := guard.NewAdminGuard(a.AdminService, sessionService)
+	creatorGuard := guard.NewCreatorGuard(a.AdminService, sessionService)
 	ownerGuard := guard.NewDevCreatorGuard(a.AdminService)
 	developerGuard := guard.NewDeveloperGuard(a.AdminService)
-	groupGuard := guard.OnlyGroups()
-	rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 1, 10*time.Second)
+	groupGuard := guard.OnlyGroups(sessionService)
+	rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 1, 10*time.Second, sessionService)
 
-	cf := cmd.NewFactory(a.UserService, a.ChatService, a.Config.UniquePrefix, "/", "!", ".")
+	cf := cmd.NewFactory(a.UserService, a.ChatService, sessionService, a.Config.UniquePrefix, "/", "!", ".")
 
 	a.Dispatcher.AddHandler(cf.New(helpHandler.Start, "start"))
 	a.Dispatcher.AddHandler(cf.New(helpHandler.Help, "help"))
@@ -76,7 +79,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowStats, "stats", "отчёт", "отчет").
 		SetArgsCount(1).
-		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 4*time.Second)),
+		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 4*time.Second, sessionService)),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowChatActivityGraph, "stats_graph", "график", "граф").
 		SetArgsCount(1).
@@ -139,7 +142,7 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ListAdmins, "admins", "админы", "админчики", "администраторы", "адмы", "модеры", "mods").
-		WithGuards(groupGuard, rateLimiterGuard),
+		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 10*time.Second, sessionService)),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.IsAdmin, "админ", "admin", "is_admin", "адм", "модер", "mod", "is_mod").
 		WithGuards(groupGuard).
@@ -209,7 +212,7 @@ func (a *App) RegisterHandlers() {
 		WithGuards(developerGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.UpdateMembersList, "обновить чат", "update chat", "update").
-		WithGuards(groupGuard, rateLimiterGuard),
+		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 10*time.Second, sessionService)),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.ListRoles, "роли", "roles", "titles").
 		WithGuards(groupGuard, rateLimiterGuard),
@@ -236,7 +239,9 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard, rateLimiterGuard).
 		SetArgsCount(1),
 	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт"))
+	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").WithGuards(groupGuard))
+	a.Dispatcher.AddHandler(cf.New(chatHandler.Manage, "manage", "управление").ForcePrefix())
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage:"), chatHandler.CallbackManage))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.SetPrompt, "промпт").
 		AddTriggers("+").
 		SetArgsCount(1).
@@ -271,7 +276,7 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(messageHandler.Bot, "крис").
-		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 5, 10*time.Second)).
+		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 5, 10*time.Second, sessionService)).
 		SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.FakeLeave, "фейклив").FallbackToSender().WithGuards(groupGuard, adminGuard))

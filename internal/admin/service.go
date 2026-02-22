@@ -89,6 +89,15 @@ func (s *Service) IsDeveloper(ctx context.Context, userID int64) (bool, error) {
 	return s.repo.IsDeveloper(ctx, userID)
 }
 
+func (s *Service) GetUserManagedChats(ctx context.Context, userID int64) ([]int64, error) {
+	isDev, _ := s.IsDeveloper(ctx, userID)
+	if isDev {
+		return s.repo.GetAllChatIDs(ctx)
+	}
+
+	return s.repo.GetChatsWhereUserIsAdmin(ctx, userID)
+}
+
 func (s *Service) AddAdmin(ctx context.Context, chatID int64, userID int64) error {
 	isCreator, err := s.IsCreator(ctx, chatID, userID)
 	if err != nil {

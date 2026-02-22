@@ -74,6 +74,14 @@ func (r *AdminRepository) GetRole(ctx context.Context, chatID int64, userID int6
 	})
 }
 
+func (r *AdminRepository) GetChatsWhereUserIsAdmin(ctx context.Context, userID int64) ([]int64, error) {
+	return r.queries.GetChatsWhereUserIsAdmin(ctx, userID)
+}
+
+func (r *AdminRepository) GetAllChatIDs(ctx context.Context) ([]int64, error) {
+	return r.queries.GetAllChatIDs(ctx)
+}
+
 func (r *AdminRepository) CreateModerationAction(ctx context.Context, actionType string, chatID, userID, modID int64, reason string, until *time.Time) error {
 	var expiresAt pgtype.Timestamptz
 	if until != nil {
