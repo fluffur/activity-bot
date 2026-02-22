@@ -256,7 +256,7 @@ func (s *Service) renderLineChart(title string, values []chart.Value, maximum fl
 		Height: height,
 		Background: chart.Style{
 			Padding: chart.Box{
-				Top: 40, Bottom: 20, Left: 40, Right: 20,
+				Top: 40, Bottom: 50, Left: 50, Right: 20,
 			},
 		},
 		Canvas: chart.Style{
@@ -269,6 +269,15 @@ func (s *Service) renderLineChart(title string, values []chart.Value, maximum fl
 				FontColor:   drawing.ColorFromHex("666666"),
 			},
 			Ticks: ticks,
+			ValueFormatter: func(v interface{}) string {
+				if val, ok := v.(float64); ok {
+					idx := int(val)
+					if idx >= 0 && idx < len(values) {
+						return values[idx].Label
+					}
+				}
+				return ""
+			},
 		},
 		YAxis: chart.YAxis{
 			Style: chart.Style{
