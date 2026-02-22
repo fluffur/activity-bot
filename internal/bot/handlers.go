@@ -96,7 +96,7 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("whoareyou:"), statsHandler.CallbackWhoAreYou))
-	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "кто", "ты", "you").SetArgsCount(1).
+	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "ты", "you").SetArgsCount(1).ForcePrefix().
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.Inactive, "inactive", "неактив", "инактив").
