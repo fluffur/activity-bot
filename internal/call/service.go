@@ -83,6 +83,11 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 
 		for j, m := range members[i:end] {
 			var parts []string
+			emptyStr := "​"
+			if j == 0 && message == "" {
+				emptyStr = "ㅤ"
+			}
+
 			emoji := callEmojis[rand.Intn(len(callEmojis))]
 
 			if chatSettings.MentionTypes&MentionTypeEmoji > 0 {
@@ -96,12 +101,12 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 			}
 
 			if len(parts) == 0 {
-				parts = append(parts, "ㅤ")
+				parts = append(parts, emptyStr)
 			}
 
 			title := strings.Join(parts, " ")
 			if strings.TrimSpace(title) == "" {
-				title = "ㅤ"
+				title = emptyStr
 			}
 			sb.WriteString(helpers.Mention(m.User.ID, title))
 			if j < len(members[i:end])-1 {
