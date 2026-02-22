@@ -83,20 +83,21 @@ func (h *Handler) getCallTypesKeyboard(currentTypes int32) gotgbot.InlineKeyboar
 		name string
 		bit  int32
 	}{
-		{"Эмодзи (🔔)", call.MentionTypeEmoji},
+		{"Эмодзи", call.MentionTypeEmoji},
 		{"Имя", call.MentionTypeName},
 		{"ТГ Роль", call.MentionTypeRole},
 	}
 
 	var rows [][]gotgbot.InlineKeyboardButton
 	for _, t := range types {
-		status := "❌"
+		status := "danger"
 		if currentTypes&t.bit > 0 {
-			status = "✅"
+			status = "success"
 		}
 		rows = append(rows, []gotgbot.InlineKeyboardButton{{
-			Text:         fmt.Sprintf("%s %s", status, t.name),
+			Text:         fmt.Sprintf("%s", t.name),
 			CallbackData: fmt.Sprintf("call_type:%d", t.bit),
+			Style:        status,
 		}})
 	}
 
