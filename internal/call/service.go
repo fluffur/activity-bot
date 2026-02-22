@@ -96,12 +96,12 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 			}
 
 			if len(parts) == 0 {
-				parts = append(parts, emoji)
+				parts = append(parts, "ㅤ")
 			}
 
 			title := strings.Join(parts, " ")
 			if strings.TrimSpace(title) == "" {
-				title = emoji
+				title = "ㅤ"
 			}
 			sb.WriteString(helpers.Mention(m.User.ID, title))
 			if j < len(members[i:end])-1 {
