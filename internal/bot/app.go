@@ -119,7 +119,6 @@ func (a *App) Run(ctx context.Context) error {
 
 	mux := a.registerWorkerHandlers()
 	go func() {
-		slog.Info("Starting Asynq worker...")
 		if err := a.AsyncServer.Start(mux); err != nil {
 			slog.Error("Asynq server error", "error", err)
 		}
