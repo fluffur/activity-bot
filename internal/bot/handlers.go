@@ -282,6 +282,7 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 5, 10*time.Second)).
 		SetArgsCount(1),
 	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.FakeLeave, "фейклив").FallbackToSender().WithGuards(groupGuard, adminGuard))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"), restHandler.ApproveRestRequest))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("reject:"), restHandler.RejectRestRequest))
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))

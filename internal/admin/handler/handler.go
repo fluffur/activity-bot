@@ -496,6 +496,20 @@ func (h *Handler) ClearWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.ReplyHTML(b, view.FormatWarnsCleared(*targetUser))
 }
 
+func (h *Handler) FakeLeave(b *gotgbot.Bot, ctx *cmd.Context) error {
+	title, err := h.memberService.GetMemberTitle(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+	if err != nil {
+		return err
+	}
+	_, err = b.SendMessage(ctx.EffectiveChat.Id, fmt.Sprintf("🕊 %s c ролью \"%s\" покинул нас...", helpers.Link(*ctx.FirstUser()), title), &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+	})
+	return err
+}
+
 func parseUntil(
 	parser *helpers.DateParser,
 	arg string,
