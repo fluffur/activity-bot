@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"activity-bot/internal/admin"
 	"activity-bot/internal/call"
 	"activity-bot/internal/call/view"
 	"activity-bot/internal/chat"
@@ -14,12 +15,13 @@ import (
 )
 
 type Handler struct {
-	service     *call.Service
-	chatService *chat.Service
+	service      *call.Service
+	chatService  *chat.Service
+	adminService *admin.Service
 }
 
-func New(service *call.Service, chatService *chat.Service) *Handler {
-	return &Handler{service, chatService}
+func New(service *call.Service, chatService *chat.Service, adminService *admin.Service) *Handler {
+	return &Handler{service, chatService, adminService}
 }
 
 func (h *Handler) Call(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -52,6 +54,16 @@ func (h *Handler) ShowCallTypes(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *ext.Context) error {
+	isAdmin, err := h.adminService.IsAdmin(context.Background(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+	if err != nil {
+		return err
+	}
+	if !isAdmin {
+		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "У вас нет прав администратора для выполнения действия",
+		})
+		return err
+	}
 	var bit int32
 	if _, err := fmt.Sscanf(ctx.CallbackQuery.Data, "call_type:%d", &bit); err != nil {
 		return err
