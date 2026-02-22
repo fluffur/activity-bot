@@ -497,7 +497,7 @@ func (h *Handler) ClearWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) FakeLeave(b *gotgbot.Bot, ctx *cmd.Context) error {
-	title, err := h.memberService.GetMemberTitle(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+	title, err := h.memberService.GetMemberTitle(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.FirstUser().ID)
 	if err != nil {
 		return err
 	}
