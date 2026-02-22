@@ -116,6 +116,8 @@ type Chat struct {
 	NormBan             pgtype.Int4 `db:"norm_ban" json:"normBan"`
 	CommandPrefix       pgtype.Text `db:"command_prefix" json:"commandPrefix"`
 	AllowPrefixless     bool        `db:"allow_prefixless" json:"allowPrefixless"`
+	MentionsPerMessage  int32       `db:"mentions_per_message" json:"mentionsPerMessage"`
+	MentionTypes        int32       `db:"mention_types" json:"mentionTypes"`
 }
 
 type ChatMember struct {

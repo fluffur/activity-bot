@@ -4,6 +4,7 @@ import "github.com/PaulSonOfLars/gotgbot/v2"
 
 var BotCommands = []gotgbot.BotCommand{
 	{Command: "stats", Description: "📊 Недельный отчёт"},
+	{Command: "stats_graph", Description: "📈 График активности"},
 	{Command: "inactive", Description: "💤 Неактивные участники"},
 	{Command: "norm", Description: "📈 Норма сообщений"},
 	{Command: "rest", Description: "🛌 Управление рестом"},
@@ -19,6 +20,10 @@ var BotCommands = []gotgbot.BotCommand{
 	{Command: "call_enable", Description: "📣 Включить созыв при входе новичка"},
 	{Command: "call_disable", Description: "📣 Отключить созыв при входе новичка"},
 	{Command: "call_message", Description: "💬 Сообщение для созыва"},
+	{Command: "call_limit", Description: "🔢 Лимит упоминаний в call"},
+	{Command: "call_type", Description: "⚙️ Тип упоминаний в call"},
 	{Command: "week_start", Description: "📅 День начала недели"},
+	{Command: "custom_prefix", Description: "🏷️ Кастомный префикс"},
+	{Command: "manage", Description: "💼 Управление чатами (в ЛС)"},
 	{Command: "help", Description: "🆘 Помощь"},
 }

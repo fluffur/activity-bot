@@ -16,11 +16,11 @@ WITH ins AS (
     INSERT INTO chats (id, norm_warn, newbie_threshold_days)
         VALUES ($1, $2, $3)
         ON CONFLICT (id) DO NOTHING
-        RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless)
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless
+        RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types)
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types
 FROM ins
 UNION ALL
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types
 FROM chats
 WHERE id = $1
 LIMIT 1
@@ -45,6 +45,8 @@ type EnsureChatExistsRow struct {
 	NormBan             pgtype.Int4 `db:"norm_ban" json:"normBan"`
 	CommandPrefix       pgtype.Text `db:"command_prefix" json:"commandPrefix"`
 	AllowPrefixless     bool        `db:"allow_prefixless" json:"allowPrefixless"`
+	MentionsPerMessage  int32       `db:"mentions_per_message" json:"mentionsPerMessage"`
+	MentionTypes        int32       `db:"mention_types" json:"mentionTypes"`
 }
 
 func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error) {
@@ -63,12 +65,14 @@ func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsPara
 		&i.NormBan,
 		&i.CommandPrefix,
 		&i.AllowPrefixless,
+		&i.MentionsPerMessage,
+		&i.MentionTypes,
 	)
 	return i, err
 }
 
 const getChat = `-- name: GetChat :one
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types
 FROM chats
 WHERE id = $1
 `
@@ -89,6 +93,8 @@ func (q *Queries) GetChat(ctx context.Context, id int64) (Chat, error) {
 		&i.NormBan,
 		&i.CommandPrefix,
 		&i.AllowPrefixless,
+		&i.MentionsPerMessage,
+		&i.MentionTypes,
 	)
 	return i, err
 }
@@ -111,7 +117,7 @@ const getOrCreateChat = `-- name: GetOrCreateChat :one
 INSERT INTO chats(id, norm_warn)
 VALUES ($1, $2)
 ON CONFLICT(id) DO UPDATE SET norm = chats.norm
-RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless
+RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types
 `
 
 type GetOrCreateChatParams struct {
@@ -135,6 +141,8 @@ func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams
 		&i.NormBan,
 		&i.CommandPrefix,
 		&i.AllowPrefixless,
+		&i.MentionsPerMessage,
+		&i.MentionTypes,
 	)
 	return i, err
 }
@@ -248,6 +256,38 @@ type UpdateChatCommandPrefixParams struct {
 
 func (q *Queries) UpdateChatCommandPrefix(ctx context.Context, arg UpdateChatCommandPrefixParams) error {
 	_, err := q.db.Exec(ctx, updateChatCommandPrefix, arg.CommandPrefix, arg.ChatID)
+	return err
+}
+
+const updateChatMentionTypes = `-- name: UpdateChatMentionTypes :exec
+UPDATE chats
+SET mention_types = $1
+WHERE id = $2
+`
+
+type UpdateChatMentionTypesParams struct {
+	MentionTypes int32 `db:"mention_types" json:"mentionTypes"`
+	ChatID       int64 `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) UpdateChatMentionTypes(ctx context.Context, arg UpdateChatMentionTypesParams) error {
+	_, err := q.db.Exec(ctx, updateChatMentionTypes, arg.MentionTypes, arg.ChatID)
+	return err
+}
+
+const updateChatMentionsPerMessage = `-- name: UpdateChatMentionsPerMessage :exec
+UPDATE chats
+SET mentions_per_message = $1
+WHERE id = $2
+`
+
+type UpdateChatMentionsPerMessageParams struct {
+	MentionsPerMessage int32 `db:"mentions_per_message" json:"mentionsPerMessage"`
+	ChatID             int64 `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) UpdateChatMentionsPerMessage(ctx context.Context, arg UpdateChatMentionsPerMessageParams) error {
+	_, err := q.db.Exec(ctx, updateChatMentionsPerMessage, arg.MentionsPerMessage, arg.ChatID)
 	return err
 }
 

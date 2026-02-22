@@ -81,3 +81,13 @@ WHERE id = @chat_id;
 UPDATE chats
 SET allow_prefixless = $1
 WHERE id = @chat_id;
+
+-- name: UpdateChatMentionsPerMessage :exec
+UPDATE chats
+SET mentions_per_message = $1
+WHERE id = @chat_id;
+
+-- name: UpdateChatMentionTypes :exec
+UPDATE chats
+SET mention_types = $1
+WHERE id = @chat_id;

@@ -20,4 +20,6 @@ type Repository interface {
 	SetWeekStartDay(ctx context.Context, chatID int64, day int) error
 	SetCommandPrefix(ctx context.Context, chatID int64, prefix string) error
 	SetAllowPrefixless(ctx context.Context, chatID int64, allow bool) error
+	SetMentionsPerMessage(ctx context.Context, chatID int64, count int32) error
+	SetMentionTypes(ctx context.Context, chatID int64, types int32) error
 }

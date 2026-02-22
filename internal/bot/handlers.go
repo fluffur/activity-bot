@@ -239,6 +239,16 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard, rateLimiterGuard).
 		SetArgsCount(1),
 	)
+	a.Dispatcher.AddHandler(cf.New(callHandler.SetMentionsPerMessage, "call_limit", "колллимит", "калллимит").
+		AddTriggers("+", "!").
+		WithGuards(groupGuard, adminGuard).
+		SetArgsCount(1),
+	)
+	a.Dispatcher.AddHandler(cf.New(callHandler.ShowCallTypes, "call_type", "коллтип", "каллтип").
+		AddTriggers("+", "!").
+		WithGuards(groupGuard, adminGuard),
+	)
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_type:"), callHandler.CallbackCallType))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").WithGuards(groupGuard))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.Manage, "manage", "управление").ForcePrefix())
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage:"), chatHandler.CallbackManage))

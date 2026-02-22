@@ -14,6 +14,8 @@ type Chat struct {
 	WeekStartDay        int16
 	CommandPrefix       string
 	AllowPrefixless     bool
+	MentionsPerMessage  int32
+	MentionTypes        int32
 }
 
 type ChatMember struct {

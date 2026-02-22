@@ -30,6 +30,8 @@ func mapChat(c db.EnsureChatExistsRow) model.Chat {
 		WeekStartDay:        c.WeekStartDay,
 		CommandPrefix:       c.CommandPrefix.String,
 		AllowPrefixless:     c.AllowPrefixless,
+		MentionsPerMessage:  c.MentionsPerMessage,
+		MentionTypes:        c.MentionTypes,
 	}
 }
 
@@ -154,5 +156,19 @@ func (r *ChatRepository) SetAllowPrefixless(ctx context.Context, chatID int64, a
 	return r.queries.UpdateChatAllowPrefixless(ctx, db.UpdateChatAllowPrefixlessParams{
 		ChatID:          chatID,
 		AllowPrefixless: allow,
+	})
+}
+
+func (r *ChatRepository) SetMentionsPerMessage(ctx context.Context, chatID int64, count int32) error {
+	return r.queries.UpdateChatMentionsPerMessage(ctx, db.UpdateChatMentionsPerMessageParams{
+		ChatID:             chatID,
+		MentionsPerMessage: count,
+	})
+}
+
+func (r *ChatRepository) SetMentionTypes(ctx context.Context, chatID int64, types int32) error {
+	return r.queries.UpdateChatMentionTypes(ctx, db.UpdateChatMentionTypesParams{
+		ChatID:       chatID,
+		MentionTypes: types,
 	})
 }

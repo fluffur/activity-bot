@@ -6,14 +6,27 @@ import (
 	"activity-bot/internal/member"
 	"context"
 	"fmt"
-	"log"
+	"math/rand"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-const mentionsPerMessage = 5
+const (
+	MentionTypeEmoji = 1 << iota
+	MentionTypeName
+	MentionTypeRole
+)
+
+const defaultMentionsPerMessage = 5
+
+var callEmojis = []string{
+	"🔔", "📢", "📣", "⚡️", "✨", "🌟", "🔥", "🌈", "☄️", "🚀",
+	"💎", "🧿", "🔮", "🍀", "🌸", "🌺", "🌼", "🌻", "🌿", "🍃",
+	"🌍", "🌙", "🔆", "🎵", "🎶", "🎨", "🎭", "🎪", "🎬", "🎤",
+	"🏆", "🏅", "🎖", "🎟", "🧘", "🧩", "🪁", "🛰", "⚓️", "🛸",
+}
 
 type Service struct {
 	repo          chat.Repository
@@ -38,8 +51,22 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 		}
 	}
 
-	for i := 0; i < len(members); i += mentionsPerMessage {
-		end := i + mentionsPerMessage
+	chatSettings, err := s.repo.GetChat(ctx, tgCtx.EffectiveChat.Id)
+	if err != nil {
+		return err
+	}
+
+	mentionsLimit := int(chatSettings.MentionsPerMessage)
+	if mentionsLimit <= 0 {
+		mentionsLimit = defaultMentionsPerMessage
+	}
+
+	if message == "" {
+		message = chatSettings.WelcomeCallMessage
+	}
+
+	for i := 0; i < len(members); i += mentionsLimit {
+		end := i + mentionsLimit
 		if end > len(members) {
 			end = len(members)
 		}
@@ -50,12 +77,25 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 		}
 
 		for j, m := range members[i:end] {
-			title := m.User.FirstName
-			if m.CustomTitle != "" {
-				title = fmt.Sprintf("%s (%s)", m.User.FirstName, m.CustomTitle)
-			} else {
-				log.Printf("call member %#+v \n", m)
+			var parts []string
+
+			if chatSettings.MentionTypes&MentionTypeEmoji > 0 {
+				emoji := callEmojis[rand.Intn(len(callEmojis))]
+				parts = append(parts, emoji)
 			}
+			if chatSettings.MentionTypes&MentionTypeName > 0 {
+				parts = append(parts, m.User.FirstName)
+			}
+			if chatSettings.MentionTypes&MentionTypeRole > 0 && m.CustomTitle != "" {
+				parts = append(parts, "("+m.CustomTitle+")")
+			}
+
+			// Default to name if nothing selected or for safety
+			if len(parts) == 0 {
+				parts = append(parts, m.User.FirstName)
+			}
+
+			title := strings.Join(parts, " ")
 			sb.WriteString(helpers.Mention(m.User.ID, title))
 			if j < len(members[i:end])-1 {
 				sb.WriteString(", ")
@@ -97,4 +137,12 @@ func (s *Service) EnableCallOnJoin(ctx context.Context, chatID int64) error {
 
 func (s *Service) DisableCallOnJoin(ctx context.Context, chatID int64) error {
 	return s.repo.UpdateCallOnJoin(ctx, chatID, false)
+}
+
+func (s *Service) SetMentionsPerMessage(ctx context.Context, chatID int64, count int32) error {
+	return s.repo.SetMentionsPerMessage(ctx, chatID, count)
+}
+
+func (s *Service) SetMentionTypes(ctx context.Context, chatID int64, types int32) error {
+	return s.repo.SetMentionTypes(ctx, chatID, types)
 }
