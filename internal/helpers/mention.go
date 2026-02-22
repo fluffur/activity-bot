@@ -28,7 +28,7 @@ func Mention(id int64, value string) string {
 	if value == "" {
 		value = "?"
 	}
-	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, id, value)
+	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, id, html.EscapeString(value))
 }
 
 func MapUser(f *gotgbot.User) model.User {
