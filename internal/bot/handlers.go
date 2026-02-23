@@ -131,13 +131,13 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard).
 		AddTriggers("+"),
 	)
-	a.Dispatcher.AddHandler(cf.New(restHandler.Set, "рест", "rest", "рэст").
+	a.Dispatcher.AddHandler(cf.New(restHandler.Set, "рест", "rest", "установить рест").
 		FallbackToSender().
 		AddTriggers("+").
 		WithGuards(groupGuard).
 		SetArgsCount(1),
 	)
-	a.Dispatcher.AddHandler(cf.New(restHandler.End, "-рест", "-rest", "-рэст").
+	a.Dispatcher.AddHandler(cf.New(restHandler.End, "-рест", "-rest", "снять рест").
 		FallbackToSender().
 		WithGuards(groupGuard),
 	)
@@ -234,19 +234,19 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(memberHandler.RestoreRoles, "восстановить роли", "restore_roles").
 		WithGuards(groupGuard, creatorGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл", "all", "каллалл").
-		AddTriggers("+").
-		WithGuards(groupGuard, adminGuard, rateLimiterGuard).
-		SetArgsCount(1),
+	a.Dispatcher.AddHandler(cf.New(callHandler.ShowCallTypes, "call_type", "калл тип", "калл стиль").
+		AddTriggers("+", "!").
+		WithGuards(groupGuard, adminGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(callHandler.SetMentionsPerMessage, "call_limit", "колллимит", "калллимит").
+	a.Dispatcher.AddHandler(cf.New(callHandler.SetMentionsPerMessage, "call_limit", "калл лимит", "калл лим").
 		AddTriggers("+", "!").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
-	a.Dispatcher.AddHandler(cf.New(callHandler.ShowCallTypes, "call_type", "коллтип", "каллтип").
-		AddTriggers("+", "!").
-		WithGuards(groupGuard, adminGuard),
+	a.Dispatcher.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл", "all", "каллалл").
+		AddTriggers("+").
+		WithGuards(groupGuard, adminGuard, rateLimiterGuard).
+		SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_type:"), callHandler.CallbackCallType))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").WithGuards(groupGuard))
