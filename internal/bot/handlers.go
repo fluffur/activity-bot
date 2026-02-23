@@ -126,7 +126,7 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
-	a.Dispatcher.AddHandler(cf.New(restHandler.Show, "рест", "rest", "рэст").
+	a.Dispatcher.AddHandler(cf.New(restHandler.Show, "рест", "rest", "мой рест").
 		FallbackToSender().
 		WithGuards(groupGuard).
 		AddTriggers("+"),
