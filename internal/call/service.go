@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	MentionTypeNWSP  = 0
 	MentionTypeEmoji = 1 << iota
 	MentionTypeName
 	MentionTypeRole

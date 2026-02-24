@@ -74,7 +74,21 @@ func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	newTypes := int32(c.MentionTypes) ^ bit
+	current := c.MentionTypes
+	var newTypes int32
+
+	if bit == call.MentionTypeNWSP {
+		newTypes = call.MentionTypeNWSP
+	} else {
+		current &^= call.MentionTypeNWSP
+		newTypes = current ^ bit
+	}
+	if newTypes == c.MentionTypes {
+		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "Настройки не изменились",
+		})
+		return err
+	}
 	if err := h.service.SetMentionTypes(context.Background(), ctx.EffectiveChat.Id, newTypes); err != nil {
 		return err
 	}
@@ -95,27 +109,46 @@ func (h *Handler) getCallTypesKeyboard(currentTypes int32) gotgbot.InlineKeyboar
 		name string
 		bit  int32
 	}{
+		{"Пустота", call.MentionTypeNWSP},
 		{"Эмодзи", call.MentionTypeEmoji},
 		{"Имя", call.MentionTypeName},
-		{"ТГ Роль", call.MentionTypeRole},
+		{"Роль", call.MentionTypeRole},
 	}
 
 	var rows [][]gotgbot.InlineKeyboardButton
-	for _, t := range types {
+	var row []gotgbot.InlineKeyboardButton
+
+	for i, t := range types {
 		status := ""
+		checkMark := ""
+
 		if currentTypes&t.bit > 0 {
 			status = "primary"
+			checkMark = "✅ "
 		}
-		rows = append(rows, []gotgbot.InlineKeyboardButton{{
-			Text:         fmt.Sprintf("%s", t.name),
+
+		btn := gotgbot.InlineKeyboardButton{
+			Text:         fmt.Sprintf("%s%s", checkMark, t.name),
 			CallbackData: fmt.Sprintf("call_type:%d", t.bit),
 			Style:        status,
-		}})
+		}
+
+		row = append(row, btn)
+
+		if (i+1)%2 == 0 {
+			rows = append(rows, row)
+			row = nil
+		}
 	}
 
-	return gotgbot.InlineKeyboardMarkup{InlineKeyboard: rows}
-}
+	if len(row) > 0 {
+		rows = append(rows, row)
+	}
 
+	return gotgbot.InlineKeyboardMarkup{
+		InlineKeyboard: rows,
+	}
+}
 func (h *Handler) SetWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	message := ctx.FirstArgument()
 	if err := h.service.SetWelcomeCallMessage(ctx.StdContext(), ctx.EffectiveChat.Id, message); err != nil {

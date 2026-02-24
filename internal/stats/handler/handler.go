@@ -158,23 +158,20 @@ func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 			return fmt.Errorf("no role no user")
 		}
 
-		users, err := h.userService.GetByCustomTitle(ctx.StdContext(), ctx.TargetChatID(), role)
-		if err != nil || len(users) == 0 {
+		members, err := h.userService.GetByCustomTitle(ctx.StdContext(), ctx.TargetChatID(), role)
+		if err != nil || len(members) == 0 {
 			return fmt.Errorf("user with role %s not found", role)
 		}
 
-		if len(users) == 1 {
-			return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.TargetChatID(), users[0].User.ID)
+		if len(members) == 1 {
+			return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.TargetChatID(), members[0].User.ID)
 		}
 
 		var buttons [][]gotgbot.InlineKeyboardButton
-		for i, u := range users {
+		for _, m := range members {
 			btn := gotgbot.InlineKeyboardButton{
-				Text:         fmt.Sprintf("%s (%s)", u.User.FirstName, u.CustomTitle),
-				CallbackData: fmt.Sprintf("whoareyou:%d", u.User.ID),
-			}
-			if i == 0 {
-				btn.Style = "primary"
+				Text:         fmt.Sprintf("%s (%s)", m.User.FirstName, m.CustomTitle),
+				CallbackData: fmt.Sprintf("whoareyou:%d", m.User.ID),
 			}
 			buttons = append(buttons, []gotgbot.InlineKeyboardButton{btn})
 		}
