@@ -47,6 +47,8 @@ services:
       context: .
       dockerfile: docker/migrate/Dockerfile
     container_name: activity_migrate
+    env_file:
+      - .env
     depends_on:
       - db
     entrypoint: [ "./migrate" ]
