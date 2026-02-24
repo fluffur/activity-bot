@@ -25,7 +25,7 @@ func New(service *call.Service, chatService *chat.Service, adminService *admin.S
 }
 
 func (h *Handler) Call(b *gotgbot.Bot, ctx *cmd.Context) error {
-	return h.service.Call(ctx.StdContext(), b, ctx.Context, ctx.FirstArgument())
+	return h.service.Call(ctx.StdContext(), b, ctx.Context, ctx.HTML())
 }
 
 func (h *Handler) SetMentionsPerMessage(b *gotgbot.Bot, ctx *cmd.Context) error {

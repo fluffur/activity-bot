@@ -122,6 +122,7 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 			if _, err := b.SendPhoto(tgCtx.EffectiveChat.Id, gotgbot.InputFileByID(lastPhoto.FileId), &gotgbot.SendPhotoOpts{
 				ParseMode:       gotgbot.ParseModeHTML,
 				Caption:         sb.String(),
+				HasSpoiler:      tgCtx.EffectiveMessage.HasMediaSpoiler,
 				ReplyParameters: replyParams,
 			}); err != nil {
 				return err

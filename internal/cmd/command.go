@@ -160,6 +160,13 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 	users := make([]*model.User, 0)
 	takenUsers := make(map[int64]struct{})
 
+	var fullHTML string
+	if msg.Caption != "" {
+		fullHTML = msg.OriginalCaptionHTML()
+	} else {
+		fullHTML = msg.OriginalHTML()
+	}
+
 	addUser := func(user *model.User) {
 		if _, ok := takenUsers[user.ID]; ok {
 			return
@@ -232,10 +239,20 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 
 	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix, allowPrefixless && !c.forcePrefix)
 	if !matched {
-		return &Context{ctx, cctx, []string{}, users, c.sessionService}
+		return &Context{ctx, cctx, []string{}, "", users, c.sessionService}
 	}
 
 	rest = strings.TrimSpace(rest)
+	var htmlRest string
+
+	if fullHTML != "" {
+		plainText := msg.GetText()
+
+		idx := strings.Index(plainText, rest)
+		if idx >= 0 && idx <= len(fullHTML) {
+			htmlRest = strings.TrimSpace(fullHTML[idx:])
+		}
+	}
 	var args []string
 
 	if c.argsCount == 2 {
@@ -252,7 +269,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 	for _, u := range users {
 		log.Println("user", *u)
 	}
-	return &Context{ctx, cctx, args, users, c.sessionService}
+	return &Context{ctx, cctx, args, htmlRest, users, c.sessionService}
 }
 
 func (c *Command) Name() string {

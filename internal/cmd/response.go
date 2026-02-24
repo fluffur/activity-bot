@@ -17,6 +17,7 @@ type Context struct {
 	*ext.Context
 	ctx            context.Context
 	args           []string
+	html           string
 	users          []*model.User
 	sessionService interface {
 		GetActiveChat(ctx context.Context, userID int64) (int64, error)
@@ -66,6 +67,10 @@ func (c *Context) Users() []*model.User {
 
 func (c *Context) Args() []string {
 	return c.args
+}
+
+func (c *Context) HTML() string {
+	return c.html
 }
 
 func (c *Context) StdContext() context.Context {
