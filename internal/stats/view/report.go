@@ -112,14 +112,14 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	if len(failedWarn) > 0 {
 		writeNumberedList(&sb, failedWarn)
 	} else {
-		sb.WriteString("Все справились 🎉\n")
+		sb.WriteString("Список пуст\n")
 	}
 
 	sb.WriteString("\n🚫 Не прошли норму (бан) \n")
 	if len(failedBan) > 0 {
 		writeNumberedList(&sb, failedBan)
 	} else {
-		sb.WriteString("Все справились 🎉\n")
+		sb.WriteString("Список пуст\n")
 	}
 
 	sb.WriteString("\n🐣 Новички\n")
