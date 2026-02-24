@@ -137,7 +137,7 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 }
 
 func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
-	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	for _, guard := range c.guards {
 		if ok, message := guard.Check(ctx, c.commands[0], ctxWithTimeout); !ok {

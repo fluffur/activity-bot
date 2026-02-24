@@ -257,7 +257,7 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *ext.Context) error {
 	joinedMembers := ctx.EffectiveMessage.NewChatMembers
-	cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	cctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	for _, u := range joinedMembers {
 		if u.IsBot {
@@ -283,7 +283,7 @@ func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *ext.Context) error {
 
 func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 	u := ctx.Message.LeftChatMember
-	cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	cctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	slog.Info("member left", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id)
 	if u.IsBot {
@@ -310,7 +310,7 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 }
 
 func (h *Handler) OnBotPromote(_ *gotgbot.Bot, ctx *ext.Context) error {
-	cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	cctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	count, err := h.service.SyncChatMembers(cctx, ctx.EffectiveChat.Id)
 	if err != nil {
