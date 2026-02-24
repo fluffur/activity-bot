@@ -164,17 +164,23 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 		status := m.Status
 		if status == "member" || status == "restricted" {
-
 			if err := limiter.Wait(ctx.StdContext()); err != nil {
 				return err
 			}
-			if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, m.User.ID, &gotgbot.PromoteChatMemberOpts{
+
+			ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, m.User.ID, &gotgbot.PromoteChatMemberOpts{
 				CanPinMessages:  true,
 				CanPostMessages: true,
 				CanEditMessages: true,
-			}); err != nil || !ok {
-				ctx.Reply(b, fmt.Sprintf("Ошибка телеграм при попытке восстановить роль пользователя %s: %s", m.User.FirstName, err.Error()), nil)
-				log.Printf("Ошибка телеграм при попытке восстановить роль пользователя %s: %s\n", m.User.FirstName, err.Error())
+			})
+
+			if err != nil || !ok {
+				errMsg := "неизвестная ошибка"
+				if err != nil {
+					errMsg = err.Error()
+				}
+				log.Printf("Ошибка телеграм при попытке восстановить роль пользователя %s: %s\n", m.User.FirstName, errMsg)
+				_ = ctx.Reply(b, fmt.Sprintf("Ошибка при восстановлении роли пользователя %s: %s", m.User.FirstName, errMsg), nil)
 				errorsCount++
 				continue
 			}
@@ -185,21 +191,29 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 			if err := limiter.Wait(ctx.StdContext()); err != nil {
 				return err
 			}
+
 			tgMember, err := b.GetChatMember(ctx.EffectiveChat.Id, m.User.ID, nil)
 			if err != nil {
-				ctx.Reply(b, fmt.Sprintf("Ошибка телеграм при попытке восстановить роль пользователя %s: %s", m.User.FirstName, err.Error()), nil)
-				log.Printf("Ошибка телеграм при попытке восстановить роль пользователя %s: %s\n", m.User.FirstName, err.Error())
+				errMsg := "неизвестная ошибка"
+				log.Printf("Ошибка телеграм при получении информации о пользователе %s: %s\n", m.User.FirstName, errMsg)
+				_ = ctx.Reply(b, fmt.Sprintf("Ошибка при восстановлении роли пользователя %s: %s", m.User.FirstName, errMsg), nil)
 				errorsCount++
 				continue
 			}
+
 			merged := tgMember.MergeChatMember()
 			if merged.CanBeEdited || tgMember.GetStatus() == "member" {
 				if err := limiter.Wait(ctx.StdContext()); err != nil {
 					return err
 				}
-				if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil {
-					ctx.Reply(b, fmt.Sprintf("Ошибка телеграм при попытке восстановить роль пользователя %s: %s", m.User.FirstName, err.Error()), nil)
-					log.Printf("Ошибка телеграм при попытке восстановить роль пользователя %s: %s\n", m.User.FirstName, err.Error())
+
+				if ok, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil || !ok {
+					errMsg := "неизвестная ошибка"
+					if err != nil {
+						errMsg = err.Error()
+					}
+					log.Printf("Ошибка телеграм при установке роли пользователю %s: %s\n", m.User.FirstName, errMsg)
+					_ = ctx.Reply(b, fmt.Sprintf("Ошибка при восстановлении титула пользователя %s: %s", m.User.FirstName, errMsg), nil)
 					errorsCount++
 					continue
 				}
