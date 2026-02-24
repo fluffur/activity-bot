@@ -90,8 +90,8 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	}
 
 	var sb strings.Builder
-	sb.WriteString("<blockquote expandable>")
 	sb.WriteString(periodHeader + "\n\n")
+	sb.WriteString("<blockquote expandable>")
 
 	sb.WriteString("🌟 Прошли норму\n")
 	if len(passed) > 0 {
@@ -128,8 +128,8 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 		sb.WriteString("—\n")
 	}
 
-	sb.WriteString(fmt.Sprintf("\n📝 Всего сообщений: %d\n", totalMessages))
 	sb.WriteString("</blockquote>")
+	sb.WriteString(fmt.Sprintf("\n📝 Всего сообщений: %d\n", totalMessages))
 
 	return sb.String()
 }
