@@ -62,7 +62,7 @@ func (a *App) RegisterHandlers() {
 	ownerGuard := guard.NewDevCreatorGuard(a.AdminService)
 	developerGuard := guard.NewDeveloperGuard(a.AdminService)
 	groupGuard := guard.OnlyGroups(sessionService)
-	rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 1, 5*time.Second, sessionService)
+	rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 2, 10*time.Second, sessionService)
 
 	cf := cmd.NewFactory(a.UserService, a.ChatService, sessionService, a.Config.UniquePrefix, "/", "!", ".")
 
@@ -79,7 +79,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowStats, "stats", "отчёт", "отчет").
 		SetArgsCount(1).
-		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 4*time.Second, sessionService)),
+		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 2, 4*time.Second, sessionService)),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowChatActivityGraph, "stats_graph", "график", "граф").
 		SetArgsCount(1).
@@ -261,10 +261,10 @@ func (a *App) RegisterHandlers() {
 		AddTriggers("+").
 		SetArgsCount(1),
 	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrefix, "custom_prefix", "кастом префикс").
+	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrefix, "custom_prefix", "кастом префикс", "префикс").
 		WithGuards(groupGuard, adminGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.SetPrefix, "custom_prefix", "кастом префикс").
+	a.Dispatcher.AddHandler(cf.New(chatHandler.SetPrefix, "custom_prefix", "кастом префикс", "префикс").
 		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),

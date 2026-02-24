@@ -5,7 +5,6 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"context"
-	"fmt"
 	"math/rand"
 	"strings"
 
@@ -78,7 +77,11 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 
 		var sb strings.Builder
 		if message != "" {
-			sb.WriteString(fmt.Sprintf("%s\n\n", message))
+			sb.WriteString(message)
+
+			if chatSettings.MentionTypes != 0 {
+				sb.WriteString("\n\n")
+			}
 		}
 
 		for j, m := range members[i:end] {
