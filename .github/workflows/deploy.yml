@@ -20,14 +20,11 @@ jobs:
           key: ${{ secrets.VDS_SSH_KEY }}
           script: |
             set -e
-
             echo "Starting deployment..."
             cd /root/activity-bot
 
             mkdir -p backups
-
             ls -1t backups/*.sql 2>/dev/null | tail -n +4 | xargs -r rm -f
-
             TIMESTAMP=$(date +'%Y%m%d%H%M%S')
             echo "Creating database backup..."
             docker exec activity_db pg_dump -U postgres activity > backups/activity_$TIMESTAMP.sql
@@ -37,8 +34,9 @@ jobs:
             git fetch --all
             git reset --hard origin/master
 
-            echo "Build and start containers..."
-            docker compose -f docker-compose.prod.yml up -d --build
+            echo "Build and start prod container..."
+            docker compose -f docker-compose.prod.yml build app
+            docker compose -f docker-compose.prod.yml up -d app
 
             echo "Waiting for database..."
             until docker exec activity_db pg_isready -U postgres; do
@@ -46,6 +44,6 @@ jobs:
             done
 
             echo "Run migrations..."
-            docker compose -f docker-compose.prod.yml exec app ./migrate up
+            docker compose -f docker-compose.prod.yml run --rm migrate up
 
             echo "Deployment finished!"

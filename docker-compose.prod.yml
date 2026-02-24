@@ -42,6 +42,15 @@ services:
     volumes:
       - redisdata:/data
 
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/migrate/Dockerfile
+    container_name: activity_migrate
+    depends_on:
+      - db
+    entrypoint: [ "./migrate" ]
+
 volumes:
   pgdata:
     name: activity_pgdata
