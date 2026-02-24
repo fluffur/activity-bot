@@ -12,20 +12,22 @@ func FormatInactiveMembers(members []model.InactiveMember) string {
 	sb.WriteString("<b>😴 Неактивные участники (более 1 суток)</b>\n\n")
 
 	for i, m := range members {
+		userTitle := m.Member.CustomTitle
+		if userTitle == "" {
+			userTitle = m.Member.User.FirstName
+		}
 		sb.WriteString(fmt.Sprintf(
-			"%d. %s (%s)",
+			"%d. %s",
 			i+1,
-			helpers.LinkWithContent(
-				m.Member.User,
-				fmt.Sprintf("%s", m.Member.User.FirstName),
+			helpers.Mention(
+				m.Member.User.ID,
+				userTitle,
 			),
-			m.Member.CustomTitle,
 		))
 
 		if m.LastActivity != nil {
 			sb.WriteString(fmt.Sprintf(
-				" — %s (%s)",
-				helpers.FormatToHumanDate(*m.LastActivity),
+				" — %s",
 				helpers.FormatLastSeen(*m.LastActivity),
 			))
 		} else {
