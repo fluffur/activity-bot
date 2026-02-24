@@ -23,5 +23,6 @@ FROM scratch
 WORKDIR /app
 
 COPY --from=builder /app/bot .
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 CMD ["./bot"]
