@@ -171,8 +171,12 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 
 		merged := tgMember.MergeChatMember()
-		var tgErr error
+		if tgMember.GetStatus() == "administrator" && merged.CustomTitle == m.CustomTitle {
+			restoredCount++
+			continue
+		}
 
+		var tgErr error
 		if tgMember.GetStatus() != "administrator" {
 			if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, m.User.ID, &gotgbot.PromoteChatMemberOpts{
 				CanPinMessages:  true,
@@ -180,16 +184,19 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 				CanEditMessages: true,
 			}); err != nil || !ok {
 				tgErr = err
+			} else {
+				if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil {
+					tgErr = err
+				}
 			}
-			if ok, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil || !ok {
+		} else if merged.CanBeEdited {
+			if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil {
 				tgErr = err
 			}
-		}
-
-		if tgErr == nil && (tgMember.GetStatus() == "administrator" || merged.CanBeEdited) {
-			if ok, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil || !ok {
-				tgErr = err
-			}
+		} else {
+			errorsCount++
+			_ = ctx.Reply(b, fmt.Sprintf("Не могу изменить администратора %s (недостаточно прав)", m.User.FirstName), nil)
+			continue
 		}
 
 		if tgErr != nil {
