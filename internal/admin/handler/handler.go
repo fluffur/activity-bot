@@ -294,7 +294,11 @@ func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	if strings.ToLower(arg) == "навсегда" {
 		until = nil
-		reason = "навсегда"
+		if secondArg != "" {
+			reason = secondArg
+		} else {
+			reason = ""
+		}
 	} else if t, ok := h.dateParser.Parse(arg); ok {
 		until = &t
 		reason = secondArg
