@@ -129,7 +129,7 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	}
 
 	sb.WriteString("</blockquote>")
-	sb.WriteString(fmt.Sprintf("\n📝 Всего сообщений: %d\n", totalMessages))
+	sb.WriteString(fmt.Sprintf("\n\n📝 Всего сообщений: %d\n", totalMessages))
 
 	return sb.String()
 }
