@@ -275,8 +275,7 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(chatHandler.DisablePrefixes, "-префиксы", "-prefixes").
 		WithGuards(groupGuard, adminGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.EnablePrefixes, "префиксы", "prefixes").
-		AddTriggers("+").
+	a.Dispatcher.AddHandler(cf.New(chatHandler.EnablePrefixes, "+префиксы", "+prefixes").
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.EnableCallOnJoin, "call_enable", "включить call", "включить колл", "включить калл").

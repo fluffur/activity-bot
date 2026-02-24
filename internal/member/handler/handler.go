@@ -173,6 +173,8 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 				CanPostMessages: true,
 				CanEditMessages: true,
 			}); err != nil || !ok {
+				ctx.Reply(b, fmt.Sprintf("Ошибка телеграм при попытке восстановить роль пользователя %s: %s", m.User.FirstName, err.Error()), nil)
+				log.Printf("Ошибка телеграм при попытке восстановить роль пользователя %s: %s\n", m.User.FirstName, err.Error())
 				errorsCount++
 				continue
 			}
@@ -185,6 +187,8 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 			}
 			tgMember, err := b.GetChatMember(ctx.EffectiveChat.Id, m.User.ID, nil)
 			if err != nil {
+				ctx.Reply(b, fmt.Sprintf("Ошибка телеграм при попытке восстановить роль пользователя %s: %s", m.User.FirstName, err.Error()), nil)
+				log.Printf("Ошибка телеграм при попытке восстановить роль пользователя %s: %s\n", m.User.FirstName, err.Error())
 				errorsCount++
 				continue
 			}
@@ -194,6 +198,8 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 					return err
 				}
 				if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil {
+					ctx.Reply(b, fmt.Sprintf("Ошибка телеграм при попытке восстановить роль пользователя %s: %s", m.User.FirstName, err.Error()), nil)
+					log.Printf("Ошибка телеграм при попытке восстановить роль пользователя %s: %s\n", m.User.FirstName, err.Error())
 					errorsCount++
 					continue
 				}
