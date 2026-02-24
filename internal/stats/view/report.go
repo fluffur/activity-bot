@@ -33,9 +33,13 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 		if r.NormBan > 0 {
 			normBanDone = r.MessagesCount >= r.NormBan
 		}
+		userTitle := r.CustomTitle
+		if r.CustomTitle == "" {
+			userTitle = r.User.FirstName
+		}
 
-		line := fmt.Sprintf("%s — %d сообщений",
-			helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)),
+		line := fmt.Sprintf("%s — %d",
+			helpers.LinkWithContent(r.User, userTitle),
 			r.MessagesCount,
 		)
 
@@ -48,8 +52,8 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 		}
 
 		if isNewbie && normWarnDone {
-			line = fmt.Sprintf("%s 🐣 — %d сообщений",
-				helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)),
+			line = fmt.Sprintf("%s 🐣 — %d",
+				helpers.LinkWithContent(r.User, userTitle),
 				r.MessagesCount,
 			)
 			passed = append(passed, line)
@@ -77,8 +81,12 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 		} else {
 			untilText = "неизвестно"
 		}
+		userTitle := r.CustomTitle
+		if r.CustomTitle == "" {
+			userTitle = r.User.FirstName
+		}
 		line := fmt.Sprintf("%s до %s",
-			helpers.LinkWithContent(r.User, fmt.Sprintf("%s (%s)", r.User.FirstName, r.CustomTitle)),
+			helpers.LinkWithContent(r.User, userTitle),
 			untilText,
 		)
 		inRest = append(inRest, line)
@@ -97,39 +105,39 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	if len(passed) > 0 {
 		writePassedList(&sb, passed)
 	} else {
-		sb.WriteString("—\n")
+		sb.WriteString("Пока никто не прошёл норму\n")
 	}
 
 	sb.WriteString("\n❌ Не прошли норму️ (варн) \n")
 	if len(failedWarn) > 0 {
 		writeNumberedList(&sb, failedWarn)
 	} else {
-		sb.WriteString("—\n")
+		sb.WriteString("Все справились 🎉\n")
 	}
 
 	sb.WriteString("\n🚫 Не прошли норму (бан) \n")
 	if len(failedBan) > 0 {
 		writeNumberedList(&sb, failedBan)
 	} else {
-		sb.WriteString("—\n")
+		sb.WriteString("Все справились 🎉\n")
 	}
 
 	sb.WriteString("\n🐣 Новички\n")
 	if len(newbies) > 0 {
 		writeNumberedList(&sb, newbies)
 	} else {
-		sb.WriteString("—\n")
+		sb.WriteString("Новичков нет\n")
 	}
 
 	sb.WriteString("\n💤 Рест\n")
 	if len(inRest) > 0 {
 		writeNumberedList(&sb, inRest)
 	} else {
-		sb.WriteString("—\n")
+		sb.WriteString("Пока никто не находится в ресте\n")
 	}
 
 	sb.WriteString("</blockquote>")
-	sb.WriteString(fmt.Sprintf("\n\n📝 Всего сообщений: %d\n", totalMessages))
+	sb.WriteString(fmt.Sprintf("\n📝 Всего сообщений: %d\n", totalMessages))
 
 	return sb.String()
 }
