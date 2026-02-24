@@ -90,7 +90,7 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	}
 
 	var sb strings.Builder
-	sb.WriteString("<blockquote>")
+	sb.WriteString("<blockquote expandable>")
 	sb.WriteString(periodHeader + "\n\n")
 
 	sb.WriteString("🌟 Прошли норму\n")
