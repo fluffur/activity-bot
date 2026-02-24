@@ -286,24 +286,23 @@ func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return cmd.ErrNoUser
 	}
 
-	defaultPeriod := 14 * 24 * time.Hour
-	defaultTime := time.Now().Add(defaultPeriod)
 	arg := ctx.FirstArgument()
+	secondArg := ctx.SecondArgument()
 
 	var until *time.Time
 	var reason string
 
-	if t, ok := h.dateParser.Parse(arg); ok {
+	if strings.ToLower(arg) == "навсегда" {
+		until = nil
+		reason = "навсегда"
+	} else if t, ok := h.dateParser.Parse(arg); ok {
 		until = &t
-		reason = ctx.SecondArgument()
+		reason = secondArg
 	} else {
+		defaultPeriod := 14 * 24 * time.Hour
 		tt := time.Now().Add(defaultPeriod)
 		until = &tt
 		reason = arg
-	}
-
-	if until == nil {
-		until = &defaultTime
 	}
 
 	count, banned, err := h.service.Warn(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, ctx.EffectiveSender.Id(), reason, until)
