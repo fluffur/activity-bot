@@ -5,7 +5,6 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"context"
-	"fmt"
 	"math/rand"
 	"strings"
 
@@ -77,9 +76,7 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 		}
 
 		var sb strings.Builder
-		if message != "" {
-			sb.WriteString(fmt.Sprintf("%s\n\n", message))
-		}
+		var mentionsBuilder strings.Builder
 
 		for j, m := range members[i:end] {
 			var parts []string
@@ -108,11 +105,21 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 			if strings.TrimSpace(title) == "" {
 				title = emptyStr
 			}
-			sb.WriteString(helpers.Mention(m.User.ID, title))
+
+			mentionsBuilder.WriteString(helpers.Mention(m.User.ID, title))
 			if j < len(members[i:end])-1 {
-				sb.WriteString(" ")
+				mentionsBuilder.WriteString(" ")
 			}
 		}
+
+		mentionsText := mentionsBuilder.String()
+
+		if message != "" && strings.TrimSpace(mentionsText) != "" {
+			sb.WriteString(message)
+			sb.WriteString("\n\n")
+		}
+
+		sb.WriteString(mentionsText)
 
 		if len(tgCtx.EffectiveMessage.Photo) > 0 {
 			lastPhoto := tgCtx.EffectiveMessage.Photo[len(tgCtx.EffectiveMessage.Photo)-1]
