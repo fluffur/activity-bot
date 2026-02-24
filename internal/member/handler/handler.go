@@ -181,6 +181,9 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 			}); err != nil || !ok {
 				tgErr = err
 			}
+			if ok, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil || !ok {
+				tgErr = err
+			}
 		}
 
 		if tgErr == nil && (tgMember.GetStatus() == "administrator" || merged.CanBeEdited) {
