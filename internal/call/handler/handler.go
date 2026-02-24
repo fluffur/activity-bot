@@ -31,8 +31,8 @@ func (h *Handler) Call(b *gotgbot.Bot, ctx *cmd.Context) error {
 func (h *Handler) SetMentionsPerMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	countStr := ctx.FirstArgument()
 	count, err := strconv.Atoi(countStr)
-	if err != nil || count <= 0 || count > 10 {
-		return ctx.Reply(b, "Укажите число от 1 до 10", nil)
+	if err != nil || count <= 0 || count > 100 {
+		return ctx.Reply(b, "Укажите число от 1 до 100", nil)
 	}
 
 	if err := h.service.SetMentionsPerMessage(ctx.StdContext(), ctx.EffectiveChat.Id, int32(count)); err != nil {
@@ -74,7 +74,7 @@ func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	newTypes := c.MentionTypes ^ bit
+	newTypes := int32(c.MentionTypes) ^ bit
 	if err := h.service.SetMentionTypes(context.Background(), ctx.EffectiveChat.Id, newTypes); err != nil {
 		return err
 	}
