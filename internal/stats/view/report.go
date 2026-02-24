@@ -39,7 +39,6 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 			r.MessagesCount,
 		)
 
-		// Проверка новичков
 		isNewbie := false
 		if r.NewbieThresholdDays > 0 {
 			newbieUntil := r.JoinedAt.AddDate(0, 0, int(r.NewbieThresholdDays))
@@ -91,6 +90,7 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	}
 
 	var sb strings.Builder
+	sb.WriteString("<blockquote>")
 	sb.WriteString(periodHeader + "\n\n")
 
 	sb.WriteString("🌟 Прошли норму\n")
@@ -129,6 +129,7 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	}
 
 	sb.WriteString(fmt.Sprintf("\n📝 Всего сообщений: %d\n", totalMessages))
+	sb.WriteString("</blockquote>")
 
 	return sb.String()
 }
