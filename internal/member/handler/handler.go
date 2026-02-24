@@ -43,9 +43,6 @@ func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if _, err := h.service.SyncChatMembers(ctx.StdContext(), ctx.EffectiveChat.Id); err != nil {
-		slog.Warn("failed to update chat members", "chat_id", ctx.EffectiveChat.Id, "error", err)
-	}
 	members, err := h.service.GetMembersWithTitle(ctx.StdContext(), ctx.EffectiveChat.Id)
 	if err != nil {
 		_ = ctx.Reply(b, "Не удалось получить список ролей", nil)
