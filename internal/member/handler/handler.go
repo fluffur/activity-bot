@@ -192,17 +192,9 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 			}
 		}
 
-		serviceErr := h.service.SetMemberTitle(ctx.StdContext(), ctx.EffectiveChat.Id, m.User.ID, &m.CustomTitle)
-
-		if tgErr != nil || serviceErr != nil {
+		if tgErr != nil {
 			errorsCount++
-			errMsg := "неизвестная ошибка"
-			if tgErr != nil {
-				errMsg = tgErr.Error()
-			} else if serviceErr != nil {
-				errMsg = serviceErr.Error()
-			}
-			_ = ctx.Reply(b, fmt.Sprintf("Ошибка при восстановлении пользователя %s: %s", m.User.FirstName, errMsg), nil)
+			_ = ctx.Reply(b, fmt.Sprintf("Ошибка при восстановлении пользователя %s: %s", m.User.FirstName, tgErr.Error()), nil)
 			continue
 		}
 
