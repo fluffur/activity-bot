@@ -514,7 +514,14 @@ func (h *Handler) ClearWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) FakeLeave(b *gotgbot.Bot, ctx *cmd.Context) error {
-	title, err := h.memberService.GetMemberTitle(ctx.StdContext(), ctx.TargetChatID(), ctx.FirstUser().ID)
+	u := ctx.FirstUser()
+	if u == nil {
+		return cmd.ErrNoUser
+	}
+	title, err := h.memberService.GetMemberTitle(ctx.StdContext(), ctx.TargetChatID(), u.ID)
+	if title == "" {
+		title = u.FirstName
+	}
 	if err != nil {
 		return err
 	}

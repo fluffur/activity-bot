@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"activity-bot/internal/admin"
 	service "activity-bot/internal/call"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
@@ -11,9 +12,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"html"
 	"log"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -22,14 +23,15 @@ import (
 )
 
 type Handler struct {
-	service     *member.Service
-	chatService *chat.Service
-	userService *user.Service
-	callService *service.Service
+	service      *member.Service
+	chatService  *chat.Service
+	userService  *user.Service
+	callService  *service.Service
+	adminService *admin.Service
 }
 
-func New(service *member.Service, chatService *chat.Service, userService *user.Service, callService *service.Service) *Handler {
-	return &Handler{service, chatService, userService, callService}
+func New(service *member.Service, chatService *chat.Service, userService *user.Service, callService *service.Service, adminService *admin.Service) *Handler {
+	return &Handler{service, chatService, userService, callService, adminService}
 }
 
 func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -297,14 +299,23 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	if title != "" {
-		_, err = b.SendMessage(ctx.EffectiveChat.Id, fmt.Sprintf("🕊 %s c ролью \"%s\" покинул нас...", helpers.Link(helpers.MapUser(u)), html.EscapeString(title)), &gotgbot.SendMessageOpts{
-			ParseMode: gotgbot.ParseModeHTML,
-			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-				IsDisabled: true,
-			},
-		})
+	admins, err := h.adminService.GetAdminsEnsured(context.Background(), ctx.EffectiveChat.Id, h.service.SyncChatMembers)
+	if err != nil {
+		return err
 	}
+	if title == "" {
+		title = ctx.EffectiveSender.FirstName()
+	}
+	var sb strings.Builder
+	for _, a := range admins {
+		sb.WriteString(helpers.Mention(a.ID, "​"))
+	}
+	_, err = ctx.EffectiveChat.SendMessage(b, fmt.Sprintf("🕊 %s покинул нас..."+sb.String(), helpers.LinkWithContent(helpers.MapUser(u), title)), &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+	})
 
 	return err
 }
