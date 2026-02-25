@@ -100,6 +100,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	} else if m.GetStatus() == "member" {
 		if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, targetUser.ID, &gotgbot.PromoteChatMemberOpts{
+			CanPinMessages:  true,
 			CanPostMessages: true,
 			CanEditMessages: true,
 		}); err != nil || !ok {
@@ -180,6 +181,7 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 		var tgErr error
 		if tgMember.GetStatus() != "administrator" {
 			if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, m.User.ID, &gotgbot.PromoteChatMemberOpts{
+				CanPinMessages:  true,
 				CanPostMessages: true,
 				CanEditMessages: true,
 			}); err != nil || !ok {
