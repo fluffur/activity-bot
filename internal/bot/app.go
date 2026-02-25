@@ -154,7 +154,6 @@ func (a *App) registerWorkerHandlers() *asynq.ServeMux {
 			return err
 		}
 		_, err = a.Bot.PromoteChatMember(p.ChatID, p.UserID, &gotgbot.PromoteChatMemberOpts{
-			CanPinMessages:  true,
 			CanPostMessages: true,
 			CanEditMessages: true,
 		})
