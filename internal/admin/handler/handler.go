@@ -378,7 +378,7 @@ func (h *Handler) Unmute(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 	if title != "" {
 		if ok, err := b.PromoteChatMember(ctx.TargetChatID(), targetUser.ID, &gotgbot.PromoteChatMemberOpts{
-			CanChangeInfo:   true,
+			CanManageChat:   true,
 			CanPostMessages: true,
 			CanEditMessages: true,
 		}); err != nil || !ok {

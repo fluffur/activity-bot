@@ -83,10 +83,6 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	mergedMember := m.MergeChatMember()
-	fc, err := ctx.EffectiveChat.Get(b, nil)
-	if err != nil {
-		return err
-	}
 	var tgErr error
 
 	if m.GetStatus() == "administrator" {
@@ -103,8 +99,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	} else if m.GetStatus() == "member" {
 		if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, targetUser.ID, &gotgbot.PromoteChatMemberOpts{
-			CanChangeInfo:   fc.Permissions.CanChangeInfo,
-			CanPinMessages:  fc.Permissions.CanPinMessages,
+			CanManageChat:   true,
 			CanPostMessages: true,
 			CanEditMessages: true,
 		}); err != nil || !ok {
@@ -185,7 +180,7 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 		var tgErr error
 		if tgMember.GetStatus() != "administrator" {
 			if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, m.User.ID, &gotgbot.PromoteChatMemberOpts{
-				CanChangeInfo:   true,
+				CanManageChat:   true,
 				CanPostMessages: true,
 				CanEditMessages: true,
 			}); err != nil || !ok {
