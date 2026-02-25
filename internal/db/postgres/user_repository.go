@@ -83,7 +83,8 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []model.User) er
 
 func mapUser(u db.User) model.User {
 	nu := model.User{
-		ID: u.ID,
+		ID:     u.ID,
+		Gender: u.Gender,
 	}
 
 	if u.FirstName.Valid {
@@ -113,4 +114,11 @@ func (r *UserRepository) GetByCustomTitle(ctx context.Context, chatID int64, tit
 	}
 	return results, err
 
+}
+
+func (r *UserRepository) SetGender(ctx context.Context, userID int64, gender string) error {
+	return r.queries.SetUserGender(ctx, db.SetUserGenderParams{
+		ID:     userID,
+		Gender: gender,
+	})
 }

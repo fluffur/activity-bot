@@ -167,7 +167,7 @@ func (q *Queries) GetAnyChatMembersWithTitles(ctx context.Context, chatID int64)
 }
 
 const getChatMember = `-- name: GetChatMember :one
-SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, id, username, first_name, last_name, created_at
+SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, id, username, first_name, last_name, created_at, gender
 FROM chat_members
          JOIN users ON users.id = user_id
 WHERE left_at IS NULL
@@ -193,6 +193,7 @@ type GetChatMemberRow struct {
 	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
 	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender      string             `db:"gender" json:"gender"`
 }
 
 func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (GetChatMemberRow, error) {
@@ -211,12 +212,13 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 		&i.FirstName,
 		&i.LastName,
 		&i.CreatedAt,
+		&i.Gender,
 	)
 	return i, err
 }
 
 const getChatMembers = `-- name: GetChatMembers :many
-SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, id, username, first_name, last_name, created_at
+SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, id, username, first_name, last_name, created_at, gender
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
@@ -236,6 +238,7 @@ type GetChatMembersRow struct {
 	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
 	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender      string             `db:"gender" json:"gender"`
 }
 
 func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMembersRow, error) {
@@ -260,6 +263,7 @@ func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMe
 			&i.FirstName,
 			&i.LastName,
 			&i.CreatedAt,
+			&i.Gender,
 		); err != nil {
 			return nil, err
 		}

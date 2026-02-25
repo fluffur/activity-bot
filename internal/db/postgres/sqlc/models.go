@@ -165,6 +165,7 @@ type User struct {
 	FirstName pgtype.Text        `db:"first_name" json:"firstName"`
 	LastName  pgtype.Text        `db:"last_name" json:"lastName"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender    string             `db:"gender" json:"gender"`
 }
 
 type UserPmSession struct {

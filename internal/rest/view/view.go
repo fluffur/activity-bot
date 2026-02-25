@@ -11,7 +11,11 @@ func FormatRestSet(user model.User, date time.Time, isSelf bool) string {
 	if isSelf {
 		return fmt.Sprintf("Вы добавлены в рест до %s", helpers.FormatToHumanDate(date))
 	}
-	return fmt.Sprintf("Участник %s добавлен в рест до %s", helpers.Link(user), helpers.FormatToHumanDate(date))
+	return fmt.Sprintf("Участник %s %s в рест до %s",
+		helpers.Link(user),
+		helpers.Gendered(user.Gender, "добавлен", "добавлена", "добавлен(а)"),
+		helpers.FormatToHumanDate(date),
+	)
 }
 
 func FormatRestRequest(user model.User, date time.Time) string {
@@ -33,7 +37,10 @@ func FormatRestEnded(user model.User, isSelf bool) string {
 	if isSelf {
 		return "Вы успешно удалены из реста"
 	}
-	return fmt.Sprintf("Участник %s успешно удалён из реста", helpers.Link(user))
+	return fmt.Sprintf("Участник %s успешно %s из реста",
+		helpers.Link(user),
+		helpers.Gendered(user.Gender, "удалён", "удалена", "удалён(а)"),
+	)
 }
 
 func FormatRestNotInRest(user model.User, isSelf bool) string {

@@ -17,7 +17,7 @@ VALUES ($1, $2, $3, $4)
 ON CONFLICT (id) DO UPDATE SET username   = $2,
                                first_name = $3,
                                last_name  = $4
-RETURNING id, username, first_name, last_name, created_at
+RETURNING id, username, first_name, last_name, created_at, gender
 `
 
 type EnsureUserExistsParams struct {
@@ -41,12 +41,13 @@ func (q *Queries) EnsureUserExists(ctx context.Context, arg EnsureUserExistsPara
 		&i.FirstName,
 		&i.LastName,
 		&i.CreatedAt,
+		&i.Gender,
 	)
 	return i, err
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, username, first_name, last_name, created_at
+SELECT id, username, first_name, last_name, created_at, gender
 FROM users
 WHERE id = $1
 `
@@ -60,12 +61,13 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.FirstName,
 		&i.LastName,
 		&i.CreatedAt,
+		&i.Gender,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, first_name, last_name, created_at
+SELECT id, username, first_name, last_name, created_at, gender
 FROM users
 WHERE LOWER(username) = LOWER($1)
 `
@@ -79,12 +81,13 @@ func (q *Queries) GetUserByUsername(ctx context.Context, lower string) (User, er
 		&i.FirstName,
 		&i.LastName,
 		&i.CreatedAt,
+		&i.Gender,
 	)
 	return i, err
 }
 
 const getUsersByCustomTitle = `-- name: GetUsersByCustomTitle :many
-SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, id, username, first_name, last_name, created_at
+SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, id, username, first_name, last_name, created_at, gender
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.custom_title ILIKE '%' || $1 || '%'
@@ -110,6 +113,7 @@ type GetUsersByCustomTitleRow struct {
 	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
 	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender      string             `db:"gender" json:"gender"`
 }
 
 func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCustomTitleParams) ([]GetUsersByCustomTitleRow, error) {
@@ -134,6 +138,7 @@ func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCusto
 			&i.FirstName,
 			&i.LastName,
 			&i.CreatedAt,
+			&i.Gender,
 		); err != nil {
 			return nil, err
 		}
@@ -143,6 +148,20 @@ func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCusto
 		return nil, err
 	}
 	return items, nil
+}
+
+const setUserGender = `-- name: SetUserGender :exec
+UPDATE users SET gender = $2 WHERE id = $1
+`
+
+type SetUserGenderParams struct {
+	ID     int64  `db:"id" json:"id"`
+	Gender string `db:"gender" json:"gender"`
+}
+
+func (q *Queries) SetUserGender(ctx context.Context, arg SetUserGenderParams) error {
+	_, err := q.db.Exec(ctx, setUserGender, arg.ID, arg.Gender)
+	return err
 }
 
 const upsertUsers = `-- name: UpsertUsers :exec

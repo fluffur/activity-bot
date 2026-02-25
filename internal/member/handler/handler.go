@@ -294,7 +294,7 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 	if _, err := h.service.EnsureMemberExists(cctx, ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, "member"); err != nil {
 		return err
 	}
-	title, err := h.service.ProcessLeftMember(cctx, ctx.EffectiveChat.Id, u.Id)
+	m, err := h.service.ProcessLeftMember(cctx, ctx.EffectiveChat.Id, u.Id)
 	if err != nil {
 		return err
 	}
@@ -303,14 +303,18 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 	if err != nil {
 		return err
 	}
-	if title == "" {
+	title := m.CustomTitle
+	if m.CustomTitle == "" {
 		title = ctx.EffectiveSender.FirstName()
 	}
 	var sb strings.Builder
 	for _, a := range admins {
 		sb.WriteString(helpers.Mention(a.ID, "​"))
 	}
-	_, err = ctx.EffectiveChat.SendMessage(b, fmt.Sprintf("🕊 %s покинул нас..."+sb.String(), helpers.LinkWithContent(helpers.MapUser(u), title)), &gotgbot.SendMessageOpts{
+	_, err = ctx.EffectiveChat.SendMessage(b, fmt.Sprintf("🕊 %s %s нас..."+sb.String(),
+		helpers.LinkWithContent(m.User, title),
+		helpers.Gendered(m.User.Gender, "покинул", "покинула", "покинул(а)"),
+	), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 			IsDisabled: true,

@@ -4,8 +4,6 @@ import (
 	"activity-bot/internal/model"
 	"fmt"
 	"html"
-
-	"github.com/PaulSonOfLars/gotgbot/v2"
 )
 
 func Link(u model.User) string {
@@ -29,18 +27,4 @@ func Mention(id int64, value string) string {
 		value = "?"
 	}
 	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, id, html.EscapeString(value))
-}
-
-func MapUser(f *gotgbot.User) model.User {
-	var username *string
-	if f.Username != "" {
-		username = &f.Username
-	}
-
-	return model.User{
-		ID:        f.Id,
-		FirstName: f.FirstName,
-		LastName:  f.LastName,
-		Username:  username,
-	}
 }

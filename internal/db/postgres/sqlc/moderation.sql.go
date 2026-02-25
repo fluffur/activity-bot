@@ -73,7 +73,7 @@ func (q *Queries) DeleteModerationActionsForUser(ctx context.Context, arg Delete
 }
 
 const getActiveWarns = `-- name: GetActiveWarns :many
-SELECT ma.id, type, chat_id, user_id, moderator_id, reason, ma.created_at, revoked_at, expires_at, u.id, username, first_name, last_name, u.created_at
+SELECT ma.id, type, chat_id, user_id, moderator_id, reason, ma.created_at, revoked_at, expires_at, u.id, username, first_name, last_name, u.created_at, gender
 FROM moderation_actions ma
          JOIN users u ON ma.moderator_id = u.id
 WHERE ma.chat_id = $1
@@ -102,6 +102,7 @@ type GetActiveWarnsRow struct {
 	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
 	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
 	CreatedAt_2 pgtype.Timestamptz `db:"created_at_2" json:"createdAt2"`
+	Gender      string             `db:"gender" json:"gender"`
 }
 
 func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) ([]GetActiveWarnsRow, error) {
@@ -128,6 +129,7 @@ func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) 
 			&i.FirstName,
 			&i.LastName,
 			&i.CreatedAt_2,
+			&i.Gender,
 		); err != nil {
 			return nil, err
 		}

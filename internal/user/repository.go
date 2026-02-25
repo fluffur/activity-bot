@@ -11,4 +11,5 @@ type Repository interface {
 	GetByUsername(ctx context.Context, username string) (model.User, error)
 	UpsertUsers(ctx context.Context, users []model.User) error
 	GetByCustomTitle(ctx context.Context, chatID int64, title string) ([]model.ChatMember, error)
+	SetGender(ctx context.Context, userID int64, gender string) error
 }

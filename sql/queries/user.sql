@@ -34,3 +34,6 @@ FROM chat_members cm
 WHERE cm.custom_title ILIKE '%' || @custom_title || '%'
   AND cm.chat_id = @chat_id AND cm.left_at IS NULL
 LIMIT 10;
+
+-- name: SetUserGender :exec
+UPDATE users SET gender = $2 WHERE id = $1;

@@ -119,7 +119,7 @@ func (h *Handler) Kick(b *gotgbot.Bot, ctx *cmd.Context) error {
 			title = c.Title
 		}
 	}
-	dmText := view.FormatDirectModerationAction(title, "kick", nil, reason)
+	dmText := view.FormatDirectModerationAction(*targetUser, title, "kick", nil, reason)
 	if _, err := b.SendMessage(targetUser.ID, dmText, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML}); err != nil {
 		slog.Warn("Failed to send kick DM notification", "user_id", targetUser.ID, "error", err)
 	}
@@ -161,7 +161,7 @@ func (h *Handler) Ban(b *gotgbot.Bot, ctx *cmd.Context) error {
 			title = c.Title
 		}
 	}
-	dmText := view.FormatDirectModerationAction(title, "ban", until, reason)
+	dmText := view.FormatDirectModerationAction(*targetUser, title, "ban", until, reason)
 	if _, err := b.SendMessage(targetUser.ID, dmText, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML}); err != nil {
 		slog.Warn("Failed to send ban DM notification", "user_id", targetUser.ID, "error", err)
 	}
@@ -356,7 +356,10 @@ func (h *Handler) Unban(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Пользователь %s разбанен", helpers.Link(*targetUser)))
+	return ctx.ReplyHTML(b, fmt.Sprintf("Пользователь %s %s",
+		helpers.Link(*targetUser),
+		helpers.Gendered(targetUser.Gender, "разбанен", "разбанена", "разбанен(а)"),
+	))
 }
 
 func (h *Handler) Unmute(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -525,7 +528,10 @@ func (h *Handler) FakeLeave(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.SendMessage(ctx.TargetChatID(), fmt.Sprintf("🕊 %s покинул нас...", helpers.LinkWithContent(*ctx.FirstUser(), title)), &gotgbot.SendMessageOpts{
+	_, err = b.SendMessage(ctx.TargetChatID(), fmt.Sprintf("🕊 %s %s нас...",
+		helpers.LinkWithContent(*u, title),
+		helpers.Gendered(u.Gender, "покинул", "покинула", "покинул(а)"),
+	), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 			IsDisabled: true,

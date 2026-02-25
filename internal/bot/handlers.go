@@ -20,6 +20,7 @@ import (
 	"activity-bot/internal/session"
 	"activity-bot/internal/stats"
 	statsH "activity-bot/internal/stats/handler"
+	userH "activity-bot/internal/user/handler"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
@@ -56,6 +57,7 @@ func (a *App) RegisterHandlers() {
 	messageHandler := messageH.New(messageService, a.MemberService, a.ChatService, a.Deepseek)
 	memberHandler := memberH.New(a.MemberService, a.ChatService, a.UserService, callService, a.AdminService)
 	callHandler := callH.New(callService, a.ChatService, a.AdminService)
+	userHandler := userH.New(a.UserService)
 
 	adminGuard := guard.NewAdminGuard(a.AdminService, sessionService)
 	creatorGuard := guard.NewCreatorGuard(a.AdminService, sessionService)
@@ -289,6 +291,12 @@ func (a *App) RegisterHandlers() {
 		SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.FakeLeave, "фейклив").FallbackToSender().WithGuards(groupGuard, adminGuard))
+	a.Dispatcher.AddHandler(cf.New(userHandler.ShowGender, "пол", "gender").FallbackToSender())
+	a.Dispatcher.AddHandler(cf.New(userHandler.SetGender, "пол", "gender").
+		FallbackToSender().
+		SetArgsCount(1),
+	)
+
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"), restHandler.ApproveRestRequest))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("reject:"), restHandler.RejectRestRequest))
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))

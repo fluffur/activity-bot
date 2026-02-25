@@ -68,17 +68,17 @@ func (s *Service) UpdateChatMembers(ctx context.Context, chatID int64, members [
 	return s.repo.UpsertChatMembers(ctx, chatID, members)
 }
 
-func (s *Service) ProcessLeftMember(ctx context.Context, chatID int64, userID int64) (string, error) {
+func (s *Service) ProcessLeftMember(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error) {
 	member, err := s.repo.Get(ctx, chatID, userID)
 	if err != nil {
-		return "", err
+		return model.ChatMember{}, err
 	}
 
 	if err := s.repo.Remove(ctx, chatID, userID); err != nil {
-		return "", err
+		return model.ChatMember{}, err
 	}
 
-	return member.CustomTitle, nil
+	return member, nil
 }
 
 func (s *Service) EnsureMemberExists(ctx context.Context, chatID int64, userID int64, username, firstName, lastName, role string) (model.ChatMember, error) {

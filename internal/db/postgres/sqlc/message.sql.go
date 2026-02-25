@@ -43,7 +43,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 }
 
 const inactiveChatMembers = `-- name: InactiveChatMembers :many
-SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, cm.custom_title, cm.status, cm.rest_until, MAX(m.created_at)::timestamptz AS last_message_at
+SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, cm.custom_title, cm.status, cm.rest_until, MAX(m.created_at)::timestamptz AS last_message_at
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
          LEFT JOIN messages m
@@ -63,6 +63,7 @@ type InactiveChatMembersRow struct {
 	FirstName     pgtype.Text        `db:"first_name" json:"firstName"`
 	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
 	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender        string             `db:"gender" json:"gender"`
 	CustomTitle   pgtype.Text        `db:"custom_title" json:"customTitle"`
 	Status        string             `db:"status" json:"status"`
 	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
@@ -84,6 +85,7 @@ func (q *Queries) InactiveChatMembers(ctx context.Context, chatID int64) ([]Inac
 			&i.FirstName,
 			&i.LastName,
 			&i.CreatedAt,
+			&i.Gender,
 			&i.CustomTitle,
 			&i.Status,
 			&i.RestUntil,
