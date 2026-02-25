@@ -245,13 +245,16 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 	rest = strings.TrimSpace(rest)
 	var htmlRest string
 
-	if fullHTML != "" {
-		plainText := msg.GetText()
-
-		idx := strings.Index(plainText, rest)
-		if idx >= 0 && idx <= len(fullHTML) {
-			htmlRest = strings.TrimSpace(fullHTML[idx:])
+	if fullHTML != "" && rest != "" {
+		prefixInClean := strings.Index(text, rest)
+		if prefixInClean < 0 {
+			prefixInClean = 0
 		}
+		cleanPrefixRunes := len([]rune(text[:prefixInClean]))
+
+		origOffset := origRuneOffset(msg.GetText(), entities, cleanPrefixRunes)
+
+		htmlRest = strings.TrimSpace(htmlAfterPlainRunes(fullHTML, origOffset))
 	}
 	var args []string
 
@@ -417,6 +420,73 @@ func cleanMessage(msg *gotgbot.Message) (string, []gotgbot.MessageEntity) {
 	}
 
 	return strings.TrimSpace(string(textRunes)), removedEntities
+}
+
+func origRuneOffset(originalText string, removedEntities []gotgbot.MessageEntity, cleanPrefixRunes int) int {
+	runes := []rune(originalText)
+
+	type runeRange struct{ start, end int }
+	removed := make([]runeRange, 0, len(removedEntities))
+	for _, e := range removedEntities {
+		s, end := runeIndex(originalText, int(e.Offset), int(e.Length))
+		removed = append(removed, runeRange{s, end})
+	}
+
+	isRemoved := func(i int) bool {
+		for _, r := range removed {
+			if i >= r.start && i < r.end {
+				return true
+			}
+		}
+		return false
+	}
+
+	cleanCount := 0
+	for i := 0; i < len(runes); i++ {
+		if isRemoved(i) {
+			continue
+		}
+		if cleanCount == cleanPrefixRunes {
+			return i
+		}
+		cleanCount++
+	}
+	return len(runes)
+}
+
+func htmlAfterPlainRunes(html string, n int) string {
+	if n <= 0 {
+		return html
+	}
+	runes := []rune(html)
+	count := 0
+	i := 0
+	for i < len(runes) && count < n {
+		switch runes[i] {
+		case '<':
+			for i < len(runes) && runes[i] != '>' {
+				i++
+			}
+			if i < len(runes) {
+				i++
+			}
+		case '&':
+			for i < len(runes) && runes[i] != ';' {
+				i++
+			}
+			if i < len(runes) {
+				i++ // skip ';'
+			}
+			count++
+		default:
+			i++
+			count++
+		}
+	}
+	if i >= len(runes) {
+		return ""
+	}
+	return string(runes[i:])
 }
 
 func runeIndex(text string, offset, length int) (start, end int) {
