@@ -525,7 +525,7 @@ func (h *Handler) FakeLeave(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.SendMessage(ctx.TargetChatID(), fmt.Sprintf("🕊 %s c ролью \"%s\" покинул нас...", helpers.Link(*ctx.FirstUser()), title), &gotgbot.SendMessageOpts{
+	_, err = b.SendMessage(ctx.TargetChatID(), fmt.Sprintf("🕊 %s покинул нас...", helpers.LinkWithContent(*ctx.FirstUser(), title)), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 			IsDisabled: true,
