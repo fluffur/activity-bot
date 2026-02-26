@@ -128,7 +128,7 @@ FROM chat_members cm
 WHERE cm.chat_id = $1
   AND cm.custom_title IS NOT NULL
   AND cm.custom_title <> ''
-  AND cm.left_at IS NOT NULL
+  AND cm.left_at IS NULL
 `
 
 type GetAnyChatMembersWithTitlesRow struct {
