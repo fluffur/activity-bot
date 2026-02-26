@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"fmt"
+	"time"
 )
 
 func FormatProfile(m model.MemberStats) string {
@@ -42,16 +43,25 @@ func FormatProfile(m model.MemberStats) string {
 	)
 
 	if m.RestUntil != nil {
-		text += fmt.Sprintf(
-			"\n\n💤 <b>Рест до:</b> %s",
-			helpers.FormatToHumanDate(*m.RestUntil),
-		)
-	} else if m.NormWarn > 0 || m.NormBan > 0 {
+		if m.RestUntil.After(time.Now()) {
+			text += fmt.Sprintf(
+				"\n\n💤 <b>Рест до:</b> %s",
+				helpers.FormatToHumanDate(*m.RestUntil),
+			)
+		} else {
+			text += fmt.Sprintf(
+				"\n\n💤 <b>Последний рест был завершен:</b> %s",
+				helpers.FormatToHumanDate(*m.RestUntil),
+			)
+		}
+	}
 
+	if m.NormWarn > 0 || m.NormBan > 0 {
 		normEmoji := getNormEmoji(
 			m.WeekCount,
 			m.NormBan,
 			m.NormWarn,
+			m.RestUntil != nil && m.RestUntil.After(time.Now()),
 		)
 
 		text += fmt.Sprintf("\n\n%s <b>Норма (неделя)</b>\n", normEmoji)
@@ -76,7 +86,10 @@ func FormatProfile(m model.MemberStats) string {
 	return text
 }
 
-func getNormEmoji(weekCount, normBan, normWarn int32) string {
+func getNormEmoji(weekCount, normBan, normWarn int32, isInRest bool) string {
+	if isInRest {
+		return "😴"
+	}
 	if normBan == 0 && normWarn == 0 {
 		return "⚪"
 	}
