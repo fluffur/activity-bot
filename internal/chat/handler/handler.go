@@ -20,6 +20,11 @@ type Handler struct {
 	dateParser     *helpers.DateParser
 }
 
+type chatInfo struct {
+	ID    int64
+	Title string
+}
+
 func New(service *chat.Service, adminService *admin.Service, sessionService *session.Service, dateParser *helpers.DateParser) *Handler {
 	return &Handler{service, adminService, sessionService, dateParser}
 }
@@ -205,10 +210,6 @@ func (h *Handler) Manage(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "❌ У вас нет доступных чатов для управления", nil)
 	}
 
-	type chatInfo struct {
-		ID    int64
-		Title string
-	}
 	chats := make([]chatInfo, 0)
 	for _, id := range chatIDs {
 		c, err := b.GetChat(id, nil)
@@ -222,16 +223,96 @@ func (h *Handler) Manage(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "❌ Не удалось получить информацию о ваших чатах", nil)
 	}
 
+	return ctx.Reply(b, "Выберите чат для управления:", &gotgbot.SendMessageOpts{
+		ReplyMarkup: h.getManageKeyboard(chats, 1),
+	})
+}
+
+func (h *Handler) getManageKeyboard(chats []chatInfo, page int) gotgbot.InlineKeyboardMarkup {
+	const itemsPerPage = 8
+
+	totalPages := (len(chats) + itemsPerPage - 1) / itemsPerPage
+	if page < 1 {
+		page = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+
+	startIdx := (page - 1) * itemsPerPage
+	endIdx := startIdx + itemsPerPage
+	if endIdx > len(chats) {
+		endIdx = len(chats)
+	}
+
 	var buttons [][]gotgbot.InlineKeyboardButton
-	for _, c := range chats {
+	for _, c := range chats[startIdx:endIdx] {
 		buttons = append(buttons, []gotgbot.InlineKeyboardButton{
 			{Text: c.Title, CallbackData: "manage:" + strconv.FormatInt(c.ID, 10)},
 		})
 	}
 
-	return ctx.Reply(b, "Выберите чат для управления:", &gotgbot.SendMessageOpts{
-		ReplyMarkup: gotgbot.InlineKeyboardMarkup{InlineKeyboard: buttons},
+	var navButtons []gotgbot.InlineKeyboardButton
+	if page > 1 {
+		navButtons = append(navButtons, gotgbot.InlineKeyboardButton{
+			Text:         "◀️ Назад",
+			CallbackData: "manage_page:" + strconv.Itoa(page-1),
+			Style:        "Primary",
+		})
+	}
+	if page < totalPages {
+		navButtons = append(navButtons, gotgbot.InlineKeyboardButton{
+			Text:         "Вперед ▶️",
+			CallbackData: "manage_page:" + strconv.Itoa(page+1),
+			Style:        "primary",
+		})
+	}
+
+	if len(navButtons) > 0 {
+		buttons = append(buttons, navButtons)
+	}
+
+	return gotgbot.InlineKeyboardMarkup{InlineKeyboard: buttons}
+}
+
+func (h *Handler) CallbackManagePage(b *gotgbot.Bot, ctx *cmd.Context) error {
+	data := ctx.CallbackQuery.Data
+	pageStr := strings.TrimPrefix(data, "manage_page:")
+	page, err := strconv.Atoi(pageStr)
+	if err != nil {
+		return err
+	}
+
+	chatIDs, err := h.adminService.GetUserManagedChats(ctx.StdContext(), ctx.EffectiveUser.Id)
+	if err != nil {
+		return err
+	}
+
+	chats := make([]chatInfo, 0)
+	for _, id := range chatIDs {
+		c, err := b.GetChat(id, nil)
+		if err != nil {
+			continue
+		}
+		chats = append(chats, chatInfo{ID: id, Title: c.Title})
+	}
+
+	if len(chats) == 0 {
+		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "У вас нет доступных чатов для управления",
+		})
+		return err
+	}
+
+	_, _, err = ctx.EffectiveMessage.EditReplyMarkup(b, &gotgbot.EditMessageReplyMarkupOpts{
+		ReplyMarkup: h.getManageKeyboard(chats, page),
 	})
+	if err != nil && !strings.Contains(err.Error(), "message is not modified") {
+		return err
+	}
+
+	_, err = ctx.CallbackQuery.Answer(b, nil)
+	return err
 }
 
 func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *cmd.Context) error {
