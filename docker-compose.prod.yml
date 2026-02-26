@@ -52,7 +52,7 @@ services:
     depends_on:
       - db
     volumes:
-      - .:/app
+      - ./migrations:/app/migrations
     entrypoint: [ "./migrate" ]
 
 volumes:
