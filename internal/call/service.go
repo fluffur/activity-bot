@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/member"
 	"context"
 	"log"
+	"log/slog"
 	"math/rand"
 	"regexp"
 	"strings"
@@ -57,7 +58,6 @@ func replaceMentionsWithLinks(input string) string {
 	flushText := func() {
 		if textBuf.Len() > 0 {
 			res := mentionRegex.ReplaceAllString(textBuf.String(), "$1<a href=\"https://t.me/$2\">@$2</a>")
-			log.Println(textBuf.String(), res)
 			sb.WriteString(res)
 			textBuf.Reset()
 		}
@@ -82,7 +82,7 @@ func replaceMentionsWithLinks(input string) string {
 }
 
 func (s *Service) Call(ctx *cmd.Context, b *gotgbot.Bot, message string) error {
-	log.Println(message)
+	slog.Info("call message", "message", message)
 	members, err := s.memberService.GetChatMembers(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
