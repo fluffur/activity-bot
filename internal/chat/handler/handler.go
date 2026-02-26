@@ -7,12 +7,10 @@ import (
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/session"
-	"context"
 	"strconv"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type Handler struct {
@@ -236,7 +234,7 @@ func (h *Handler) Manage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	})
 }
 
-func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	data := ctx.CallbackQuery.Data
 	chatIDStr := strings.TrimPrefix(data, "manage:")
 	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
@@ -244,7 +242,7 @@ func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	isAdmin, err := h.adminService.IsAdmin(context.Background(), chatID, ctx.EffectiveUser.Id)
+	isAdmin, err := h.adminService.IsAdmin(ctx.StdContext(), chatID, ctx.EffectiveUser.Id)
 	if err != nil || !isAdmin {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text:      "У вас больше нет прав администратора в этом чате",
@@ -253,7 +251,7 @@ func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	if err := h.sessionService.SetActiveChat(context.Background(), ctx.EffectiveUser.Id, chatID); err != nil {
+	if err := h.sessionService.SetActiveChat(ctx.StdContext(), ctx.EffectiveUser.Id, chatID); err != nil {
 		return err
 	}
 

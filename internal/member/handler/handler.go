@@ -9,7 +9,6 @@ import (
 	"activity-bot/internal/member"
 	"activity-bot/internal/member/view"
 	"activity-bot/internal/user"
-	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -18,7 +17,6 @@ import (
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"golang.org/x/time/rate"
 )
 
@@ -258,49 +256,45 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.ReplyHTML(b, view.FormatMemberRole(*targetUser, mTitle))
 }
 
-func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *cmd.Context) error {
 	joinedMembers := ctx.EffectiveMessage.NewChatMembers
-	cctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 	for _, u := range joinedMembers {
 		if u.IsBot {
 			continue
 		}
 		slog.Info("member joined", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id)
-		if _, err := h.service.EnsureMemberExists(cctx, ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, "member"); err != nil {
+		if _, err := h.service.EnsureMemberExists(ctx.StdContext(), ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, "member"); err != nil {
 			return err
 		}
 	}
 
-	chatData, err := h.chatService.GetChat(cctx, ctx.EffectiveChat.Id)
+	chatData, err := h.chatService.GetChat(ctx.StdContext(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
 
 	if chatData.CallOnJoin {
-		return h.callService.Call(cctx, b, ctx, chatData.WelcomeCallMessage)
+		return h.callService.Call(ctx, b, chatData.WelcomeCallMessage)
 	}
 
 	return nil
 }
 
-func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *cmd.Context) error {
 	u := ctx.Message.LeftChatMember
-	cctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 	slog.Info("member left", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id)
 	if u.IsBot {
 		return nil
 	}
-	if _, err := h.service.EnsureMemberExists(cctx, ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, "member"); err != nil {
+	if _, err := h.service.EnsureMemberExists(ctx.StdContext(), ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, "member"); err != nil {
 		return err
 	}
-	m, err := h.service.ProcessLeftMember(cctx, ctx.EffectiveChat.Id, u.Id)
+	m, err := h.service.ProcessLeftMember(ctx.StdContext(), ctx.EffectiveChat.Id, u.Id)
 	if err != nil {
 		return err
 	}
 
-	admins, err := h.adminService.GetAdminsEnsured(context.Background(), ctx.EffectiveChat.Id, h.service.SyncChatMembers)
+	admins, err := h.adminService.GetAdminsEnsured(ctx.StdContext(), ctx.EffectiveChat.Id, h.service.SyncChatMembers)
 	if err != nil {
 		return err
 	}
@@ -325,10 +319,8 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *ext.Context) error {
 	return err
 }
 
-func (h *Handler) OnBotPromote(_ *gotgbot.Bot, ctx *ext.Context) error {
-	cctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	count, err := h.service.SyncChatMembers(cctx, ctx.EffectiveChat.Id)
+func (h *Handler) OnBotPromote(_ *gotgbot.Bot, ctx *cmd.Context) error {
+	count, err := h.service.SyncChatMembers(ctx.StdContext(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}

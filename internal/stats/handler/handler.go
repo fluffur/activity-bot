@@ -190,7 +190,7 @@ func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.TargetChatID(), u.ID)
 }
 
-func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 	var userID int64
 	if _, err := fmt.Sscanf(ctx.CallbackQuery.Data, "whoareyou:%d", &userID); err != nil {
 		return err
@@ -198,13 +198,7 @@ func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *ext.Context) error {
 
 	_, _ = ctx.CallbackQuery.Answer(b, nil)
 
-	chatID := ctx.EffectiveChat.Id
-	if ctx.EffectiveChat.Type == "private" && h.sessionService != nil {
-		targetID, err := h.sessionService.GetActiveChat(context.Background(), ctx.EffectiveSender.Id())
-		if err == nil && targetID != 0 {
-			chatID = targetID
-		}
-	}
+	chatID := ctx.TargetChatID()
 
 	var buttons [][]gotgbot.InlineKeyboardButton
 
@@ -212,8 +206,8 @@ func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *ext.Context) error {
 	if msg == nil || msg.ReplyMarkup == nil {
 		return h.WhoAreUser(
 			b,
-			context.Background(),
-			ctx,
+			ctx.StdContext(),
+			ctx.Context,
 			chatID,
 			userID,
 		)
@@ -256,8 +250,8 @@ func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *ext.Context) error {
 
 	return h.WhoAreUser(
 		b,
-		context.Background(),
-		ctx,
+		ctx.StdContext(),
+		ctx.Context,
 		chatID,
 		userID,
 	)

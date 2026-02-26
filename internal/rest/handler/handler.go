@@ -9,7 +9,6 @@ import (
 	"activity-bot/internal/rest/view"
 	"activity-bot/internal/session"
 	"activity-bot/internal/user"
-	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -18,7 +17,6 @@ import (
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type Handler struct {
@@ -144,20 +142,11 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.ReplyHTML(b, view.FormatRestEnded(*targetUser, isSelf))
 }
 
-func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
-	cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	chatID := ctx.EffectiveChat.Id
-	if ctx.EffectiveChat.Type == "private" && h.sessionService != nil {
-		targetID, err := h.sessionService.GetActiveChat(cctx, ctx.EffectiveSender.Id())
-		if err == nil && targetID != 0 {
-			chatID = targetID
-		}
-	}
+func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
+	chatID := ctx.TargetChatID()
 
 	fromID, err := parseRequestCallbackData(ctx.CallbackQuery.Data)
-	restRequest, err := h.service.GetRestRequest(cctx, chatID, fromID, ctx.EffectiveMessage.MessageId)
+	restRequest, err := h.service.GetRestRequest(ctx.StdContext(), chatID, fromID, ctx.EffectiveMessage.MessageId)
 	if err != nil {
 		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не найден запрос на рест",
@@ -165,7 +154,7 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	if !h.adminService.CheckIsAdmin(cctx, chatID, ctx.EffectiveSender.Id()) {
+	if !h.adminService.CheckIsAdmin(ctx.StdContext(), chatID, ctx.EffectiveSender.Id()) {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Подтвердить запрос может только администратор",
 		})
@@ -173,13 +162,13 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 
 	}
 
-	if err := h.service.ApproveRestRequest(cctx, chatID, fromID, ctx.EffectiveMessage.MessageId, restRequest.RestUntil); err != nil {
+	if err := h.service.ApproveRestRequest(ctx.StdContext(), chatID, fromID, ctx.EffectiveMessage.MessageId, restRequest.RestUntil); err != nil {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не удалось одобрить запрос",
 		})
 		return err
 	}
-	u, err := h.userService.GetUser(cctx, fromID)
+	u, err := h.userService.GetUser(ctx.StdContext(), fromID)
 	if err != nil {
 		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не удалось найти пользователя",
@@ -195,17 +184,10 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 	return err
 }
 
-func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
-	cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
+	cctx := ctx.StdContext()
 
-	chatID := ctx.EffectiveChat.Id
-	if ctx.EffectiveChat.Type == "private" && h.sessionService != nil {
-		targetID, err := h.sessionService.GetActiveChat(cctx, ctx.EffectiveSender.Id())
-		if err == nil && targetID != 0 {
-			chatID = targetID
-		}
-	}
+	chatID := ctx.TargetChatID()
 
 	fromID, err := parseRequestCallbackData(ctx.CallbackQuery.Data)
 	restRequest, err := h.service.GetRestRequest(cctx, chatID, fromID, ctx.EffectiveMessage.MessageId)

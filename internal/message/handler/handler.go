@@ -7,10 +7,8 @@ import (
 	"activity-bot/internal/message"
 	"context"
 	"errors"
-	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/cohesion-org/deepseek-go"
 )
 
@@ -77,32 +75,30 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *cmd.Context) error {
 	})
 }
 
-func (h *Handler) Message(b *gotgbot.Bot, ctx *ext.Context) error {
-	cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+func (h *Handler) Message(b *gotgbot.Bot, ctx *cmd.Context) error {
 	u := ctx.EffectiveSender.User
 	c := ctx.EffectiveChat
 	if u == nil || c == nil || u.IsBot {
 		return nil
 	}
 
-	m, err := h.memberService.EnsureMemberExists(cctx, c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member")
+	m, err := h.memberService.EnsureMemberExists(ctx.StdContext(), c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member")
 
 	if err != nil {
 		return err
 	}
 
 	if m.CustomTitle == "" {
-		title, err := h.EnsureMemberCustomTitle(cctx, b, c.Id, u.Id)
+		title, err := h.EnsureMemberCustomTitle(ctx.StdContext(), b, c.Id, u.Id)
 		if err != nil {
 			return err
 		}
 		if m.CustomTitle != title {
-			if err := h.memberService.SetMemberTitle(cctx, c.Id, u.Id, &title); err != nil {
+			if err := h.memberService.SetMemberTitle(ctx.StdContext(), c.Id, u.Id, &title); err != nil {
 				return err
 			}
 		}
 	}
 
-	return h.service.Save(cctx, c.Id, u.Id, ctx.EffectiveMessage.MessageId)
+	return h.service.Save(ctx.StdContext(), c.Id, u.Id, ctx.EffectiveMessage.MessageId)
 }

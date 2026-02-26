@@ -46,6 +46,80 @@ func (f *Factory) New(r Response, c string, aliases ...string) *Command {
 	return New(append(aliases, c), f.triggers, r, f.userService, f.chatService, f.sessionService, f.uniquePrefix)
 }
 
+func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
+	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		for _, guard := range guards {
+			if ok, message := guard.Check(ctx, "", ctxWithTimeout); !ok {
+				if message != "" && ctx.CallbackQuery != nil {
+					_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{Text: message, ShowAlert: true})
+				}
+				return nil
+			}
+		}
+
+		cmdCtx := &Context{
+			Context:        ctx,
+			ctx:            ctxWithTimeout,
+			sessionService: f.sessionService,
+		}
+
+		if ctx.CallbackQuery != nil {
+			parts := strings.Split(ctx.CallbackQuery.Data, ":")
+			if len(parts) > 1 {
+				cmdCtx.args = parts[1:]
+			}
+		}
+
+		return r(b, cmdCtx)
+	}
+}
+
+func (f *Factory) WrapEvent(r Response, guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
+	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		for _, guard := range guards {
+			if ok, message := guard.Check(ctx, "", ctxWithTimeout); !ok {
+				if message != "" && ctx.EffectiveMessage != nil {
+					_, _ = ctx.EffectiveMessage.Reply(b, message, nil)
+				}
+				return nil
+			}
+		}
+
+		users := make([]*model.User, 0)
+		if ctx.Message != nil {
+			if ctx.Message.NewChatMembers != nil {
+				for _, u := range ctx.Message.NewChatMembers {
+					mu, err := f.userService.EnsureUserExists(ctxWithTimeout, u.Id, u.Username, u.FirstName, u.LastName)
+					if err == nil {
+						users = append(users, &mu)
+					}
+				}
+			} else if ctx.Message.LeftChatMember != nil {
+				u := ctx.Message.LeftChatMember
+				mu, err := f.userService.EnsureUserExists(ctxWithTimeout, u.Id, u.Username, u.FirstName, u.LastName)
+				if err == nil {
+					users = append(users, &mu)
+				}
+			}
+		}
+
+		cmdCtx := &Context{
+			Context:        ctx,
+			ctx:            ctxWithTimeout,
+			sessionService: f.sessionService,
+			users:          users,
+		}
+
+		return r(b, cmdCtx)
+	}
+}
+
 type Command struct {
 	commands         []string
 	triggers         []string

@@ -7,12 +7,10 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/session"
-	"context"
 	"fmt"
 	"strconv"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 type Handler struct {
@@ -27,7 +25,7 @@ func New(service *call.Service, chatService *chat.Service, adminService *admin.S
 }
 
 func (h *Handler) Call(b *gotgbot.Bot, ctx *cmd.Context) error {
-	return h.service.Call(ctx.StdContext(), b, ctx.Context, ctx.HTML())
+	return h.service.Call(ctx, b, ctx.HTML())
 }
 
 func (h *Handler) SetMentionsPerMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -55,15 +53,9 @@ func (h *Handler) ShowCallTypes(b *gotgbot.Bot, ctx *cmd.Context) error {
 	})
 }
 
-func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *ext.Context) error {
-	chatID := ctx.EffectiveChat.Id
-	if ctx.EffectiveChat.Type == "private" && h.sessionService != nil {
-		targetID, err := h.sessionService.GetActiveChat(context.Background(), ctx.EffectiveSender.Id())
-		if err == nil && targetID != 0 {
-			chatID = targetID
-		}
-	}
-	isAdmin, err := h.adminService.IsAdmin(context.Background(), chatID, ctx.EffectiveSender.Id())
+func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *cmd.Context) error {
+	chatID := ctx.TargetChatID()
+	isAdmin, err := h.adminService.IsAdmin(ctx.StdContext(), chatID, ctx.EffectiveSender.Id())
 	if err != nil {
 		return err
 	}
@@ -78,7 +70,7 @@ func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	c, err := h.chatService.GetChat(context.Background(), chatID)
+	c, err := h.chatService.GetChat(ctx.StdContext(), chatID)
 	if err != nil {
 		return err
 	}
@@ -98,7 +90,7 @@ func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *ext.Context) error {
 		})
 		return err
 	}
-	if err := h.service.SetMentionTypes(context.Background(), chatID, newTypes); err != nil {
+	if err := h.service.SetMentionTypes(ctx.StdContext(), chatID, newTypes); err != nil {
 		return err
 	}
 

@@ -2,6 +2,7 @@ package call
 
 import (
 	"activity-bot/internal/chat"
+	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"context"
@@ -9,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 const (
@@ -42,21 +42,21 @@ func NewService(repo chat.Repository, memberService *member.Service) *Service {
 	return &Service{repo, memberService}
 }
 
-func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, message string) error {
-	members, err := s.memberService.GetChatMembers(ctx, tgCtx.EffectiveChat.Id)
+func (s *Service) Call(ctx *cmd.Context, b *gotgbot.Bot, message string) error {
+	members, err := s.memberService.GetChatMembers(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
 	}
 
 	var replyParams *gotgbot.ReplyParameters
-	if tgCtx.EffectiveMessage.ReplyToMessage != nil {
+	if ctx.EffectiveMessage.ReplyToMessage != nil {
 		replyParams = &gotgbot.ReplyParameters{
-			ChatId:    tgCtx.EffectiveChat.Id,
-			MessageId: tgCtx.EffectiveMessage.ReplyToMessage.MessageId,
+			ChatId:    ctx.EffectiveChat.Id,
+			MessageId: ctx.EffectiveMessage.ReplyToMessage.MessageId,
 		}
 	}
 
-	chatSettings, err := s.repo.GetChat(ctx, tgCtx.EffectiveChat.Id)
+	chatSettings, err := s.repo.GetChat(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
 	}
@@ -118,18 +118,18 @@ func (s *Service) Call(ctx context.Context, b *gotgbot.Bot, tgCtx *ext.Context, 
 			}
 		}
 
-		if len(tgCtx.EffectiveMessage.Photo) > 0 {
-			lastPhoto := tgCtx.EffectiveMessage.Photo[len(tgCtx.EffectiveMessage.Photo)-1]
-			if _, err := b.SendPhoto(tgCtx.EffectiveChat.Id, gotgbot.InputFileByID(lastPhoto.FileId), &gotgbot.SendPhotoOpts{
+		if len(ctx.EffectiveMessage.Photo) > 0 {
+			lastPhoto := ctx.EffectiveMessage.Photo[len(ctx.EffectiveMessage.Photo)-1]
+			if _, err := b.SendPhoto(ctx.TargetChatID(), gotgbot.InputFileByID(lastPhoto.FileId), &gotgbot.SendPhotoOpts{
 				ParseMode:       gotgbot.ParseModeHTML,
 				Caption:         sb.String(),
-				HasSpoiler:      tgCtx.EffectiveMessage.HasMediaSpoiler,
+				HasSpoiler:      ctx.EffectiveMessage.HasMediaSpoiler,
 				ReplyParameters: replyParams,
 			}); err != nil {
 				return err
 			}
 		} else {
-			if _, err := tgCtx.EffectiveMessage.Reply(b, sb.String(), &gotgbot.SendMessageOpts{
+			if _, err := ctx.EffectiveMessage.Reply(b, sb.String(), &gotgbot.SendMessageOpts{
 				ParseMode: gotgbot.ParseModeHTML,
 				LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 					IsDisabled: true,

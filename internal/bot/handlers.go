@@ -97,7 +97,7 @@ func (a *App) RegisterHandlers() {
 		SetArgsCount(1).
 		WithGuards(groupGuard),
 	)
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("whoareyou:"), statsHandler.CallbackWhoAreYou))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("whoareyou:"), cf.WrapCallback(statsHandler.CallbackWhoAreYou)))
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "ты", "you").SetArgsCount(1).ForcePrefix().
 		WithGuards(groupGuard),
 	)
@@ -250,10 +250,10 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard, rateLimiterGuard).
 		SetArgsCount(1),
 	)
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_type:"), callHandler.CallbackCallType))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_type:"), cf.WrapCallback(callHandler.CallbackCallType)))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").WithGuards(groupGuard))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.Manage, "manage", "управление").ForcePrefix())
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage:"), chatHandler.CallbackManage))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage:"), cf.WrapCallback(chatHandler.CallbackManage)))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.SetPrompt, "промпт").
 		AddTriggers("+").
 		SetArgsCount(1).
@@ -297,10 +297,10 @@ func (a *App) RegisterHandlers() {
 		SetArgsCount(1),
 	)
 
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"), restHandler.ApproveRestRequest))
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("reject:"), restHandler.RejectRestRequest))
-	a.Dispatcher.AddHandler(handlers.NewMessage(message.LeftChatMember, memberHandler.OnLeftMember))
-	a.Dispatcher.AddHandler(handlers.NewMessage(message.NewChatMembers, memberHandler.OnJoinMember))
-	a.Dispatcher.AddHandler(handlers.NewMyChatMember(chatmember.NewStatus("administrator"), memberHandler.OnBotPromote))
-	a.Dispatcher.AddHandler(handlers.NewMessage(filter.OnlyGroups, messageHandler.Message))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"), cf.WrapCallback(restHandler.ApproveRestRequest)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("reject:"), cf.WrapCallback(restHandler.RejectRestRequest)))
+	a.Dispatcher.AddHandler(handlers.NewMessage(message.LeftChatMember, cf.WrapEvent(memberHandler.OnLeftMember)))
+	a.Dispatcher.AddHandler(handlers.NewMessage(message.NewChatMembers, cf.WrapEvent(memberHandler.OnJoinMember)))
+	a.Dispatcher.AddHandler(handlers.NewMyChatMember(chatmember.NewStatus("administrator"), cf.WrapEvent(memberHandler.OnBotPromote)))
+	a.Dispatcher.AddHandler(handlers.NewMessage(filter.OnlyGroups, cf.WrapEvent(messageHandler.Message)))
 }
