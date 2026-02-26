@@ -83,7 +83,7 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 
 func (f *Factory) WrapEvent(r Response, guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 		defer cancel()
 
 		for _, guard := range guards {
