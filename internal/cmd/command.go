@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/user"
 	"context"
 	"log"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -59,11 +60,14 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 				return nil
 			}
 		}
-
+		chatID, err := GetChatID(f.sessionService, ctx, ctxWithTimeout)
+		if err != nil {
+			return err
+		}
 		cmdCtx := &Context{
-			Context:        ctx,
-			ctx:            ctxWithTimeout,
-			sessionService: f.sessionService,
+			Context:      ctx,
+			ctx:          ctxWithTimeout,
+			targetChatID: chatID,
 		}
 
 		if ctx.CallbackQuery != nil {
@@ -110,14 +114,18 @@ func (f *Factory) WrapEvent(r Response, guards ...Guard) func(b *gotgbot.Bot, ct
 		}
 
 		cmdCtx := &Context{
-			Context:        ctx,
-			ctx:            ctxWithTimeout,
-			sessionService: f.sessionService,
-			users:          users,
+			Context:      ctx,
+			ctx:          ctxWithTimeout,
+			users:        users,
+			targetChatID: ctx.EffectiveChat.Id,
 		}
 
 		return r(b, cmdCtx)
 	}
+}
+
+type SessionService interface {
+	GetActiveChat(ctx context.Context, userID int64) (int64, error)
 }
 
 type Command struct {
@@ -128,12 +136,10 @@ type Command struct {
 	fallbackToSender bool
 	userService      *user.Service
 	chatService      *chat.Service
-	sessionService   interface {
-		GetActiveChat(ctx context.Context, userID int64) (int64, error)
-	}
-	uniquePrefix string
-	guards       []Guard
-	forcePrefix  bool
+	sessionService   SessionService
+	uniquePrefix     string
+	guards           []Guard
+	forcePrefix      bool
 }
 
 func New(commands []string, triggers []string, response Response, userService *user.Service, chatService *chat.Service, sessionService interface {
@@ -313,7 +319,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 
 	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix, allowPrefixless && !c.forcePrefix)
 	if !matched {
-		return &Context{ctx, cctx, []string{}, "", users, c.sessionService}
+		return &Context{ctx, cctx, []string{}, "", users, 0}
 	}
 
 	rest = strings.TrimSpace(rest)
@@ -346,7 +352,13 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 	for _, u := range users {
 		log.Println("user", *u)
 	}
-	return &Context{ctx, cctx, args, htmlRest, users, c.sessionService}
+
+	chatID, err := GetChatID(c.sessionService, ctx, cctx)
+	if err != nil {
+		slog.Error("GetChatID error", "error", err)
+		return &Context{ctx, cctx, []string{}, "", users, 0}
+	}
+	return &Context{ctx, cctx, args, htmlRest, users, chatID}
 }
 
 func (c *Command) Name() string {
@@ -355,6 +367,19 @@ func (c *Command) Name() string {
 	}
 	return "unnamed_command"
 
+}
+
+func GetChatID(sessionService SessionService, ctx *ext.Context, cctx context.Context) (int64, error) {
+	if ctx.EffectiveChat.Type != "private" {
+		return ctx.EffectiveChat.Id, nil
+	}
+
+	targetID, err := sessionService.GetActiveChat(cctx, ctx.EffectiveUser.Id)
+	if err != nil {
+		return 0, err
+	}
+
+	return targetID, nil
 }
 
 func (c *Command) checkMessage(ctx context.Context, b *gotgbot.Bot, msg *gotgbot.Message) bool {

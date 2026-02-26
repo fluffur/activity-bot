@@ -15,28 +15,15 @@ type Response func(b *gotgbot.Bot, ctx *Context) error
 
 type Context struct {
 	*ext.Context
-	ctx            context.Context
-	args           []string
-	html           string
-	users          []*model.User
-	sessionService interface {
-		GetActiveChat(ctx context.Context, userID int64) (int64, error)
-	}
+	ctx          context.Context
+	args         []string
+	html         string
+	users        []*model.User
+	targetChatID int64
 }
 
 func (c *Context) TargetChatID() int64 {
-	if c.EffectiveChat.Type != "private" {
-		return c.EffectiveChat.Id
-	}
-
-	if c.sessionService != nil {
-		targetID, err := c.sessionService.GetActiveChat(c.ctx, c.EffectiveUser.Id)
-		if err == nil && targetID != 0 {
-			return targetID
-		}
-	}
-
-	return c.EffectiveChat.Id
+	return c.targetChatID
 }
 
 func (c *Context) FirstArgument() string {
