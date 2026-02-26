@@ -44,7 +44,9 @@ FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = @chat_id
   AND cm.custom_title IS NOT NULL
-  AND cm.custom_title <> '';
+  AND cm.custom_title <> ''
+  AND cm.left_at IS NOT NULL
+;
 
 -- name: UpdateChatMemberTitle :exec
 UPDATE chat_members
@@ -98,10 +100,11 @@ RETURNING *;
 INSERT INTO chat_members(chat_id, user_id, custom_title, status)
 SELECT @chat_id, UNNEST(@user_ids::BIGINT[]), UNNEST(@custom_titles::TEXT[]), UNNEST(@statuses::TEXT[])
 ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = CASE
-                                                                WHEN EXCLUDED.custom_title <> '' THEN EXCLUDED.custom_title
+                                                                WHEN EXCLUDED.custom_title <> ''
+                                                                    THEN EXCLUDED.custom_title
                                                                 ELSE chat_members.custom_title
-                                                 END,
-                                             status         = CASE
+    END,
+                                             status       = CASE
                                                                 WHEN EXCLUDED.status = 'creator' THEN 'creator'
                                                                 WHEN chat_members.status = 'administrator'
                                                                     THEN 'administrator'

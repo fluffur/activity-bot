@@ -128,6 +128,7 @@ FROM chat_members cm
 WHERE cm.chat_id = $1
   AND cm.custom_title IS NOT NULL
   AND cm.custom_title <> ''
+  AND cm.left_at IS NOT NULL
 `
 
 type GetAnyChatMembersWithTitlesRow struct {
@@ -436,10 +437,11 @@ const upsertChatMembers = `-- name: UpsertChatMembers :exec
 INSERT INTO chat_members(chat_id, user_id, custom_title, status)
 SELECT $1, UNNEST($2::BIGINT[]), UNNEST($3::TEXT[]), UNNEST($4::TEXT[])
 ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = CASE
-                                                                WHEN EXCLUDED.custom_title <> '' THEN EXCLUDED.custom_title
+                                                                WHEN EXCLUDED.custom_title <> ''
+                                                                    THEN EXCLUDED.custom_title
                                                                 ELSE chat_members.custom_title
-                                                 END,
-                                             status         = CASE
+    END,
+                                             status       = CASE
                                                                 WHEN EXCLUDED.status = 'creator' THEN 'creator'
                                                                 WHEN chat_members.status = 'administrator'
                                                                     THEN 'administrator'
