@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/hibiken/asynq"
+	"golang.org/x/time/rate"
 )
 
 type Handler struct {
@@ -509,12 +511,19 @@ func (h *Handler) UpdateChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
+	limiter := rate.NewLimiter(rate.Every(100*time.Millisecond), 1)
+
 	for _, c := range chats {
+		if err := limiter.Wait(ctx.StdContext()); err != nil {
+			return err
+		}
+
 		ch, err := b.GetChat(c.ID, nil)
 		if err != nil {
 			slog.Error("failed to get chat", "chat", c, "err", err)
 			continue
 		}
+		log.Println()
 
 		if err := h.chatService.SetTitle(ctx.StdContext(), ch.Id, ch.Title); err != nil {
 			return err
