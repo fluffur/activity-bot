@@ -46,11 +46,9 @@ FROM moderation_actions ma
 WHERE ma.type = 'mute'
   AND ma.revoked_at IS NULL
   AND ma.expires_at <= NOW();
+
 -- name: GetChatsWhereUserIsAdmin :many
-SELECT c.id
+SELECT c.*
 FROM chats c
 JOIN chat_members cm ON c.id = cm.chat_id
 WHERE cm.user_id = $1 AND cm.status IN ('administrator', 'creator');
-
--- name: GetAllChatIDs :many
-SELECT id FROM chats;

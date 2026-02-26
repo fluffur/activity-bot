@@ -3,6 +3,7 @@ package handler
 import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/admin/view"
+	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
@@ -24,12 +25,13 @@ type Handler struct {
 	service       *admin.Service
 	userService   *user.Service
 	memberService *member.Service
+	chatService   *chat.Service
 	dateParser    *helpers.DateParser
 	asyncClient   *asynq.Client
 }
 
-func New(service *admin.Service, userService *user.Service, memberService *member.Service, dateParser *helpers.DateParser, asyncClient *asynq.Client) *Handler {
-	return &Handler{service, userService, memberService, dateParser, asyncClient}
+func New(service *admin.Service, userService *user.Service, memberService *member.Service, chatService *chat.Service, dateParser *helpers.DateParser, asyncClient *asynq.Client) *Handler {
+	return &Handler{service, userService, memberService, chatService, dateParser, asyncClient}
 }
 
 func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -501,7 +503,25 @@ func (h *Handler) ListDevelopers(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	return ctx.ReplyHTML(b, view.FormatDevelopersList(users, roles))
 }
+func (h *Handler) UpdateChats(b *gotgbot.Bot, ctx *cmd.Context) error {
+	chats, err := h.service.GetUserManagedChats(ctx.StdContext(), ctx.EffectiveSender.Id())
+	if err != nil {
+		return err
+	}
 
+	for _, c := range chats {
+		ch, err := b.GetChat(c.ID, nil)
+		if err != nil {
+			slog.Error("failed to get chat", "chat", c, "err", err)
+			continue
+		}
+
+		if err := h.chatService.SetTitle(ctx.StdContext(), ch.Id, ch.Title); err != nil {
+			return err
+		}
+	}
+	return ctx.Reply(b, "Чаты обновлены", nil)
+}
 func (h *Handler) ClearWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
 	if targetUser == nil {

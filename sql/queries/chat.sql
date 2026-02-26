@@ -1,8 +1,8 @@
 -- name: EnsureChatExists :one
 WITH ins AS (
-    INSERT INTO chats (id, norm_warn, newbie_threshold_days)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (id) DO NOTHING
+    INSERT INTO chats (id, title, norm_warn, newbie_threshold_days)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title
         RETURNING *)
 SELECT *
 FROM ins
@@ -13,9 +13,9 @@ WHERE id = $1
 LIMIT 1;
 
 -- name: GetOrCreateChat :one
-INSERT INTO chats(id, norm_warn)
-VALUES ($1, $2)
-ON CONFLICT(id) DO UPDATE SET norm = chats.norm
+INSERT INTO chats(id, title, norm_warn)
+VALUES ($1, $2, $3)
+ON CONFLICT(id) DO UPDATE SET norm_warn = chats.norm_warn, title = EXCLUDED.title
 RETURNING *;
 
 -- name: UpdateChatWarnNorm :exec
@@ -39,6 +39,15 @@ WHERE id = $2;
 SELECT *
 FROM chats
 WHERE id = $1;
+
+-- name: GetAllChats :many
+SELECT *
+FROM chats;
+
+-- name: UpdateChatTitle :exec
+UPDATE chats
+SET title = $1
+WHERE id = $2;
 
 -- name: SetChatAISystemPrompt :exec
 UPDATE chats

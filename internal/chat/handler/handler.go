@@ -211,12 +211,13 @@ func (h *Handler) Manage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	chats := make([]chatInfo, 0)
-	for _, id := range chatIDs {
-		c, err := b.GetChat(id, nil)
-		if err != nil {
-			continue
+	for _, c := range chatIDs {
+		title := c.Title
+		if title == "" {
+			title = "Чат без названия"
 		}
-		chats = append(chats, chatInfo{ID: id, Title: c.Title})
+
+		chats = append(chats, chatInfo{ID: c.ID, Title: title})
 	}
 
 	if len(chats) == 0 {
@@ -255,14 +256,14 @@ func (h *Handler) getManageKeyboard(chats []chatInfo, page int) gotgbot.InlineKe
 	var navButtons []gotgbot.InlineKeyboardButton
 	if page > 1 {
 		navButtons = append(navButtons, gotgbot.InlineKeyboardButton{
-			Text:         "◀️ Назад",
+			Text:         "< Назад",
 			CallbackData: "manage_page:" + strconv.Itoa(page-1),
 			Style:        "primary",
 		})
 	}
 	if page < totalPages {
 		navButtons = append(navButtons, gotgbot.InlineKeyboardButton{
-			Text:         "Вперед ▶️",
+			Text:         "Вперед >",
 			CallbackData: "manage_page:" + strconv.Itoa(page+1),
 			Style:        "primary",
 		})
@@ -289,12 +290,14 @@ func (h *Handler) CallbackManagePage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	chats := make([]chatInfo, 0)
-	for _, id := range chatIDs {
-		c, err := b.GetChat(id, nil)
-		if err != nil {
-			continue
+	for _, c := range chatIDs {
+
+		title := c.Title
+		if title == "" {
+			title = "Чат без названия"
 		}
-		chats = append(chats, chatInfo{ID: id, Title: c.Title})
+
+		chats = append(chats, chatInfo{ID: c.ID, Title: title})
 	}
 
 	if len(chats) == 0 {
@@ -312,6 +315,16 @@ func (h *Handler) CallbackManagePage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	_, err = ctx.CallbackQuery.Answer(b, nil)
+	return err
+}
+
+func (h *Handler) OnNewChatTitle(b *gotgbot.Bot, ctx *cmd.Context) error {
+	newTitle := ctx.EffectiveMessage.NewChatTitle
+	if newTitle == "" {
+		return nil
+	}
+
+	_, err := h.service.EnsureChatExists(ctx.StdContext(), ctx.TargetChatID(), newTitle)
 	return err
 }
 

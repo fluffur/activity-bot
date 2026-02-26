@@ -20,6 +20,7 @@ func NewChatRepository(queries *db.Queries) chat.Repository {
 func mapChat(c db.EnsureChatExistsRow) model.Chat {
 	return model.Chat{
 		ID:                  c.ID,
+		Title:               c.Title,
 		NormWarn:            c.NormWarn,
 		NormBan:             c.NormBan.Int32,
 		NewbieThresholdDays: c.NewbieThresholdDays,
@@ -38,6 +39,7 @@ func mapChat(c db.EnsureChatExistsRow) model.Chat {
 func (r *ChatRepository) Ensure(ctx context.Context, c model.Chat) (model.Chat, error) {
 	ch, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{
 		ID:                  c.ID,
+		Title:               c.Title,
 		NormWarn:            c.NormWarn,
 		NewbieThresholdDays: 3,
 	})
@@ -46,6 +48,13 @@ func (r *ChatRepository) Ensure(ctx context.Context, c model.Chat) (model.Chat, 
 	}
 
 	return mapChat(ch), nil
+}
+
+func (r *ChatRepository) SetTitle(ctx context.Context, chatID int64, title string) error {
+	return r.queries.UpdateChatTitle(ctx, db.UpdateChatTitleParams{
+		Title: title,
+		ID:    chatID,
+	})
 }
 
 func (r *ChatRepository) SetWarnNorm(ctx context.Context, chatID int64, norm int32) error {

@@ -14,9 +14,10 @@ func NewService(repo Repository, defaultWeeklyNorm int32) *Service {
 	return &Service{repo, defaultWeeklyNorm}
 }
 
-func (s *Service) EnsureChatExists(ctx context.Context, chatID int64) (model.Chat, error) {
+func (s *Service) EnsureChatExists(ctx context.Context, chatID int64, title string) (model.Chat, error) {
 	return s.repo.Ensure(ctx, model.Chat{
 		ID:       chatID,
+		Title:    title,
 		NormWarn: s.defaultWeeklyNorm,
 	})
 }
@@ -35,6 +36,10 @@ func (s *Service) SetBanNorm(ctx context.Context, chatID int64, norm int) error 
 
 func (s *Service) GetChat(ctx context.Context, chatID int64) (model.Chat, error) {
 	return s.repo.GetChat(ctx, chatID)
+}
+
+func (s *Service) SetTitle(ctx context.Context, chatID int64, title string) error {
+	return s.repo.SetTitle(ctx, chatID, title)
 }
 
 func (s *Service) SetChatPrompt(ctx context.Context, chatID int64, prompt string) error {

@@ -74,12 +74,31 @@ func (r *AdminRepository) GetRole(ctx context.Context, chatID int64, userID int6
 	})
 }
 
-func (r *AdminRepository) GetChatsWhereUserIsAdmin(ctx context.Context, userID int64) ([]int64, error) {
-	return r.queries.GetChatsWhereUserIsAdmin(ctx, userID)
+func (r *AdminRepository) GetChatsWhereUserIsAdmin(ctx context.Context, userID int64) ([]model.Chat, error) {
+	chats, err := r.queries.GetChatsWhereUserIsAdmin(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	mapped := make([]model.Chat, len(chats))
+	for i, c := range chats {
+		mapped[i] = mapChat(db.EnsureChatExistsRow(c))
+	}
+
+	return mapped, nil
 }
 
-func (r *AdminRepository) GetAllChatIDs(ctx context.Context) ([]int64, error) {
-	return r.queries.GetAllChatIDs(ctx)
+func (r *AdminRepository) GetAllChats(ctx context.Context) ([]model.Chat, error) {
+	chats, err := r.queries.GetAllChats(ctx)
+	if err != nil {
+		return nil, err
+	}
+	mapped := make([]model.Chat, len(chats))
+	for i, c := range chats {
+		mapped[i] = mapChat(db.EnsureChatExistsRow(c))
+	}
+
+	return mapped, nil
 }
 
 func (r *AdminRepository) CreateModerationAction(ctx context.Context, actionType string, chatID, userID, modID int64, reason string, until *time.Time) error {

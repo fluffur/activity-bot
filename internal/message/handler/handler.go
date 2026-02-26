@@ -82,6 +82,13 @@ func (h *Handler) Message(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return nil
 	}
 
+	if c.Type == "supergroup" || c.Type == "group" {
+		_, err := h.chatService.EnsureChatExists(ctx.StdContext(), c.Id, c.Title)
+		if err != nil {
+			return err
+		}
+	}
+
 	m, err := h.memberService.EnsureMemberExists(ctx.StdContext(), c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member")
 
 	if err != nil {

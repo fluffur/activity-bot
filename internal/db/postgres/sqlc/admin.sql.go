@@ -28,30 +28,6 @@ func (q *Queries) AddChatAdmin(ctx context.Context, arg AddChatAdminParams) erro
 	return err
 }
 
-const getAllChatIDs = `-- name: GetAllChatIDs :many
-SELECT id FROM chats
-`
-
-func (q *Queries) GetAllChatIDs(ctx context.Context) ([]int64, error) {
-	rows, err := q.db.Query(ctx, getAllChatIDs)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []int64{}
-	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getChatAdmins = `-- name: GetChatAdmins :many
 SELECT u.id, u.username, u.first_name, u.last_name, cm.joined_at as created_at
 FROM chat_members cm
@@ -115,25 +91,41 @@ func (q *Queries) GetChatMemberStatus(ctx context.Context, arg GetChatMemberStat
 }
 
 const getChatsWhereUserIsAdmin = `-- name: GetChatsWhereUserIsAdmin :many
-SELECT c.id
+SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title
 FROM chats c
 JOIN chat_members cm ON c.id = cm.chat_id
 WHERE cm.user_id = $1 AND cm.status IN ('administrator', 'creator')
 `
 
-func (q *Queries) GetChatsWhereUserIsAdmin(ctx context.Context, userID int64) ([]int64, error) {
+func (q *Queries) GetChatsWhereUserIsAdmin(ctx context.Context, userID int64) ([]Chat, error) {
 	rows, err := q.db.Query(ctx, getChatsWhereUserIsAdmin, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []int64{}
+	items := []Chat{}
 	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
+		var i Chat
+		if err := rows.Scan(
+			&i.ID,
+			&i.NormWarn,
+			&i.NewbieThresholdDays,
+			&i.AiSystemPrompt,
+			&i.MaxLadder,
+			&i.CallOnJoin,
+			&i.WelcomeCallMessage,
+			&i.WeekStartDay,
+			&i.MaxWarns,
+			&i.NormBan,
+			&i.CommandPrefix,
+			&i.AllowPrefixless,
+			&i.MentionsPerMessage,
+			&i.MentionTypes,
+			&i.Title,
+		); err != nil {
 			return nil, err
 		}
-		items = append(items, id)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

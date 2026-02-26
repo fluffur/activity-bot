@@ -4,6 +4,7 @@ import "time"
 
 type Chat struct {
 	ID                  int64
+	Title               string
 	NormWarn            int32
 	NormBan             int32
 	NewbieThresholdDays int32

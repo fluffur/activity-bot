@@ -52,7 +52,7 @@ func (a *App) RegisterHandlers() {
 	chatHandler := chatH.New(a.ChatService, a.AdminService, sessionService, dateParser)
 	restHandler := restH.New(restService, a.UserService, a.AdminService, dateParser, sessionService)
 
-	adminHandler := adminH.New(a.AdminService, a.UserService, a.MemberService, dateParser, a.AsyncClient)
+	adminHandler := adminH.New(a.AdminService, a.UserService, a.MemberService, a.ChatService, dateParser, a.AsyncClient)
 
 	messageHandler := messageH.New(messageService, a.MemberService, a.ChatService, a.Deepseek)
 	memberHandler := memberH.New(a.MemberService, a.ChatService, a.UserService, callService, a.AdminService)
@@ -213,6 +213,9 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ListDevelopers, "девс", "devs").
 		WithGuards(developerGuard),
 	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.UpdateChats, "update_chats").
+		WithGuards(developerGuard),
+	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.UpdateMembersList, "обновить чат", "update chat", "update").
 		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 10*time.Second, sessionService)),
 	)
@@ -252,6 +255,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_type:"), cf.WrapCallback(callHandler.CallbackCallType)))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").WithGuards(groupGuard))
+	a.Dispatcher.AddHandler(handlers.NewMessage(cmd.NewChatTitle, cf.WrapEvent(chatHandler.OnNewChatTitle)))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.Manage, "manage", "управление").ForcePrefix())
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage:"), cf.WrapCallback(chatHandler.CallbackManage)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage_page:"), cf.WrapCallback(chatHandler.CallbackManagePage)))

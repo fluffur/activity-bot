@@ -89,10 +89,10 @@ func (s *Service) IsDeveloper(ctx context.Context, userID int64) (bool, error) {
 	return s.repo.IsDeveloper(ctx, userID)
 }
 
-func (s *Service) GetUserManagedChats(ctx context.Context, userID int64) ([]int64, error) {
+func (s *Service) GetUserManagedChats(ctx context.Context, userID int64) ([]model.Chat, error) {
 	isDev, _ := s.IsDeveloper(ctx, userID)
 	if isDev {
-		return s.repo.GetAllChatIDs(ctx)
+		return s.repo.GetAllChats(ctx)
 	}
 
 	return s.repo.GetChatsWhereUserIsAdmin(ctx, userID)
