@@ -511,7 +511,7 @@ func (h *Handler) UpdateChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	limiter := rate.NewLimiter(rate.Every(500*time.Millisecond), 1)
+	limiter := rate.NewLimiter(rate.Every(1000*time.Millisecond), 2)
 
 	for _, c := range chats {
 		if err := limiter.Wait(ctx.StdContext()); err != nil {

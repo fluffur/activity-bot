@@ -49,8 +49,7 @@ func (f *Factory) New(r Response, c string, aliases ...string) *Command {
 
 func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
+		ctxWithTimeout := context.Background()
 
 		for _, guard := range guards {
 			if ok, message := guard.Check(ctx, "", ctxWithTimeout); !ok {
@@ -83,8 +82,7 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 
 func (f *Factory) WrapEvent(r Response, guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 120*time.Second)
-		defer cancel()
+		ctxWithTimeout := context.Background()
 
 		for _, guard := range guards {
 			if ok, message := guard.Check(ctx, "", ctxWithTimeout); !ok {
@@ -217,8 +215,7 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 }
 
 func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
-	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	ctxWithTimeout := context.Background()
 	for _, guard := range c.guards {
 		if ok, message := guard.Check(ctx, c.commands[0], ctxWithTimeout); !ok {
 			if message != "" {
