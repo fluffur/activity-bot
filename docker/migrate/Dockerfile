@@ -12,5 +12,4 @@ FROM alpine:3.20
 WORKDIR /app
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /app/migrate .
-COPY migrations ./migrations
 CMD ["./migrate"]
