@@ -49,7 +49,7 @@ var tgMentionRegex = regexp.MustCompile(`(?i)<a\s+href="tg://user\?id=\d+">([^<]
 var mentionRegex = regexp.MustCompile(`(?i)(^|[^A-Za-z0-9_])@([a-zA-Z0-9_]{5,32})`)
 
 func replaceMentionsWithLinks(input string) string {
-	input = tgMentionRegex.ReplaceAllString(input, "$1")
+	input = tgMentionRegex.ReplaceAllString(input, "<a href=\"tg://openmessage?user_id=$2\">$1</a>")
 	var sb strings.Builder
 	inTag := false
 	var textBuf strings.Builder
@@ -57,6 +57,7 @@ func replaceMentionsWithLinks(input string) string {
 	flushText := func() {
 		if textBuf.Len() > 0 {
 			res := mentionRegex.ReplaceAllString(textBuf.String(), "$1<a href=\"https://t.me/$2\">@$2</a>")
+			log.Println(textBuf.String(), res)
 			sb.WriteString(res)
 			textBuf.Reset()
 		}
