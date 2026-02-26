@@ -15,7 +15,8 @@ LIMIT 1;
 -- name: GetOrCreateChat :one
 INSERT INTO chats(id, title, norm_warn)
 VALUES ($1, $2, $3)
-ON CONFLICT(id) DO UPDATE SET norm_warn = chats.norm_warn, title = EXCLUDED.title
+ON CONFLICT(id) DO UPDATE SET norm_warn = chats.norm_warn,
+                              title     = EXCLUDED.title
 RETURNING *;
 
 -- name: UpdateChatWarnNorm :exec
@@ -42,7 +43,8 @@ WHERE id = $1;
 
 -- name: GetAllChats :many
 SELECT *
-FROM chats;
+FROM chats
+WHERE id < 0;
 
 -- name: UpdateChatTitle :exec
 UPDATE chats

@@ -82,6 +82,7 @@ func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsPara
 const getAllChats = `-- name: GetAllChats :many
 SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title
 FROM chats
+WHERE id < 0
 `
 
 func (q *Queries) GetAllChats(ctx context.Context) ([]Chat, error) {
@@ -166,7 +167,8 @@ func (q *Queries) GetChatMaxLadder(ctx context.Context, chatID int64) (int32, er
 const getOrCreateChat = `-- name: GetOrCreateChat :one
 INSERT INTO chats(id, title, norm_warn)
 VALUES ($1, $2, $3)
-ON CONFLICT(id) DO UPDATE SET norm_warn = chats.norm_warn, title = EXCLUDED.title
+ON CONFLICT(id) DO UPDATE SET norm_warn = chats.norm_warn,
+                              title     = EXCLUDED.title
 RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title
 `
 
