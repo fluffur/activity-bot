@@ -94,7 +94,7 @@ const getChatsWhereUserIsAdmin = `-- name: GetChatsWhereUserIsAdmin :many
 SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title
 FROM chats c
 JOIN chat_members cm ON c.id = cm.chat_id
-WHERE c.id < 0 AND cm.user_id = $1 AND cm.status IN ('administrator', 'creator')
+WHERE c.id < 0 AND cm.user_id = $1 AND cm.status IN ('administrator', 'creator') AND title <> ''
 `
 
 func (q *Queries) GetChatsWhereUserIsAdmin(ctx context.Context, userID int64) ([]Chat, error) {

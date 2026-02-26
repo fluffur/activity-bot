@@ -82,7 +82,7 @@ func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsPara
 const getAllChats = `-- name: GetAllChats :many
 SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title
 FROM chats
-WHERE id < 0
+WHERE id < 0 AND title <> ''
 `
 
 func (q *Queries) GetAllChats(ctx context.Context) ([]Chat, error) {

@@ -44,7 +44,7 @@ WHERE id = $1;
 -- name: GetAllChats :many
 SELECT *
 FROM chats
-WHERE id < 0;
+WHERE id < 0 AND title <> '';
 
 -- name: UpdateChatTitle :exec
 UPDATE chats
