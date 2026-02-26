@@ -151,7 +151,7 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	var restoredCount int
 	var errorsCount int
-	limiter := rate.NewLimiter(rate.Every(100*time.Millisecond), 1)
+	limiter := rate.NewLimiter(rate.Every(1000*time.Millisecond), 2)
 
 	for _, m := range members {
 		if err := limiter.Wait(ctx.StdContext()); err != nil {
