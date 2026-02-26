@@ -6,7 +6,9 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"context"
+	"log"
 	"math/rand"
+	"regexp"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -42,7 +44,44 @@ func NewService(repo chat.Repository, memberService *member.Service) *Service {
 	return &Service{repo, memberService}
 }
 
+var tgMentionRegex = regexp.MustCompile(`(?i)<a\s+href="tg://user\?id=\d+">([^<]+)</a>`)
+
+var mentionRegex = regexp.MustCompile(`(?i)(^|[^A-Za-z0-9_])@([a-zA-Z0-9_]{5,32})`)
+
+func replaceMentionsWithLinks(input string) string {
+	input = tgMentionRegex.ReplaceAllString(input, "$1")
+	var sb strings.Builder
+	inTag := false
+	var textBuf strings.Builder
+
+	flushText := func() {
+		if textBuf.Len() > 0 {
+			res := mentionRegex.ReplaceAllString(textBuf.String(), "$1<a href=\"https://t.me/$2\">@$2</a>")
+			sb.WriteString(res)
+			textBuf.Reset()
+		}
+	}
+
+	for _, r := range input {
+		if r == '<' {
+			flushText()
+			inTag = true
+			sb.WriteRune(r)
+		} else if r == '>' && inTag {
+			inTag = false
+			sb.WriteRune(r)
+		} else if inTag {
+			sb.WriteRune(r)
+		} else {
+			textBuf.WriteRune(r)
+		}
+	}
+	flushText()
+	return sb.String()
+}
+
 func (s *Service) Call(ctx *cmd.Context, b *gotgbot.Bot, message string) error {
+	log.Println(message)
 	members, err := s.memberService.GetChatMembers(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
@@ -69,6 +108,11 @@ func (s *Service) Call(ctx *cmd.Context, b *gotgbot.Bot, message string) error {
 	if message == "" {
 		message = chatSettings.WelcomeCallMessage
 	}
+
+	if message != "" {
+		message = replaceMentionsWithLinks(message)
+	}
+	log.Println(message)
 
 	for i := 0; i < len(members); i += mentionsLimit {
 		end := i + mentionsLimit
