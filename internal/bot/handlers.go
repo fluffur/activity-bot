@@ -48,15 +48,15 @@ func (a *App) RegisterHandlers() {
 	dateParser := helpers.NewDateParser()
 
 	helpHandler := helpH.New(a.Config.BotOwnerID)
-	statsHandler := statsH.New(statsService, restService, a.MemberService, a.UserService, a.ChatService)
+	statsHandler := statsH.New(statsService, restService, a.MemberService, a.UserService, a.ChatService, sessionService)
 	chatHandler := chatH.New(a.ChatService, a.AdminService, sessionService, dateParser)
-	restHandler := restH.New(restService, a.UserService, a.AdminService, dateParser)
+	restHandler := restH.New(restService, a.UserService, a.AdminService, dateParser, sessionService)
 
 	adminHandler := adminH.New(a.AdminService, a.UserService, a.MemberService, dateParser, a.AsyncClient)
 
 	messageHandler := messageH.New(messageService, a.MemberService, a.ChatService, a.Deepseek)
 	memberHandler := memberH.New(a.MemberService, a.ChatService, a.UserService, callService, a.AdminService)
-	callHandler := callH.New(callService, a.ChatService, a.AdminService)
+	callHandler := callH.New(callService, a.ChatService, a.AdminService, sessionService)
 	userHandler := userH.New(a.UserService)
 
 	adminGuard := guard.NewAdminGuard(a.AdminService, sessionService)

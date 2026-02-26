@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"activity-bot/internal/rest"
+	"activity-bot/internal/session"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/stats/view"
 	"activity-bot/internal/user"
@@ -19,15 +20,16 @@ import (
 )
 
 type Handler struct {
-	service       *stats.Service
-	restService   *rest.Service
-	memberService *member.Service
-	userService   *user.Service
-	chatService   *chat.Service
+	service        *stats.Service
+	restService    *rest.Service
+	memberService  *member.Service
+	userService    *user.Service
+	chatService    *chat.Service
+	sessionService *session.Service
 }
 
-func New(service *stats.Service, restService *rest.Service, memberService *member.Service, userService *user.Service, chatService *chat.Service) *Handler {
-	return &Handler{service, restService, memberService, userService, chatService}
+func New(service *stats.Service, restService *rest.Service, memberService *member.Service, userService *user.Service, chatService *chat.Service, sessionService *session.Service) *Handler {
+	return &Handler{service, restService, memberService, userService, chatService, sessionService}
 }
 
 func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -197,6 +199,12 @@ func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *ext.Context) error {
 	_, _ = ctx.CallbackQuery.Answer(b, nil)
 
 	chatID := ctx.EffectiveChat.Id
+	if ctx.EffectiveChat.Type == "private" && h.sessionService != nil {
+		targetID, err := h.sessionService.GetActiveChat(context.Background(), ctx.EffectiveSender.Id())
+		if err == nil && targetID != 0 {
+			chatID = targetID
+		}
+	}
 
 	var buttons [][]gotgbot.InlineKeyboardButton
 

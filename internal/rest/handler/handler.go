@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/rest"
 	"activity-bot/internal/rest/view"
+	"activity-bot/internal/session"
 	"activity-bot/internal/user"
 	"context"
 	"errors"
@@ -21,14 +22,15 @@ import (
 )
 
 type Handler struct {
-	service      *rest.Service
-	userService  *user.Service
-	adminService *admin.Service
-	dateParser   *helpers.DateParser
+	service        *rest.Service
+	userService    *user.Service
+	adminService   *admin.Service
+	dateParser     *helpers.DateParser
+	sessionService *session.Service
 }
 
-func New(service *rest.Service, userService *user.Service, adminService *admin.Service, dateParser *helpers.DateParser) *Handler {
-	return &Handler{service, userService, adminService, dateParser}
+func New(service *rest.Service, userService *user.Service, adminService *admin.Service, dateParser *helpers.DateParser, sessionService *session.Service) *Handler {
+	return &Handler{service, userService, adminService, dateParser, sessionService}
 }
 
 func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -51,11 +53,11 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "Нельзя указывать прошедшую дату", nil)
 	}
 
-	if !h.adminService.CheckIsAdmin(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
+	if !h.adminService.CheckIsAdmin(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id()) {
 		return h.createRequest(b, ctx, targetUser, date)
 	}
 
-	if err := h.service.SetMemberRest(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, date); err != nil {
+	if err := h.service.SetMemberRest(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, date); err != nil {
 		_ = ctx.Reply(b, "Не удалось создать рест", nil)
 		return err
 	}
@@ -88,7 +90,7 @@ func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *mo
 	}
 
 	slog.Info("rest requested", "message_id", msg.MessageId)
-	if err := h.service.CreateRestRequest(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, msg.MessageId, date); err != nil {
+	if err := h.service.CreateRestRequest(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, msg.MessageId, date); err != nil {
 		_ = ctx.Reply(b, "Не удалось создать заявку", nil)
 
 		return err
@@ -104,7 +106,7 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return cmd.ErrNoUser
 	}
 
-	e, err := h.service.GetMemberRest(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID)
+	e, err := h.service.GetMemberRest(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
 	if err != nil {
 		return err
 	}
@@ -120,11 +122,11 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return cmd.ErrNoUser
 	}
 
-	if targetUser.ID != ctx.EffectiveUser.Id && !h.adminService.CheckIsAdmin(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
+	if targetUser.ID != ctx.EffectiveUser.Id && !h.adminService.CheckIsAdmin(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id()) {
 		return ctx.Reply(b, "Вы можете удалить из реста только себя", nil)
 	}
 
-	e, err := h.service.GetMemberRest(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID)
+	e, err := h.service.GetMemberRest(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
 	if err != nil {
 		return ctx.Reply(b, "Не удалось проверить рест пользователя", nil)
 	}
@@ -133,7 +135,7 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.ReplyHTML(b, view.FormatRestNotInRest(*targetUser, isSelf))
 	}
 
-	if err := h.service.EndMemberRest(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID); err != nil {
+	if err := h.service.EndMemberRest(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
 		_ = ctx.Reply(b, "Не удалось удалить пользователя из реста", nil)
 		return err
 	}
@@ -146,8 +148,16 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 	cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	chatID := ctx.EffectiveChat.Id
+	if ctx.EffectiveChat.Type == "private" && h.sessionService != nil {
+		targetID, err := h.sessionService.GetActiveChat(cctx, ctx.EffectiveSender.Id())
+		if err == nil && targetID != 0 {
+			chatID = targetID
+		}
+	}
+
 	fromID, err := parseRequestCallbackData(ctx.CallbackQuery.Data)
-	restRequest, err := h.service.GetRestRequest(cctx, ctx.EffectiveChat.Id, fromID, ctx.EffectiveMessage.MessageId)
+	restRequest, err := h.service.GetRestRequest(cctx, chatID, fromID, ctx.EffectiveMessage.MessageId)
 	if err != nil {
 		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не найден запрос на рест",
@@ -155,7 +165,7 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	if !h.adminService.CheckIsAdmin(cctx, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
+	if !h.adminService.CheckIsAdmin(cctx, chatID, ctx.EffectiveSender.Id()) {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Подтвердить запрос может только администратор",
 		})
@@ -163,7 +173,7 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 
 	}
 
-	if err := h.service.ApproveRestRequest(cctx, ctx.EffectiveChat.Id, fromID, ctx.EffectiveMessage.MessageId, restRequest.RestUntil); err != nil {
+	if err := h.service.ApproveRestRequest(cctx, chatID, fromID, ctx.EffectiveMessage.MessageId, restRequest.RestUntil); err != nil {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не удалось одобрить запрос",
 		})
@@ -188,8 +198,17 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 	cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	chatID := ctx.EffectiveChat.Id
+	if ctx.EffectiveChat.Type == "private" && h.sessionService != nil {
+		targetID, err := h.sessionService.GetActiveChat(cctx, ctx.EffectiveSender.Id())
+		if err == nil && targetID != 0 {
+			chatID = targetID
+		}
+	}
+
 	fromID, err := parseRequestCallbackData(ctx.CallbackQuery.Data)
-	restRequest, err := h.service.GetRestRequest(cctx, ctx.EffectiveChat.Id, fromID, ctx.EffectiveMessage.MessageId)
+	restRequest, err := h.service.GetRestRequest(cctx, chatID, fromID, ctx.EffectiveMessage.MessageId)
 	if err != nil {
 		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не найден запрос на рест",
@@ -197,7 +216,7 @@ func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	if restRequest.UserID != ctx.EffectiveSender.Id() && !h.adminService.CheckIsAdmin(cctx, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id()) {
+	if restRequest.UserID != ctx.EffectiveSender.Id() && !h.adminService.CheckIsAdmin(cctx, chatID, ctx.EffectiveSender.Id()) {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Отклонить запрос может только администратор или заявитель реста",
 		})
@@ -205,7 +224,7 @@ func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *ext.Context) error {
 
 	}
 	slog.Info("rejecting rest request", "message_id", ctx.EffectiveMessage.MessageId)
-	if err := h.service.RejectRestRequest(cctx, ctx.EffectiveChat.Id, ctx.EffectiveSender.Id(), ctx.EffectiveMessage.MessageId); err != nil {
+	if err := h.service.RejectRestRequest(cctx, chatID, ctx.EffectiveSender.Id(), ctx.EffectiveMessage.MessageId); err != nil {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не удалось отклонить запрос",
 		})

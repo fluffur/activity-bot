@@ -35,7 +35,7 @@ func New(service *member.Service, chatService *chat.Service, userService *user.S
 }
 
 func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *cmd.Context) error {
-	count, err := h.service.SyncChatMembers(ctx.StdContext(), ctx.EffectiveChat.Id)
+	count, err := h.service.SyncChatMembers(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		_ = ctx.Reply(b, "Не удалось обновить данные чата", nil)
 		return err
@@ -45,7 +45,7 @@ func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
-	members, err := h.service.GetMembersWithTitle(ctx.StdContext(), ctx.EffectiveChat.Id)
+	members, err := h.service.GetMembersWithTitle(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		_ = ctx.Reply(b, "Не удалось получить список ролей", nil)
 		return err
@@ -73,7 +73,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "Слишком длинная роль (максимум 32 символа)", nil)
 	}
 
-	m, err := b.GetChatMember(ctx.EffectiveChat.Id, targetUser.ID, nil)
+	m, err := b.GetChatMember(ctx.TargetChatID(), targetUser.ID, nil)
 	if err != nil {
 		return ctx.Reply(b, "Не удалось получить информацию о пользователе", nil)
 	}
@@ -91,14 +91,14 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 
 		_, tgErr = b.SetChatAdministratorCustomTitle(
-			ctx.EffectiveChat.Id,
+			ctx.TargetChatID(),
 			targetUser.ID,
 			role,
 			nil,
 		)
 
 	} else if m.GetStatus() == "member" {
-		if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, targetUser.ID, &gotgbot.PromoteChatMemberOpts{
+		if ok, err := b.PromoteChatMember(ctx.TargetChatID(), targetUser.ID, &gotgbot.PromoteChatMemberOpts{
 			CanManageChat:   true,
 			CanPostMessages: true,
 			CanEditMessages: true,
@@ -106,7 +106,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 			tgErr = err
 		} else {
 			_, tgErr = b.SetChatAdministratorCustomTitle(
-				ctx.EffectiveChat.Id,
+				ctx.TargetChatID(),
 				targetUser.ID,
 				role,
 				nil,
@@ -119,7 +119,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	serviceErr := h.service.SetMemberTitle(
 		ctx.StdContext(),
-		ctx.EffectiveChat.Id,
+		ctx.TargetChatID(),
 		targetUser.ID,
 		&role,
 	)
@@ -140,7 +140,8 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
-	members, err := h.service.GetAnyMembersWithTitle(ctx.StdContext(), ctx.EffectiveChat.Id)
+	targetChatID := ctx.TargetChatID()
+	members, err := h.service.GetAnyMembersWithTitle(ctx.StdContext(), targetChatID)
 	if err != nil {
 		_ = ctx.Reply(b, "Не удалось получить список ролей из базы", nil)
 		return err
@@ -159,7 +160,7 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 			return err
 		}
 
-		tgMember, err := b.GetChatMember(ctx.EffectiveChat.Id, m.User.ID, nil)
+		tgMember, err := b.GetChatMember(targetChatID, m.User.ID, nil)
 		if err != nil {
 			log.Printf("Ошибка при получении информации о пользователе %s: %v\n", m.User.FirstName, err)
 			_ = ctx.Reply(b, fmt.Sprintf("Не удалось получить пользователя %s", m.User.FirstName), nil)
@@ -179,19 +180,19 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 		var tgErr error
 		if tgMember.GetStatus() != "administrator" {
-			if ok, err := b.PromoteChatMember(ctx.EffectiveChat.Id, m.User.ID, &gotgbot.PromoteChatMemberOpts{
+			if ok, err := b.PromoteChatMember(targetChatID, m.User.ID, &gotgbot.PromoteChatMemberOpts{
 				CanManageChat:   true,
 				CanPostMessages: true,
 				CanEditMessages: true,
 			}); err != nil || !ok {
 				tgErr = err
 			} else {
-				if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil {
+				if _, err := b.SetChatAdministratorCustomTitle(targetChatID, m.User.ID, m.CustomTitle, nil); err != nil {
 					tgErr = err
 				}
 			}
 		} else if merged.CanBeEdited {
-			if _, err := b.SetChatAdministratorCustomTitle(ctx.EffectiveChat.Id, m.User.ID, m.CustomTitle, nil); err != nil {
+			if _, err := b.SetChatAdministratorCustomTitle(targetChatID, m.User.ID, m.CustomTitle, nil); err != nil {
 				tgErr = err
 			}
 		} else {
@@ -219,16 +220,17 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 func (h *Handler) DeleteRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
+	targetChatID := ctx.TargetChatID()
 
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
 
-	if _, err := b.PromoteChatMember(ctx.EffectiveChat.Id, targetUser.ID, nil); err != nil {
+	if _, err := b.PromoteChatMember(targetChatID, targetUser.ID, nil); err != nil {
 		slog.Warn("Cannot demote chat member", "error", err)
 	}
 
-	if err := h.service.SetMemberTitle(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID, nil); err != nil {
+	if err := h.service.SetMemberTitle(ctx.StdContext(), targetChatID, targetUser.ID, nil); err != nil {
 		_ = ctx.Reply(b, "Администратор удалён, но роль в базе бота нет", nil)
 
 		return err
@@ -243,7 +245,7 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return cmd.ErrNoUser
 	}
 
-	mTitle, err := h.service.GetMemberTitle(ctx.StdContext(), ctx.EffectiveChat.Id, targetUser.ID)
+	mTitle, err := h.service.GetMemberTitle(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
 	if err != nil && !errors.Is(err, member.ErrInvalidCustomTitle) {
 		_ = ctx.Reply(b, "Не удалось получить роль пользователя", nil)
 		return err
@@ -338,7 +340,7 @@ func (h *Handler) SetOnlyNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if len(ctx.Users()) == 0 {
 		return ctx.Reply(b, "Укажите хотя бы одного участника", nil)
 	}
-	if err := h.service.SetOnlyNewbies(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.Users()); err != nil {
+	if err := h.service.SetOnlyNewbies(ctx.StdContext(), ctx.TargetChatID(), ctx.Users()); err != nil {
 		log.Println("failed to set only-newbies", err)
 		_ = ctx.Reply(b, "Не удалось установить олдов", nil)
 		return err
@@ -351,7 +353,7 @@ func (h *Handler) SetNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if len(ctx.Users()) == 0 {
 		return ctx.Reply(b, "Укажите хотя бы одного участника", nil)
 	}
-	if err := h.service.SetNewbies(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.Users()); err != nil {
+	if err := h.service.SetNewbies(ctx.StdContext(), ctx.TargetChatID(), ctx.Users()); err != nil {
 		return err
 	}
 

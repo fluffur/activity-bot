@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/call/view"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
+	"activity-bot/internal/session"
 	"context"
 	"fmt"
 	"strconv"
@@ -15,13 +16,14 @@ import (
 )
 
 type Handler struct {
-	service      *call.Service
-	chatService  *chat.Service
-	adminService *admin.Service
+	service        *call.Service
+	chatService    *chat.Service
+	adminService   *admin.Service
+	sessionService *session.Service
 }
 
-func New(service *call.Service, chatService *chat.Service, adminService *admin.Service) *Handler {
-	return &Handler{service, chatService, adminService}
+func New(service *call.Service, chatService *chat.Service, adminService *admin.Service, sessionService *session.Service) *Handler {
+	return &Handler{service, chatService, adminService, sessionService}
 }
 
 func (h *Handler) Call(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -35,7 +37,7 @@ func (h *Handler) SetMentionsPerMessage(b *gotgbot.Bot, ctx *cmd.Context) error 
 		return ctx.Reply(b, "Укажите число от 1 до 100", nil)
 	}
 
-	if err := h.service.SetMentionsPerMessage(ctx.StdContext(), ctx.EffectiveChat.Id, int32(count)); err != nil {
+	if err := h.service.SetMentionsPerMessage(ctx.StdContext(), ctx.TargetChatID(), int32(count)); err != nil {
 		return err
 	}
 
@@ -43,7 +45,7 @@ func (h *Handler) SetMentionsPerMessage(b *gotgbot.Bot, ctx *cmd.Context) error 
 }
 
 func (h *Handler) ShowCallTypes(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.EffectiveChat.Id)
+	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
 	}
@@ -54,7 +56,14 @@ func (h *Handler) ShowCallTypes(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *ext.Context) error {
-	isAdmin, err := h.adminService.IsAdmin(context.Background(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+	chatID := ctx.EffectiveChat.Id
+	if ctx.EffectiveChat.Type == "private" && h.sessionService != nil {
+		targetID, err := h.sessionService.GetActiveChat(context.Background(), ctx.EffectiveSender.Id())
+		if err == nil && targetID != 0 {
+			chatID = targetID
+		}
+	}
+	isAdmin, err := h.adminService.IsAdmin(context.Background(), chatID, ctx.EffectiveSender.Id())
 	if err != nil {
 		return err
 	}
@@ -69,7 +78,7 @@ func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	c, err := h.chatService.GetChat(context.Background(), ctx.EffectiveChat.Id)
+	c, err := h.chatService.GetChat(context.Background(), chatID)
 	if err != nil {
 		return err
 	}
@@ -89,7 +98,7 @@ func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *ext.Context) error {
 		})
 		return err
 	}
-	if err := h.service.SetMentionTypes(context.Background(), ctx.EffectiveChat.Id, newTypes); err != nil {
+	if err := h.service.SetMentionTypes(context.Background(), chatID, newTypes); err != nil {
 		return err
 	}
 
@@ -151,7 +160,7 @@ func (h *Handler) getCallTypesKeyboard(currentTypes int32) gotgbot.InlineKeyboar
 }
 func (h *Handler) SetWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	message := ctx.FirstArgument()
-	if err := h.service.SetWelcomeCallMessage(ctx.StdContext(), ctx.EffectiveChat.Id, message); err != nil {
+	if err := h.service.SetWelcomeCallMessage(ctx.StdContext(), ctx.TargetChatID(), message); err != nil {
 		return err
 	}
 
@@ -159,7 +168,7 @@ func (h *Handler) SetWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error 
 }
 
 func (h *Handler) EnableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.EnableCallOnJoin(ctx.StdContext(), ctx.EffectiveChat.Id); err != nil {
+	if err := h.service.EnableCallOnJoin(ctx.StdContext(), ctx.TargetChatID()); err != nil {
 		return err
 	}
 
@@ -167,7 +176,7 @@ func (h *Handler) EnableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) DisableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.DisableCallOnJoin(ctx.StdContext(), ctx.EffectiveChat.Id); err != nil {
+	if err := h.service.DisableCallOnJoin(ctx.StdContext(), ctx.TargetChatID()); err != nil {
 		return err
 	}
 
@@ -175,7 +184,7 @@ func (h *Handler) DisableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) ShowWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.EffectiveChat.Id)
+	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
 	}

@@ -44,7 +44,7 @@ func (h *Handler) EnsureMemberCustomTitle(ctx context.Context, b *gotgbot.Bot, c
 }
 
 func (h *Handler) Bot(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.EffectiveChat.Id)
+	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
 	}
