@@ -257,7 +257,7 @@ func (h *Handler) getManageKeyboard(chats []chatInfo, page int) gotgbot.InlineKe
 		navButtons = append(navButtons, gotgbot.InlineKeyboardButton{
 			Text:         "◀️ Назад",
 			CallbackData: "manage_page:" + strconv.Itoa(page-1),
-			Style:        "Primary",
+			Style:        "primary",
 		})
 	}
 	if page < totalPages {
