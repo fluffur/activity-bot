@@ -7,7 +7,6 @@ import (
 	"activity-bot/internal/message"
 	"context"
 	"errors"
-	"log"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/cohesion-org/deepseek-go"
@@ -77,7 +76,6 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) Message(b *gotgbot.Bot, ctx *cmd.Context) error {
-	log.Println("message handled", ctx.EffectiveMessage.GetText())
 	u := ctx.EffectiveSender.User
 	c := ctx.EffectiveChat
 	if u == nil || c == nil || u.IsBot {
