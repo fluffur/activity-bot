@@ -190,31 +190,41 @@ func (r *AdminRepository) EnsureDeveloperUser(ctx context.Context, userID int64)
 	return r.queries.EnsureDeveloperUser(ctx, userID)
 }
 
-func (r *AdminRepository) GetDeveloperRole(ctx context.Context, userID int64) (string, error) {
-	dev, err := r.queries.GetDeveloper(ctx, userID)
+func (r *AdminRepository) GetDeveloperRole(ctx context.Context, chatID, userID int64) (string, error) {
+	dev, err := r.queries.GetDeveloper(ctx, db.GetDeveloperParams{
+		UserID: userID,
+		ChatID: chatID,
+	})
 	if err != nil {
 		return "", err
 	}
 	return dev.Role, nil
 }
 
-func (r *AdminRepository) SetDeveloperRole(ctx context.Context, userID int64, role string) error {
+func (r *AdminRepository) SetDeveloperRole(ctx context.Context, chatID, userID int64, role string) error {
 	return r.queries.SetDeveloper(ctx, db.SetDeveloperParams{
 		UserID: userID,
+		ChatID: chatID,
 		Role:   role,
 	})
 }
 
-func (r *AdminRepository) RemoveDeveloperRole(ctx context.Context, userID int64) error {
-	return r.queries.RemoveDeveloper(ctx, userID)
+func (r *AdminRepository) RemoveDeveloperRole(ctx context.Context, chatID, userID int64) error {
+	return r.queries.RemoveDeveloper(ctx, db.RemoveDeveloperParams{
+		UserID: userID,
+		ChatID: chatID,
+	})
 }
 
-func (r *AdminRepository) IsDeveloper(ctx context.Context, userID int64) (bool, error) {
-	return r.queries.IsDeveloper(ctx, userID)
+func (r *AdminRepository) IsDeveloper(ctx context.Context, chatID, userID int64) (bool, error) {
+	return r.queries.IsDeveloper(ctx, db.IsDeveloperParams{
+		UserID: userID,
+		ChatID: chatID,
+	})
 }
 
-func (r *AdminRepository) GetAllDevelopers(ctx context.Context) ([]model.User, []string, error) {
-	rows, err := r.queries.GetAllDevelopers(ctx)
+func (r *AdminRepository) GetAllDevelopers(ctx context.Context, chatID int64) ([]model.User, []string, error) {
+	rows, err := r.queries.GetAllDevelopers(ctx, chatID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -237,8 +247,8 @@ func (r *AdminRepository) GetAllDevelopers(ctx context.Context) ([]model.User, [
 	return users, roles, nil
 }
 
-func (r *AdminRepository) GetDevelopersCount(ctx context.Context) (int64, error) {
-	return r.queries.GetDevelopersCount(ctx)
+func (r *AdminRepository) GetDevelopersCount(ctx context.Context, chatID int64) (int64, error) {
+	return r.queries.GetDevelopersCount(ctx, chatID)
 }
 
 func (r *AdminRepository) GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]model.Warn, error) {

@@ -61,8 +61,8 @@ func (a *App) RegisterHandlers() {
 
 	adminGuard := guard.NewAdminGuard(a.AdminService, sessionService)
 	creatorGuard := guard.NewCreatorGuard(a.AdminService, sessionService)
-	ownerGuard := guard.NewDevCreatorGuard(a.AdminService)
-	developerGuard := guard.NewDeveloperGuard(a.AdminService)
+	ownerGuard := guard.NewDevCreatorGuard(a.AdminService, sessionService)
+	developerGuard := guard.NewDeveloperGuard(a.AdminService, sessionService)
 	groupGuard := guard.OnlyGroups(sessionService)
 	rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 2, 10*time.Second, sessionService)
 

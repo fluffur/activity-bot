@@ -443,7 +443,7 @@ func (h *Handler) Unwarn(b *gotgbot.Bot, ctx *cmd.Context) error {
 func (h *Handler) ToggleRights(b *gotgbot.Bot, ctx *cmd.Context) error {
 	arg := ctx.FirstArgument()
 	if arg == "" {
-		role, _ := h.service.GetDevRole(ctx.StdContext(), ctx.EffectiveSender.Id())
+		role, _ := h.service.GetDevRole(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id())
 		mapping := map[string]string{
 			admin.DevRoleMember:  "участник",
 			admin.DevRoleAdmin:   "администратор",
@@ -464,7 +464,7 @@ func (h *Handler) ToggleRights(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "Неизвестная роль. Используйте: участник, админ или создатель", nil)
 	}
 
-	if err := h.service.SetDevRole(ctx.StdContext(), ctx.EffectiveSender.Id(), targetRole); err != nil {
+	if err := h.service.SetDevRole(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id(), targetRole); err != nil {
 		_ = ctx.Reply(b, "Не удалось сохранить права", nil)
 		return err
 	}
@@ -495,7 +495,7 @@ func (h *Handler) AddDeveloper(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 	}
 
-	if err := h.service.SetDevRole(ctx.StdContext(), targetUser.ID, role); err != nil {
+	if err := h.service.SetDevRole(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, role); err != nil {
 		_ = ctx.Reply(b, "Не удалось добавить разработчика", nil)
 		return err
 	}
@@ -511,7 +511,7 @@ func (h *Handler) RemoveDeveloper(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if targetUser.ID == ctx.EffectiveSender.Id() {
 		return ctx.Reply(b, "Нельзя удалить себя из списка разработчиков", nil)
 	}
-	if err := h.service.RemoveDeveloper(ctx.StdContext(), targetUser.ID); err != nil {
+	if err := h.service.RemoveDeveloper(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
 		_ = ctx.Reply(b, "Не удалось удалить разработчика", nil)
 		return err
 	}
@@ -520,7 +520,7 @@ func (h *Handler) RemoveDeveloper(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) ListDevelopers(b *gotgbot.Bot, ctx *cmd.Context) error {
-	users, roles, err := h.service.GetAllDevelopers(ctx.StdContext())
+	users, roles, err := h.service.GetAllDevelopers(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		_ = ctx.Reply(b, "Не удалось получить список разработчиков", nil)
 		return err

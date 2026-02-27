@@ -9,7 +9,7 @@ import (
 type mockRepository struct {
 	admins            map[int64]map[int64]bool
 	creators          map[int64]map[int64]bool
-	developers        map[int64]string
+	developers        map[int64]map[int64]string
 	warns             map[int64]map[int64]int64
 	maxWarns          map[int64]int
 	moderationActions []mockModerationAction
@@ -28,7 +28,7 @@ func newMockRepository() *mockRepository {
 	return &mockRepository{
 		admins:     make(map[int64]map[int64]bool),
 		creators:   make(map[int64]map[int64]bool),
-		developers: make(map[int64]string),
+		developers: make(map[int64]map[int64]string),
 		warns:      make(map[int64]map[int64]int64),
 		maxWarns:   make(map[int64]int),
 	}
@@ -140,43 +140,59 @@ func (m *mockRepository) UpdateChatMaxWarns(ctx context.Context, chatID int64, m
 	return nil
 }
 
-func (m *mockRepository) GetDeveloperRole(ctx context.Context, userID int64) (string, error) {
-	if role, ok := m.developers[userID]; ok {
+func (m *mockRepository) GetDeveloperRole(ctx context.Context, chatID, userID int64) (string, error) {
+	if m.developers[chatID] == nil {
+		return "", nil
+	}
+	if role, ok := m.developers[chatID][userID]; ok {
 		return role, nil
 	}
 	return "", nil
 }
 
-func (m *mockRepository) SetDeveloperRole(ctx context.Context, userID int64, role string) error {
-	m.developers[userID] = role
+func (m *mockRepository) SetDeveloperRole(ctx context.Context, chatID, userID int64, role string) error {
+	if m.developers[chatID] == nil {
+		m.developers[chatID] = make(map[int64]string)
+	}
+	m.developers[chatID][userID] = role
 	return nil
 }
 
-func (m *mockRepository) RemoveDeveloperRole(ctx context.Context, userID int64) error {
-	delete(m.developers, userID)
+func (m *mockRepository) RemoveDeveloperRole(ctx context.Context, chatID, userID int64) error {
+	if m.developers[chatID] != nil {
+		delete(m.developers[chatID], userID)
+	}
 	return nil
 }
 
-func (m *mockRepository) GetDevelopersCount(ctx context.Context) (int64, error) {
-	return int64(len(m.developers)), nil
+func (m *mockRepository) GetDevelopersCount(ctx context.Context, chatID int64) (int64, error) {
+	if m.developers[chatID] == nil {
+		return 0, nil
+	}
+	return int64(len(m.developers[chatID])), nil
 }
 
 func (m *mockRepository) EnsureDeveloperUser(ctx context.Context, userID int64) error {
 	return nil
 }
 
-func (m *mockRepository) GetAllDevelopers(ctx context.Context) ([]model.User, []string, error) {
+func (m *mockRepository) GetAllDevelopers(ctx context.Context, chatID int64) ([]model.User, []string, error) {
 	var users []model.User
 	var roles []string
-	for userID, role := range m.developers {
-		users = append(users, model.User{ID: userID})
-		roles = append(roles, role)
+	if m.developers[chatID] != nil {
+		for userID, role := range m.developers[chatID] {
+			users = append(users, model.User{ID: userID})
+			roles = append(roles, role)
+		}
 	}
 	return users, roles, nil
 }
 
-func (m *mockRepository) IsDeveloper(ctx context.Context, userID int64) (bool, error) {
-	_, ok := m.developers[userID]
+func (m *mockRepository) IsDeveloper(ctx context.Context, chatID, userID int64) (bool, error) {
+	if m.developers[chatID] == nil {
+		return false, nil
+	}
+	_, ok := m.developers[chatID][userID]
 	return ok, nil
 }
 

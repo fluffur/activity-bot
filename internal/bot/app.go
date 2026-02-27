@@ -78,12 +78,8 @@ func NewApp(cfg config.Config) (*App, error) {
 
 	userService := user.NewService(userRepo)
 	memberService := member.NewService(memberRepo, chatRepo, userRepo, adminsProvider, cfg.DefaultNormWarn)
-	adminService := admin.NewService(adminRepo, statusProvider, moderator)
+	adminService := admin.NewService(adminRepo, statusProvider, moderator, cfg.BotOwnerID)
 	chatService := chat.NewService(chatRepo, cfg.DefaultNormWarn)
-
-	if err := adminService.EnsureInitialDeveloper(ctx, cfg.BotOwnerID); err != nil {
-		return nil, fmt.Errorf("failed to ensure initial developer: %w", err)
-	}
 
 	dp := ext.NewDispatcher(&ext.DispatcherOpts{
 		Error: func(b *gotgbot.Bot, ctx *ext.Context, err error) ext.DispatcherAction {

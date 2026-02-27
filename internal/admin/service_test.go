@@ -56,7 +56,7 @@ func TestService_AddAdmin(t *testing.T) {
 				tt.setupMocks(repo, statusProvider)
 			}
 
-			service := NewService(repo, statusProvider, moderator)
+			service := NewService(repo, statusProvider, moderator, 0)
 			err := service.AddAdmin(context.Background(), tt.chatID, tt.userID)
 
 			if (err != nil) != tt.wantErr {
@@ -129,7 +129,7 @@ func TestService_RemoveAdmin(t *testing.T) {
 				tt.setupMocks(repo)
 			}
 
-			service := NewService(repo, statusProvider, moderator)
+			service := NewService(repo, statusProvider, moderator, 0)
 			err := service.RemoveAdmin(context.Background(), tt.chatID, tt.userID)
 
 			if (err != nil) != tt.wantErr {
@@ -157,7 +157,7 @@ func TestService_IsAdmin(t *testing.T) {
 			chatID: 1,
 			userID: 100,
 			setupMocks: func(repo *mockRepository, status *mockChatMemberStatusProvider) {
-				repo.developers[100] = DevRoleCreator
+				repo.developers[1] = map[int64]string{100: DevRoleCreator}
 			},
 			want: true,
 		},
@@ -166,7 +166,7 @@ func TestService_IsAdmin(t *testing.T) {
 			chatID: 1,
 			userID: 100,
 			setupMocks: func(repo *mockRepository, status *mockChatMemberStatusProvider) {
-				repo.developers[100] = DevRoleAdmin
+				repo.developers[1] = map[int64]string{100: DevRoleAdmin}
 			},
 			want: true,
 		},
@@ -209,7 +209,7 @@ func TestService_IsAdmin(t *testing.T) {
 				tt.setupMocks(repo, statusProvider)
 			}
 
-			service := NewService(repo, statusProvider, moderator)
+			service := NewService(repo, statusProvider, moderator, 0)
 			got, err := service.IsAdmin(context.Background(), tt.chatID, tt.userID)
 
 			if err != nil {
@@ -282,7 +282,7 @@ func TestService_Kick(t *testing.T) {
 				tt.setupMocks(repo, statusProvider)
 			}
 
-			service := NewService(repo, statusProvider, moderator)
+			service := NewService(repo, statusProvider, moderator, 0)
 			err := service.Kick(context.Background(), tt.chatID, tt.userID, tt.modID, tt.reason)
 
 			if (err != nil) != tt.wantErr {
@@ -369,7 +369,7 @@ func TestService_Warn(t *testing.T) {
 				tt.setupMocks(repo)
 			}
 
-			service := NewService(repo, statusProvider, moderator)
+			service := NewService(repo, statusProvider, moderator, 0)
 			until := time.Now().Add(24 * time.Hour)
 			count, banned, err := service.Warn(context.Background(), tt.chatID, tt.userID, tt.modID, tt.reason, &until)
 
@@ -431,7 +431,7 @@ func TestService_Unwarn(t *testing.T) {
 				tt.setupMocks(repo)
 			}
 
-			service := NewService(repo, statusProvider, moderator)
+			service := NewService(repo, statusProvider, moderator, 0)
 			count, err := service.Unwarn(context.Background(), tt.chatID, tt.userID)
 
 			if err != nil {
@@ -441,59 +441,6 @@ func TestService_Unwarn(t *testing.T) {
 
 			if count != tt.wantCount {
 				t.Errorf("Unwarn() count = %v, want %v", count, tt.wantCount)
-			}
-		})
-	}
-}
-
-func TestService_EnsureInitialDeveloper(t *testing.T) {
-	tests := []struct {
-		name       string
-		ownerID    int64
-		setupMocks func(*mockRepository)
-		wantRole   string
-	}{
-		{
-			name:    "add owner as creator when no developers exist",
-			ownerID: 100,
-			setupMocks: func(repo *mockRepository) {
-
-			},
-			wantRole: DevRoleCreator,
-		},
-		{
-			name:    "do nothing when developers already exist",
-			ownerID: 100,
-			setupMocks: func(repo *mockRepository) {
-				repo.developers[200] = DevRoleCreator
-			},
-			wantRole: "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			repo := newMockRepository()
-			statusProvider := newMockChatMemberStatusProvider()
-			moderator := newMockModerator()
-
-			if tt.setupMocks != nil {
-				tt.setupMocks(repo)
-			}
-
-			service := NewService(repo, statusProvider, moderator)
-			err := service.EnsureInitialDeveloper(context.Background(), tt.ownerID)
-
-			if err != nil {
-				t.Errorf("EnsureInitialDeveloper() error = %v", err)
-				return
-			}
-
-			if tt.wantRole != "" {
-				role, _ := repo.GetDeveloperRole(context.Background(), tt.ownerID)
-				if role != tt.wantRole {
-					t.Errorf("Owner role = %v, want %v", role, tt.wantRole)
-				}
 			}
 		})
 	}

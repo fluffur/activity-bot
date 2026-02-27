@@ -101,6 +101,7 @@ func (ns NullRestStatus) Value() (driver.Value, error) {
 type BotDeveloper struct {
 	UserID int64  `db:"user_id" json:"userId"`
 	Role   string `db:"role" json:"role"`
+	ChatID int64  `db:"chat_id" json:"chatId"`
 }
 
 type Chat struct {

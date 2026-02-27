@@ -9,17 +9,23 @@ import (
 )
 
 type DeveloperGuard struct {
-	service *admin.Service
+	service        *admin.Service
+	sessionService cmd.SessionService
 }
 
-func NewDeveloperGuard(service *admin.Service) cmd.Guard {
-	return &DeveloperGuard{service}
+func NewDeveloperGuard(service *admin.Service, sessionService cmd.SessionService) cmd.Guard {
+	return &DeveloperGuard{service, sessionService}
 }
 
 func (g *DeveloperGuard) Check(ctx *ext.Context, _ string, stdCtx context.Context) (bool, string) {
 	userID := ctx.EffectiveSender.Id()
 
-	isDev, _ := g.service.IsDeveloper(stdCtx, userID)
+	chatID, err := cmd.GetChatID(g.sessionService, ctx, stdCtx)
+	if err != nil {
+		return false, "Не удалось определить чат"
+	}
+
+	isDev, _ := g.service.IsDeveloper(stdCtx, chatID, userID)
 	if !isDev {
 		return false, "Эта команда доступна только разработчикам бота"
 	}
@@ -28,17 +34,23 @@ func (g *DeveloperGuard) Check(ctx *ext.Context, _ string, stdCtx context.Contex
 }
 
 type DevCreatorGuard struct {
-	service *admin.Service
+	service        *admin.Service
+	sessionService cmd.SessionService
 }
 
-func NewDevCreatorGuard(service *admin.Service) cmd.Guard {
-	return &DevCreatorGuard{service}
+func NewDevCreatorGuard(service *admin.Service, sessionService cmd.SessionService) cmd.Guard {
+	return &DevCreatorGuard{service, sessionService}
 }
 
 func (g *DevCreatorGuard) Check(ctx *ext.Context, _ string, stdCtx context.Context) (bool, string) {
 	userID := ctx.EffectiveSender.Id()
 
-	role, _ := g.service.GetDevRole(stdCtx, userID)
+	chatID, err := cmd.GetChatID(g.sessionService, ctx, stdCtx)
+	if err != nil {
+		return false, "Не удалось определить чат"
+	}
+
+	role, _ := g.service.GetDevRole(stdCtx, chatID, userID)
 	if role != admin.DevRoleCreator {
 		return false, ""
 	}

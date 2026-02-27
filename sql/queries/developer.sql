@@ -1,5 +1,5 @@
 -- name: GetDeveloper :one
-SELECT * FROM bot_developers WHERE user_id = $1;
+SELECT * FROM bot_developers WHERE user_id = $1 AND chat_id = $2;
 
 -- name: EnsureDeveloperUser :exec
 INSERT INTO users (id, first_name, last_name)
@@ -7,21 +7,22 @@ VALUES ($1, 'Developer', '')
 ON CONFLICT (id) DO NOTHING;
 
 -- name: SetDeveloper :exec
-INSERT INTO bot_developers (user_id, role)
-VALUES ($1, $2)
-ON CONFLICT (user_id) DO UPDATE SET role = EXCLUDED.role;
+INSERT INTO bot_developers (user_id, chat_id, role)
+VALUES ($1, $2, $3)
+ON CONFLICT (user_id, chat_id) DO UPDATE SET role = EXCLUDED.role;
 
 -- name: RemoveDeveloper :exec
-DELETE FROM bot_developers WHERE user_id = $1;
+DELETE FROM bot_developers WHERE user_id = $1 AND chat_id = $2;
 
 -- name: IsDeveloper :one
-SELECT EXISTS(SELECT 1 FROM bot_developers WHERE user_id = $1);
+SELECT EXISTS(SELECT 1 FROM bot_developers WHERE user_id = $1 AND chat_id = $2);
 
 -- name: GetAllDevelopers :many
 SELECT bd.*, u.username, u.first_name, u.last_name
 FROM bot_developers bd
 JOIN users u ON bd.user_id = u.id
+WHERE bd.chat_id = $1
 ORDER BY bd.user_id;
 
 -- name: GetDevelopersCount :one
-SELECT COUNT(*) FROM bot_developers;
+SELECT COUNT(*) FROM bot_developers WHERE chat_id = $1;
