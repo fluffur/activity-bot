@@ -408,7 +408,7 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	if len(banChats) > 0 {
 		text.WriteString("🚫 <b>Бан</b>\n")
-		text.WriteString("<blockquote expandable>\n")
+		text.WriteString("<blockquote expandable>")
 
 		for i, c := range banChats {
 			text.WriteString(fmt.Sprintf(
