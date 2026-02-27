@@ -404,26 +404,6 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	var text strings.Builder
 	text.WriteString("📉 <b>Невыполненные нормы</b>\n\n")
 
-	if len(warnChats) > 0 {
-		text.WriteString("⚠ <b>Варн</b>\n")
-		text.WriteString("<blockquote expandable>\n")
-
-		for _, c := range warnChats {
-			text.WriteString(fmt.Sprintf(
-				"<a href=\"%s\">%s</a>\n",
-				chatLink(c.ID),
-				html.EscapeString(c.Title),
-			))
-			text.WriteString(fmt.Sprintf(
-				"└ %d / %d\n",
-				c.WeekCount,
-				c.NormWarn,
-			))
-		}
-
-		text.WriteString("</blockquote>\n\n")
-	}
-
 	if len(banChats) > 0 {
 		text.WriteString("🚫 <b>Бан</b>\n")
 		text.WriteString("<blockquote expandable>\n")
@@ -442,6 +422,26 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 
 		text.WriteString("</blockquote>\n")
+	}
+
+	if len(warnChats) > 0 {
+		text.WriteString("⚠ <b>Варн</b>\n")
+		text.WriteString("<blockquote expandable>\n")
+
+		for _, c := range warnChats {
+			text.WriteString(fmt.Sprintf(
+				"<a href=\"%s\">%s</a>\n",
+				chatLink(c.ID),
+				html.EscapeString(c.Title),
+			))
+			text.WriteString(fmt.Sprintf(
+				"└ %d / %d\n",
+				c.WeekCount,
+				c.NormWarn,
+			))
+		}
+
+		text.WriteString("</blockquote>\n\n")
 	}
 
 	text.WriteString(fmt.Sprintf(
