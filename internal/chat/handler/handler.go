@@ -390,17 +390,20 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	var text strings.Builder
 	text.WriteString("📉 <b>Чаты без выполненной нормы</b>\n\n")
+	text.WriteString("<blockquote>")
 
 	for _, c := range chats {
 		required := max(c.NormBan, c.NormWarn)
 		missing := required - int32(c.WeekCount)
 
-		text.WriteString(fmt.Sprintf("📛 <b>%s</b>\n", html.EscapeString(c.Title)))
+		text.WriteString(fmt.Sprintf("<b>%s</b>\n", html.EscapeString(c.Title)))
 		text.WriteString(fmt.Sprintf("└ 📊 Неделя: <b>%d</b>\n", c.WeekCount))
 		text.WriteString(fmt.Sprintf("└ ⚠ Варн: %d / %d\n", c.WeekCount, c.NormWarn))
 		text.WriteString(fmt.Sprintf("└ 🚫 Бан: %d / %d\n", c.WeekCount, c.NormBan))
 		text.WriteString(fmt.Sprintf("└ ⬇ Не хватает: <b>%d</b>\n\n", missing))
 	}
+	text.WriteString("</blockquote>")
+	text.WriteString(fmt.Sprintf("Всего не выполнено нормы в %d чатах", len(chats)))
 
 	_, err = ctx.EffectiveChat.SendMessage(
 		b,

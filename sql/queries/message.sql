@@ -8,7 +8,7 @@ SELECT cm.user_id,
        u.username,
        u.first_name,
        u.last_name,
-       COUNT(m.chat_id)                    AS messages_count,
+       COUNT(m.chat_id) AS messages_count,
        c.norm_warn,
        c.norm_ban,
        cm.joined_at,
@@ -23,8 +23,8 @@ FROM chat_members cm
                        AND m.user_id = cm.user_id
                        AND (
                           (m.created_at >= @from_date OR @from_date::timestamptz IS NULL)
-                          AND (m.created_at < @to_date OR @to_date::timestamptz IS NULL)
-                       )
+                              AND (m.created_at < @to_date OR @to_date::timestamptz IS NULL)
+                          )
 WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
@@ -67,7 +67,8 @@ SELECT cm.user_id,
        c.newbie_threshold_days,
        cm.status,
        cm.custom_title,
-       cm.rest_until
+       cm.rest_until,
+       cm.left_at
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
@@ -87,7 +88,8 @@ GROUP BY cm.user_id,
          c.newbie_threshold_days,
          cm.status,
          cm.custom_title,
-         cm.rest_until;
+         cm.rest_until,
+         cm.left_at;
 
 -- name: MessageActivityByDay :many
 SELECT date_trunc('day', m.created_at)::date AS day,
@@ -105,14 +107,13 @@ ORDER BY day;
 
 -- name: MessageActivityByDayAll :many
 SELECT date_trunc('day', m.created_at)::date AS day,
-       COUNT(*) AS messages_count
+       COUNT(*)                              AS messages_count
 FROM messages m
 WHERE m.chat_id = $1
   AND m.created_at >= COALESCE(@from_date, now() - interval '30 days')
   AND m.created_at <= COALESCE(@to_date, now())
 GROUP BY day
 ORDER BY day;
-
 
 
 -- name: InactiveChatMembers :many

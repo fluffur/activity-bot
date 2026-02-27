@@ -18,7 +18,7 @@ func FormatProfile(m model.MemberStats) string {
 		fmt.Sprintf("%s (%s)", m.User.FirstName, customTitle),
 	)
 
-	status := helpers.TranslateMemberStatus(m.Status)
+	status := helpers.TranslateMemberStatus(m.Status, m.LeftAt)
 
 	text := fmt.Sprintf(
 		`👤 <b>Информация о:</b> %s

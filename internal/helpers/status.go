@@ -1,7 +1,11 @@
 package helpers
 
-func TranslateMemberStatus(status string) string {
+import "time"
 
+func TranslateMemberStatus(status string, leftAt *time.Time) string {
+	if leftAt != nil {
+		return "не в чате"
+	}
 	switch status {
 	case "member":
 		return "участник"

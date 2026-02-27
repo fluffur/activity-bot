@@ -32,6 +32,10 @@ func mapMemberStats(row db.MessageReportOneRow) model.MemberStats {
 	if row.RestUntil.Valid {
 		restUntil = &row.RestUntil.Time
 	}
+	var leftAt *time.Time
+	if row.LeftAt.Valid {
+		leftAt = &row.LeftAt.Time
+	}
 	return model.MemberStats{
 		User: model.User{
 			ID:        row.UserID,
@@ -54,6 +58,7 @@ func mapMemberStats(row db.MessageReportOneRow) model.MemberStats {
 		NewbieThreshold: row.NewbieThresholdDays,
 		Status:          row.Status,
 		CustomTitle:     customTitle,
+		LeftAt:          leftAt,
 	}
 }
 

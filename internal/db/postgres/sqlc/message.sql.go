@@ -148,7 +148,7 @@ func (q *Queries) MessageActivityByDay(ctx context.Context, arg MessageActivityB
 
 const messageActivityByDayAll = `-- name: MessageActivityByDayAll :many
 SELECT date_trunc('day', m.created_at)::date AS day,
-       COUNT(*) AS messages_count
+       COUNT(*)                              AS messages_count
 FROM messages m
 WHERE m.chat_id = $1
   AND m.created_at >= COALESCE($2, now() - interval '30 days')
@@ -193,7 +193,7 @@ SELECT cm.user_id,
        u.username,
        u.first_name,
        u.last_name,
-       COUNT(m.chat_id)                    AS messages_count,
+       COUNT(m.chat_id) AS messages_count,
        c.norm_warn,
        c.norm_ban,
        cm.joined_at,
@@ -208,8 +208,8 @@ FROM chat_members cm
                        AND m.user_id = cm.user_id
                        AND (
                           (m.created_at >= $1 OR $1::timestamptz IS NULL)
-                          AND (m.created_at < $2 OR $2::timestamptz IS NULL)
-                       )
+                              AND (m.created_at < $2 OR $2::timestamptz IS NULL)
+                          )
 WHERE cm.chat_id = $3
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
@@ -304,7 +304,8 @@ SELECT cm.user_id,
        c.newbie_threshold_days,
        cm.status,
        cm.custom_title,
-       cm.rest_until
+       cm.rest_until,
+       cm.left_at
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
@@ -324,7 +325,8 @@ GROUP BY cm.user_id,
          c.newbie_threshold_days,
          cm.status,
          cm.custom_title,
-         cm.rest_until
+         cm.rest_until,
+         cm.left_at
 `
 
 type MessageReportOneParams struct {
@@ -351,6 +353,7 @@ type MessageReportOneRow struct {
 	Status              string             `db:"status" json:"status"`
 	CustomTitle         pgtype.Text        `db:"custom_title" json:"customTitle"`
 	RestUntil           pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	LeftAt              pgtype.Timestamptz `db:"left_at" json:"leftAt"`
 }
 
 func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOneParams) (MessageReportOneRow, error) {
@@ -375,6 +378,7 @@ func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOnePara
 		&i.Status,
 		&i.CustomTitle,
 		&i.RestUntil,
+		&i.LeftAt,
 	)
 	return i, err
 }

@@ -40,4 +40,5 @@ type MemberStats struct {
 	NewbieThreshold int32
 	Status          string
 	CustomTitle     *string
+	LeftAt          *time.Time
 }
