@@ -397,11 +397,10 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		missing := required - int32(c.WeekCount)
 
 		text.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", chatLink(c.ID), html.EscapeString(c.Title)))
-		text.WriteString(fmt.Sprintf("└ Неделя: <b>%d</b>\n", c.WeekCount))
-		if c.NormWarn != 0 {
+		if c.NormWarn != 0 && c.WeekCount < int64(c.NormWarn) {
 			text.WriteString(fmt.Sprintf("└ Варн: %d / %d\n", c.WeekCount, c.NormWarn))
 		}
-		if c.NormBan != 0 {
+		if c.NormBan != 0 && c.WeekCount < int64(c.NormBan) {
 			text.WriteString(fmt.Sprintf("└ Бан: %d / %d\n", c.WeekCount, c.NormBan))
 		}
 		text.WriteString(fmt.Sprintf("└ Не хватает: <b>%d</b>\n\n", missing))
