@@ -284,6 +284,29 @@ func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.ReplyHTML(b, sb.String())
 }
 
+func (h *Handler) Warnlist(b *gotgbot.Bot, ctx *cmd.Context) error {
+	warns, err := h.service.GetWarnsByChat(ctx.StdContext(), ctx.TargetChatID())
+	if err != nil {
+		_ = ctx.Reply(b, "Не удалось получить список предупреждений", nil)
+		return err
+	}
+
+	maxWarns, err := h.service.GetMaxWarns(ctx.StdContext(), ctx.TargetChatID())
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+	activeWarns := make([]model.Warn, 0, len(warns))
+	for _, w := range warns {
+		if w.ExpiresAt.IsZero() || w.ExpiresAt.After(now) {
+			activeWarns = append(activeWarns, w)
+		}
+	}
+
+	return ctx.ReplyHTML(b, view.FormatWarnlist(activeWarns, maxWarns))
+}
+
 func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
 	if targetUser == nil {

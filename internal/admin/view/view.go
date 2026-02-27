@@ -117,6 +117,46 @@ func FormatWarnsCleared(user model.User) string {
 	return fmt.Sprintf("Все предупреждения пользователя %s были аннулированы", helpers.Link(user))
 }
 
+func FormatWarnlist(warns []model.Warn, maxWarns int) string {
+	if len(warns) == 0 {
+		return "В этом чате нет активных предупреждений ✅"
+	}
+
+	var sb strings.Builder
+	sb.WriteString("⚠️ <b>Список всех предупреждений в чате:</b>\n")
+
+	userWarns := make(map[int64][]model.Warn)
+	userOrder := make([]int64, 0)
+	for _, w := range warns {
+		if _, ok := userWarns[w.User.ID]; !ok {
+			userOrder = append(userOrder, w.User.ID)
+		}
+		userWarns[w.User.ID] = append(userWarns[w.User.ID], w)
+	}
+
+	for _, userID := range userOrder {
+		ws := userWarns[userID]
+		u := ws[0].User
+		sb.WriteString(fmt.Sprintf("\n👤 %s (активные: %d/%d):\n", helpers.Link(u), len(ws), maxWarns))
+		for i, w := range ws {
+			createdStr := helpers.FormatToHumanDate(w.CreatedAt)
+			expireStr := ""
+			if !w.ExpiresAt.IsZero() {
+				expireStr = fmt.Sprintf(", истекает %s", helpers.FormatToHumanDate(w.ExpiresAt))
+			}
+			modName := helpers.Link(w.Moderator)
+			reasonStr := ""
+			if w.Reason != "" {
+				reasonStr = fmt.Sprintf(", причина: %s", w.Reason)
+			}
+			sb.WriteString(fmt.Sprintf("  %d. Выдан %s модератором %s%s%s\n",
+				i+1, createdStr, modName, expireStr, reasonStr))
+		}
+	}
+
+	return sb.String()
+}
+
 func FormatUnmuteInfo(user model.User) string {
 	return fmt.Sprintf("Пользователь %s %s",
 		helpers.Link(user),

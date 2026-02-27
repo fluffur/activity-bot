@@ -355,3 +355,7 @@ func (s *Service) GetWarnsCount(ctx context.Context, chatID, userID int64) (int6
 func (s *Service) GetWarns(ctx context.Context, chatID, userID int64) ([]model.Warn, error) {
 	return s.repo.GetActiveWarns(ctx, chatID, userID)
 }
+
+func (s *Service) GetWarnsByChat(ctx context.Context, chatID int64) ([]model.Warn, error) {
+	return s.repo.GetActiveWarnsByChat(ctx, chatID)
+}

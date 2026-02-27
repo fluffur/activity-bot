@@ -185,6 +185,9 @@ func (a *App) RegisterHandlers() {
 		FallbackToSender().
 		WithGuards(groupGuard),
 	)
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Warnlist, "warnlist", "варнлист", "предывсе").
+		WithGuards(groupGuard),
+	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Warn, "warn", "варн", "пред", "предупреждение").
 		AddTriggers("+").SetArgsCount(2).
 		WithGuards(groupGuard, adminGuard),

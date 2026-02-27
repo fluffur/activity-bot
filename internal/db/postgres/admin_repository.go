@@ -240,3 +240,34 @@ func (r *AdminRepository) GetAllDevelopers(ctx context.Context) ([]model.User, [
 func (r *AdminRepository) GetDevelopersCount(ctx context.Context) (int64, error) {
 	return r.queries.GetDevelopersCount(ctx)
 }
+
+func (r *AdminRepository) GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]model.Warn, error) {
+	warns, err := r.queries.GetActiveWarnsByChat(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]model.Warn, len(warns))
+	for i, warn := range warns {
+		results[i] = model.Warn{
+			ID: warn.ID,
+			User: model.User{
+				ID:        warn.UserID,
+				FirstName: warn.UserFirstName.String,
+				LastName:  warn.UserLastName.String,
+				Username:  &warn.UserUsername.String,
+				Gender:    warn.UserGender,
+			},
+			Moderator: model.User{
+				ID:        warn.ModeratorID,
+				FirstName: warn.ModFirstName.String,
+				LastName:  warn.ModLastName.String,
+				Username:  &warn.ModUsername.String,
+				Gender:    warn.ModGender,
+			},
+			Reason:    warn.Reason.String,
+			CreatedAt: warn.CreatedAt.Time,
+			ExpiresAt: warn.ExpiresAt.Time,
+		}
+	}
+	return results, nil
+}

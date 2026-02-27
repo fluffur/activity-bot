@@ -141,6 +141,76 @@ func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) 
 	return items, nil
 }
 
+const getActiveWarnsByChat = `-- name: GetActiveWarnsByChat :many
+SELECT ma.id, ma.type, ma.chat_id, ma.user_id, ma.moderator_id, ma.reason, ma.created_at, ma.revoked_at, ma.expires_at,
+       u.username AS user_username, u.first_name AS user_first_name, u.last_name AS user_last_name, u.gender AS user_gender,
+       m.username AS mod_username, m.first_name AS mod_first_name, m.last_name AS mod_last_name, m.gender AS mod_gender
+FROM moderation_actions ma
+         JOIN users u ON ma.user_id = u.id
+         JOIN users m ON ma.moderator_id = m.id
+WHERE ma.chat_id = $1
+  AND ma.type = 'warn'
+ORDER BY ma.created_at
+`
+
+type GetActiveWarnsByChatRow struct {
+	ID            int64              `db:"id" json:"id"`
+	Type          ModerationType     `db:"type" json:"type"`
+	ChatID        int64              `db:"chat_id" json:"chatId"`
+	UserID        int64              `db:"user_id" json:"userId"`
+	ModeratorID   int64              `db:"moderator_id" json:"moderatorId"`
+	Reason        pgtype.Text        `db:"reason" json:"reason"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	RevokedAt     pgtype.Timestamptz `db:"revoked_at" json:"revokedAt"`
+	ExpiresAt     pgtype.Timestamptz `db:"expires_at" json:"expiresAt"`
+	UserUsername  pgtype.Text        `db:"user_username" json:"userUsername"`
+	UserFirstName pgtype.Text        `db:"user_first_name" json:"userFirstName"`
+	UserLastName  pgtype.Text        `db:"user_last_name" json:"userLastName"`
+	UserGender    string             `db:"user_gender" json:"userGender"`
+	ModUsername   pgtype.Text        `db:"mod_username" json:"modUsername"`
+	ModFirstName  pgtype.Text        `db:"mod_first_name" json:"modFirstName"`
+	ModLastName   pgtype.Text        `db:"mod_last_name" json:"modLastName"`
+	ModGender     string             `db:"mod_gender" json:"modGender"`
+}
+
+func (q *Queries) GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]GetActiveWarnsByChatRow, error) {
+	rows, err := q.db.Query(ctx, getActiveWarnsByChat, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetActiveWarnsByChatRow{}
+	for rows.Next() {
+		var i GetActiveWarnsByChatRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.ChatID,
+			&i.UserID,
+			&i.ModeratorID,
+			&i.Reason,
+			&i.CreatedAt,
+			&i.RevokedAt,
+			&i.ExpiresAt,
+			&i.UserUsername,
+			&i.UserFirstName,
+			&i.UserLastName,
+			&i.UserGender,
+			&i.ModUsername,
+			&i.ModFirstName,
+			&i.ModLastName,
+			&i.ModGender,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getActiveWarnsCount = `-- name: GetActiveWarnsCount :one
 SELECT count(*)
 FROM moderation_actions
