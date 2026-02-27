@@ -458,7 +458,7 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	text.WriteString(fmt.Sprintf(
-		"\nВсего проблемных чатов: <b>%d</b>",
+		"Всего проблемных чатов: <b>%d</b>",
 		len(banChats)+len(warnChats),
 	))
 
