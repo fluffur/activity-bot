@@ -396,11 +396,15 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		required := max(c.NormBan, c.NormWarn)
 		missing := required - int32(c.WeekCount)
 
-		text.WriteString(fmt.Sprintf("<b>%s</b>\n", html.EscapeString(c.Title)))
-		text.WriteString(fmt.Sprintf("└ 📊 Неделя: <b>%d</b>\n", c.WeekCount))
-		text.WriteString(fmt.Sprintf("└ ⚠ Варн: %d / %d\n", c.WeekCount, c.NormWarn))
-		text.WriteString(fmt.Sprintf("└ 🚫 Бан: %d / %d\n", c.WeekCount, c.NormBan))
-		text.WriteString(fmt.Sprintf("└ ⬇ Не хватает: <b>%d</b>\n\n", missing))
+		text.WriteString(fmt.Sprintf("<a href=\"%s\">%s</b>\n", chatLink(c.ID), html.EscapeString(c.Title)))
+		text.WriteString(fmt.Sprintf("└ Неделя: <b>%d</b>\n", c.WeekCount))
+		if c.NormWarn != 0 {
+			text.WriteString(fmt.Sprintf("└ Варн: %d / %d\n", c.WeekCount, c.NormWarn))
+		}
+		if c.NormBan != 0 {
+			text.WriteString(fmt.Sprintf("└ Бан: %d / %d\n", c.WeekCount, c.NormBan))
+		}
+		text.WriteString(fmt.Sprintf("└ Не хватает: <b>%d</b>\n\n", missing))
 	}
 	text.WriteString("</blockquote>")
 	text.WriteString(fmt.Sprintf("Всего не выполнено нормы в %d чатах", len(chats)))
@@ -414,4 +418,15 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	)
 
 	return err
+}
+
+func chatLink(id int64) string {
+	s := strconv.FormatInt(id, 10)
+
+	if strings.HasPrefix(s, "-100") {
+		internal := strings.TrimPrefix(s, "-100")
+		return fmt.Sprintf("https://t.me/c/%s/1", internal)
+	}
+
+	return ""
 }
