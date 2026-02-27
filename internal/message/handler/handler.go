@@ -89,7 +89,7 @@ func (h *Handler) Message(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 	}
 
-	if ctx.Message.LeftChatMember != nil || len(ctx.Message.NewChatMembers) > 0 {
+	if ctx.Message.ChatOwnerLeft != nil || ctx.Message.LeftChatMember != nil || len(ctx.Message.NewChatMembers) > 0 {
 		return nil
 	}
 
