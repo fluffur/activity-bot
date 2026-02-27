@@ -372,10 +372,6 @@ func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if ctx.EffectiveChat.Type != "private" {
-		return ctx.Reply(b, "❌ Команда доступна только в ЛС бота", nil)
-	}
-
 	chats, err := h.service.ListChatsWithoutNorm(
 		ctx.StdContext(),
 		ctx.EffectiveSender.Id(),
@@ -466,15 +462,33 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		len(banChats)+len(warnChats),
 	))
 
-	_, err = ctx.EffectiveChat.SendMessage(
-		b,
+	if _, err = b.SendMessage(
+		ctx.EffectiveSender.Id(),
 		text.String(),
 		&gotgbot.SendMessageOpts{
 			ParseMode: "HTML",
 		},
-	)
+	); err != nil {
+		if ctx.EffectiveChat.Type != "private" {
+			return ctx.Reply(
+				b,
+				"Не удалось отправить список норм в личные сообщения, убедитесь в том, что бот имеет доступ к личным сообщениям",
+				nil,
+			)
+		}
 
-	return err
+		return err
+	}
+
+	if ctx.EffectiveChat.Type != "private" {
+		return ctx.Reply(
+			b,
+			"Список невыполненных норм отправлен вам в личные сообщения ✅",
+			nil,
+		)
+	}
+
+	return nil
 }
 
 func writeNormInfo(text *strings.Builder, c model.ChatWithoutNorm) {
