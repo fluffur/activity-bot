@@ -140,6 +140,14 @@ func (m *mockRepository) UpdateChatMaxWarns(ctx context.Context, chatID int64, m
 	return nil
 }
 
+func (m *mockRepository) GetChatsWhereUserIsAdmin(ctx context.Context, userID int64) ([]model.Chat, error) {
+	return nil, nil
+}
+
+func (m *mockRepository) GetAllChats(ctx context.Context) ([]model.Chat, error) {
+	return nil, nil
+}
+
 func (m *mockRepository) GetDeveloperRole(ctx context.Context, chatID, userID int64) (string, error) {
 	if m.developers[chatID] == nil {
 		return "", nil
@@ -194,6 +202,14 @@ func (m *mockRepository) IsDeveloper(ctx context.Context, chatID, userID int64) 
 	}
 	_, ok := m.developers[chatID][userID]
 	return ok, nil
+}
+
+func (m *mockRepository) GetActiveWarns(ctx context.Context, chatID, userID int64) ([]model.Warn, error) {
+	return nil, nil
+}
+
+func (m *mockRepository) GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]model.Warn, error) {
+	return nil, nil
 }
 
 type mockChatMemberStatusProvider struct {

@@ -51,10 +51,6 @@ func NewService(repo Repository, statusProvider ChatMemberStatusProvider, modera
 }
 
 func (s *Service) GetDevRole(ctx context.Context, chatID, userID int64) (string, error) {
-	if userID == s.ownerID {
-		return DevRoleCreator, nil
-	}
-
 	role, err := s.repo.GetDeveloperRole(ctx, chatID, userID)
 	if err != nil {
 		return DevRoleMember, nil

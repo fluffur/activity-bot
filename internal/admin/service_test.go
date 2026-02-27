@@ -197,6 +197,15 @@ func TestService_IsAdmin(t *testing.T) {
 			},
 			want: false,
 		},
+		{
+			name:   "bot owner is member by default and NOT admin",
+			chatID: 1,
+			userID: 999,
+			setupMocks: func(repo *mockRepository, status *mockChatMemberStatusProvider) {
+
+			},
+			want: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -209,7 +218,7 @@ func TestService_IsAdmin(t *testing.T) {
 				tt.setupMocks(repo, statusProvider)
 			}
 
-			service := NewService(repo, statusProvider, moderator, 0)
+			service := NewService(repo, statusProvider, moderator, 999)
 			got, err := service.IsAdmin(context.Background(), tt.chatID, tt.userID)
 
 			if err != nil {
