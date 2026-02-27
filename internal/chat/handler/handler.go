@@ -489,9 +489,9 @@ func writeNormInfo(text *strings.Builder, c model.ChatWithoutNorm) {
 	}
 
 	if len(normParts) > 0 {
-		text.WriteString("Норма: ")
+		text.WriteString(fmt.Sprintf("Норма: %d (", c.NormWarn))
 		text.WriteString(strings.Join(normParts, ", "))
-		text.WriteString("\n")
+		text.WriteString(")\n")
 	}
 }
 
