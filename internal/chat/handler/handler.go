@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/chat/view"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
+	"activity-bot/internal/model"
 	"activity-bot/internal/session"
 	"fmt"
 	"html"
@@ -388,25 +389,65 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	var text strings.Builder
-	text.WriteString("📉 <b>Чаты без выполненной нормы</b>\n\n")
-	text.WriteString("<blockquote>")
+	var warnChats []model.ChatWithoutNorm
+	var banChats []model.ChatWithoutNorm
 
 	for _, c := range chats {
-		required := max(c.NormBan, c.NormWarn)
-		missing := required - int32(c.WeekCount)
-
-		text.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", chatLink(c.ID), html.EscapeString(c.Title)))
 		if c.NormWarn != 0 && c.WeekCount < int64(c.NormWarn) {
-			text.WriteString(fmt.Sprintf("└ Варн: %d / %d\n", c.WeekCount, c.NormWarn))
+			warnChats = append(warnChats, c)
 		}
 		if c.NormBan != 0 && c.WeekCount < int64(c.NormBan) {
-			text.WriteString(fmt.Sprintf("└ Бан: %d / %d\n", c.WeekCount, c.NormBan))
+			banChats = append(banChats, c)
 		}
-		text.WriteString(fmt.Sprintf("└ Не хватает: <b>%d</b>\n\n", missing))
 	}
-	text.WriteString("</blockquote expandable>")
-	text.WriteString(fmt.Sprintf("Всего не выполнено нормы в %d чатах", len(chats)))
+
+	var text strings.Builder
+	text.WriteString("📉 <b>Невыполненные нормы</b>\n\n")
+
+	if len(warnChats) > 0 {
+		text.WriteString("⚠ <b>Варн</b>\n")
+		text.WriteString("<blockquote expandable>\n")
+
+		for _, c := range warnChats {
+			text.WriteString(fmt.Sprintf(
+				"<a href=\"%s\">%s</a>\n",
+				chatLink(c.ID),
+				html.EscapeString(c.Title),
+			))
+			text.WriteString(fmt.Sprintf(
+				"└ %d / %d\n",
+				c.WeekCount,
+				c.NormWarn,
+			))
+		}
+
+		text.WriteString("</blockquote>\n\n")
+	}
+
+	if len(banChats) > 0 {
+		text.WriteString("🚫 <b>Бан</b>\n")
+		text.WriteString("<blockquote expandable>\n")
+
+		for _, c := range banChats {
+			text.WriteString(fmt.Sprintf(
+				"<a href=\"%s\">%s</a>\n",
+				chatLink(c.ID),
+				html.EscapeString(c.Title),
+			))
+			text.WriteString(fmt.Sprintf(
+				"└ %d / %d\n",
+				c.WeekCount,
+				c.NormBan,
+			))
+		}
+
+		text.WriteString("</blockquote>\n")
+	}
+
+	text.WriteString(fmt.Sprintf(
+		"\nВсего проблемных чатов: <b>%d</b>",
+		len(chats),
+	))
 
 	_, err = ctx.EffectiveChat.SendMessage(
 		b,
@@ -418,7 +459,6 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	return err
 }
-
 func chatLink(id int64) string {
 	s := strconv.FormatInt(id, 10)
 
