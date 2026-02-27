@@ -181,3 +181,27 @@ func (r *ChatRepository) SetMentionTypes(ctx context.Context, chatID int64, type
 		MentionTypes: types,
 	})
 }
+
+func (r *ChatRepository) GetChatsWithoutNorm(ctx context.Context, userID int64) ([]model.ChatWithoutNorm, error) {
+	chats, err := r.queries.GetAllUserChatsWithoutNorm(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapChatsWithoutNorm(chats), nil
+
+}
+
+func mapChatsWithoutNorm(chats []db.GetAllUserChatsWithoutNormRow) []model.ChatWithoutNorm {
+	result := make([]model.ChatWithoutNorm, len(chats))
+	for i, c := range chats {
+		result[i] = model.ChatWithoutNorm{
+			ID:        c.ID,
+			Title:     c.Title,
+			NormBan:   c.NormBan.Int32,
+			NormWarn:  c.NormWarn,
+			WeekCount: c.WeekCount,
+		}
+	}
+	return result
+}

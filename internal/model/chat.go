@@ -1,6 +1,8 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type Chat struct {
 	ID                  int64
@@ -25,6 +27,14 @@ type ChatMember struct {
 	RestUntil   *time.Time
 	CustomTitle string
 	Status      string
+}
+
+type ChatWithoutNorm struct {
+	ID        int64
+	Title     string
+	NormBan   int32
+	NormWarn  int32
+	WeekCount int64
 }
 
 type InactiveMember struct {

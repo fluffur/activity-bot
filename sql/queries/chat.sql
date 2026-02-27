@@ -44,7 +44,8 @@ WHERE id = $1;
 -- name: GetAllChats :many
 SELECT *
 FROM chats
-WHERE id < 0 AND title <> '';
+WHERE id < 0
+  AND title <> '';
 
 -- name: UpdateChatTitle :exec
 UPDATE chats
@@ -102,3 +103,34 @@ WHERE id = @chat_id;
 UPDATE chats
 SET mention_types = $1
 WHERE id = @chat_id;
+
+-- name: GetAllUserChatsWithoutNorm :many
+SELECT c.id,
+       c.title,
+       c.norm_ban,
+       c.norm_warn,
+       COUNT(m.id) AS week_count
+FROM chats c
+
+         JOIN chat_members cm
+              ON cm.chat_id = c.id
+                  AND cm.user_id = @user_id
+                  AND cm.left_at IS NULL
+
+         LEFT JOIN messages m
+                   ON m.chat_id = c.id
+                       AND m.user_id = @user_id
+                       AND m.created_at >= (
+                           date_trunc('day', now())
+                               - ((extract(isodow from now())::int - c.week_start_day + 7) % 7)
+                               * interval '1 day'
+                           )
+
+WHERE c.id < 0
+  AND c.title <> ''
+
+GROUP BY c.id, c.title, c.norm_ban, c.norm_warn
+
+HAVING COUNT(m.id) < GREATEST(c.norm_ban, c.norm_warn)
+
+ORDER BY week_count;

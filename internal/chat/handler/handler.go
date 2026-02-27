@@ -7,6 +7,8 @@ import (
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/session"
+	"fmt"
+	"html"
 	"strconv"
 	"strings"
 
@@ -365,5 +367,56 @@ func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	_, _, err = ctx.EffectiveMessage.EditText(b, "Теперь вы управляете чатом: **"+title+"**\nВсе команды настроек теперь будут применяться к этому чату.", &gotgbot.EditMessageTextOpts{
 		ParseMode: gotgbot.ParseModeMarkdown,
 	})
+	return err
+}
+func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
+	if ctx.EffectiveChat.Type != "private" {
+		return ctx.Reply(b, "❌ Команда доступна только в ЛС бота", nil)
+	}
+
+	chats, err := h.service.ListChatsWithoutNorm(
+		ctx.StdContext(),
+		ctx.EffectiveSender.Id(),
+	)
+	if err != nil {
+		return err
+	}
+
+	if len(chats) == 0 {
+		_, err := ctx.EffectiveChat.SendMessage(
+			b,
+			"✅ Все нормы выполнены. Отличная работа!",
+			nil,
+		)
+		return err
+	}
+
+	var text strings.Builder
+	text.WriteString("📊 <b>Чаты без выполненной нормы</b>\n\n")
+
+	for i, c := range chats {
+		required := max(c.NormBan, c.NormWarn)
+		missing := required - int32(c.WeekCount)
+
+		text.WriteString("━━━━━━━━━━━━━━━━━━\n")
+		text.WriteString(fmt.Sprintf("📛 <b>%s</b>\n", html.EscapeString(c.Title)))
+		text.WriteString(fmt.Sprintf("Сообщений: <b>%d</b>\n", c.WeekCount))
+		text.WriteString(fmt.Sprintf("⚠ Warn: %d\n", c.NormWarn))
+		text.WriteString(fmt.Sprintf("🚫 Ban: %d\n", c.NormBan))
+		text.WriteString(fmt.Sprintf("📉 Не хватает: <b>%d</b>\n", missing))
+
+		if i < len(chats)-1 {
+			text.WriteString("\n")
+		}
+	}
+
+	_, err = ctx.EffectiveChat.SendMessage(
+		b,
+		text.String(),
+		&gotgbot.SendMessageOpts{
+			ParseMode: "HTML",
+		},
+	)
+
 	return err
 }

@@ -78,3 +78,7 @@ func (s *Service) SetCommandPrefix(ctx context.Context, chatID int64, prefix str
 func (s *Service) SetAllowPrefixless(ctx context.Context, chatID int64, allow bool) error {
 	return s.repo.SetAllowPrefixless(ctx, chatID, allow)
 }
+
+func (s *Service) ListChatsWithoutNorm(ctx context.Context, userID int64) ([]model.ChatWithoutNorm, error) {
+	return s.repo.GetChatsWithoutNorm(ctx, userID)
+}

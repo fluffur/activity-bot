@@ -23,4 +23,5 @@ type Repository interface {
 	SetAllowPrefixless(ctx context.Context, chatID int64, allow bool) error
 	SetMentionsPerMessage(ctx context.Context, chatID int64, count int32) error
 	SetMentionTypes(ctx context.Context, chatID int64, types int32) error
+	GetChatsWithoutNorm(ctx context.Context, userID int64) ([]model.ChatWithoutNorm, error)
 }

@@ -82,7 +82,8 @@ func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsPara
 const getAllChats = `-- name: GetAllChats :many
 SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title
 FROM chats
-WHERE id < 0 AND title <> ''
+WHERE id < 0
+  AND title <> ''
 `
 
 func (q *Queries) GetAllChats(ctx context.Context) ([]Chat, error) {
@@ -110,6 +111,72 @@ func (q *Queries) GetAllChats(ctx context.Context) ([]Chat, error) {
 			&i.MentionsPerMessage,
 			&i.MentionTypes,
 			&i.Title,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllUserChatsWithoutNorm = `-- name: GetAllUserChatsWithoutNorm :many
+SELECT c.id,
+       c.title,
+       c.norm_ban,
+       c.norm_warn,
+       COUNT(m.id) AS week_count
+FROM chats c
+
+         JOIN chat_members cm
+              ON cm.chat_id = c.id
+                  AND cm.user_id = $1
+                  AND cm.left_at IS NULL
+
+         LEFT JOIN messages m
+                   ON m.chat_id = c.id
+                       AND m.user_id = $1
+                       AND m.created_at >= (
+                           date_trunc('day', now())
+                               - ((extract(isodow from now())::int - c.week_start_day + 7) % 7)
+                               * interval '1 day'
+                           )
+
+WHERE c.id < 0
+  AND c.title <> ''
+
+GROUP BY c.id, c.title, c.norm_ban, c.norm_warn
+
+HAVING COUNT(m.id) < GREATEST(c.norm_ban, c.norm_warn)
+
+ORDER BY week_count
+`
+
+type GetAllUserChatsWithoutNormRow struct {
+	ID        int64       `db:"id" json:"id"`
+	Title     string      `db:"title" json:"title"`
+	NormBan   pgtype.Int4 `db:"norm_ban" json:"normBan"`
+	NormWarn  int32       `db:"norm_warn" json:"normWarn"`
+	WeekCount int64       `db:"week_count" json:"weekCount"`
+}
+
+func (q *Queries) GetAllUserChatsWithoutNorm(ctx context.Context, userID int64) ([]GetAllUserChatsWithoutNormRow, error) {
+	rows, err := q.db.Query(ctx, getAllUserChatsWithoutNorm, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetAllUserChatsWithoutNormRow{}
+	for rows.Next() {
+		var i GetAllUserChatsWithoutNormRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.NormBan,
+			&i.NormWarn,
+			&i.WeekCount,
 		); err != nil {
 			return nil, err
 		}
