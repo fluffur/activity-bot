@@ -415,7 +415,7 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 				html.EscapeString(c.Title),
 			))
 			text.WriteString(fmt.Sprintf(
-				"Норма: <%d – варн, <%d – бан)\n",
+				"Норма: &lt;%d – варн, &lt;%d – бан)\n",
 				c.NormWarn,
 				c.NormBan,
 			))
@@ -440,7 +440,7 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 				html.EscapeString(c.Title),
 			))
 			text.WriteString(fmt.Sprintf(
-				"Норма: <%d – варн, <%d – бан)\n",
+				"Норма: &lt;%d – варн, &lt;%d – бан)\n",
 				c.NormWarn,
 				c.NormBan,
 			))
