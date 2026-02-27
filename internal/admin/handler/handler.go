@@ -483,7 +483,7 @@ func (h *Handler) AddDeveloper(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return cmd.ErrNoUser
 	}
 
-	role := admin.DevRoleCreator
+	role := admin.DevRoleMember
 	if arg := ctx.SecondArgument(); arg != "" {
 		switch strings.ToLower(arg) {
 		case "участник", "member":
