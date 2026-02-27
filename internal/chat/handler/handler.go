@@ -451,7 +451,7 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 			))
 		}
 
-		text.WriteString("</blockquote>\n\n")
+		text.WriteString("</blockquote>")
 	}
 
 	text.WriteString(fmt.Sprintf(
