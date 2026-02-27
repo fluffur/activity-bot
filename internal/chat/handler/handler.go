@@ -372,6 +372,10 @@ func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
+	if ctx.EffectiveChat.Type != "private" {
+		return ctx.Reply(b, "❌ Команда доступна только в ЛС бота", nil)
+	}
+
 	chats, err := h.service.ListChatsWithoutNorm(
 		ctx.StdContext(),
 		ctx.EffectiveSender.Id(),
