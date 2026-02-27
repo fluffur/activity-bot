@@ -108,7 +108,7 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 		sb.WriteString("Пока никто не прошёл норму\n")
 	}
 
-	sb.WriteString("\n❌ Не прошли норму️ (варн) \n")
+	sb.WriteString("\n⚠️ Не прошли норму️ (варн) \n")
 	if len(failedWarn) > 0 {
 		writeNumberedList(&sb, failedWarn)
 	} else {
