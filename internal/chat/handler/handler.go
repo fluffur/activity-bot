@@ -393,11 +393,13 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	var banChats []model.ChatWithoutNorm
 
 	for _, c := range chats {
-		if c.NormWarn != 0 && c.WeekCount < int64(c.NormWarn) {
-			warnChats = append(warnChats, c)
-		}
-		if c.NormBan != 0 && c.WeekCount < int64(c.NormBan) {
+		if c.NormBan > 0 && c.WeekCount < int64(c.NormBan) {
 			banChats = append(banChats, c)
+			continue
+		}
+
+		if c.NormWarn > 0 && c.WeekCount < int64(c.NormWarn) {
+			warnChats = append(warnChats, c)
 		}
 	}
 
@@ -414,11 +416,8 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 				chatLink(c.ID),
 				html.EscapeString(c.Title),
 			))
-			text.WriteString(fmt.Sprintf(
-				"Норма: &lt;%d – варн, &lt;%d – бан\n",
-				c.NormWarn,
-				c.NormBan,
-			))
+
+			writeNormInfo(&text, c)
 
 			text.WriteString(fmt.Sprintf(
 				"Сообщений: %d\n\n",
@@ -439,11 +438,8 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 				chatLink(c.ID),
 				html.EscapeString(c.Title),
 			))
-			text.WriteString(fmt.Sprintf(
-				"Норма: &lt;%d – варн, &lt;%d – бан\n",
-				c.NormWarn,
-				c.NormBan,
-			))
+
+			writeNormInfo(&text, c)
 
 			text.WriteString(fmt.Sprintf(
 				"Сообщений: %d\n\n",
@@ -451,12 +447,12 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 			))
 		}
 
-		text.WriteString("</blockquote>")
+		text.WriteString("</blockquote>\n")
 	}
 
 	text.WriteString(fmt.Sprintf(
 		"\nВсего проблемных чатов: <b>%d</b>",
-		len(chats),
+		len(banChats)+len(warnChats),
 	))
 
 	_, err = ctx.EffectiveChat.SendMessage(
@@ -469,6 +465,29 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	return err
 }
+
+func writeNormInfo(text *strings.Builder, c model.ChatWithoutNorm) {
+	var normParts []string
+
+	if c.NormWarn > 0 {
+		normParts = append(normParts,
+			fmt.Sprintf("&lt;%d – варн", c.NormWarn),
+		)
+	}
+
+	if c.NormBan > 0 {
+		normParts = append(normParts,
+			fmt.Sprintf("&lt;%d – бан", c.NormBan),
+		)
+	}
+
+	if len(normParts) > 0 {
+		text.WriteString("Норма: ")
+		text.WriteString(strings.Join(normParts, ", "))
+		text.WriteString("\n")
+	}
+}
+
 func chatLink(id int64) string {
 	s := strconv.FormatInt(id, 10)
 
