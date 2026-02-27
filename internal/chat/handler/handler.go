@@ -440,13 +440,13 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 				html.EscapeString(c.Title),
 			))
 			text.WriteString(fmt.Sprintf(
-				"└ <b>Норма:</b> %d – варн, %d – бан\n",
+				"(%d – варн, %d – бан)\n",
 				c.NormWarn,
 				c.NormBan,
 			))
 
 			text.WriteString(fmt.Sprintf(
-				"  <b>Сообщений:</b> %d\n",
+				"<b>Сообщений:</b> %d\n\n",
 				c.WeekCount,
 			))
 		}
