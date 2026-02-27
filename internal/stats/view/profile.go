@@ -57,50 +57,19 @@ func FormatProfile(m model.MemberStats) string {
 	}
 
 	if m.NormWarn > 0 || m.NormBan > 0 {
-		normEmoji := getNormEmoji(
-			m.WeekCount,
-			m.NormBan,
-			m.NormWarn,
-			m.RestUntil != nil && m.RestUntil.After(time.Now()),
-		)
-
-		text += fmt.Sprintf("\n\n%s <b>Норма (неделя)</b>\n", normEmoji)
-
-		if m.NormWarn > 0 {
-			text += fmt.Sprintf(
-				"└ Варн: <b>%d</b> / %d\n",
-				m.WeekCount,
-				m.NormWarn,
-			)
-		}
-
-		if m.NormBan > 0 {
-			text += fmt.Sprintf(
-				"└ Бан: <b>%d</b> / %d",
-				m.WeekCount,
-				m.NormBan,
-			)
-		}
+		normStatus := getNormStatusEmoji(m.WeekCount, m.NormWarn, m.NormBan)
+		text += fmt.Sprintf("\n\n%s", normStatus)
 	}
 
 	return text
 }
 
-func getNormEmoji(weekCount, normBan, normWarn int32, isInRest bool) string {
-	if isInRest {
-		return "😴"
+func getNormStatusEmoji(weekCount, normWarn, normBan int32) string {
+	if normBan > 0 && weekCount < normBan {
+		return "🚫 Норма не набрана, бан"
 	}
-	if normBan == 0 && normWarn == 0 {
-		return "⚪"
+	if normWarn > 0 && weekCount < normWarn {
+		return "⚠️ Норма не набрана, варн"
 	}
-
-	if weekCount < normBan {
-		return "❌"
-	}
-
-	if weekCount < normWarn {
-		return "⚠️"
-	}
-
-	return "✅"
+	return "✅ Норма набрана"
 }
