@@ -405,7 +405,7 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 		text.WriteString(fmt.Sprintf("└ Не хватает: <b>%d</b>\n\n", missing))
 	}
-	text.WriteString("</blockquote>")
+	text.WriteString("</blockquote expandable>")
 	text.WriteString(fmt.Sprintf("Всего не выполнено нормы в %d чатах", len(chats)))
 
 	_, err = ctx.EffectiveChat.SendMessage(
