@@ -369,11 +369,8 @@ func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	})
 	return err
 }
-func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if ctx.EffectiveChat.Type != "private" {
-		return ctx.Reply(b, "❌ Команда доступна только в ЛС бота", nil)
-	}
 
+func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	chats, err := h.service.ListChatsWithoutNorm(
 		ctx.StdContext(),
 		ctx.EffectiveSender.Id(),
@@ -385,29 +382,24 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if len(chats) == 0 {
 		_, err := ctx.EffectiveChat.SendMessage(
 			b,
-			"✅ Все нормы выполнены. Отличная работа!",
+			"✅ Все недельные нормы выполнены.",
 			nil,
 		)
 		return err
 	}
 
 	var text strings.Builder
-	text.WriteString("📊 <b>Чаты без выполненной нормы</b>\n\n")
+	text.WriteString("📉 <b>Чаты без выполненной нормы</b>\n\n")
 
-	for i, c := range chats {
+	for _, c := range chats {
 		required := max(c.NormBan, c.NormWarn)
 		missing := required - int32(c.WeekCount)
 
-		text.WriteString("━━━━━━━━━━━━━━━━━━\n")
 		text.WriteString(fmt.Sprintf("📛 <b>%s</b>\n", html.EscapeString(c.Title)))
-		text.WriteString(fmt.Sprintf("Сообщений: <b>%d</b>\n", c.WeekCount))
-		text.WriteString(fmt.Sprintf("⚠ Warn: %d\n", c.NormWarn))
-		text.WriteString(fmt.Sprintf("🚫 Ban: %d\n", c.NormBan))
-		text.WriteString(fmt.Sprintf("📉 Не хватает: <b>%d</b>\n", missing))
-
-		if i < len(chats)-1 {
-			text.WriteString("\n")
-		}
+		text.WriteString(fmt.Sprintf("└ 📊 Неделя: <b>%d</b>\n", c.WeekCount))
+		text.WriteString(fmt.Sprintf("└ ⚠ Варн: %d / %d\n", c.WeekCount, c.NormWarn))
+		text.WriteString(fmt.Sprintf("└ 🚫 Бан: %d / %d\n", c.WeekCount, c.NormBan))
+		text.WriteString(fmt.Sprintf("└ ⬇ Не хватает: <b>%d</b>\n\n", missing))
 	}
 
 	_, err = ctx.EffectiveChat.SendMessage(
