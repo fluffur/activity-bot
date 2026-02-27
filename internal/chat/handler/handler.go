@@ -396,7 +396,7 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		required := max(c.NormBan, c.NormWarn)
 		missing := required - int32(c.WeekCount)
 
-		text.WriteString(fmt.Sprintf("<a href=\"%s\">%s</b>\n", chatLink(c.ID), html.EscapeString(c.Title)))
+		text.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", chatLink(c.ID), html.EscapeString(c.Title)))
 		text.WriteString(fmt.Sprintf("└ Неделя: <b>%d</b>\n", c.WeekCount))
 		if c.NormWarn != 0 {
 			text.WriteString(fmt.Sprintf("└ Варн: %d / %d\n", c.WeekCount, c.NormWarn))
