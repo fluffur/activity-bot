@@ -286,9 +286,6 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if u.IsBot {
 		return nil
 	}
-	if _, err := h.service.EnsureMemberExists(ctx.StdContext(), ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, "member"); err != nil {
-		return err
-	}
 	m, err := h.service.ProcessLeftMember(ctx.StdContext(), ctx.EffectiveChat.Id, u.Id)
 	if err != nil {
 		return err

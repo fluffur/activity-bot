@@ -91,6 +91,10 @@ func (h *Handler) Message(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 	}
 
+	if ctx.Message.LeftChatMember != nil || len(ctx.Message.NewChatMembers) > 0 {
+		return nil
+	}
+
 	m, err := h.memberService.EnsureMemberExists(ctx.StdContext(), c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member")
 
 	if err != nil {
