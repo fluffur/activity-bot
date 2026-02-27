@@ -415,9 +415,14 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 				html.EscapeString(c.Title),
 			))
 			text.WriteString(fmt.Sprintf(
-				"└ %d / %d\n",
-				c.WeekCount,
+				"└ <b>Норма:</b> %d – варн, %d – бан\n",
+				c.NormWarn,
 				c.NormBan,
+			))
+
+			text.WriteString(fmt.Sprintf(
+				"  <b>Сообщений:</b> %d\n",
+				c.WeekCount,
 			))
 		}
 
@@ -435,9 +440,14 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 				html.EscapeString(c.Title),
 			))
 			text.WriteString(fmt.Sprintf(
-				"└ %d / %d\n",
-				c.WeekCount,
+				"└ <b>Норма:</b> %d – варн, %d – бан\n",
 				c.NormWarn,
+				c.NormBan,
+			))
+
+			text.WriteString(fmt.Sprintf(
+				"  <b>Сообщений:</b> %d\n",
+				c.WeekCount,
 			))
 		}
 
