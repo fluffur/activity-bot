@@ -83,7 +83,17 @@ func NewApp(cfg config.Config) (*App, error) {
 
 	dp := ext.NewDispatcher(&ext.DispatcherOpts{
 		Error: func(b *gotgbot.Bot, ctx *ext.Context, err error) ext.DispatcherAction {
-			slog.Error("an error occurred while handling update", "error", err)
+			args := []any{"error", err}
+			if ctx.EffectiveChat != nil {
+				args = append(args, "chat_id", ctx.EffectiveChat.Id)
+			}
+			if ctx.EffectiveUser != nil {
+				args = append(args, "user_id", ctx.EffectiveUser.Id)
+			}
+			if ctx.Update != nil {
+				args = append(args, "update_id", ctx.Update.UpdateId)
+			}
+			slog.Error("an error occurred while handling update", args...)
 			return ext.DispatcherActionNoop
 		},
 		MaxRoutines: ext.DefaultMaxRoutines,
