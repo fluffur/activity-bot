@@ -211,7 +211,7 @@ func (a *App) registerWorkerHandlers() *asynq.ServeMux {
 			return err
 		}
 
-		_, err = a.Bot.SendMessage(p.ChatID, fmt.Sprintf("Рест у %s подошёл к концу.", helpers.LinkWithContent(m.User, fmt.Sprintf("%s (%s)", m.User.FirstName, m.CustomTitle))), &gotgbot.SendMessageOpts{
+		_, err = a.Bot.SendMessage(p.ChatID, fmt.Sprintf("Рест у участника %s подошёл к концу", helpers.LinkWithContent(m.User, fmt.Sprintf("%s (%s)", m.User.FirstName, m.CustomTitle))), &gotgbot.SendMessageOpts{
 			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 				IsDisabled: true,
 			},
