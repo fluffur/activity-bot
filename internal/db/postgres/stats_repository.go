@@ -40,6 +40,7 @@ func mapMemberStats(row db.MessageReportOneRow) model.MemberStats {
 		User: model.User{
 			ID:        row.UserID,
 			FirstName: row.FirstName.String,
+			LastName:  row.LastName.String,
 			Username:  username,
 		},
 		DayCount:          int32(row.DayCount),
