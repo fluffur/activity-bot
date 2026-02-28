@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -546,7 +545,6 @@ func (h *Handler) UpdateChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 			slog.Error("failed to get chat", "chat", c, "err", err)
 			continue
 		}
-		log.Println()
 
 		if err := h.chatService.SetTitle(ctx.StdContext(), ch.Id, ch.Title); err != nil {
 			return err

@@ -5,7 +5,6 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"context"
-	"log"
 	"log/slog"
 	"strings"
 	"time"
@@ -294,7 +293,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		if err == nil {
 			addUser(&u)
 		} else {
-			log.Println(err)
+			slog.Error("Failed to ensure reply user", "error", err)
 		}
 	}
 	if c.fallbackToSender && len(users) == 0 {
@@ -345,9 +344,6 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		}
 	} else if c.argsCount == 1 || c.argsCount == ArgsCountNone || c.argsCount == ArgsCountAny {
 		args = append(args, rest)
-	}
-	for _, u := range users {
-		log.Println("user", *u)
 	}
 
 	chatID, err := GetChatID(c.sessionService, ctx, cctx)

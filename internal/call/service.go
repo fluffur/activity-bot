@@ -6,7 +6,6 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"context"
-	"log"
 	"log/slog"
 	"math/rand"
 	"regexp"
@@ -113,7 +112,6 @@ func (s *Service) Call(ctx *cmd.Context, b *gotgbot.Bot, message string) error {
 	if message != "" {
 		message = replaceMentionsWithLinks(message)
 	}
-	log.Println(message)
 
 	for i := 0; i < len(members); i += mentionsLimit {
 		end := i + mentionsLimit

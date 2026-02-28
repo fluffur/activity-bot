@@ -11,7 +11,6 @@ import (
 	"activity-bot/internal/user"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"strings"
 	"time"
@@ -160,7 +159,7 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 		tgMember, err := b.GetChatMember(targetChatID, m.User.ID, nil)
 		if err != nil {
-			log.Printf("Ошибка при получении информации о пользователе %s: %v\n", m.User.FirstName, err)
+			slog.Error("Failed to get member info", "error", err)
 			_ = ctx.Reply(b, fmt.Sprintf("Не удалось получить пользователя %s", m.User.FirstName), nil)
 			errorsCount++
 			continue
@@ -330,7 +329,6 @@ func (h *Handler) SetOnlyNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "Укажите хотя бы одного участника", nil)
 	}
 	if err := h.service.SetOnlyNewbies(ctx.StdContext(), ctx.TargetChatID(), ctx.Users()); err != nil {
-		log.Println("failed to set only-newbies", err)
 		_ = ctx.Reply(b, "Не удалось установить олдов", nil)
 		return err
 	}

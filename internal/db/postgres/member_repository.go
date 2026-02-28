@@ -6,7 +6,6 @@ import (
 	"activity-bot/internal/model"
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -290,7 +289,6 @@ func (r *MemberRepository) SetNewbies(ctx context.Context, chatID int64, users [
 	for i, u := range users {
 		userIDs[i] = u.ID
 	}
-	log.Println(userIDs)
 	return r.queries.MoveChatMembersToNew(ctx, db.MoveChatMembersToNewParams{
 		ChatID:  chatID,
 		UserIds: userIDs,

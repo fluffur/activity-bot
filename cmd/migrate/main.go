@@ -16,7 +16,7 @@ func main() {
 	ctx := context.Background()
 	cfg, err := config.Load()
 	if err != nil {
-		log.Println("Config load warning (continuing if DB_DSN provided via env):", err)
+		log.Fatal("Config load failed", err)
 	}
 
 	dsn := cfg.DBDSN
