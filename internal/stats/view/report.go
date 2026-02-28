@@ -26,8 +26,10 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	}
 
 	var passed, failedWarn, failedBan, newbies, inRest []string
-
+	var normWarn, normBan int32
 	for _, r := range report {
+		normBan = r.NormBan
+		normWarn = r.NormWarn
 		normWarnDone := r.MessagesCount >= r.NormWarn
 		normBanDone := true
 		if r.NormBan > 0 {
@@ -101,25 +103,27 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	sb.WriteString(periodHeader + "\n\n")
 	sb.WriteString("<blockquote expandable>")
 
-	sb.WriteString("🌟 Прошли норму\n")
+	sb.WriteString(fmt.Sprintf("🌟 Прошли норму %d\n", normWarn))
 	if len(passed) > 0 {
 		writeNumberedList(&sb, passed)
 	} else {
 		sb.WriteString("Пока никто не прошёл норму\n")
 	}
 
-	sb.WriteString("\n⚠️ Не прошли норму️ (варн) \n")
+	sb.WriteString(fmt.Sprintf("\n⚠️ Не прошли норму️ %d (варн) \n", normWarn))
 	if len(failedWarn) > 0 {
 		writeNumberedList(&sb, failedWarn)
 	} else {
 		sb.WriteString("Список пуст\n")
 	}
 
-	sb.WriteString("\n🚫 Не прошли норму (бан) \n")
-	if len(failedBan) > 0 {
-		writeNumberedList(&sb, failedBan)
-	} else {
-		sb.WriteString("Список пуст\n")
+	if normBan != 0 {
+		sb.WriteString(fmt.Sprintf("\n🚫 Не прошли норму %d (бан) \n", normBan))
+		if len(failedBan) > 0 {
+			writeNumberedList(&sb, failedBan)
+		} else {
+			sb.WriteString("Список пуст\n")
+		}
 	}
 
 	sb.WriteString("\n🐣 Новички\n")

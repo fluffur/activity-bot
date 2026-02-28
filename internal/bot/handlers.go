@@ -79,7 +79,7 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
-	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowStats, "stats", "отчёт", "отчет").
+	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowStats, "stats", "отчёт", "отчет", "стата").
 		SetArgsCount(1).
 		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 2, 4*time.Second, sessionService)),
 	)
@@ -87,13 +87,13 @@ func (a *App) RegisterHandlers() {
 		SetArgsCount(1).
 		WithGuards(groupGuard, rateLimiterGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "whoami", "ктоя", "я кто").
+	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "whoami", "кто я", "ктоя", "я кто").
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "я", "me").ForcePrefix().
 		WithGuards(groupGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "whoareu", "ктоты", "тыкто").
+	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "whoareu", "ктоты", "кто ты", "ты кто", "тыкто").
 		SetArgsCount(1).
 		WithGuards(groupGuard),
 	)
