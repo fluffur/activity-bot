@@ -11,6 +11,7 @@ import (
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
+	"activity-bot/internal/rest"
 	"activity-bot/internal/user"
 	"context"
 	"encoding/json"
@@ -41,6 +42,7 @@ type App struct {
 	AdminService  *admin.Service
 	UserService   *user.Service
 	ChatService   *chat.Service
+	RestService   *rest.Service
 }
 
 func NewApp(cfg config.Config) (*App, error) {
@@ -71,6 +73,7 @@ func NewApp(cfg config.Config) (*App, error) {
 	adminRepo := postgres.NewAdminRepository(queries)
 	chatRepo := postgres.NewChatRepository(queries)
 	userRepo := postgres.NewUserRepository(queries)
+	restRepo := postgres.NewRestRepository(queries, pool)
 
 	statusProvider := adapter.NewTelegramMemberStatusProvider(b)
 	moderator := adapter.NewTelegramModerator(b)
@@ -80,6 +83,7 @@ func NewApp(cfg config.Config) (*App, error) {
 	memberService := member.NewService(memberRepo, chatRepo, userRepo, adminsProvider, cfg.DefaultNormWarn)
 	adminService := admin.NewService(adminRepo, statusProvider, moderator, cfg.BotOwnerID)
 	chatService := chat.NewService(chatRepo, cfg.DefaultNormWarn)
+	restService := rest.NewService(restRepo)
 
 	dp := ext.NewDispatcher(&ext.DispatcherOpts{
 		Error: func(b *gotgbot.Bot, ctx *ext.Context, err error) ext.DispatcherAction {
@@ -113,6 +117,7 @@ func NewApp(cfg config.Config) (*App, error) {
 		AdminService:  adminService,
 		UserService:   userService,
 		ChatService:   chatService,
+		RestService:   restService,
 	}, nil
 }
 
@@ -122,6 +127,10 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	a.RegisterHandlers()
+
+	if err := a.SyncRests(ctx); err != nil {
+		slog.Error("Failed to sync rests", "error", err)
+	}
 
 	mux := a.registerWorkerHandlers()
 	go func() {
@@ -180,7 +189,62 @@ func (a *App) registerWorkerHandlers() *asynq.ServeMux {
 
 		return err
 	})
+
+	mux.HandleFunc("rest:expire", func(ctx context.Context, t *asynq.Task) error {
+		var p model.RestExpirePayload
+		if err := json.Unmarshal(t.Payload(), &p); err != nil {
+			return err
+		}
+
+		until, err := a.RestService.GetMemberRest(ctx, p.ChatID, p.UserID)
+		if err != nil || until == nil {
+			return err
+		}
+
+		now := time.Now().In(helpers.MoscowLocation)
+		if until.After(now.Add(1 * time.Minute)) {
+			return nil
+		}
+
+		m, err := a.MemberService.GetChatMember(ctx, p.ChatID, p.UserID)
+		if err != nil {
+			return err
+		}
+
+		_, err = a.Bot.SendMessage(p.ChatID, fmt.Sprintf("Рест у %s подошёл к концу.", helpers.LinkWithContent(m.User, fmt.Sprintf("%s (%s)", m.User.FirstName, m.CustomTitle))), &gotgbot.SendMessageOpts{
+			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+				IsDisabled: true,
+			},
+			ParseMode:       gotgbot.ParseModeHTML,
+			ReplyParameters: nil,
+		})
+
+		return err
+	})
+
 	return mux
+}
+
+func (a *App) SyncRests(ctx context.Context) error {
+	rests, err := a.RestService.GetAllActiveRests(ctx)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("Syncing rests", "count", len(rests))
+
+	for _, r := range rests {
+		payload, _ := json.Marshal(model.RestExpirePayload{
+			ChatID: r.ChatID,
+			UserID: r.UserID,
+		})
+		task := asynq.NewTask("rest:expire", payload)
+		if _, err := a.AsyncClient.Enqueue(task, asynq.ProcessAt(r.RestUntil)); err != nil {
+			slog.Error("Failed to enqueue rest sync task", "chat_id", r.ChatID, "user_id", r.UserID, "error", err)
+		}
+	}
+
+	return nil
 }
 
 func (a *App) setupBot() error {

@@ -50,7 +50,7 @@ func (a *App) RegisterHandlers() {
 	helpHandler := helpH.New(a.Config.BotOwnerID)
 	statsHandler := statsH.New(statsService, restService, a.MemberService, a.UserService, a.ChatService, sessionService)
 	chatHandler := chatH.New(a.ChatService, a.AdminService, sessionService, dateParser)
-	restHandler := restH.New(restService, a.UserService, a.AdminService, dateParser, sessionService)
+	restHandler := restH.New(restService, a.UserService, a.AdminService, dateParser, sessionService, a.AsyncClient)
 
 	adminHandler := adminH.New(a.AdminService, a.UserService, a.MemberService, a.ChatService, dateParser, a.AsyncClient)
 

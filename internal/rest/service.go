@@ -57,3 +57,7 @@ func (s *Service) ApproveRestRequest(ctx context.Context, chatID, userID, messag
 func (s *Service) RejectRestRequest(ctx context.Context, chatID, userID, messageID int64) error {
 	return s.repo.RejectRequest(ctx, chatID, userID, messageID)
 }
+
+func (s *Service) GetAllActiveRests(ctx context.Context) ([]model.RestExpirePayload, error) {
+	return s.repo.GetAllActiveRests(ctx)
+}

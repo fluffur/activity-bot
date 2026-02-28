@@ -69,6 +69,39 @@ func (q *Queries) EndMemberRest(ctx context.Context, arg EndMemberRestParams) er
 	return err
 }
 
+const getAllActiveRests = `-- name: GetAllActiveRests :many
+SELECT chat_id, user_id, rest_until
+FROM chat_members
+WHERE rest_until IS NOT NULL
+  AND rest_until >= now()
+`
+
+type GetAllActiveRestsRow struct {
+	ChatID    int64              `db:"chat_id" json:"chatId"`
+	UserID    int64              `db:"user_id" json:"userId"`
+	RestUntil pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+}
+
+func (q *Queries) GetAllActiveRests(ctx context.Context) ([]GetAllActiveRestsRow, error) {
+	rows, err := q.db.Query(ctx, getAllActiveRests)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetAllActiveRestsRow{}
+	for rows.Next() {
+		var i GetAllActiveRestsRow
+		if err := rows.Scan(&i.ChatID, &i.UserID, &i.RestUntil); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRestMembers = `-- name: GetRestMembers :many
 SELECT cm.user_id,
        u.username,

@@ -137,6 +137,24 @@ func (r *RestRepository) GetRequest(ctx context.Context, chatID, userID, message
 
 }
 
+func (r *RestRepository) GetAllActiveRests(ctx context.Context) ([]model.RestExpirePayload, error) {
+	rows, err := r.queries.GetAllActiveRests(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]model.RestExpirePayload, len(rows))
+	for i, row := range rows {
+		result[i] = model.RestExpirePayload{
+			ChatID:    row.ChatID,
+			UserID:    row.UserID,
+			RestUntil: row.RestUntil.Time,
+		}
+	}
+
+	return result, nil
+}
+
 func (r *RestRepository) withTx(
 	ctx context.Context,
 	fn func(q *db.Queries) error,

@@ -52,3 +52,9 @@ FROM rest_requests
 WHERE chat_id = $1
   AND user_id = $2
   AND message_id = $3;
+
+-- name: GetAllActiveRests :many
+SELECT chat_id, user_id, rest_until
+FROM chat_members
+WHERE rest_until IS NOT NULL
+  AND rest_until >= now();

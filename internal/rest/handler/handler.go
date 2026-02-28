@@ -9,6 +9,7 @@ import (
 	"activity-bot/internal/rest/view"
 	"activity-bot/internal/session"
 	"activity-bot/internal/user"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -17,6 +18,7 @@ import (
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/hibiken/asynq"
 )
 
 type Handler struct {
@@ -25,10 +27,11 @@ type Handler struct {
 	adminService   *admin.Service
 	dateParser     *helpers.DateParser
 	sessionService *session.Service
+	asyncClient    *asynq.Client
 }
 
-func New(service *rest.Service, userService *user.Service, adminService *admin.Service, dateParser *helpers.DateParser, sessionService *session.Service) *Handler {
-	return &Handler{service, userService, adminService, dateParser, sessionService}
+func New(service *rest.Service, userService *user.Service, adminService *admin.Service, dateParser *helpers.DateParser, sessionService *session.Service, asyncClient *asynq.Client) *Handler {
+	return &Handler{service, userService, adminService, dateParser, sessionService, asyncClient}
 }
 
 func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -59,6 +62,13 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 		_ = ctx.Reply(b, "Не удалось создать рест", nil)
 		return err
 	}
+
+	payload, _ := json.Marshal(model.RestExpirePayload{
+		ChatID: ctx.TargetChatID(),
+		UserID: targetUser.ID,
+	})
+	task := asynq.NewTask("rest:expire", payload)
+	_, _ = h.asyncClient.Enqueue(task, asynq.ProcessAt(date))
 
 	isSelf := targetUser.ID == ctx.EffectiveUser.Id
 	text := view.FormatRestSet(*targetUser, date, isSelf)
@@ -168,6 +178,13 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 		})
 		return err
 	}
+
+	payload, _ := json.Marshal(model.RestExpirePayload{
+		ChatID: chatID,
+		UserID: fromID,
+	})
+	task := asynq.NewTask("rest:expire", payload)
+	_, _ = h.asyncClient.Enqueue(task, asynq.ProcessAt(restRequest.RestUntil))
 	u, err := h.userService.GetUser(ctx.StdContext(), fromID)
 	if err != nil {
 		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
