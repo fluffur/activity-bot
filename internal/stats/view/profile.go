@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"fmt"
+	"log/slog"
 	"time"
 )
 
@@ -13,6 +14,7 @@ func FormatProfile(m model.MemberStats) string {
 		customTitle = *m.CustomTitle
 	}
 	lastName := ""
+	slog.Info("lastname", "lastname", m.User.LastName)
 	if m.User.LastName != "" {
 		lastName = " " + m.User.LastName
 	}
