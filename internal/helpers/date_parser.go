@@ -27,12 +27,8 @@ type DateParser struct {
 }
 
 func NewDateParser() *DateParser {
-	loc, err := time.LoadLocation("Europe/Moscow")
-	if err != nil {
-		loc = time.FixedZone("MSK", 3*3600)
-	}
 	return &DateParser{
-		now: func() time.Time { return time.Now().In(loc) },
+		now: func() time.Time { return time.Now().In(MoscowLocation) },
 	}
 }
 
@@ -203,7 +199,7 @@ func (p *DateParser) parseStandardDate(arg string) (time.Time, bool) {
 	now := p.now()
 
 	for _, layout := range layouts {
-		t, err := time.Parse(layout, arg)
+		t, err := time.ParseInLocation(layout, arg, now.Location())
 		if err != nil {
 			continue
 		}

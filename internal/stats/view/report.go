@@ -10,7 +10,7 @@ import (
 
 func FormatReport(report []model.MessageReportMember, restMembers []model.RestMember, from, to *time.Time) string {
 	var periodHeader string
-	now := time.Now()
+	now := time.Now().In(helpers.MoscowLocation)
 
 	if from != nil && to != nil {
 		periodHeader = fmt.Sprintf("📊 Отчёт за период: %s — %s",

@@ -6,7 +6,20 @@ import (
 	"time"
 )
 
+var MoscowLocation *time.Location
+
+func init() {
+	var err error
+	MoscowLocation, err = time.LoadLocation("Europe/Moscow")
+	if err != nil {
+		MoscowLocation = time.FixedZone("MSK", 3*3600)
+	}
+}
+
 func FormatToHumanDate(date time.Time) string {
+	date = date.In(MoscowLocation)
+	now := time.Now().In(MoscowLocation)
+
 	months := [...]string{
 		"января", "февраля", "марта", "апреля", "мая", "июня",
 		"июля", "августа", "сентября", "октября", "ноября", "декабря",
@@ -17,11 +30,11 @@ func FormatToHumanDate(date time.Time) string {
 
 	timePart := fmt.Sprintf("%02d:%02d", hour, minute)
 
-	if time.Now().Year() == date.Year() && time.Now().YearDay() == date.YearDay() {
+	if now.Year() == date.Year() && now.YearDay() == date.YearDay() {
 		return fmt.Sprintf("сегодня в %s", timePart)
 	}
 
-	if time.Now().Year() == date.Year() {
+	if now.Year() == date.Year() {
 		return fmt.Sprintf("%d %s, %s", date.Day(), months[date.Month()-1], timePart)
 	}
 
