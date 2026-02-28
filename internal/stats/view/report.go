@@ -76,15 +76,13 @@ func FormatRestList(restMembers []model.RestMember) string {
 }
 
 func FormatNewbies(report []model.MessageReportMember, from, to *time.Time) string {
-	header := formatPeriodHeader(from, to)
 	sections := prepareReportSections(report, nil)
 
 	if len(sections.Newbies) == 0 {
-		return header + "\n\n🐣 <b>Новых участников за этот период не найдено.</b>"
+		return "🐣 <b>Новых участников за этот период не найдено.</b>"
 	}
 
 	var sb strings.Builder
-	sb.WriteString(header + "\n\n")
 	sb.WriteString("🐣 <b>Новые участники:</b>\n\n")
 	writeNumberedList(&sb, sections.Newbies)
 	return sb.String()
