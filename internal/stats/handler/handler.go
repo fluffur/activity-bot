@@ -70,7 +70,7 @@ func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error 
 
 	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay))
 	if err != nil {
-		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now(), c.WeekStartDay)
+		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now().In(helpers.MoscowLocation), c.WeekStartDay)
 	}
 
 	buf, err := h.service.GetChatActivityGraph(ctx.StdContext(), ctx.TargetChatID(), from, to)
@@ -329,10 +329,10 @@ func (h *Handler) resolvePeriod(ctx *cmd.Context, weekStartDay time.Weekday) (*t
 
 	switch period {
 	case "неделя", "":
-		from, to := stats.ResolvePeriod(stats.PeriodWeek, time.Now(), int16(weekStartDay))
+		from, to := stats.ResolvePeriod(stats.PeriodWeek, time.Now().In(helpers.MoscowLocation), int16(weekStartDay))
 		return from, to, nil
 	case "месяц":
-		from, to := stats.ResolvePeriod(stats.PeriodMonth, time.Now(), int16(weekStartDay))
+		from, to := stats.ResolvePeriod(stats.PeriodMonth, time.Now().In(helpers.MoscowLocation), int16(weekStartDay))
 		return from, to, nil
 	case "всё", "все", "всего", "вся":
 		return nil, nil, nil

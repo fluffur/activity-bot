@@ -40,14 +40,14 @@ SELECT cm.user_id,
        u.first_name,
        u.last_name,
 
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now())), 0)::bigint   AS day_count,
+       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now() AT TIME ZONE 'Europe/Moscow') AT TIME ZONE 'Europe/Moscow'), 0)::bigint   AS day_count,
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day'),
                 0)::bigint                                                                             AS day_rolling_count,
        COALESCE(
                        COUNT(m.chat_id) FILTER (
                    WHERE m.created_at >= (
-                       date_trunc('day', now())
-                           - ((extract(isodow from now())::int - c.week_start_day + 7) % 7)
+                       (date_trunc('day', now() AT TIME ZONE 'Europe/Moscow') AT TIME ZONE 'Europe/Moscow')
+                           - ((extract(isodow from now() AT TIME ZONE 'Europe/Moscow')::int - c.week_start_day + 7) % 7)
                            * interval '1 day'
                        )
                    ),
@@ -56,7 +56,7 @@ SELECT cm.user_id,
 
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '7 days'),
                 0)::bigint                                                                             AS week_rolling_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('month', now())), 0)::bigint AS month_count,
+       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('month', now() AT TIME ZONE 'Europe/Moscow') AT TIME ZONE 'Europe/Moscow'), 0)::bigint AS month_count,
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '30 days'),
                 0)::bigint                                                                             AS month_rolling_count,
        COALESCE(COUNT(m.chat_id), 0)::bigint                                                           AS all_time_count,
@@ -92,7 +92,7 @@ GROUP BY cm.user_id,
          cm.left_at;
 
 -- name: MessageActivityByDay :many
-SELECT date_trunc('day', m.created_at)::date AS day,
+SELECT date_trunc('day', m.created_at AT TIME ZONE 'Europe/Moscow')::date AS day,
        COUNT(m.chat_id)                      AS messages_count
 FROM messages m
          JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = m.user_id
@@ -106,7 +106,7 @@ GROUP BY day
 ORDER BY day;
 
 -- name: MessageActivityByDayAll :many
-SELECT date_trunc('day', m.created_at)::date AS day,
+SELECT date_trunc('day', m.created_at AT TIME ZONE 'Europe/Moscow')::date AS day,
        COUNT(*)                              AS messages_count
 FROM messages m
 WHERE m.chat_id = $1
