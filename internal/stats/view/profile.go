@@ -25,9 +25,9 @@ func FormatProfile(m model.MemberStats) string {
 👑 <b>Статус:</b> %s (с %s)
 	
 📊 <b>Активность</b>
-└ Всего: <b>%d</b>
 └ Сегодня: <b>%d</b>
 └ Неделя: <b>%d</b>
+└ Всего: <b>%d</b>
 
 ⏰ <b>Динамика</b>
 └ 24ч: <b>%d</b> | 7д: <b>%d</b> | 30д: <b>%d</b>`,
