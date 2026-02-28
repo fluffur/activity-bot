@@ -12,10 +12,13 @@ func FormatProfile(m model.MemberStats) string {
 	if m.CustomTitle != nil && *m.CustomTitle != "" {
 		customTitle = *m.CustomTitle
 	}
-
+	lastName := ""
+	if m.User.LastName != "" {
+		lastName = " " + m.User.LastName
+	}
 	name := helpers.LinkWithContent(
 		m.User,
-		fmt.Sprintf("%s (%s)", m.User.FirstName, customTitle),
+		fmt.Sprintf("%s (%s)", m.User.FirstName+lastName, customTitle),
 	)
 
 	status := helpers.TranslateMemberStatus(m.Status, m.LeftAt)
