@@ -71,10 +71,10 @@ func FormatProfile(m model.MemberStats) string {
 
 func getNormStatusEmoji(weekCount, normWarn, normBan int32) string {
 	if normBan > 0 && weekCount < normBan {
-		return fmt.Sprintf("🚫 Норма не набрана (%d / %d), бан", weekCount, normBan)
+		return fmt.Sprintf("🚫 Норма не набрана (%d/%d), бан", weekCount, normBan)
 	}
 	if normWarn > 0 && weekCount < normWarn {
-		return fmt.Sprintf("⚠️ Норма не набрана (%d / %d), варн", weekCount, normWarn)
+		return fmt.Sprintf("⚠️ Норма не набрана (%d/%d), варн", weekCount, normWarn)
 	}
 	return "✅ Норма набрана"
 }
