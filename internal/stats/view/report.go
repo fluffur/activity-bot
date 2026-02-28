@@ -9,41 +9,144 @@ import (
 )
 
 func FormatReport(report []model.MessageReportMember, restMembers []model.RestMember, from, to *time.Time) string {
-	var periodHeader string
-	now := time.Now().In(helpers.MoscowLocation)
+	header := formatPeriodHeader(from, to)
+	sections := prepareReportSections(report, restMembers)
 
-	if from != nil && to != nil {
-		periodHeader = fmt.Sprintf("📊 Отчёт за период: %s — %s",
-			helpers.FormatToHumanDate(*from),
-			helpers.FormatToHumanDate(*to),
-		)
-	} else if from != nil {
-		periodHeader = fmt.Sprintf("📊 Отчёт с %s", helpers.FormatToHumanDate(*from))
-	} else if to != nil {
-		periodHeader = fmt.Sprintf("📊 Отчёт до %s", helpers.FormatToHumanDate(*to))
+	var sb strings.Builder
+	sb.WriteString(header + "\n\n")
+	sb.WriteString("<blockquote expandable>")
+
+	sb.WriteString(fmt.Sprintf("🌟 Прошли норму %d\n", sections.NormWarn))
+	if len(sections.Passed) > 0 {
+		writeNumberedList(&sb, sections.Passed)
 	} else {
-		periodHeader = fmt.Sprintf("📊 Отчёт за всё время")
+		sb.WriteString("Пока никто не прошёл норму\n")
 	}
 
-	var passed, failedWarn, failedBan, newbies, inRest []string
-	var normWarn, normBan int32
+	sb.WriteString(fmt.Sprintf("\n⚠️ Не прошли норму️ %d (варн) \n", sections.NormWarn))
+	if len(sections.FailedWarn) > 0 {
+		writeNumberedList(&sb, sections.FailedWarn)
+	} else {
+		sb.WriteString("Список пуст\n")
+	}
+
+	if sections.NormBan != 0 {
+		sb.WriteString(fmt.Sprintf("\n🚫 Не прошли норму %d (бан) \n", sections.NormBan))
+		if len(sections.FailedBan) > 0 {
+			writeNumberedList(&sb, sections.FailedBan)
+		} else {
+			sb.WriteString("Список пуст\n")
+		}
+	}
+
+	sb.WriteString("\n🐣 Новички\n")
+	if len(sections.Newbies) > 0 {
+		writeNumberedList(&sb, sections.Newbies)
+	} else {
+		sb.WriteString("Новичков нет\n")
+	}
+
+	sb.WriteString("\n💤 Рест\n")
+	if len(sections.InRest) > 0 {
+		writeNumberedList(&sb, sections.InRest)
+	} else {
+		sb.WriteString("Пока никто не находится в ресте\n")
+	}
+
+	sb.WriteString("</blockquote>")
+	sb.WriteString(fmt.Sprintf("\n📝 Всего сообщений: %d\n", sections.TotalMessages))
+
+	return sb.String()
+}
+
+func FormatRestList(restMembers []model.RestMember) string {
+	if len(restMembers) == 0 {
+		return "💤 <b>В ресте никого нет.</b>"
+	}
+
+	var inRest []string
+	for _, r := range restMembers {
+		inRest = append(inRest, formatRestLine(r))
+	}
+
+	var sb strings.Builder
+	sb.WriteString("💤 <b>Список участников в ресте:</b>\n\n")
+	writeNumberedList(&sb, inRest)
+	return sb.String()
+}
+
+func FormatNewbies(report []model.MessageReportMember, from, to *time.Time) string {
+	header := formatPeriodHeader(from, to)
+	sections := prepareReportSections(report, nil)
+
+	if len(sections.Newbies) == 0 {
+		return header + "\n\n🐣 <b>Новых участников за этот период не найдено.</b>"
+	}
+
+	var sb strings.Builder
+	sb.WriteString(header + "\n\n")
+	sb.WriteString("🐣 <b>Новые участники:</b>\n\n")
+	writeNumberedList(&sb, sections.Newbies)
+	return sb.String()
+}
+
+func FormatFailedNorm(report []model.MessageReportMember, from, to *time.Time) string {
+	header := formatPeriodHeader(from, to)
+	sections := prepareReportSections(report, nil)
+
+	if len(sections.FailedWarn) == 0 && len(sections.FailedBan) == 0 {
+		return header + "\n\n✅ <b>Все участники выполнили норму!</b>"
+	}
+
+	var sb strings.Builder
+	sb.WriteString(header + "\n\n")
+	sb.WriteString("⚠️ <b>Не выполнили норму:</b>\n")
+
+	if len(sections.FailedWarn) > 0 {
+		sb.WriteString(fmt.Sprintf("\n📉 Меньше %d сообщений (варн):\n", sections.NormWarn))
+		writeNumberedList(&sb, sections.FailedWarn)
+	}
+
+	if len(sections.FailedBan) > 0 {
+		sb.WriteString(fmt.Sprintf("\n🚫 Меньше %d сообщений (бан):\n", sections.NormBan))
+		writeNumberedList(&sb, sections.FailedBan)
+	}
+
+	return sb.String()
+}
+
+type reportSections struct {
+	Passed        []string
+	FailedWarn    []string
+	FailedBan     []string
+	Newbies       []string
+	InRest        []string
+	NormWarn      int32
+	NormBan       int32
+	TotalMessages int32
+}
+
+func prepareReportSections(report []model.MessageReportMember, restMembers []model.RestMember) reportSections {
+	now := time.Now().In(helpers.MoscowLocation)
+	s := reportSections{}
+
 	for _, r := range report {
-		normBan = r.NormBan
-		normWarn = r.NormWarn
+		s.NormBan = r.NormBan
+		s.NormWarn = r.NormWarn
+		s.TotalMessages += r.MessagesCount
+
 		normWarnDone := r.MessagesCount >= r.NormWarn
 		normBanDone := true
 		if r.NormBan > 0 {
 			normBanDone = r.MessagesCount >= r.NormBan
 		}
+
 		userTitle := r.CustomTitle
 		if r.CustomTitle == "" {
 			userTitle = r.User.FirstName
 		}
 
-		line := fmt.Sprintf("%s — %d",
-			helpers.LinkWithContent(r.User, userTitle),
-			r.MessagesCount,
-		)
+		line := fmt.Sprintf("%s — %d", helpers.LinkWithContent(r.User, userTitle), r.MessagesCount)
 
 		isNewbie := false
 		if r.NewbieThresholdDays > 0 {
@@ -53,97 +156,54 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 			}
 		}
 
-		if isNewbie && normWarnDone {
-			line = fmt.Sprintf("%s 🐣 — %d",
-				helpers.LinkWithContent(r.User, userTitle),
-				r.MessagesCount,
-			)
-			passed = append(passed, line)
-			continue
-		}
-
 		if isNewbie {
-			newbies = append(newbies, line)
+			if normWarnDone {
+				s.Passed = append(s.Passed, fmt.Sprintf("%s 🐣 — %d", helpers.LinkWithContent(r.User, userTitle), r.MessagesCount))
+			} else {
+				s.Newbies = append(s.Newbies, line)
+			}
 			continue
 		}
 
 		if !normBanDone && r.NormBan > 0 {
-			failedBan = append(failedBan, line)
+			s.FailedBan = append(s.FailedBan, line)
 		} else if !normWarnDone {
-			failedWarn = append(failedWarn, line)
+			s.FailedWarn = append(s.FailedWarn, line)
 		} else {
-			passed = append(passed, line)
+			s.Passed = append(s.Passed, line)
 		}
 	}
 
 	for _, r := range restMembers {
-		var untilText string
-		if !r.RestUntil.IsZero() {
-			untilText = helpers.FormatToHumanDate(r.RestUntil)
-		} else {
-			untilText = "неизвестно"
-		}
-		userTitle := r.CustomTitle
-		if r.CustomTitle == "" {
-			userTitle = r.User.FirstName
-		}
-		line := fmt.Sprintf("%s до %s",
-			helpers.LinkWithContent(r.User, userTitle),
-			untilText,
-		)
-		inRest = append(inRest, line)
+		s.InRest = append(s.InRest, formatRestLine(r))
 	}
 
-	var totalMessages int32
-	for _, r := range report {
-		totalMessages += r.MessagesCount
-	}
+	return s
+}
 
-	var sb strings.Builder
-	sb.WriteString(periodHeader + "\n\n")
-	sb.WriteString("<blockquote expandable>")
-
-	sb.WriteString(fmt.Sprintf("🌟 Прошли норму %d\n", normWarn))
-	if len(passed) > 0 {
-		writeNumberedList(&sb, passed)
+func formatRestLine(r model.RestMember) string {
+	var untilText string
+	if !r.RestUntil.IsZero() {
+		untilText = helpers.FormatToHumanDate(r.RestUntil)
 	} else {
-		sb.WriteString("Пока никто не прошёл норму\n")
+		untilText = "неизвестно"
 	}
-
-	sb.WriteString(fmt.Sprintf("\n⚠️ Не прошли норму️ %d (варн) \n", normWarn))
-	if len(failedWarn) > 0 {
-		writeNumberedList(&sb, failedWarn)
-	} else {
-		sb.WriteString("Список пуст\n")
+	userTitle := r.CustomTitle
+	if r.CustomTitle == "" {
+		userTitle = r.User.FirstName
 	}
+	return fmt.Sprintf("%s до %s", helpers.LinkWithContent(r.User, userTitle), untilText)
+}
 
-	if normBan != 0 {
-		sb.WriteString(fmt.Sprintf("\n🚫 Не прошли норму %d (бан) \n", normBan))
-		if len(failedBan) > 0 {
-			writeNumberedList(&sb, failedBan)
-		} else {
-			sb.WriteString("Список пуст\n")
-		}
+func formatPeriodHeader(from, to *time.Time) string {
+	if from != nil && to != nil {
+		return fmt.Sprintf("📊 Отчёт за период: %s — %s", helpers.FormatToHumanDate(*from), helpers.FormatToHumanDate(*to))
+	} else if from != nil {
+		return fmt.Sprintf("📊 Отчёт с %s", helpers.FormatToHumanDate(*from))
+	} else if to != nil {
+		return fmt.Sprintf("📊 Отчёт до %s", helpers.FormatToHumanDate(*to))
 	}
-
-	sb.WriteString("\n🐣 Новички\n")
-	if len(newbies) > 0 {
-		writeNumberedList(&sb, newbies)
-	} else {
-		sb.WriteString("Новичков нет\n")
-	}
-
-	sb.WriteString("\n💤 Рест\n")
-	if len(inRest) > 0 {
-		writeNumberedList(&sb, inRest)
-	} else {
-		sb.WriteString("Пока никто не находится в ресте\n")
-	}
-
-	sb.WriteString("</blockquote>")
-	sb.WriteString(fmt.Sprintf("\n📝 Всего сообщений: %d\n", totalMessages))
-
-	return sb.String()
+	return "📊 Отчёт за всё время"
 }
 
 func writeNumberedList(sb *strings.Builder, items []string) {

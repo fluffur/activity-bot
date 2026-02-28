@@ -38,28 +38,9 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	period := "неделя"
-	if len(ctx.Args()) > 0 {
-		period = ctx.FirstArgument()
-	}
-
-	var from, to *time.Time
-	switch period {
-	case "неделя", "":
-		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now(), c.WeekStartDay)
-	case "месяц":
-		from, to = stats.ResolvePeriod(stats.PeriodMonth, time.Now(), c.WeekStartDay)
-	case "всё", "все", "всего", "вся":
-		from, to = nil, nil
-	default:
-		dp := helpers.NewDateParser()
-		f, t, ok := dp.ParseRange(ctx.Args())
-		slog.Info("stats range parse", "args", ctx.Args(), "from", f, "to", t, "ok", ok)
-		if ok {
-			from, to = f, t
-		} else {
-			return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>\n\nИспользуйте: <code>01.02-10.02</code>, <code>10</code> (за последние 10 дней), <code>от вчера до сегодня</code> и т.д.")
-		}
+	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay))
+	if err != nil {
+		return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>\n\nИспользуйте: <code>01.02-10.02</code>, <code>10</code> (за последние 10 дней), <code>от вчера до сегодня</code> и т.д.")
 	}
 
 	report, err := h.service.GetAllMembersStats(ctx.StdContext(), ctx.TargetChatID(), from, to)
@@ -87,26 +68,9 @@ func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error 
 		return err
 	}
 
-	period := "неделя"
-	if len(ctx.Args()) > 0 {
-		period = ctx.FirstArgument()
-	}
-
-	var from, to *time.Time
-	switch period {
-	case "неделя":
+	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay))
+	if err != nil {
 		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now(), c.WeekStartDay)
-	case "месяц":
-		from, to = stats.ResolvePeriod(stats.PeriodMonth, time.Now(), c.WeekStartDay)
-	case "всё", "все", "всего":
-		from, to = nil, nil
-	default:
-		dp := helpers.NewDateParser()
-		if f, t, ok := dp.ParseRange(ctx.Args()); ok {
-			from, to = f, t
-		} else {
-			from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now(), c.WeekStartDay)
-		}
 	}
 
 	buf, err := h.service.GetChatActivityGraph(ctx.StdContext(), ctx.TargetChatID(), from, to)
@@ -308,4 +272,76 @@ func (h *Handler) Inactive(b *gotgbot.Bot, ctx *cmd.Context) error {
 	text := view.FormatInactiveMembers(members)
 
 	return ctx.ReplyHTML(b, text)
+}
+
+func (h *Handler) ShowRestList(b *gotgbot.Bot, ctx *cmd.Context) error {
+	restMembers, err := h.restService.GetRestMembers(ctx.StdContext(), ctx.TargetChatID())
+	if err != nil {
+		return err
+	}
+
+	return ctx.ReplyHTML(b, view.FormatRestList(restMembers))
+}
+
+func (h *Handler) ShowFailedNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
+	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
+	if err != nil {
+		return err
+	}
+
+	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay))
+	if err != nil {
+		return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>")
+	}
+
+	report, err := h.service.GetAllMembersStats(ctx.StdContext(), ctx.TargetChatID(), from, to)
+	if err != nil {
+		return err
+	}
+
+	return ctx.ReplyHTML(b, view.FormatFailedNorm(report, from, to))
+}
+
+func (h *Handler) ShowNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
+	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
+	if err != nil {
+		return err
+	}
+
+	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay))
+	if err != nil {
+		return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>")
+	}
+
+	report, err := h.service.GetAllMembersStats(ctx.StdContext(), ctx.TargetChatID(), from, to)
+	if err != nil {
+		return err
+	}
+
+	return ctx.ReplyHTML(b, view.FormatNewbies(report, from, to))
+}
+
+func (h *Handler) resolvePeriod(ctx *cmd.Context, weekStartDay time.Weekday) (*time.Time, *time.Time, error) {
+	period := "неделя"
+	if len(ctx.Args()) > 0 {
+		period = ctx.FirstArgument()
+	}
+
+	switch period {
+	case "неделя", "":
+		from, to := stats.ResolvePeriod(stats.PeriodWeek, time.Now(), int16(weekStartDay))
+		return from, to, nil
+	case "месяц":
+		from, to := stats.ResolvePeriod(stats.PeriodMonth, time.Now(), int16(weekStartDay))
+		return from, to, nil
+	case "всё", "все", "всего", "вся":
+		return nil, nil, nil
+	default:
+		dp := helpers.NewDateParser()
+		f, t, ok := dp.ParseRange(ctx.Args())
+		if ok {
+			return f, t, nil
+		}
+		return nil, nil, fmt.Errorf("invalid format")
+	}
 }

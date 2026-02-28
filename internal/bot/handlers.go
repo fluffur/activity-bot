@@ -79,6 +79,15 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
+
+	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowNewbieThreshold, "newbie", "новички срок", "новички после").
+		WithGuards(groupGuard, adminGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(chatHandler.SetNewbieThreshold, "newbie", "новички срок", "новички после").
+		AddTriggers("+").
+		WithGuards(groupGuard, adminGuard).
+		SetArgsCount(1),
+	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowStats, "stats", "отчёт", "отчет", "стата").
 		SetArgsCount(1).
 		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 2, 4*time.Second, sessionService)),
@@ -104,6 +113,17 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(statsHandler.Inactive, "inactive", "неактив", "инактив").
 		WithGuards(groupGuard),
 	)
+	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowRestList, "rests", "ресты").
+		WithGuards(groupGuard),
+	)
+	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowFailedNorm, "nonorm", "без нормы").
+		SetArgsCount(1).
+		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 2, 4*time.Second, sessionService)),
+	)
+	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowNewbies, "newbies", "новички").
+		SetArgsCount(1).
+		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 2, 4*time.Second, sessionService)),
+	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowNorm, "norm", "норма какая", "а норма какая", "норма", "норма?", "quota", "какая норма", "а какая норма").
 		WithGuards(groupGuard),
 	)
@@ -119,14 +139,6 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(memberHandler.SetOnlyNewbies, "олды кроме").
 		AddTriggers("+").
 		WithGuards(groupGuard, creatorGuard),
-	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowNewbieThreshold, "newbie", "новички", "новички после").
-		WithGuards(groupGuard, adminGuard),
-	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.SetNewbieThreshold, "newbie", "новички", "новички после").
-		AddTriggers("+").
-		WithGuards(groupGuard, adminGuard).
-		SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(restHandler.Show, "рест", "rest", "мой рест").
 		FallbackToSender().
