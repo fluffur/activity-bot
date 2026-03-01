@@ -104,15 +104,16 @@ func NewApp(cfg config.Config) (*App, error) {
 		},
 		MaxRoutines: ext.DefaultMaxRoutines,
 	})
-
 	return &App{
-		Config:        cfg,
-		Pool:          pool,
-		Rdb:           rdb,
-		Deepseek:      deepseek.NewClient(cfg.DeepseekAPIKey),
-		Bot:           b,
-		Dispatcher:    dp,
-		Updater:       ext.NewUpdater(&RawDispatcher{Dispatcher: dp}, &ext.UpdaterOpts{}),
+		Config:     cfg,
+		Pool:       pool,
+		Rdb:        rdb,
+		Deepseek:   deepseek.NewClient(cfg.DeepseekAPIKey),
+		Bot:        b,
+		Dispatcher: dp,
+		Updater: ext.NewUpdater(dp, &ext.UpdaterOpts{
+			Logger: logger.L,
+		}),
 		AsyncClient:   client,
 		AsyncServer:   srv,
 		MemberService: memberService,
@@ -339,45 +340,4 @@ func (a *App) Close() {
 	if a.AsyncClient != nil {
 		_ = a.AsyncClient.Close()
 	}
-}
-
-type RawDispatcher struct {
-	*ext.Dispatcher
-}
-
-func (rd *RawDispatcher) Start(b *gotgbot.Bot, updates <-chan json.RawMessage) {
-	for rawUpdate := range updates {
-		var update gotgbot.Update
-		if err := json.Unmarshal(rawUpdate, &update); err != nil {
-			slog.Error("failed to unmarshal update", "error", err)
-			continue
-		}
-
-		if err := rd.Dispatcher.ProcessUpdate(b, &update, map[string]any{
-			"sender_tag": getSenderTag(rawUpdate),
-		}); err != nil {
-			slog.Error("failed to process update", "error", err)
-		}
-	}
-}
-
-func getSenderTag(rawUpdate json.RawMessage) string {
-	var u RawUpdateWithSenderTag
-
-	if err := json.Unmarshal(rawUpdate, &u); err != nil {
-		slog.Error("failed to unmarshal sender_tag", "error", err)
-		return ""
-	}
-
-	if u.Message != nil {
-		return u.Message.SenderTag
-	}
-
-	return ""
-}
-
-type RawUpdateWithSenderTag struct {
-	Message *struct {
-		SenderTag string `json:"sender_tag"`
-	} `json:"message"`
 }

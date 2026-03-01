@@ -172,9 +172,8 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
-	senderTag, ok := ctx.Data["sender_tag"].(string)
-	if ok {
-		return ctx.ReplyHTML(b, view.FormatMemberRole(*targetUser, senderTag))
+	if ctx.EffectiveMessage.SenderTag != "" {
+		return ctx.ReplyHTML(b, view.FormatMemberRole(*targetUser, ctx.EffectiveMessage.SenderTag))
 	}
 
 	mTitle, err := h.service.GetMemberTitle(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
@@ -197,11 +196,7 @@ func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *cmd.Context) error {
 			continue
 		}
 		slog.Info("member joined", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id)
-		senderTag, ok := ctx.Data["sender_tag"].(string)
-		if !ok {
-			senderTag = ""
-		}
-		if _, err := h.service.EnsureMemberExists(ctx.StdContext(), ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, "member", senderTag); err != nil {
+		if _, err := h.service.EnsureMemberExists(ctx.StdContext(), ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, "member", ctx.EffectiveMessage.SenderTag); err != nil {
 			return err
 		}
 	}

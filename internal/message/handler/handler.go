@@ -94,15 +94,14 @@ func (h *Handler) Message(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return nil
 	}
 
-	senderTag, ok := ctx.Data["sender_tag"].(string)
-	m, err := h.memberService.EnsureMemberExists(ctx.StdContext(), c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member", senderTag)
+	m, err := h.memberService.EnsureMemberExists(ctx.StdContext(), c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member", ctx.EffectiveMessage.SenderTag)
 	if err != nil {
 		return err
 	}
 
-	if ok && senderTag != "" {
-		if m.CustomTitle != senderTag {
-			if err := h.memberService.SetMemberTitle(ctx.StdContext(), c.Id, u.Id, senderTag); err != nil {
+	if ctx.EffectiveMessage.SenderTag != "" {
+		if m.CustomTitle != ctx.EffectiveMessage.SenderTag {
+			if err := h.memberService.SetMemberTitle(ctx.StdContext(), c.Id, u.Id, ctx.EffectiveMessage.SenderTag); err != nil {
 				return err
 			}
 		}
