@@ -1,7 +1,6 @@
 package routes
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,9 +11,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-//go:embed index.html
-var indexHTML string
-var indexTmpl = template.Must(template.New("index").Parse(indexHTML))
+var indexTmpl = template.Must(template.ParseFiles("index.html"))
 
 func Index(webappURL string) func(writer http.ResponseWriter, request *http.Request) {
 	return func(writer http.ResponseWriter, request *http.Request) {
