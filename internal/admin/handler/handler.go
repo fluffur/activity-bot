@@ -590,6 +590,19 @@ func (h *Handler) FakeLeave(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return err
 }
 
+func (h *Handler) DemoteTgAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
+	targetUser := ctx.FirstUser()
+	if targetUser == nil {
+		return cmd.ErrNoUser
+	}
+
+	if _, err := b.PromoteChatMember(ctx.TargetChatID(), targetUser.ID, nil); err != nil {
+		return err
+	}
+
+	return ctx.Reply(b, "Пользователь разжалован", nil)
+}
+
 func parseUntil(
 	parser *helpers.DateParser,
 	arg string,
