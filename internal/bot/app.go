@@ -12,13 +12,11 @@ import (
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"activity-bot/internal/rest"
-	"activity-bot/internal/routes"
 	"activity-bot/internal/user"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"strings"
 	"time"
 
@@ -288,13 +286,17 @@ func (a *App) setupBot() error {
 }
 
 func (a *App) startWebhook() error {
-	err := a.Updater.AddWebhook(a.Bot, a.Config.BotToken, &ext.AddWebhookOpts{SecretToken: a.Config.WebhookSecretToken})
+	webhookOpts := ext.WebhookOpts{
+		ListenAddr:  fmt.Sprintf("0.0.0.0:%d", a.Config.HTTPPort),
+		SecretToken: a.Config.WebhookSecretToken,
+	}
+
+	err := a.Updater.StartWebhook(a.Bot, a.Config.WebhookPath, webhookOpts)
 	if err != nil {
 		return err
 	}
 
-	updaterSubpath := "/bots/"
-	err = a.Updater.SetAllBotWebhooks(a.Config.WebhookURL+updaterSubpath, &gotgbot.SetWebhookOpts{
+	err = a.Updater.SetAllBotWebhooks(a.Config.WebhookURL, &gotgbot.SetWebhookOpts{
 		MaxConnections:     100,
 		DropPendingUpdates: true,
 		SecretToken:        a.Config.WebhookSecretToken,
@@ -303,21 +305,8 @@ func (a *App) startWebhook() error {
 		return err
 	}
 
-	mux := http.NewServeMux()
-	webappURL := a.Config.WebappURL
-	mux.HandleFunc("/", routes.Index(webappURL))
-	mux.HandleFunc("/validate", routes.Validate(a.Config.BotToken))
-	mux.HandleFunc(updaterSubpath, a.Updater.GetHandlerFunc(updaterSubpath))
-
-	server := http.Server{
-		Handler: mux,
-		Addr:    fmt.Sprintf("0.0.0.0:%d", a.Config.HTTPPort),
-	}
-
 	slog.Info("Bot has been started with webhooks", "bot_username", a.Bot.User.Username, "url", a.Config.WebhookURL)
-	if err := server.ListenAndServe(); err != nil {
-		return fmt.Errorf("failed to listen and serve: %w", err)
-	}
+	a.Updater.Idle()
 	return nil
 }
 

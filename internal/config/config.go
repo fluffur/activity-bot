@@ -19,7 +19,6 @@ type Config struct {
 	RedisADDR          string `env:"REDIS_ADDR" envDefault:"redis:6379"`
 	UniquePrefix       string `env:"UNIQUE_PREFIX" envDefault:"фм"`
 	BotCommands        []gotgbot.BotCommand
-	WebappURL          string `env:"WEBAPP_URL"`
 }
 
 func Load() (Config, error) {
