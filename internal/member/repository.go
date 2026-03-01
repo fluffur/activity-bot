@@ -20,7 +20,7 @@ type Repository interface {
 	Get(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error)
 	Remove(ctx context.Context, chatID int64, userID int64) error
 	EnsureExists(ctx context.Context, chatID int64, userID int64, role string) (model.ChatMember, error)
-	EnsureFull(ctx context.Context, chatID int64, userID int64, role string, firstName, lastName string, username string, weeklyNorm int32) (model.ChatMember, error)
+	EnsureFull(ctx context.Context, chatID int64, userID int64, status, role, firstName, lastName string, username string, weeklyNorm int32) (model.ChatMember, error)
 	SetOnlyNewbies(ctx context.Context, chatID int64, users []*model.User) error
 	SetNewbies(ctx context.Context, chatID int64, users []*model.User) error
 	GetAnyWithCustomTitles(ctx context.Context, chatID int64) ([]model.ChatMember, error)

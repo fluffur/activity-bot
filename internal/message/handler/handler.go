@@ -24,6 +24,7 @@ func New(service *message.Service, memberService *member.Service, chatService *c
 }
 
 func (h *Handler) EnsureMemberCustomTitle(ctx context.Context, b *gotgbot.Bot, chatID, userID int64) (string, error) {
+
 	m, err := h.memberService.GetMemberTitle(ctx, chatID, userID)
 	if err != nil && !errors.Is(err, member.ErrInvalidCustomTitle) {
 		return "", err
@@ -93,13 +94,19 @@ func (h *Handler) Message(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return nil
 	}
 
-	m, err := h.memberService.EnsureMemberExists(ctx.StdContext(), c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member")
-
+	senderTag, ok := ctx.Data["sender_tag"].(string)
+	m, err := h.memberService.EnsureMemberExists(ctx.StdContext(), c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member", senderTag)
 	if err != nil {
 		return err
 	}
 
-	if m.CustomTitle == "" {
+	if ok && senderTag != "" {
+		if m.CustomTitle != senderTag {
+			if err := h.memberService.SetMemberTitle(ctx.StdContext(), c.Id, u.Id, senderTag); err != nil {
+				return err
+			}
+		}
+	} else if m.CustomTitle == "" {
 		title, err := h.EnsureMemberCustomTitle(ctx.StdContext(), b, c.Id, u.Id)
 		if err != nil {
 			return err

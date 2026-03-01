@@ -200,9 +200,13 @@ func (r *MemberRepository) EnsureExists(ctx context.Context, chatID int64, userI
 	return mapChatMember(m), nil
 }
 
-func (r *MemberRepository) EnsureFull(ctx context.Context, chatID int64, userID int64, status string, firstName, lastName string, username string, normWarn int32) (model.ChatMember, error) {
+func (r *MemberRepository) EnsureFull(ctx context.Context, chatID int64, userID int64, status, role, firstName, lastName string, username string, normWarn int32) (model.ChatMember, error) {
 	m, err := r.queries.EnsureMemberFull(ctx, db.EnsureMemberFullParams{
-		Status:   status,
+		Status: status,
+		CustomTitle: pgtype.Text{
+			String: role,
+			Valid:  true,
+		},
 		ChatID:   chatID,
 		NormWarn: normWarn,
 		UserID:   userID,
