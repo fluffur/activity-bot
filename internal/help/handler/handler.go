@@ -9,11 +9,12 @@ import (
 )
 
 type Handler struct {
-	ownerID int64
+	ownerID   int64
+	webappURL string
 }
 
-func New(ownerID int64) *Handler {
-	return &Handler{ownerID}
+func New(ownerID int64, webappURL string) *Handler {
+	return &Handler{ownerID, webappURL}
 }
 
 func (h *Handler) Start(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -26,6 +27,9 @@ func (h *Handler) Start(b *gotgbot.Bot, ctx *cmd.Context) error {
 				},
 				{
 					{Text: "Команды бота", Url: "https://telegra.ph/Komandy-bota-02-15-2"},
+				},
+				{
+					{Text: "Приложение бота", WebApp: &gotgbot.WebAppInfo{Url: h.webappURL}},
 				},
 			},
 		},
