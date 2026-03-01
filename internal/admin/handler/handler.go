@@ -258,10 +258,10 @@ func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 		helpers.Link(*targetUser), len(activeWarns), maxWarns))
 
 	for i, w := range activeWarns {
-		createdStr := helpers.FormatToHumanDate(w.CreatedAt)
+		createdStr := helpers.FormatToHumanDateTime(w.CreatedAt)
 		expireStr := ""
 		if !w.ExpiresAt.IsZero() {
-			expireStr = fmt.Sprintf(", истекает %s", helpers.FormatToHumanDate(w.ExpiresAt))
+			expireStr = fmt.Sprintf(", истекает %s", helpers.FormatToHumanDateTime(w.ExpiresAt))
 		}
 
 		modName := helpers.Link(w.Moderator)

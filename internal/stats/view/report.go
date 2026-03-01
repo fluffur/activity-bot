@@ -182,7 +182,7 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 func formatRestLine(r model.RestMember) string {
 	var untilText string
 	if !r.RestUntil.IsZero() {
-		untilText = helpers.FormatToHumanDate(r.RestUntil)
+		untilText = helpers.FormatToHumanDateTime(r.RestUntil)
 	} else {
 		untilText = "неизвестно"
 	}
@@ -195,11 +195,11 @@ func formatRestLine(r model.RestMember) string {
 
 func formatPeriodHeader(from, to *time.Time) string {
 	if from != nil && to != nil {
-		return fmt.Sprintf("📊 Отчёт за период: %s — %s", helpers.FormatToHumanDate(*from), helpers.FormatToHumanDate(*to))
+		return fmt.Sprintf("📊 Отчёт за период: %s — %s", helpers.FormatToHumanDateTime(*from), helpers.FormatToHumanDateTime(*to))
 	} else if from != nil {
-		return fmt.Sprintf("📊 Отчёт с %s", helpers.FormatToHumanDate(*from))
+		return fmt.Sprintf("📊 Отчёт с %s", helpers.FormatToHumanDateTime(*from))
 	} else if to != nil {
-		return fmt.Sprintf("📊 Отчёт до %s", helpers.FormatToHumanDate(*to))
+		return fmt.Sprintf("📊 Отчёт до %s", helpers.FormatToHumanDateTime(*to))
 	}
 	return "📊 Отчёт за всё время"
 }

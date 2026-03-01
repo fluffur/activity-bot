@@ -9,12 +9,12 @@ import (
 
 func FormatRestSet(user model.User, date time.Time, isSelf bool) string {
 	if isSelf {
-		return fmt.Sprintf("Вы добавлены в рест до %s", helpers.FormatToHumanDate(date))
+		return fmt.Sprintf("Вы добавлены в рест до %s", helpers.FormatToHumanDateTime(date))
 	}
 	return fmt.Sprintf("Участник %s %s в рест до %s",
 		helpers.Link(user),
 		helpers.Gendered(user.Gender, "добавлен", "добавлена", "добавлен(а)"),
-		helpers.FormatToHumanDate(date),
+		helpers.FormatToHumanDateTime(date),
 	)
 }
 
@@ -22,7 +22,7 @@ func FormatRestRequest(user model.User, date time.Time) string {
 	return fmt.Sprintf(
 		"Для участника %s запрошен рест до %s",
 		helpers.Link(user),
-		helpers.FormatToHumanDate(date),
+		helpers.FormatToHumanDateTime(date),
 	)
 }
 
@@ -30,7 +30,7 @@ func FormatRestShow(user model.User, restUntil *time.Time) string {
 	if restUntil == nil {
 		return fmt.Sprintf("Участник %s не находится в ресте", helpers.Link(user))
 	}
-	return fmt.Sprintf("Участник %s находится в ресте до %s", helpers.Link(user), helpers.FormatToHumanDate(*restUntil))
+	return fmt.Sprintf("Участник %s находится в ресте до %s", helpers.Link(user), helpers.FormatToHumanDateTime(*restUntil))
 }
 
 func FormatRestEnded(user model.User, isSelf bool) string {
@@ -51,7 +51,7 @@ func FormatRestNotInRest(user model.User, isSelf bool) string {
 }
 
 func FormatRestRequestApproved(user model.User, restUntil time.Time) string {
-	return fmt.Sprintf("Запрос одобрен. У %s рест до %s", helpers.Link(user), helpers.FormatToHumanDate(restUntil))
+	return fmt.Sprintf("Запрос одобрен. У %s рест до %s", helpers.Link(user), helpers.FormatToHumanDateTime(restUntil))
 }
 
 func FormatRestRequestRejected(user *model.User) string {

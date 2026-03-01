@@ -38,7 +38,7 @@ func FormatProfile(m model.MemberStats) string {
 └ 24ч: <b>%d</b> | 7д: <b>%d</b> | 30д: <b>%d</b>`,
 		name,
 		status,
-		helpers.FormatToHumanDate(m.JoinedAt),
+		helpers.FormatToHumanDateTime(m.JoinedAt),
 		m.DayCount,
 		m.WeekCount,
 		m.AllTime,
@@ -51,7 +51,7 @@ func FormatProfile(m model.MemberStats) string {
 		if m.RestUntil.After(time.Now()) {
 			text += fmt.Sprintf(
 				"\n\n💤 <b>Рест до:</b> %s",
-				helpers.FormatToHumanDate(*m.RestUntil),
+				helpers.FormatToHumanDateTime(*m.RestUntil),
 			)
 		} else {
 			text += fmt.Sprintf(

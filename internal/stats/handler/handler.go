@@ -90,8 +90,8 @@ func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error 
 	if from != nil && to != nil {
 		caption += fmt.Sprintf(
 			"\n%s — %s",
-			helpers.FormatToHumanDate(*from),
-			helpers.FormatToHumanDate(*to),
+			helpers.FormatToHumanDateTime(*from),
+			helpers.FormatToHumanDateTime(*to),
 		)
 	}
 

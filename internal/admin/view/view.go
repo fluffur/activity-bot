@@ -76,7 +76,7 @@ func FormatModerationAction(user model.User, action string, until *time.Time, re
 
 	if action != "kick" {
 		if until != nil {
-			text += fmt.Sprintf(" до %s", helpers.FormatToHumanDate(*until))
+			text += fmt.Sprintf(" до %s", helpers.FormatToHumanDateTime(*until))
 		} else {
 			text += " навсегда"
 		}
@@ -93,7 +93,7 @@ func FormatWarnInfo(user model.User, count, maxWarns int, until *time.Time, reas
 	text := fmt.Sprintf("Пользователю %s выдано предупреждение (%d/%d)", helpers.Link(user), count, maxWarns)
 
 	if until != nil {
-		text += fmt.Sprintf(" до %s", helpers.FormatToHumanDate(*until))
+		text += fmt.Sprintf(" до %s", helpers.FormatToHumanDateTime(*until))
 	}
 
 	if reason != "" {
@@ -139,10 +139,10 @@ func FormatWarnlist(warns []model.Warn, maxWarns int) string {
 		u := ws[0].User
 		sb.WriteString(fmt.Sprintf("\n👤 %s (активные: %d/%d):\n", helpers.Link(u), len(ws), maxWarns))
 		for i, w := range ws {
-			createdStr := helpers.FormatToHumanDate(w.CreatedAt)
+			createdStr := helpers.FormatToHumanDateTime(w.CreatedAt)
 			expireStr := ""
 			if !w.ExpiresAt.IsZero() {
-				expireStr = fmt.Sprintf(", истекает %s", helpers.FormatToHumanDate(w.ExpiresAt))
+				expireStr = fmt.Sprintf(", истекает %s", helpers.FormatToHumanDateTime(w.ExpiresAt))
 			}
 			modName := helpers.Link(w.Moderator)
 			reasonStr := ""
@@ -179,7 +179,7 @@ func FormatDirectModerationAction(user model.User, chatTitle string, action stri
 
 	if action == "ban" {
 		if until != nil {
-			text += fmt.Sprintf(" до %s", helpers.FormatToHumanDate(*until))
+			text += fmt.Sprintf(" до %s", helpers.FormatToHumanDateTime(*until))
 		} else {
 			text += " навсегда"
 		}

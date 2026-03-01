@@ -16,7 +16,7 @@ func init() {
 	}
 }
 
-func FormatToHumanDate(date time.Time) string {
+func FormatToHumanDateTime(date time.Time) string {
 	date = date.In(MoscowLocation)
 	now := time.Now().In(MoscowLocation)
 
@@ -39,6 +39,26 @@ func FormatToHumanDate(date time.Time) string {
 	}
 
 	return fmt.Sprintf("%d %s %d, %s", date.Day(), months[date.Month()-1], date.Year(), timePart)
+}
+
+func FormatToHumanDate(date time.Time) string {
+	date = date.In(MoscowLocation)
+	now := time.Now().In(MoscowLocation)
+
+	months := [...]string{
+		"января", "февраля", "марта", "апреля", "мая", "июня",
+		"июля", "августа", "сентября", "октября", "ноября", "декабря",
+	}
+
+	if now.Year() == date.Year() && now.YearDay() == date.YearDay() {
+		return fmt.Sprintf("сегодня")
+	}
+
+	if now.Year() == date.Year() {
+		return fmt.Sprintf("%d %s", date.Day(), months[date.Month()-1])
+	}
+
+	return fmt.Sprintf("%d %s %d", date.Day(), months[date.Month()-1], date.Year())
 }
 
 func PluralizeDays(n int) string {
