@@ -105,7 +105,7 @@ func (h *Handler) Message(b *gotgbot.Bot, ctx *cmd.Context) error {
 			return err
 		}
 		if m.CustomTitle != title {
-			if err := h.memberService.SetMemberTitle(ctx.StdContext(), c.Id, u.Id, &title); err != nil {
+			if err := h.memberService.SetMemberTitle(ctx.StdContext(), c.Id, u.Id, title); err != nil {
 				return err
 			}
 		}

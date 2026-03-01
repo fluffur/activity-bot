@@ -120,6 +120,7 @@ type Chat struct {
 	MentionsPerMessage  int32       `db:"mentions_per_message" json:"mentionsPerMessage"`
 	MentionTypes        int32       `db:"mention_types" json:"mentionTypes"`
 	Title               string      `db:"title" json:"title"`
+	TagsEnabled         bool        `db:"tags_enabled" json:"tagsEnabled"`
 }
 
 type ChatMember struct {

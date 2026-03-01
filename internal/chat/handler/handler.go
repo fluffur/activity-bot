@@ -491,6 +491,35 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return nil
 }
 
+func (h *Handler) EnableTags(b *gotgbot.Bot, ctx *cmd.Context) error {
+	if err := h.service.EnableTags(ctx.StdContext(), ctx.TargetChatID(), true); err != nil {
+		return err
+	}
+
+	return ctx.Reply(b, "Поддержка тегов в чате включена. Теперь при установке роли админка не выдается", nil)
+}
+
+func (h *Handler) DisableTags(b *gotgbot.Bot, ctx *cmd.Context) error {
+	if err := h.service.EnableTags(ctx.StdContext(), ctx.TargetChatID(), true); err != nil {
+		return err
+	}
+
+	return ctx.Reply(b, "Поддержка тегов в чате включена. Теперь при установке роли выдается админка с минимальными правами", nil)
+}
+
+func (h *Handler) ShowTags(b *gotgbot.Bot, ctx *cmd.Context) error {
+	c, err := h.service.GetChat(ctx.StdContext(), ctx.TargetChatID())
+	if err != nil {
+		return err
+	}
+
+	if c.TagsEnabled {
+		return ctx.Reply(b, "В чате поддерживаются теги. Это значит, что при установке роли  пользователю устанавливается телеграм-тег, а не минимальные права администратора с подписью", nil)
+	}
+
+	return ctx.Reply(b, "В чате не поддерживаются теги. Это значит, что при установке роли пользователю выдаются минимальные права администратора с подписью, а не телеграм-тег", nil)
+}
+
 func writeNormInfo(text *strings.Builder, c model.ChatWithoutNorm) {
 	var normParts []string
 

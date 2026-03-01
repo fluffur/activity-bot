@@ -82,3 +82,7 @@ func (s *Service) SetAllowPrefixless(ctx context.Context, chatID int64, allow bo
 func (s *Service) ListChatsWithoutNorm(ctx context.Context, userID int64) ([]model.ChatWithoutNorm, error) {
 	return s.repo.GetChatsWithoutNorm(ctx, userID)
 }
+
+func (s *Service) EnableTags(ctx context.Context, chatID int64, enabled bool) error {
+	return s.repo.SetTagsEnabled(ctx, chatID, enabled)
+}

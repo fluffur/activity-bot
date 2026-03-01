@@ -79,9 +79,10 @@ func NewApp(cfg config.Config) (*App, error) {
 	statusProvider := adapter.NewTelegramMemberStatusProvider(b)
 	moderator := adapter.NewTelegramModerator(b)
 	adminsProvider := adapter.NewTelegramChatAdminsProvider(b)
+	memberTagAdapter := adapter.NewMemberTagAdapter(b, chatRepo)
 
 	userService := user.NewService(userRepo)
-	memberService := member.NewService(memberRepo, chatRepo, userRepo, adminsProvider, cfg.DefaultNormWarn)
+	memberService := member.NewService(memberRepo, chatRepo, userRepo, adminsProvider, cfg.DefaultNormWarn, memberTagAdapter)
 	adminService := admin.NewService(adminRepo, statusProvider, moderator, cfg.BotOwnerID)
 	chatService := chat.NewService(chatRepo, cfg.DefaultNormWarn)
 	restService := rest.NewService(restRepo)
@@ -111,7 +112,7 @@ func NewApp(cfg config.Config) (*App, error) {
 		Deepseek:      deepseek.NewClient(cfg.DeepseekAPIKey),
 		Bot:           b,
 		Dispatcher:    dp,
-		Updater:       ext.NewUpdater(dp, &ext.UpdaterOpts{}),
+		Updater:       ext.NewUpdater(&RawDispatcher{Dispatcher: dp}, &ext.UpdaterOpts{}),
 		AsyncClient:   client,
 		AsyncServer:   srv,
 		MemberService: memberService,
@@ -338,4 +339,45 @@ func (a *App) Close() {
 	if a.AsyncClient != nil {
 		_ = a.AsyncClient.Close()
 	}
+}
+
+type RawDispatcher struct {
+	*ext.Dispatcher
+}
+
+func (rd *RawDispatcher) Start(b *gotgbot.Bot, updates <-chan json.RawMessage) {
+	for rawUpdate := range updates {
+		var update gotgbot.Update
+		if err := json.Unmarshal(rawUpdate, &update); err != nil {
+			slog.Error("failed to unmarshal update", "error", err)
+			continue
+		}
+
+		if err := rd.Dispatcher.ProcessUpdate(b, &update, map[string]any{
+			"sender_tag": getSenderTag(rawUpdate),
+		}); err != nil {
+			slog.Error("failed to process update", "error", err)
+		}
+	}
+}
+
+func getSenderTag(rawUpdate json.RawMessage) string {
+	var u RawUpdateWithSenderTag
+
+	if err := json.Unmarshal(rawUpdate, &u); err != nil {
+		slog.Error("failed to unmarshal sender_tag", "error", err)
+		return ""
+	}
+
+	if u.Message != nil {
+		return u.Message.SenderTag
+	}
+
+	return ""
+}
+
+type RawUpdateWithSenderTag struct {
+	Message *struct {
+		SenderTag string `json:"sender_tag"`
+	} `json:"message"`
 }

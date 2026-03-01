@@ -1,6 +1,7 @@
 package member
 
 import (
+	"activity-bot/internal/adapter"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
@@ -12,25 +13,24 @@ type ChatAdminsProvider interface {
 }
 
 type Service struct {
-	repo            Repository
-	chatRepo        chat.Repository
-	userRepo        user.Repository
-	adminsProvider  ChatAdminsProvider
-	defaultNormWarn int32
+	repo             Repository
+	chatRepo         chat.Repository
+	userRepo         user.Repository
+	adminsProvider   ChatAdminsProvider
+	defaultNormWarn  int32
+	memberTagAdapter *adapter.MemberTagAdapter
 }
 
-func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Repository, adminsProvider ChatAdminsProvider, defaultWeeklyNorm int32) *Service {
-	return &Service{repo, chatRepo, userRepo, adminsProvider, defaultWeeklyNorm}
+func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Repository, adminsProvider ChatAdminsProvider, defaultWeeklyNorm int32, memberTagAdapter *adapter.MemberTagAdapter) *Service {
+	return &Service{repo, chatRepo, userRepo, adminsProvider, defaultWeeklyNorm, memberTagAdapter}
 }
 
-func (s *Service) SetMemberTitle(ctx context.Context, chatID int64, userID int64, title *string) error {
-	return s.repo.UpdateCustomTitle(ctx, chatID, userID, title)
+func (s *Service) SetMemberTitle(ctx context.Context, chatID int64, userID int64, title string) error {
+	if err := s.memberTagAdapter.SetMemberTag(ctx, chatID, userID, title); err != nil {
+		return err
+	}
+	return s.repo.UpdateCustomTitle(ctx, chatID, userID, &title)
 }
-
-func (s *Service) SetMemberRole(ctx context.Context, chatID int64, userID int64, role string) error {
-	return s.repo.UpdateStatus(ctx, chatID, userID, role)
-}
-
 func (s *Service) GetMembersWithTitle(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
 	return s.repo.GetWithCustomTitles(ctx, chatID)
 }
@@ -98,10 +98,6 @@ func (s *Service) SyncChatMembers(ctx context.Context, chatID int64) (int, error
 	userIDs := make([]int64, len(members))
 	for i, m := range members {
 		userIDs[i] = m.User.ID
-	}
-
-	if err := s.repo.MarkLeftNotInList(ctx, chatID, userIDs); err != nil {
-		return 0, err
 	}
 
 	return len(members), nil

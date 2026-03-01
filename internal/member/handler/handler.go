@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"activity-bot/internal/adapter"
 	"activity-bot/internal/admin"
 	service "activity-bot/internal/call"
 	"activity-bot/internal/chat"
@@ -56,84 +57,35 @@ func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
-	role := ctx.FirstArgument()
+	tag := ctx.FirstArgument()
 
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
 
-	if role == "" {
+	if tag == "" {
 		return nil
 	}
 
-	if len(role) > 32 {
-		return ctx.Reply(b, "Слишком длинная роль (максимум 32 символа)", nil)
+	if len(tag) > 16 {
+		return ctx.Reply(b, "Слишком длинная роль (максимум 16 символа)", nil)
 	}
 
-	m, err := b.GetChatMember(ctx.TargetChatID(), targetUser.ID, nil)
-	if err != nil {
-		return ctx.Reply(b, "Не удалось получить информацию о пользователе", nil)
-	}
-
-	if m.GetStatus() == "creator" {
-		return ctx.Reply(b, "Я не могу изменить роль создателя чата", nil)
-	}
-
-	mergedMember := m.MergeChatMember()
-	var tgErr error
-
-	if m.GetStatus() == "administrator" {
-		if !mergedMember.CanBeEdited {
-			return ctx.Reply(b, "Я не могу изменить этого администратора", nil)
+	if err := h.service.SetMemberTitle(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, tag); err != nil {
+		if errors.Is(err, adapter.ErrChatMemberNotFound) {
+			return ctx.Reply(b, "Участник не найден\n\nTelegram: %s\", err.Error()", nil)
+		} else if errors.Is(err, adapter.ErrChatMemberCantBeEdited) {
+			return ctx.Reply(b, fmt.Sprintf("Я не могу изменить роль этого участника\n\nTelegram: %s", err.Error()), nil)
+		} else if errors.Is(err, adapter.ErrChatMemberIsRestricted) {
+			return ctx.Reply(b, fmt.Sprintf("Пользователь не является полноправным участником чата\n\nTelegram: %s", err.Error()), nil)
+		} else if errors.Is(err, adapter.ErrChatMemberIsCreator) {
+			return ctx.Reply(b, "Я не могу менять роль создателя чата", nil)
 		}
 
-		_, tgErr = b.SetChatAdministratorCustomTitle(
-			ctx.TargetChatID(),
-			targetUser.ID,
-			role,
-			nil,
-		)
-
-	} else if m.GetStatus() == "member" {
-		if ok, err := b.PromoteChatMember(ctx.TargetChatID(), targetUser.ID, &gotgbot.PromoteChatMemberOpts{
-			CanManageChat:   true,
-			CanPostMessages: true,
-			CanEditMessages: true,
-		}); err != nil || !ok {
-			tgErr = err
-		} else {
-			_, tgErr = b.SetChatAdministratorCustomTitle(
-				ctx.TargetChatID(),
-				targetUser.ID,
-				role,
-				nil,
-			)
-		}
-
-	} else {
-		return ctx.Reply(b, "Пользователь не является участником чата", nil)
+		return fmt.Errorf("failed to set member title: %w", err)
 	}
 
-	serviceErr := h.service.SetMemberTitle(
-		ctx.StdContext(),
-		ctx.TargetChatID(),
-		targetUser.ID,
-		&role,
-	)
-
-	if tgErr != nil && serviceErr != nil {
-		return ctx.Reply(b, "Ошибка в Telegram и при сохранении роли у бота", nil)
-	}
-
-	if tgErr != nil {
-		return ctx.Reply(b, "Роль сохранена у бота, но не удалось установить в Telegram\n"+tgErr.Error(), nil)
-	}
-
-	if serviceErr != nil {
-		return ctx.Reply(b, "Роль изменена в Telegram, но не удалось сохранить у бота", nil)
-	}
-
-	return ctx.ReplyHTML(b, view.FormatRoleUpdated(*targetUser, role))
+	return ctx.ReplyHTML(b, view.FormatRoleUpdated(*targetUser, tag))
 }
 
 func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -215,31 +167,14 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.Reply(b, msgText, nil)
 }
 
-func (h *Handler) DeleteRole(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
-	targetChatID := ctx.TargetChatID()
-
-	if targetUser == nil {
-		return cmd.ErrNoUser
-	}
-
-	if _, err := b.PromoteChatMember(targetChatID, targetUser.ID, nil); err != nil {
-		slog.Warn("Cannot demote chat member", "error", err)
-	}
-
-	if err := h.service.SetMemberTitle(ctx.StdContext(), targetChatID, targetUser.ID, nil); err != nil {
-		_ = ctx.Reply(b, "Администратор удалён, но роль в базе бота нет", nil)
-
-		return err
-	}
-	return ctx.Reply(b, "Администратор удалён", nil)
-}
-
 func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
-
 	if targetUser == nil {
 		return cmd.ErrNoUser
+	}
+	senderTag, ok := ctx.Data["sender_tag"].(string)
+	if ok {
+		return ctx.ReplyHTML(b, view.FormatMemberRole(*targetUser, senderTag))
 	}
 
 	mTitle, err := h.service.GetMemberTitle(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)

@@ -33,7 +33,15 @@ func mapChat(c db.EnsureChatExistsRow) model.Chat {
 		AllowPrefixless:     c.AllowPrefixless,
 		MentionsPerMessage:  c.MentionsPerMessage,
 		MentionTypes:        c.MentionTypes,
+		TagsEnabled:         c.TagsEnabled,
 	}
+}
+
+func (r *ChatRepository) SetTagsEnabled(ctx context.Context, chatID int64, enabled bool) error {
+	return r.queries.SetChatTagsEnabled(ctx, db.SetChatTagsEnabledParams{
+		TagsEnabled: enabled,
+		ID:          chatID,
+	})
 }
 
 func (r *ChatRepository) Ensure(ctx context.Context, c model.Chat) (model.Chat, error) {

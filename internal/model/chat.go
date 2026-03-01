@@ -19,6 +19,7 @@ type Chat struct {
 	AllowPrefixless     bool
 	MentionsPerMessage  int32
 	MentionTypes        int32
+	TagsEnabled         bool
 }
 
 type ChatMember struct {
