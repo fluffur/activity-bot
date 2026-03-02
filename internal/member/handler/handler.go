@@ -15,6 +15,7 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"golang.org/x/time/rate"
@@ -67,7 +68,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return nil
 	}
 
-	if len(tag) > 16 {
+	if utf8.RuneCountInString(tag) > 16 {
 		return ctx.Reply(b, "Слишком длинная роль (максимум 16 символа)", nil)
 	}
 
@@ -172,7 +173,7 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
-	
+
 	mTitle, err := h.service.GetMemberTitle(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
 	if err != nil && !errors.Is(err, member.ErrInvalidCustomTitle) {
 		_ = ctx.Reply(b, "Не удалось получить роль пользователя", nil)

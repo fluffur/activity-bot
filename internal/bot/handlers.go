@@ -96,14 +96,14 @@ func (a *App) RegisterHandlers() {
 		SetArgsCount(1).
 		WithGuards(groupGuard, rateLimiterGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "whoami", "кто я", "ктоя", "я кто").
+	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "whoareu", "ктоты", "кто ты", "профиль", "ты кто", "тыкто").
+		SetArgsCount(1).
+		WithGuards(groupGuard).FallbackToSender(),
+	)
+	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "whoami", "кто я", "профиль", "ктоя", "я кто").
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "я", "me").ForcePrefix().
-		WithGuards(groupGuard),
-	)
-	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "whoareu", "ктоты", "кто ты", "ты кто", "тыкто").
-		SetArgsCount(1).
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("whoareyou:"), cf.WrapCallback(statsHandler.CallbackWhoAreYou)))
@@ -265,6 +265,7 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard, rateLimiterGuard).
 		SetArgsCount(1),
 	)
+
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_type:"), cf.WrapCallback(callHandler.CallbackCallType)))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").WithGuards(groupGuard))
 	a.Dispatcher.AddHandler(handlers.NewMessage(cmd.NewChatTitle, cf.WrapEvent(chatHandler.OnNewChatTitle)))
@@ -295,10 +296,10 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrefixes, "префиксы", "prefixes").
 		WithGuards(groupGuard, adminGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.DisablePrefixes, "-префиксы", "-prefixes").
+	a.Dispatcher.AddHandler(cf.New(chatHandler.DisablePrefixes, "с префиксами", "-prefixless").
 		WithGuards(groupGuard, adminGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.EnablePrefixes, "+префиксы", "+prefixes").
+	a.Dispatcher.AddHandler(cf.New(chatHandler.EnablePrefixes, "без префиксов", "+prefixless").
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.EnableCallOnJoin, "call_enable", "включить call", "включить колл", "включить калл").
