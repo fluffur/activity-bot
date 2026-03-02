@@ -87,7 +87,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, lower string) (User, er
 }
 
 const getUsersByCustomTitle = `-- name: GetUsersByCustomTitle :many
-SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, id, username, first_name, last_name, created_at, gender
+SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, id, username, first_name, last_name, created_at, gender
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.custom_title ILIKE '%' || $1 || '%'
@@ -108,6 +108,7 @@ type GetUsersByCustomTitleRow struct {
 	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
 	Status      string             `db:"status" json:"status"`
 	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
 	ID          int64              `db:"id" json:"id"`
 	Username    pgtype.Text        `db:"username" json:"username"`
 	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
@@ -133,6 +134,7 @@ func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCusto
 			&i.CustomTitle,
 			&i.Status,
 			&i.LeftAt,
+			&i.RestReason,
 			&i.ID,
 			&i.Username,
 			&i.FirstName,

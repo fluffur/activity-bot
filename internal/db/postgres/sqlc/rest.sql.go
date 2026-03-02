@@ -12,8 +12,8 @@ import (
 )
 
 const addRestRequest = `-- name: AddRestRequest :exec
-INSERT INTO rest_requests(chat_id, user_id, rest_until, message_id)
-VALUES ($1, $2, $3, $4)
+INSERT INTO rest_requests(chat_id, user_id, rest_until, message_id, reason)
+VALUES ($1, $2, $3, $4, $5)
 `
 
 type AddRestRequestParams struct {
@@ -21,6 +21,7 @@ type AddRestRequestParams struct {
 	UserID    int64              `db:"user_id" json:"userId"`
 	RestUntil pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
 	MessageID int64              `db:"message_id" json:"messageId"`
+	Reason    pgtype.Text        `db:"reason" json:"reason"`
 }
 
 func (q *Queries) AddRestRequest(ctx context.Context, arg AddRestRequestParams) error {
@@ -29,6 +30,7 @@ func (q *Queries) AddRestRequest(ctx context.Context, arg AddRestRequestParams) 
 		arg.UserID,
 		arg.RestUntil,
 		arg.MessageID,
+		arg.Reason,
 	)
 	return err
 }
@@ -70,16 +72,17 @@ func (q *Queries) EndMemberRest(ctx context.Context, arg EndMemberRestParams) er
 }
 
 const getAllActiveRests = `-- name: GetAllActiveRests :many
-SELECT chat_id, user_id, rest_until
+SELECT chat_id, user_id, rest_until, rest_reason
 FROM chat_members
 WHERE rest_until IS NOT NULL
   AND rest_until >= now()
 `
 
 type GetAllActiveRestsRow struct {
-	ChatID    int64              `db:"chat_id" json:"chatId"`
-	UserID    int64              `db:"user_id" json:"userId"`
-	RestUntil pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	ChatID     int64              `db:"chat_id" json:"chatId"`
+	UserID     int64              `db:"user_id" json:"userId"`
+	RestUntil  pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	RestReason pgtype.Text        `db:"rest_reason" json:"restReason"`
 }
 
 func (q *Queries) GetAllActiveRests(ctx context.Context) ([]GetAllActiveRestsRow, error) {
@@ -91,7 +94,12 @@ func (q *Queries) GetAllActiveRests(ctx context.Context) ([]GetAllActiveRestsRow
 	items := []GetAllActiveRestsRow{}
 	for rows.Next() {
 		var i GetAllActiveRestsRow
-		if err := rows.Scan(&i.ChatID, &i.UserID, &i.RestUntil); err != nil {
+		if err := rows.Scan(
+			&i.ChatID,
+			&i.UserID,
+			&i.RestUntil,
+			&i.RestReason,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -108,6 +116,7 @@ SELECT cm.user_id,
        u.first_name,
        u.last_name,
        cm.rest_until,
+       cm.rest_reason,
        cm.status,
        cm.custom_title
 FROM chat_members cm
@@ -124,6 +133,7 @@ type GetRestMembersRow struct {
 	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
 	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
 	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
 	Status      string             `db:"status" json:"status"`
 	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
 }
@@ -143,6 +153,7 @@ func (q *Queries) GetRestMembers(ctx context.Context, chatID int64) ([]GetRestMe
 			&i.FirstName,
 			&i.LastName,
 			&i.RestUntil,
+			&i.RestReason,
 			&i.Status,
 			&i.CustomTitle,
 		); err != nil {
@@ -157,7 +168,7 @@ func (q *Queries) GetRestMembers(ctx context.Context, chatID int64) ([]GetRestMe
 }
 
 const getRestRequest = `-- name: GetRestRequest :one
-SELECT chat_id, user_id, requested_at, rest_until, status, message_id
+SELECT chat_id, user_id, requested_at, rest_until, status, message_id, reason
 FROM rest_requests
 WHERE chat_id = $1
   AND user_id = $2
@@ -180,6 +191,7 @@ func (q *Queries) GetRestRequest(ctx context.Context, arg GetRestRequestParams) 
 		&i.RestUntil,
 		&i.Status,
 		&i.MessageID,
+		&i.Reason,
 	)
 	return i, err
 }
@@ -205,18 +217,24 @@ func (q *Queries) RejectRestRequest(ctx context.Context, arg RejectRestRequestPa
 
 const setMemberRest = `-- name: SetMemberRest :exec
 UPDATE chat_members
-SET rest_until = $1
-WHERE chat_id = $2
-  AND user_id = $3
+SET rest_until = $1, rest_reason = $2
+WHERE chat_id = $3
+  AND user_id = $4
 `
 
 type SetMemberRestParams struct {
-	RestUntil pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
-	ChatID    int64              `db:"chat_id" json:"chatId"`
-	UserID    int64              `db:"user_id" json:"userId"`
+	RestUntil  pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	RestReason pgtype.Text        `db:"rest_reason" json:"restReason"`
+	ChatID     int64              `db:"chat_id" json:"chatId"`
+	UserID     int64              `db:"user_id" json:"userId"`
 }
 
 func (q *Queries) SetMemberRest(ctx context.Context, arg SetMemberRestParams) error {
-	_, err := q.db.Exec(ctx, setMemberRest, arg.RestUntil, arg.ChatID, arg.UserID)
+	_, err := q.db.Exec(ctx, setMemberRest,
+		arg.RestUntil,
+		arg.RestReason,
+		arg.ChatID,
+		arg.UserID,
+	)
 	return err
 }

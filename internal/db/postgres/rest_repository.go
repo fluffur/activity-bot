@@ -34,7 +34,7 @@ func (r *RestRepository) GetFromChat(ctx context.Context, chatID int64) ([]model
 	return result, nil
 }
 
-func (r *RestRepository) SetRest(ctx context.Context, chatID int64, userID int64, restUntil time.Time) error {
+func (r *RestRepository) SetRest(ctx context.Context, chatID int64, userID int64, restUntil time.Time, reason string) error {
 	return r.queries.SetMemberRest(ctx, db.SetMemberRestParams{
 		RestUntil: pgtype.Timestamptz{
 			Time:  restUntil,
@@ -42,22 +42,11 @@ func (r *RestRepository) SetRest(ctx context.Context, chatID int64, userID int64
 		},
 		ChatID: chatID,
 		UserID: userID,
+		RestReason: pgtype.Text{
+			String: reason,
+			Valid:  reason != "",
+		},
 	})
-}
-
-func (r *RestRepository) GetRestUntil(ctx context.Context, chatID int64, userID int64) (*time.Time, error) {
-	m, err := r.queries.GetChatMember(ctx, db.GetChatMemberParams{
-		ChatID: chatID,
-		UserID: userID,
-	})
-	if err != nil {
-		return nil, err
-	}
-	var restUntil *time.Time
-	if m.RestUntil.Valid {
-		restUntil = &m.RestUntil.Time
-	}
-	return restUntil, nil
 }
 
 func (r *RestRepository) EndMemberRest(ctx context.Context, chatID int64, userID int64) error {
@@ -76,6 +65,10 @@ func (r *RestRepository) AddRequest(ctx context.Context, request model.RestReque
 			Valid: true,
 		},
 		MessageID: request.MessageID,
+		Reason: pgtype.Text{
+			String: request.Reason,
+			Valid:  request.Reason != "",
+		},
 	})
 
 }
@@ -97,6 +90,10 @@ func (r *RestRepository) ApproveRequestWithTx(ctx context.Context, request model
 			RestUntil: pgtype.Timestamptz{
 				Time:  request.RestUntil,
 				Valid: true,
+			},
+			RestReason: pgtype.Text{
+				String: request.Reason,
+				Valid:  request.Reason != "",
 			},
 		}); err != nil {
 			return err
@@ -146,9 +143,10 @@ func (r *RestRepository) GetAllActiveRests(ctx context.Context) ([]model.RestExp
 	result := make([]model.RestExpirePayload, len(rows))
 	for i, row := range rows {
 		result[i] = model.RestExpirePayload{
-			ChatID:    row.ChatID,
-			UserID:    row.UserID,
-			RestUntil: row.RestUntil.Time,
+			ChatID:     row.ChatID,
+			UserID:     row.UserID,
+			RestUntil:  row.RestUntil.Time,
+			RestReason: row.RestReason.String,
 		}
 	}
 

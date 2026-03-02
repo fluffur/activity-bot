@@ -131,6 +131,7 @@ type ChatMember struct {
 	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
 	Status      string             `db:"status" json:"status"`
 	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
 }
 
 type Message struct {
@@ -160,6 +161,7 @@ type RestRequest struct {
 	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
 	Status      RestStatus         `db:"status" json:"status"`
 	MessageID   int64              `db:"message_id" json:"messageId"`
+	Reason      pgtype.Text        `db:"reason" json:"reason"`
 }
 
 type User struct {

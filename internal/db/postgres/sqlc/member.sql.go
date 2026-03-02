@@ -34,7 +34,7 @@ INSERT INTO chat_members(chat_id, user_id, status)
 VALUES ($1, $2, $3)
 ON CONFLICT(chat_id, user_id) DO UPDATE SET status  = EXCLUDED.status,
                                             left_at = NULL
-RETURNING chat_id, user_id, joined_at, rest_until, custom_title, status, left_at
+RETURNING chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason
 `
 
 type EnsureChatMemberExistsParams struct {
@@ -54,6 +54,7 @@ func (q *Queries) EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemb
 		&i.CustomTitle,
 		&i.Status,
 		&i.LeftAt,
+		&i.RestReason,
 	)
 	return i, err
 }
@@ -95,7 +96,7 @@ ON CONFLICT (chat_id, user_id) DO UPDATE
                            ELSE chat_members.custom_title
             END,
         left_at = NULL
-RETURNING chat_id, user_id, joined_at, rest_until, custom_title, status, left_at
+RETURNING chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason
 `
 
 type EnsureMemberFullParams struct {
@@ -129,6 +130,7 @@ func (q *Queries) EnsureMemberFull(ctx context.Context, arg EnsureMemberFullPara
 		&i.CustomTitle,
 		&i.Status,
 		&i.LeftAt,
+		&i.RestReason,
 	)
 	return i, err
 }
@@ -180,7 +182,7 @@ func (q *Queries) GetAnyChatMembersWithTitles(ctx context.Context, chatID int64)
 }
 
 const getChatMember = `-- name: GetChatMember :one
-SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, id, username, first_name, last_name, created_at, gender
+SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, id, username, first_name, last_name, created_at, gender
 FROM chat_members
          JOIN users ON users.id = user_id
 WHERE left_at IS NULL
@@ -201,6 +203,7 @@ type GetChatMemberRow struct {
 	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
 	Status      string             `db:"status" json:"status"`
 	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
 	ID          int64              `db:"id" json:"id"`
 	Username    pgtype.Text        `db:"username" json:"username"`
 	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
@@ -220,6 +223,7 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 		&i.CustomTitle,
 		&i.Status,
 		&i.LeftAt,
+		&i.RestReason,
 		&i.ID,
 		&i.Username,
 		&i.FirstName,
@@ -231,7 +235,7 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 }
 
 const getChatMembers = `-- name: GetChatMembers :many
-SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, id, username, first_name, last_name, created_at, gender
+SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, id, username, first_name, last_name, created_at, gender
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
@@ -246,6 +250,7 @@ type GetChatMembersRow struct {
 	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
 	Status      string             `db:"status" json:"status"`
 	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
 	ID          int64              `db:"id" json:"id"`
 	Username    pgtype.Text        `db:"username" json:"username"`
 	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
@@ -271,6 +276,7 @@ func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMe
 			&i.CustomTitle,
 			&i.Status,
 			&i.LeftAt,
+			&i.RestReason,
 			&i.ID,
 			&i.Username,
 			&i.FirstName,

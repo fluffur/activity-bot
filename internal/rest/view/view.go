@@ -7,30 +7,39 @@ import (
 	"time"
 )
 
-func FormatRestSet(user model.User, date time.Time, isSelf bool) string {
-	if isSelf {
-		return fmt.Sprintf("Вы добавлены в рест до %s", helpers.FormatToHumanDateTime(date))
-	}
-	return fmt.Sprintf("Участник %s %s в рест до %s",
+func FormatRestSet(user model.User, date time.Time, reason string) string {
+	text := fmt.Sprintf("Участник %s %s в рест до %s",
 		helpers.Link(user),
 		helpers.Gendered(user.Gender, "добавлен", "добавлена", "добавлен(а)"),
 		helpers.FormatToHumanDateTime(date),
 	)
+	if reason != "" {
+		text += fmt.Sprintf("\n\nПричина: %s", reason)
+	}
+	return text
 }
 
-func FormatRestRequest(user model.User, date time.Time) string {
-	return fmt.Sprintf(
+func FormatRestRequest(user model.User, date time.Time, reason string) string {
+	text := fmt.Sprintf(
 		"Для участника %s запрошен рест до %s",
 		helpers.Link(user),
 		helpers.FormatToHumanDateTime(date),
 	)
+	if reason != "" {
+		text += fmt.Sprintf("\n\nПричина: %s", reason)
+	}
+	return text
 }
 
-func FormatRestShow(user model.User, restUntil *time.Time) string {
-	if restUntil == nil {
-		return fmt.Sprintf("Участник %s не находится в ресте", helpers.Link(user))
+func FormatRestShow(m model.ChatMember) string {
+	if m.RestUntil == nil {
+		return fmt.Sprintf("Участник %s не находится в ресте", helpers.Link(m.User))
 	}
-	return fmt.Sprintf("Участник %s находится в ресте до %s", helpers.Link(user), helpers.FormatToHumanDateTime(*restUntil))
+	text := fmt.Sprintf("Участник %s находится в ресте до %s", helpers.Link(m.User), helpers.FormatToHumanDateTime(*m.RestUntil))
+	if m.RestReason != "" {
+		text += fmt.Sprintf("\n\nПричина: %s", m.RestReason)
+	}
+	return text
 }
 
 func FormatRestEnded(user model.User, isSelf bool) string {

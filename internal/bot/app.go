@@ -199,19 +199,14 @@ func (a *App) registerWorkerHandlers() *asynq.ServeMux {
 			return err
 		}
 
-		until, err := a.RestService.GetMemberRest(ctx, p.ChatID, p.UserID)
-		if err != nil || until == nil {
+		m, err := a.MemberService.GetChatMember(ctx, p.ChatID, p.UserID)
+		if err != nil || m.RestUntil == nil {
 			return err
 		}
 
 		now := time.Now().In(helpers.MoscowLocation)
-		if until.After(now.Add(1 * time.Minute)) {
+		if m.RestUntil.After(now.Add(1 * time.Minute)) {
 			return nil
-		}
-
-		m, err := a.MemberService.GetChatMember(ctx, p.ChatID, p.UserID)
-		if err != nil {
-			return err
 		}
 
 		admins, err := a.AdminService.GetAdminsEnsured(ctx, p.ChatID, a.MemberService.SyncChatMembers)

@@ -18,12 +18,8 @@ func (s *Service) GetRestMembers(ctx context.Context, chatID int64) ([]model.Res
 	return s.repo.GetFromChat(ctx, chatID)
 }
 
-func (s *Service) SetMemberRest(ctx context.Context, chatID int64, userID int64, until time.Time) error {
-	return s.repo.SetRest(ctx, chatID, userID, until)
-}
-
-func (s *Service) GetMemberRest(ctx context.Context, chatID int64, userID int64) (*time.Time, error) {
-	return s.repo.GetRestUntil(ctx, chatID, userID)
+func (s *Service) SetMemberRest(ctx context.Context, chatID int64, userID int64, until time.Time, reason string) error {
+	return s.repo.SetRest(ctx, chatID, userID, until, reason)
 }
 
 func (s *Service) EndMemberRest(ctx context.Context, chatID int64, userID int64) error {

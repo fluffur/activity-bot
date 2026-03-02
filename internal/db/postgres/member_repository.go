@@ -272,6 +272,7 @@ func mapChatMemberRow(m db.GetChatMemberRow) model.ChatMember {
 			Gender:    m.Gender,
 		},
 		RestUntil:   restUntil,
+		RestReason:  m.RestReason.String,
 		CustomTitle: m.CustomTitle.String,
 		Status:      m.Status,
 	}

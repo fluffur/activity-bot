@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
+	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"activity-bot/internal/rest"
 	"activity-bot/internal/rest/view"
@@ -24,14 +25,15 @@ import (
 type Handler struct {
 	service        *rest.Service
 	userService    *user.Service
+	memberService  *member.Service
 	adminService   *admin.Service
 	dateParser     *helpers.DateParser
 	sessionService *session.Service
 	asyncClient    *asynq.Client
 }
 
-func New(service *rest.Service, userService *user.Service, adminService *admin.Service, dateParser *helpers.DateParser, sessionService *session.Service, asyncClient *asynq.Client) *Handler {
-	return &Handler{service, userService, adminService, dateParser, sessionService, asyncClient}
+func New(service *rest.Service, userService *user.Service, memberService *member.Service, adminService *admin.Service, dateParser *helpers.DateParser, sessionService *session.Service, asyncClient *asynq.Client) *Handler {
+	return &Handler{service, userService, memberService, adminService, dateParser, sessionService, asyncClient}
 }
 
 func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -58,7 +60,7 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return h.createRequest(b, ctx, targetUser, date)
 	}
 
-	if err := h.service.SetMemberRest(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, date); err != nil {
+	if err := h.service.SetMemberRest(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, date, ctx.SecondArgument()); err != nil {
 		_ = ctx.Reply(b, "Не удалось создать рест", nil)
 		return err
 	}
@@ -70,8 +72,7 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 	task := asynq.NewTask("rest:expire", payload)
 	_, _ = h.asyncClient.Enqueue(task, asynq.ProcessAt(date))
 
-	isSelf := targetUser.ID == ctx.EffectiveUser.Id
-	text := view.FormatRestSet(*targetUser, date, isSelf)
+	text := view.FormatRestSet(*targetUser, date, ctx.SecondArgument())
 	return ctx.ReplyHTML(b, text)
 }
 
@@ -86,7 +87,7 @@ func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *mo
 		},
 	}
 
-	msg, err := ctx.EffectiveMessage.Reply(b, view.FormatRestRequest(*targetUser, date), &gotgbot.SendMessageOpts{
+	msg, err := ctx.EffectiveMessage.Reply(b, view.FormatRestRequest(*targetUser, date, ctx.SecondArgument()), &gotgbot.SendMessageOpts{
 		ParseMode:   gotgbot.ParseModeHTML,
 		ReplyMarkup: kb,
 		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
@@ -114,12 +115,12 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return cmd.ErrNoUser
 	}
 
-	e, err := h.service.GetMemberRest(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
+	m, err := h.memberService.GetChatMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
 	if err != nil {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatRestShow(*targetUser, e))
+	return ctx.ReplyHTML(b, view.FormatRestShow(m))
 
 }
 
@@ -134,11 +135,11 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "Вы можете удалить из реста только себя", nil)
 	}
 
-	e, err := h.service.GetMemberRest(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
+	m, err := h.memberService.GetChatMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
 	if err != nil {
 		return ctx.Reply(b, "Не удалось проверить рест пользователя", nil)
 	}
-	if e == nil {
+	if m.RestUntil == nil {
 		isSelf := targetUser.ID == ctx.EffectiveUser.Id
 		return ctx.ReplyHTML(b, view.FormatRestNotInRest(*targetUser, isSelf))
 	}

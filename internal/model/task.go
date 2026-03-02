@@ -8,7 +8,8 @@ type RestoreRolePayload struct {
 }
 
 type RestExpirePayload struct {
-	ChatID    int64     `json:"chat_id"`
-	UserID    int64     `json:"user_id"`
-	RestUntil time.Time `json:"rest_until"`
+	ChatID     int64     `json:"chat_id"`
+	UserID     int64     `json:"user_id"`
+	RestUntil  time.Time `json:"rest_until"`
+	RestReason string    `json:"rest_reason"`
 }

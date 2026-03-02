@@ -11,4 +11,5 @@ type RestRequest struct {
 	RestUntil   time.Time
 	Status      string
 	MessageID   int64
+	Reason      string
 }

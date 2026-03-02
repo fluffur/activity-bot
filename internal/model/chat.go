@@ -26,6 +26,7 @@ type ChatMember struct {
 	User        User
 	ChatID      int64
 	RestUntil   *time.Time
+	RestReason  string
 	CustomTitle string
 	Status      string
 }
