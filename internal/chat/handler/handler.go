@@ -500,7 +500,7 @@ func (h *Handler) EnableTags(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) DisableTags(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.EnableTags(ctx.StdContext(), ctx.TargetChatID(), true); err != nil {
+	if err := h.service.EnableTags(ctx.StdContext(), ctx.TargetChatID(), false); err != nil {
 		return err
 	}
 
