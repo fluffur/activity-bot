@@ -172,10 +172,7 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
-	if ctx.EffectiveMessage.SenderTag != "" {
-		return ctx.ReplyHTML(b, view.FormatMemberRole(*targetUser, ctx.EffectiveMessage.SenderTag))
-	}
-
+	
 	mTitle, err := h.service.GetMemberTitle(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
 	if err != nil && !errors.Is(err, member.ErrInvalidCustomTitle) {
 		_ = ctx.Reply(b, "Не удалось получить роль пользователя", nil)
