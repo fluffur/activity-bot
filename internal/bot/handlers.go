@@ -281,7 +281,7 @@ func (a *App) RegisterHandlers() {
 		SetArgsCount(1).
 		WithGuards(groupGuard, adminGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.SetWeekStartDay, "week_start", "начало недели", "начало").
+	a.Dispatcher.AddHandler(cf.New(chatHandler.SetWeekStartDay, "week_start", "начало недели", "чистка", "начало").
 		AddTriggers("+").
 		SetArgsCount(1),
 	)
