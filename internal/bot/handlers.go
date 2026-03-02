@@ -204,7 +204,7 @@ func (a *App) RegisterHandlers() {
 		AddTriggers("+").SetArgsCount(2).
 		WithGuards(groupGuard, adminGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.ClearWarns, "clear_warns", "очистить преды").
+	a.Dispatcher.AddHandler(cf.New(adminHandler.ClearWarns, "clear_warns", "очистить преды", "очистить варны").
 		WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowMaxWarns, "макс преды", "макс варны", "max_warns").
@@ -269,7 +269,7 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_type:"), cf.WrapCallback(callHandler.CallbackCallType)))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").WithGuards(groupGuard))
 	a.Dispatcher.AddHandler(handlers.NewMessage(cmd.NewChatTitle, cf.WrapEvent(chatHandler.OnNewChatTitle)))
-	a.Dispatcher.AddHandler(cf.New(chatHandler.Manage, "manage", "управление").ForcePrefix())
+	a.Dispatcher.AddHandler(cf.New(chatHandler.Manage, "manage", "управление"))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage:"), cf.WrapCallback(chatHandler.CallbackManage)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage_page:"), cf.WrapCallback(chatHandler.CallbackManagePage)))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.EnableTags, "+tags", "+теги", "+тэги").WithGuards(groupGuard, adminGuard))
