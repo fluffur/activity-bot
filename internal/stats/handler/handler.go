@@ -118,12 +118,8 @@ func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 	u := ctx.FirstUser()
-	if u == nil {
+	if ctx.FirstArgument() != "" {
 		role := ctx.FirstArgument()
-		if role == "" {
-			return fmt.Errorf("no role no user")
-		}
-
 		members, err := h.userService.GetByCustomTitle(ctx.StdContext(), ctx.TargetChatID(), role)
 		if err != nil || len(members) == 0 {
 			return fmt.Errorf("user with role %s not found", role)
@@ -149,6 +145,9 @@ func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "Выберите пользователя:", &gotgbot.SendMessageOpts{
 			ReplyMarkup: kb,
 		})
+	} else if u == nil {
+		return fmt.Errorf("no role no user")
+
 	}
 
 	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.TargetChatID(), u.ID)
