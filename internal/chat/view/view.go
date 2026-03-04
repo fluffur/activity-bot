@@ -3,6 +3,7 @@ package view
 import (
 	"activity-bot/internal/helpers"
 	"fmt"
+	"time"
 )
 
 func FormatNorm(norm, normBan int32) string {
@@ -56,9 +57,43 @@ func FormatPrefixlessStatus(enabled bool) string {
 }
 
 func FormatWeekStart(day int, time string) string {
-	return fmt.Sprintf("📅 Начало недели: <b>%s</b> в <b>%s</b>", helpers.FormatWeekStartDay(day), time)
+	return FormatWeek("Начало недели", day, time)
+
 }
 
 func FormatWeekStartSet(day int, time string) string {
-	return fmt.Sprintf("📅 Начало недели изменено на <b>%s</b> в <b>%s</b>", helpers.FormatWeekStartDay(day), time)
+	return FormatWeek("Начало недели изменено", day, time)
+}
+
+func FormatWeek(msg string, day int, timeStr string) string {
+	loc := helpers.MoscowLocation
+
+	now := time.Now().In(loc)
+
+	var h, m int
+	fmt.Sscanf(timeStr, "%d:%d", &h, &m)
+
+	target := now
+	for int(target.Weekday()) != day%7 {
+		target = target.AddDate(0, 0, 1)
+	}
+
+	target = time.Date(
+		target.Year(),
+		target.Month(),
+		target.Day(),
+		h,
+		m,
+		0,
+		0,
+		loc,
+	)
+
+	return fmt.Sprintf(
+		"📅 %s: <tg-time unix=\"%d\">%s в %s</tg-time>",
+		msg,
+		target.Unix(),
+		helpers.FormatWeekStartDay(day),
+		timeStr,
+	)
 }

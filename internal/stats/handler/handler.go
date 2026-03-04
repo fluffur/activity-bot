@@ -321,6 +321,21 @@ func (h *Handler) ShowNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) resolvePeriod(ctx *cmd.Context, weekStartDay time.Weekday, weekStartTime string) (*time.Time, *time.Time, error) {
+	if len(ctx.ParsedDates()) > 0 {
+		dates := ctx.ParsedDates()
+		if len(dates) >= 2 {
+			from := dates[0]
+			to := dates[1]
+			if from.After(to) {
+				from, to = to, from
+			}
+			to = time.Date(to.Year(), to.Month(), to.Day(), 23, 59, 59, 0, to.Location())
+			return &from, &to, nil
+		}
+		from := dates[0]
+		return &from, nil, nil
+	}
+
 	period := "неделя"
 	if len(ctx.Args()) > 0 {
 		period = ctx.FirstArgument()

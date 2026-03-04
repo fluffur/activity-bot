@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"activity-bot/internal/chat"
+	"activity-bot/internal/helpers"
+	"activity-bot/internal/logger"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"context"
-	"log/slog"
 	"strings"
 	"time"
 
@@ -161,6 +162,8 @@ func New(commands []string, triggers []string, response Response, userService *u
 	}
 }
 
+var dateParser = helpers.NewDateParser()
+
 func (c *Command) WithGuards(guards ...Guard) *Command {
 	c.guards = append(c.guards, guards...)
 	return c
@@ -234,6 +237,7 @@ func (c *Command) ensureUser(ctx context.Context, u *gotgbot.User) (model.User, 
 func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Context) *Context {
 	msg := ctx.Message
 	users := make([]*model.User, 0)
+	parsedDates := make([]time.Time, 0)
 	takenUsers := make(map[int64]struct{})
 
 	var fullHTML string
@@ -284,6 +288,18 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 			}
 		}
 	}
+
+	for _, e := range msg.GetEntities() {
+		if e.Type != "date_time" {
+			continue
+		}
+
+		if e.UnixTime != 0 {
+			parsedDates = append(parsedDates, time.Unix(e.UnixTime, 0).In(helpers.MoscowLocation))
+		}
+
+	}
+
 	if msg.ReplyToMessage != nil &&
 		msg.ReplyToMessage.ForumTopicCreated == nil &&
 		msg.ReplyToMessage.From != nil &&
@@ -293,7 +309,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		if err == nil {
 			addUser(&u)
 		} else {
-			slog.Error("Failed to ensure reply user", "error", err)
+			logger.L.Error("Failed to ensure reply user", "error", err)
 		}
 	}
 	if c.fallbackToSender && len(users) == 0 {
@@ -315,7 +331,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 
 	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix, allowPrefixless && !c.forcePrefix)
 	if !matched {
-		return &Context{ctx, cctx, []string{}, "", users, 0}
+		return &Context{ctx, cctx, []string{}, "", users, 0, parsedDates}
 	}
 
 	rest = strings.TrimSpace(rest)
@@ -348,10 +364,10 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 
 	chatID, err := GetChatID(c.sessionService, ctx, cctx)
 	if err != nil {
-		slog.Error("GetChatID error", "error", err)
-		return &Context{ctx, cctx, []string{}, "", users, 0}
+		logger.L.Error("GetChatID error", "error", err)
+		return &Context{ctx, cctx, []string{}, "", users, 0, parsedDates}
 	}
-	return &Context{ctx, cctx, args, htmlRest, users, chatID}
+	return &Context{ctx, cctx, args, htmlRest, users, chatID, parsedDates}
 }
 
 func (c *Command) Name() string {
@@ -494,7 +510,7 @@ func cleanMessage(msg *gotgbot.Message) (string, []gotgbot.MessageEntity) {
 	removeRanges := make([][2]int, 0)
 	removedEntities := make([]gotgbot.MessageEntity, 0)
 
-	for _, e := range msg.Entities {
+	for _, e := range msg.GetEntities() {
 		start, end := runeIndex(text, int(e.Offset), int(e.Length))
 		switch e.Type {
 		case "mention", "text_mention", "url":

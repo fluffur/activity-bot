@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/model"
 	"context"
 	"errors"
+	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
@@ -20,6 +21,7 @@ type Context struct {
 	html         string
 	users        []*model.User
 	targetChatID int64
+	parsedDates  []time.Time
 }
 
 func (c *Context) TargetChatID() int64 {
@@ -54,6 +56,10 @@ func (c *Context) Users() []*model.User {
 
 func (c *Context) Args() []string {
 	return c.args
+}
+
+func (c *Context) ParsedDates() []time.Time {
+	return c.parsedDates
 }
 
 func (c *Context) HTML() string {

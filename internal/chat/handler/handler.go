@@ -12,6 +12,7 @@ import (
 	"html"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 )
@@ -137,6 +138,19 @@ func (h *Handler) ManageWeekStart(b *gotgbot.Bot, ctx *cmd.Context) error {
 	newTime := c.WeekStartTime
 	daySet := false
 	timeSet := false
+
+	if len(ctx.ParsedDates()) > 0 {
+		d := ctx.ParsedDates()[0]
+		wd := d.Weekday()
+		if wd == time.Sunday {
+			newDay = 7
+		} else {
+			newDay = int(wd)
+		}
+		newTime = d.Format("15:04")
+		daySet = true
+		timeSet = true
+	}
 
 	args := strings.Fields(ctx.FirstArgument())
 
