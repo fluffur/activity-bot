@@ -25,20 +25,16 @@ func FormatToHumanDateTime(date time.Time) string {
 		"июля", "августа", "сентября", "октября", "ноября", "декабря",
 	}
 
-	hour := date.Hour()
-	minute := date.Minute()
-
-	timePart := fmt.Sprintf("%02d:%02d", hour, minute)
-
+	var text string
 	if now.Year() == date.Year() && now.YearDay() == date.YearDay() {
-		return fmt.Sprintf("сегодня в %s", timePart)
+		text = "сегодня"
+	} else if now.Year() == date.Year() {
+		text = fmt.Sprintf("%d %s", date.Day(), months[date.Month()-1])
+	} else {
+		text = fmt.Sprintf("%d %s %d", date.Day(), months[date.Month()-1], date.Year())
 	}
 
-	if now.Year() == date.Year() {
-		return fmt.Sprintf("%d %s, %s", date.Day(), months[date.Month()-1], timePart)
-	}
-
-	return fmt.Sprintf("%d %s %d, %s", date.Day(), months[date.Month()-1], date.Year(), timePart)
+	return fmt.Sprintf("<tg-time unix=\"%d\">%s</tg-time>", date.Unix(), text)
 }
 
 func FormatToHumanDate(date time.Time) string {
@@ -50,15 +46,16 @@ func FormatToHumanDate(date time.Time) string {
 		"июля", "августа", "сентября", "октября", "ноября", "декабря",
 	}
 
+	var text string
 	if now.Year() == date.Year() && now.YearDay() == date.YearDay() {
-		return fmt.Sprintf("сегодня")
+		text = "сегодня"
+	} else if now.Year() == date.Year() {
+		text = fmt.Sprintf("%d %s", date.Day(), months[date.Month()-1])
+	} else {
+		text = fmt.Sprintf("%d %s %d", date.Day(), months[date.Month()-1], date.Year())
 	}
 
-	if now.Year() == date.Year() {
-		return fmt.Sprintf("%d %s", date.Day(), months[date.Month()-1])
-	}
-
-	return fmt.Sprintf("%d %s %d", date.Day(), months[date.Month()-1], date.Year())
+	return fmt.Sprintf("<tg-time unix=\"%d\">%s</tg-time>", date.Unix(), text)
 }
 
 func PluralizeDays(n int) string {
@@ -80,13 +77,12 @@ func PluralizeDays(n int) string {
 func FormatLastSeen(t time.Time) string {
 	d := time.Since(t)
 
-	if d < time.Minute {
-		return "только что"
+	if d < time.Hour {
+		return "меньше часа назад"
 	}
 
 	days := int(d.Hours()) / 24
 	hours := int(d.Hours()) % 24
-	minutes := int(d.Minutes()) % 60
 
 	var parts []string
 
@@ -95,9 +91,6 @@ func FormatLastSeen(t time.Time) string {
 	}
 	if hours > 0 {
 		parts = append(parts, fmt.Sprintf("%d %s", hours, pluralRu(hours, "час", "часа", "часов")))
-	}
-	if days == 0 && hours == 0 && minutes > 0 {
-		parts = append(parts, fmt.Sprintf("%d %s", minutes, pluralRu(minutes, "минута", "минуты", "минут")))
 	}
 
 	return strings.Join(parts, " ")
