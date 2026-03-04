@@ -15,6 +15,7 @@ import (
 	"activity-bot/internal/user"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -183,14 +184,16 @@ func (a *App) registerWorkerHandlers() *asynq.ServeMux {
 		if _, err = a.Bot.SetChatAdministratorCustomTitle(p.ChatID, p.UserID, title, nil); err != nil {
 			return err
 		}
-		_, err = a.Bot.SendMessage(p.ChatID, fmt.Sprintf("Срок мута для участника %s подошёл к концу", helpers.LinkWithContent(m.User, fmt.Sprintf("%s (%s)", m.User.FirstName, m.CustomTitle))), &gotgbot.SendMessageOpts{
+		if _, err = a.Bot.SendMessage(p.ChatID, fmt.Sprintf("Срок мута для участника %s подошёл к концу", helpers.LinkWithContent(m.User, fmt.Sprintf("%s (%s)", m.User.FirstName, m.CustomTitle))), &gotgbot.SendMessageOpts{
 			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 				IsDisabled: true,
 			},
 			ParseMode: gotgbot.ParseModeHTML,
-		})
+		}); err != nil {
+			return err
+		}
 
-		return err
+		return nil
 	})
 
 	mux.HandleFunc("rest:expire", func(ctx context.Context, t *asynq.Task) error {
@@ -201,11 +204,15 @@ func (a *App) registerWorkerHandlers() *asynq.ServeMux {
 
 		m, err := a.MemberService.GetChatMember(ctx, p.ChatID, p.UserID)
 		if err != nil || m.RestUntil == nil {
-			return err
+			return nil // User might have been deleted or rest ended manually
 		}
 
-		now := time.Now().In(helpers.MoscowLocation)
-		if m.RestUntil.After(now.Add(1 * time.Minute)) {
+		if m.RestUntil.Before(time.Now().In(helpers.MoscowLocation).Add(-30 * time.Second)) {
+			return nil
+		}
+
+		if m.RestUntil.After(time.Now().In(helpers.MoscowLocation).Add(30 * time.Second)) {
+			// This is a stale task (a newer rest was scheduled)
 			return nil
 		}
 
@@ -213,20 +220,23 @@ func (a *App) registerWorkerHandlers() *asynq.ServeMux {
 		if err != nil {
 			return err
 		}
+
 		var sb strings.Builder
 		sb.WriteString(fmt.Sprintf("Рест у участника %s подошёл к концу", helpers.LinkWithContent(m.User, fmt.Sprintf("%s (%s)", m.User.FirstName, m.CustomTitle))))
 		for _, mod := range admins {
 			sb.WriteString(helpers.Mention(mod.ID, "​"))
 		}
-		_, err = a.Bot.SendMessage(p.ChatID, sb.String(), &gotgbot.SendMessageOpts{
+
+		if _, err = a.Bot.SendMessage(p.ChatID, sb.String(), &gotgbot.SendMessageOpts{
 			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 				IsDisabled: true,
 			},
-			ParseMode:       gotgbot.ParseModeHTML,
-			ReplyParameters: nil,
-		})
+			ParseMode: gotgbot.ParseModeHTML,
+		}); err != nil {
+			return err
+		}
 
-		return err
+		return a.RestService.EndMemberRest(ctx, p.ChatID, p.UserID)
 	})
 
 	return mux
@@ -241,13 +251,20 @@ func (a *App) SyncRests(ctx context.Context) error {
 	slog.Info("Syncing rests", "count", len(rests))
 
 	for _, r := range rests {
+		if r.RestUntil.Before(time.Now()) {
+			continue
+		}
+
 		payload, _ := json.Marshal(model.RestExpirePayload{
 			ChatID: r.ChatID,
 			UserID: r.UserID,
 		})
 		task := asynq.NewTask("rest:expire", payload)
-		if _, err := a.AsyncClient.Enqueue(task, asynq.ProcessAt(r.RestUntil)); err != nil {
-			slog.Error("Failed to enqueue rest sync task", "chat_id", r.ChatID, "user_id", r.UserID, "error", err)
+		taskID := fmt.Sprintf("rest:expire:%d:%d", r.ChatID, r.UserID)
+		if _, err := a.AsyncClient.Enqueue(task, asynq.ProcessAt(r.RestUntil), asynq.TaskID(taskID)); err != nil {
+			if !errors.Is(err, asynq.ErrTaskIDConflict) {
+				slog.Error("Failed to enqueue rest sync task", "chat_id", r.ChatID, "user_id", r.UserID, "error", err)
+			}
 		}
 	}
 

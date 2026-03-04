@@ -216,7 +216,8 @@ func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
 			UserID: targetUser.ID,
 		})
 		task := asynq.NewTask("role:restore", payload)
-		_, err := h.asyncClient.Enqueue(task, asynq.ProcessAt(*until))
+		taskID := fmt.Sprintf("role:restore:%d:%d", ctx.TargetChatID(), targetUser.ID)
+		_, err := h.asyncClient.Enqueue(task, asynq.ProcessAt(*until), asynq.TaskID(taskID))
 		if err != nil {
 			slog.Error("Failed to enqueue restore task", "error", err)
 		}

@@ -76,7 +76,8 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 		UserID: targetUser.ID,
 	})
 	task := asynq.NewTask("rest:expire", payload)
-	_, _ = h.asyncClient.Enqueue(task, asynq.ProcessAt(date))
+	taskID := fmt.Sprintf("rest:expire:%d:%d", ctx.TargetChatID(), targetUser.ID)
+	_, _ = h.asyncClient.Enqueue(task, asynq.ProcessAt(date), asynq.TaskID(taskID))
 
 	text := view.FormatRestSet(*targetUser, date, ctx.SecondArgument())
 	return ctx.ReplyHTML(b, text)
@@ -191,7 +192,8 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 		UserID: fromID,
 	})
 	task := asynq.NewTask("rest:expire", payload)
-	_, _ = h.asyncClient.Enqueue(task, asynq.ProcessAt(restRequest.RestUntil))
+	taskID := fmt.Sprintf("rest:expire:%d:%d", chatID, fromID)
+	_, _ = h.asyncClient.Enqueue(task, asynq.ProcessAt(restRequest.RestUntil), asynq.TaskID(taskID))
 	u, err := h.userService.GetUser(ctx.StdContext(), fromID)
 	if err != nil {
 		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
