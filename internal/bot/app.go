@@ -288,6 +288,7 @@ func (a *App) setupBot() error {
 			CanEditMessages:     true,
 			CanPinMessages:      true,
 			CanManageTopics:     true,
+			CanManageTags:       true,
 		},
 	})
 	if err != nil {
