@@ -1,12 +1,9 @@
 module activity-bot
 
-require github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.33.0.20260210230949-86881f40bfaa
-
-replace github.com/PaulSonOfLars/gotgbot/v2 => github.com/fluffur/gotgbot/v2 v2.0.0-20260301154449-8ea857fd94fb
-
 go 1.25
 
 require (
+	github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.34.0.20260304074212-fe657d2344e0
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/cohesion-org/deepseek-go v1.3.3
 	github.com/hibiken/asynq v0.26.0
