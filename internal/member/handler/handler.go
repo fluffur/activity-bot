@@ -74,7 +74,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	if err := h.service.SetMemberTitle(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, tag); err != nil {
 		if errors.Is(err, adapter.ErrChatMemberNotFound) {
-			return ctx.Reply(b, "Участник не найден\n\nTelegram: %s\", err.Error()", nil)
+			return ctx.Reply(b, fmt.Sprintf("Участник не найден\n\nTelegram: %s", err.Error()), nil)
 		} else if errors.Is(err, adapter.ErrChatMemberCantBeEdited) {
 			return ctx.Reply(b, fmt.Sprintf("Я не могу изменить роль этого участника\n\nTelegram: %s", err.Error()), nil)
 		} else if errors.Is(err, adapter.ErrChatMemberIsRestricted) {
@@ -194,7 +194,7 @@ func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *cmd.Context) error {
 			continue
 		}
 		slog.Info("member joined", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id)
-		if _, err := h.service.EnsureMemberExists(ctx.StdContext(), ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, "member", ctx.EffectiveMessage.SenderTag); err != nil {
+		if _, err := h.service.EnsureMemberExists(ctx.StdContext(), ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, ctx.EffectiveMessage.SenderTag); err != nil {
 			return err
 		}
 	}

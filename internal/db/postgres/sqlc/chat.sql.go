@@ -13,8 +13,8 @@ import (
 
 const ensureChatExists = `-- name: EnsureChatExists :one
 WITH ins AS (
-    INSERT INTO chats (id, title, norm_warn, newbie_threshold_days)
-        VALUES ($1, $2, $3, $4)
+    INSERT INTO chats (id, title, norm_warn)
+        VALUES ($1, $2, $3)
         ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title
         RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time)
 SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
@@ -27,10 +27,9 @@ LIMIT 1
 `
 
 type EnsureChatExistsParams struct {
-	ID                  int64  `db:"id" json:"id"`
-	Title               string `db:"title" json:"title"`
-	NormWarn            int32  `db:"norm_warn" json:"normWarn"`
-	NewbieThresholdDays int32  `db:"newbie_threshold_days" json:"newbieThresholdDays"`
+	ID       int64  `db:"id" json:"id"`
+	Title    string `db:"title" json:"title"`
+	NormWarn int32  `db:"norm_warn" json:"normWarn"`
 }
 
 type EnsureChatExistsRow struct {
@@ -54,12 +53,7 @@ type EnsureChatExistsRow struct {
 }
 
 func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error) {
-	row := q.db.QueryRow(ctx, ensureChatExists,
-		arg.ID,
-		arg.Title,
-		arg.NormWarn,
-		arg.NewbieThresholdDays,
-	)
+	row := q.db.QueryRow(ctx, ensureChatExists, arg.ID, arg.Title, arg.NormWarn)
 	var i EnsureChatExistsRow
 	err := row.Scan(
 		&i.ID,

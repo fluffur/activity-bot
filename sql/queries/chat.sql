@@ -1,7 +1,7 @@
 -- name: EnsureChatExists :one
 WITH ins AS (
-    INSERT INTO chats (id, title, norm_warn, newbie_threshold_days)
-        VALUES ($1, $2, $3, $4)
+    INSERT INTO chats (id, title, norm_warn)
+        VALUES ($1, $2, $3)
         ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title
         RETURNING *)
 SELECT *

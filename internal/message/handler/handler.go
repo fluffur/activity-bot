@@ -5,8 +5,6 @@ import (
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/member"
 	"activity-bot/internal/message"
-	"context"
-	"errors"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/cohesion-org/deepseek-go"
@@ -21,25 +19,6 @@ type Handler struct {
 
 func New(service *message.Service, memberService *member.Service, chatService *chat.Service, deepseekClient *deepseek.Client) *Handler {
 	return &Handler{service, memberService, chatService, deepseekClient}
-}
-
-func (h *Handler) EnsureMemberCustomTitle(ctx context.Context, b *gotgbot.Bot, chatID, userID int64) (string, error) {
-
-	m, err := h.memberService.GetMemberTitle(ctx, chatID, userID)
-	if err != nil && !errors.Is(err, member.ErrInvalidCustomTitle) {
-		return "", err
-	}
-
-	if m != "" {
-		return m, nil
-	}
-
-	chatMember, err := b.GetChatMember(chatID, userID, nil)
-	if err != nil {
-		return "", err
-	}
-
-	return chatMember.MergeChatMember().CustomTitle, nil
 }
 
 func (h *Handler) Bot(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -76,46 +55,24 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *cmd.Context) error {
 	})
 }
 
-func (h *Handler) Message(b *gotgbot.Bot, ctx *cmd.Context) error {
-	u := ctx.EffectiveSender.User
-	c := ctx.EffectiveChat
-	if u == nil || c == nil || u.IsBot {
+func (h *Handler) Message(_ *gotgbot.Bot, ctx *cmd.Context) error {
+	if ctx.EffectiveMessage.ChatOwnerLeft != nil || ctx.EffectiveMessage.LeftChatMember != nil || len(ctx.EffectiveMessage.NewChatMembers) > 0 {
 		return nil
 	}
+	effectiveSender := ctx.EffectiveSender
+	effectiveChat := ctx.EffectiveChat
 
-	if c.Type == "supergroup" || c.Type == "group" {
-		_, err := h.chatService.EnsureChatExists(ctx.StdContext(), c.Id, c.Title)
-		if err != nil {
-			return err
-		}
-	}
-
-	if ctx.Message.ChatOwnerLeft != nil || ctx.Message.LeftChatMember != nil || len(ctx.Message.NewChatMembers) > 0 {
-		return nil
-	}
-
-	m, err := h.memberService.EnsureMemberExists(ctx.StdContext(), c.Id, u.Id, u.Username, u.FirstName, u.LastName, "member", ctx.EffectiveMessage.SenderTag)
-	if err != nil {
+	if _, err := h.memberService.EnsureMemberExists(
+		ctx.StdContext(),
+		effectiveChat.Id,
+		effectiveSender.Id(),
+		effectiveSender.Username(),
+		effectiveSender.FirstName(),
+		effectiveSender.LastName(),
+		ctx.EffectiveMessage.SenderTag,
+	); err != nil {
 		return err
 	}
 
-	if ctx.EffectiveMessage.SenderTag != "" {
-		if m.CustomTitle != ctx.EffectiveMessage.SenderTag {
-			if err := h.memberService.SetMemberTitle(ctx.StdContext(), c.Id, u.Id, ctx.EffectiveMessage.SenderTag); err != nil {
-				return err
-			}
-		}
-	} else if m.CustomTitle == "" {
-		title, err := h.EnsureMemberCustomTitle(ctx.StdContext(), b, c.Id, u.Id)
-		if err != nil {
-			return err
-		}
-		if m.CustomTitle != title {
-			if err := h.memberService.SetMemberTitle(ctx.StdContext(), c.Id, u.Id, title); err != nil {
-				return err
-			}
-		}
-	}
-
-	return h.service.Save(ctx.StdContext(), c.Id, u.Id, ctx.EffectiveMessage.MessageId)
+	return h.service.Save(ctx.StdContext(), effectiveChat.Id, effectiveSender.Id(), ctx.EffectiveMessage.MessageId)
 }

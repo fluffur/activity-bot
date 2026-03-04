@@ -48,10 +48,9 @@ func (r *ChatRepository) SetTagsEnabled(ctx context.Context, chatID int64, enabl
 
 func (r *ChatRepository) Ensure(ctx context.Context, c model.Chat) (model.Chat, error) {
 	ch, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{
-		ID:                  c.ID,
-		Title:               c.Title,
-		NormWarn:            c.NormWarn,
-		NewbieThresholdDays: 3,
+		ID:       c.ID,
+		Title:    c.Title,
+		NormWarn: c.NormWarn,
 	})
 	if err != nil {
 		return model.Chat{}, err
@@ -89,9 +88,8 @@ func (r *ChatRepository) SetNewbieThreshold(ctx context.Context, chatID int64, t
 
 func (r *ChatRepository) GetNewbieThreshold(ctx context.Context, chatID int64) (int, error) {
 	c, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{
-		ID:                  chatID,
-		NormWarn:            100,
-		NewbieThresholdDays: 3,
+		ID:       chatID,
+		NormWarn: 100,
 	})
 	if err != nil {
 		return 0, err

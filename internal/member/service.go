@@ -81,8 +81,8 @@ func (s *Service) ProcessLeftMember(ctx context.Context, chatID int64, userID in
 	return member, nil
 }
 
-func (s *Service) EnsureMemberExists(ctx context.Context, chatID int64, userID int64, username, firstName, lastName, status, role string) (model.ChatMember, error) {
-	return s.repo.EnsureFull(ctx, chatID, userID, status, role, firstName, lastName, username, s.defaultNormWarn)
+func (s *Service) EnsureMemberExists(ctx context.Context, chatID int64, userID int64, username, firstName, lastName, role string) (model.ChatMember, error) {
+	return s.repo.EnsureFull(ctx, chatID, userID, role, firstName, lastName, username, s.defaultNormWarn)
 }
 
 func (s *Service) SyncChatMembers(ctx context.Context, chatID int64) (int, error) {

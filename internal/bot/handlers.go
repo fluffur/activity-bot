@@ -245,7 +245,6 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(memberHandler.SetRole, "роль", "role", "title").
 		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard).
-		FallbackToSender().
 		SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.RestoreRoles, "восстановить роли", "restore_roles").

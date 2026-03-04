@@ -73,36 +73,27 @@ WITH chat_upsert AS (
         VALUES (@chat_id, @norm_warn)
         ON CONFLICT (id) DO UPDATE
             SET norm_warn = chats.norm_warn
-        RETURNING id
-),
+        RETURNING id),
      user_upsert AS (
          INSERT INTO users (id, username, first_name, last_name)
              VALUES (@user_id, @username, @first_name, @last_name)
              ON CONFLICT (id) DO UPDATE
-                 SET username   = EXCLUDED.username,
+                 SET username = EXCLUDED.username,
                      first_name = EXCLUDED.first_name,
-                     last_name  = EXCLUDED.last_name
-             RETURNING id
-     )
-INSERT INTO chat_members (chat_id, user_id, status, custom_title)
+                     last_name = EXCLUDED.last_name
+             RETURNING id)
+INSERT INTO chat_members (chat_id, user_id, custom_title)
 SELECT chat_upsert.id,
        user_upsert.id,
-       @status,
        @custom_title
-FROM chat_upsert, user_upsert
+FROM chat_upsert,
+     user_upsert
 ON CONFLICT (chat_id, user_id) DO UPDATE
-    SET status = CASE
-                     WHEN EXCLUDED.status = 'creator' THEN 'creator'
-                     WHEN chat_members.status = 'administrator' THEN 'administrator'
-                     WHEN chat_members.status = 'creator'
-                         AND EXCLUDED.status <> 'creator' THEN 'creator'
-                     ELSE EXCLUDED.status
-        END,
-        custom_title = CASE
-                           WHEN @custom_title IS NOT NULL
+    SET custom_title = CASE
+                           WHEN @custom_title IS NOT NULL AND @custom_title <> ''
                                THEN @custom_title
                            ELSE chat_members.custom_title
-            END,
+        END,
         left_at = NULL
 RETURNING *;
 
