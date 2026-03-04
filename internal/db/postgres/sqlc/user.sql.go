@@ -91,7 +91,7 @@ SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, r
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.custom_title ILIKE '%' || $1 || '%'
-  AND cm.chat_id = $2 AND cm.left_at IS NULL
+  AND cm.chat_id = $2
 LIMIT 10
 `
 

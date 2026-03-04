@@ -16,11 +16,11 @@ WITH ins AS (
     INSERT INTO chats (id, title, norm_warn, newbie_threshold_days)
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title
-        RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled)
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled
+        RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time)
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
 FROM ins
 UNION ALL
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
 FROM chats
 WHERE id = $1
 LIMIT 1
@@ -50,6 +50,7 @@ type EnsureChatExistsRow struct {
 	MentionTypes        int32       `db:"mention_types" json:"mentionTypes"`
 	Title               string      `db:"title" json:"title"`
 	TagsEnabled         bool        `db:"tags_enabled" json:"tagsEnabled"`
+	WeekStartTime       pgtype.Time `db:"week_start_time" json:"weekStartTime"`
 }
 
 func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error) {
@@ -77,12 +78,13 @@ func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsPara
 		&i.MentionTypes,
 		&i.Title,
 		&i.TagsEnabled,
+		&i.WeekStartTime,
 	)
 	return i, err
 }
 
 const getAllChats = `-- name: GetAllChats :many
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
 FROM chats
 WHERE id < 0
   AND title <> ''
@@ -114,6 +116,7 @@ func (q *Queries) GetAllChats(ctx context.Context) ([]Chat, error) {
 			&i.MentionTypes,
 			&i.Title,
 			&i.TagsEnabled,
+			&i.WeekStartTime,
 		); err != nil {
 			return nil, err
 		}
@@ -192,7 +195,7 @@ func (q *Queries) GetAllUserChatsWithoutNorm(ctx context.Context, userID int64) 
 }
 
 const getChat = `-- name: GetChat :one
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
 FROM chats
 WHERE id = $1
 `
@@ -217,6 +220,7 @@ func (q *Queries) GetChat(ctx context.Context, id int64) (Chat, error) {
 		&i.MentionTypes,
 		&i.Title,
 		&i.TagsEnabled,
+		&i.WeekStartTime,
 	)
 	return i, err
 }
@@ -240,7 +244,7 @@ INSERT INTO chats(id, title, norm_warn)
 VALUES ($1, $2, $3)
 ON CONFLICT(id) DO UPDATE SET norm_warn = chats.norm_warn,
                               title     = EXCLUDED.title
-RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled
+RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
 `
 
 type GetOrCreateChatParams struct {
@@ -269,6 +273,7 @@ func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams
 		&i.MentionTypes,
 		&i.Title,
 		&i.TagsEnabled,
+		&i.WeekStartTime,
 	)
 	return i, err
 }

@@ -121,6 +121,7 @@ type Chat struct {
 	MentionTypes        int32       `db:"mention_types" json:"mentionTypes"`
 	Title               string      `db:"title" json:"title"`
 	TagsEnabled         bool        `db:"tags_enabled" json:"tagsEnabled"`
+	WeekStartTime       pgtype.Time `db:"week_start_time" json:"weekStartTime"`
 }
 
 type ChatMember struct {
