@@ -118,14 +118,19 @@ func (h *Handler) ShowPrompt(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.Reply(b, view.FormatPrompt(c.AISystemPrompt), nil)
 }
 
-func (h *Handler) ManageWeekStart(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) ShowWeekStart(b *gotgbot.Bot, ctx *cmd.Context) error {
 	c, err := h.service.GetChat(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
 	}
 
-	if ctx.FirstArgument() == "" {
-		return ctx.ReplyHTML(b, view.FormatWeekStart(int(c.WeekStartDay), c.WeekStartTime))
+	return ctx.ReplyHTML(b, view.FormatWeekStart(int(c.WeekStartDay), c.WeekStartTime))
+}
+
+func (h *Handler) ManageWeekStart(b *gotgbot.Bot, ctx *cmd.Context) error {
+	c, err := h.service.GetChat(ctx.StdContext(), ctx.TargetChatID())
+	if err != nil {
+		return err
 	}
 
 	newDay := int(c.WeekStartDay)

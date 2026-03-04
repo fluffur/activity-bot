@@ -281,9 +281,10 @@ func (a *App) RegisterHandlers() {
 		SetArgsCount(1).
 		WithGuards(groupGuard, adminGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(chatHandler.ManageWeekStart, "week_start", "начало недели", "чистка", "начало", "время чистки").
+	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowWeekStart, "week_start", "начало недели", "чистка", "время чистки", "конец чистки"))
+	a.Dispatcher.AddHandler(cf.New(chatHandler.ManageWeekStart, "week_start", "начало недели", "чистка", "время чистки", "конец чистки").
 		AddTriggers("+").
-		SetArgsCount(1),
+		SetArgsCount(1).WithGuards(groupGuard, adminGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrefix, "custom_prefix", "кастом префикс", "префикс").
 		WithGuards(groupGuard, adminGuard),
