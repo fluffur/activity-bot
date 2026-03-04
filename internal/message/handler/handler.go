@@ -61,7 +61,9 @@ func (h *Handler) Message(_ *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 	effectiveSender := ctx.EffectiveSender
 	effectiveChat := ctx.EffectiveChat
-
+	if effectiveSender == nil || effectiveChat == nil {
+		return nil
+	}
 	if _, err := h.memberService.EnsureMemberExists(
 		ctx.StdContext(),
 		effectiveChat.Id,
@@ -74,5 +76,10 @@ func (h *Handler) Message(_ *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return h.service.Save(ctx.StdContext(), effectiveChat.Id, effectiveSender.Id(), ctx.EffectiveMessage.MessageId)
+	return h.service.Save(
+		ctx.StdContext(),
+		effectiveChat.Id,
+		effectiveSender.Id(),
+		ctx.EffectiveMessage.MessageId,
+	)
 }
