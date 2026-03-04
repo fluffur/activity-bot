@@ -24,10 +24,13 @@ func FormatProfile(m model.MemberStats) string {
 	)
 
 	status := helpers.TranslateMemberStatus(m.Status, m.LeftAt)
-
+	leftAtInfo := ""
+	if m.LeftAt != nil {
+		leftAtInfo = ", покинул чат" + helpers.FormatToHumanDate(*m.LeftAt)
+	}
 	text := fmt.Sprintf(
 		`👤 <b>Информация о:</b> %s
-👑 <b>Статус:</b> %s (с %s)
+👑 <b>Статус:</b> %s (присоединился %s%s)
 	
 📊 <b>Активность</b>
 └ Сегодня: <b>%d</b>
@@ -38,6 +41,7 @@ func FormatProfile(m model.MemberStats) string {
 └ 24ч: <b>%d</b> | 7д: <b>%d</b> | 30д: <b>%d</b>`,
 		name,
 		status,
+		leftAtInfo,
 		helpers.FormatToHumanDateTime(m.JoinedAt),
 		m.DayCount,
 		m.WeekCount,

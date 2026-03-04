@@ -38,7 +38,7 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay))
+	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay), c.WeekStartTime)
 	if err != nil {
 		return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>\n\nИспользуйте: <code>01.02-10.02</code>, <code>10</code> (за последние 10 дней), <code>от вчера до сегодня</code> и т.д.")
 	}
@@ -68,9 +68,9 @@ func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error 
 		return err
 	}
 
-	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay))
+	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay), c.WeekStartTime)
 	if err != nil {
-		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now().In(helpers.MoscowLocation), c.WeekStartDay)
+		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now().In(helpers.MoscowLocation), c.WeekStartDay, c.WeekStartTime)
 	}
 
 	buf, err := h.service.GetChatActivityGraph(ctx.StdContext(), ctx.TargetChatID(), from, to)
@@ -288,7 +288,7 @@ func (h *Handler) ShowFailedNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay))
+	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay), c.WeekStartTime)
 	if err != nil {
 		return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>")
 	}
@@ -307,7 +307,7 @@ func (h *Handler) ShowNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay))
+	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay), c.WeekStartTime)
 	if err != nil {
 		return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>")
 	}
@@ -320,7 +320,7 @@ func (h *Handler) ShowNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.ReplyHTML(b, view.FormatNewbies(report, from, to))
 }
 
-func (h *Handler) resolvePeriod(ctx *cmd.Context, weekStartDay time.Weekday) (*time.Time, *time.Time, error) {
+func (h *Handler) resolvePeriod(ctx *cmd.Context, weekStartDay time.Weekday, weekStartTime string) (*time.Time, *time.Time, error) {
 	period := "неделя"
 	if len(ctx.Args()) > 0 {
 		period = ctx.FirstArgument()
@@ -328,10 +328,10 @@ func (h *Handler) resolvePeriod(ctx *cmd.Context, weekStartDay time.Weekday) (*t
 
 	switch period {
 	case "неделя", "":
-		from, to := stats.ResolvePeriod(stats.PeriodWeek, time.Now().In(helpers.MoscowLocation), int16(weekStartDay))
+		from, to := stats.ResolvePeriod(stats.PeriodWeek, time.Now().In(helpers.MoscowLocation), int16(weekStartDay), weekStartTime)
 		return from, to, nil
 	case "месяц":
-		from, to := stats.ResolvePeriod(stats.PeriodMonth, time.Now().In(helpers.MoscowLocation), int16(weekStartDay))
+		from, to := stats.ResolvePeriod(stats.PeriodMonth, time.Now().In(helpers.MoscowLocation), int16(weekStartDay), weekStartTime)
 		return from, to, nil
 	case "всё", "все", "всего", "вся":
 		return nil, nil, nil

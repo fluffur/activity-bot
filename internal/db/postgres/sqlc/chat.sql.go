@@ -146,14 +146,14 @@ FROM chats c
                        AND m.user_id = $1
                        AND m.created_at >= (
                            date_trunc('day', now())
-                               - ((extract(isodow from now())::int - c.week_start_day + 7) % 7)
-                               * interval '1 day'
-                           )
+                               - ((extract(isodow from now())::int - c.week_start_day + 7) % 7) * interval '1 day'
+                               + c.week_start_time::interval
+                           ) - CASE WHEN now()::time < c.week_start_time THEN interval '7 days' ELSE interval '0 days' END
 
 WHERE c.id < 0
   AND c.title <> ''
 
-GROUP BY c.id, c.title, c.norm_ban, c.norm_warn
+GROUP BY c.id, c.title, c.norm_ban, c.norm_warn, c.week_start_time
 
 HAVING COUNT(m.id) < GREATEST(c.norm_ban, c.norm_warn)
 
@@ -483,5 +483,21 @@ type UpdateChatWeekStartDayParams struct {
 
 func (q *Queries) UpdateChatWeekStartDay(ctx context.Context, arg UpdateChatWeekStartDayParams) error {
 	_, err := q.db.Exec(ctx, updateChatWeekStartDay, arg.WeekStartDay, arg.ChatID)
+	return err
+}
+
+const updateChatWeekStartTime = `-- name: UpdateChatWeekStartTime :exec
+UPDATE chats
+SET week_start_time = $1
+WHERE id = $2
+`
+
+type UpdateChatWeekStartTimeParams struct {
+	WeekStartTime pgtype.Time `db:"week_start_time" json:"weekStartTime"`
+	ChatID        int64       `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) UpdateChatWeekStartTime(ctx context.Context, arg UpdateChatWeekStartTimeParams) error {
+	_, err := q.db.Exec(ctx, updateChatWeekStartTime, arg.WeekStartTime, arg.ChatID)
 	return err
 }

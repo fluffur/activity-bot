@@ -54,3 +54,11 @@ func FormatPrefixlessStatus(enabled bool) string {
 	}
 	return "Бот отвечает на сообщения без префиксов"
 }
+
+func FormatWeekStart(day int, time string) string {
+	return fmt.Sprintf("📅 Начало недели: <b>%s</b> в <b>%s</b>", helpers.FormatWeekStartDay(day), time)
+}
+
+func FormatWeekStartSet(day int, time string) string {
+	return fmt.Sprintf("📅 Начало недели изменено на <b>%s</b> в <b>%s</b>", helpers.FormatWeekStartDay(day), time)
+}

@@ -131,13 +131,11 @@ func (s *Service) renderBarChart(title string, values []chart.Value, maximum flo
 	paddingLeft := 40
 	paddingRight := 20
 
-	// Dynamic width based on bar count
 	const minBarWidth = 25.0
 	const spacingRatio = 0.4
 
 	barWidth := minBarWidth
 	if count > 0 {
-		// If we have few bars, they can be wider
 		if count < 10 {
 			barWidth = 60
 		} else if count < 20 {
@@ -330,7 +328,7 @@ const (
 	PeriodAll   ReportPeriod = "all"
 )
 
-func ResolvePeriod(period ReportPeriod, now time.Time, weekStartDay int16) (from *time.Time, to *time.Time) {
+func ResolvePeriod(period ReportPeriod, now time.Time, weekStartDay int16, weekStartTime string) (from *time.Time, to *time.Time) {
 	switch period {
 
 	case PeriodWeek:
@@ -342,13 +340,23 @@ func ResolvePeriod(period ReportPeriod, now time.Time, weekStartDay int16) (from
 		diff := (isoWeekday - int(weekStartDay) + 7) % 7
 
 		start := now.AddDate(0, 0, -diff)
+
+		hour, minute := 0, 0
+		if weekStartTime != "" {
+			fmt.Sscanf(weekStartTime, "%d:%d", &hour, &minute)
+		}
+
 		start = time.Date(
 			start.Year(),
 			start.Month(),
 			start.Day(),
-			0, 0, 0, 0,
+			hour, minute, 0, 0,
 			start.Location(),
 		)
+
+		if now.Before(start) {
+			start = start.AddDate(0, 0, -7)
+		}
 
 		end := start.AddDate(0, 0, 7).Add(-time.Second)
 

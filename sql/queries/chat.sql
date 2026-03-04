@@ -104,6 +104,11 @@ UPDATE chats
 SET mention_types = $1
 WHERE id = @chat_id;
 
+-- name: UpdateChatWeekStartTime :exec
+UPDATE chats
+SET week_start_time = $1
+WHERE id = @chat_id;
+
 -- name: GetAllUserChatsWithoutNorm :many
 SELECT c.id,
        c.title,
@@ -122,14 +127,14 @@ FROM chats c
                        AND m.user_id = @user_id
                        AND m.created_at >= (
                            date_trunc('day', now())
-                               - ((extract(isodow from now())::int - c.week_start_day + 7) % 7)
-                               * interval '1 day'
-                           )
+                               - ((extract(isodow from now())::int - c.week_start_day + 7) % 7) * interval '1 day'
+                               + c.week_start_time::interval
+                           ) - CASE WHEN now()::time < c.week_start_time THEN interval '7 days' ELSE interval '0 days' END
 
 WHERE c.id < 0
   AND c.title <> ''
 
-GROUP BY c.id, c.title, c.norm_ban, c.norm_warn
+GROUP BY c.id, c.title, c.norm_ban, c.norm_warn, c.week_start_time
 
 HAVING COUNT(m.id) < GREATEST(c.norm_ban, c.norm_warn)
 

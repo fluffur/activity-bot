@@ -3,6 +3,7 @@ package postgres
 import (
 	"activity-bot/internal/chat"
 	db "activity-bot/internal/db/postgres/sqlc"
+	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"context"
 
@@ -34,6 +35,7 @@ func mapChat(c db.EnsureChatExistsRow) model.Chat {
 		MentionsPerMessage:  c.MentionsPerMessage,
 		MentionTypes:        c.MentionTypes,
 		TagsEnabled:         c.TagsEnabled,
+		WeekStartTime:       helpers.MicrosecondsToTime(c.WeekStartTime.Microseconds),
 	}
 }
 
@@ -212,4 +214,11 @@ func mapChatsWithoutNorm(chats []db.GetAllUserChatsWithoutNormRow) []model.ChatW
 		}
 	}
 	return result
+}
+
+func (r *ChatRepository) SetWeekStartTime(ctx context.Context, chatID int64, time string) error {
+	return r.queries.UpdateChatWeekStartTime(ctx, db.UpdateChatWeekStartTimeParams{
+		ChatID:        chatID,
+		WeekStartTime: pgtype.Time{Microseconds: helpers.TimeToMicroseconds(time), Valid: true},
+	})
 }

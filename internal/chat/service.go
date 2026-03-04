@@ -86,3 +86,7 @@ func (s *Service) ListChatsWithoutNorm(ctx context.Context, userID int64) ([]mod
 func (s *Service) EnableTags(ctx context.Context, chatID int64, enabled bool) error {
 	return s.repo.SetTagsEnabled(ctx, chatID, enabled)
 }
+
+func (s *Service) SetWeekStartTime(ctx context.Context, chatID int64, time string) error {
+	return s.repo.SetWeekStartTime(ctx, chatID, time)
+}

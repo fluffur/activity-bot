@@ -20,6 +20,7 @@ type Chat struct {
 	MentionsPerMessage  int32
 	MentionTypes        int32
 	TagsEnabled         bool
+	WeekStartTime       string
 }
 
 type ChatMember struct {

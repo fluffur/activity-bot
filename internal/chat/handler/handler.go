@@ -118,20 +118,64 @@ func (h *Handler) ShowPrompt(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.Reply(b, view.FormatPrompt(c.AISystemPrompt), nil)
 }
 
-func (h *Handler) SetWeekStartDay(b *gotgbot.Bot, ctx *cmd.Context) error {
-	arg := ctx.FirstArgument()
-	if arg == "" {
-		return ctx.Reply(b, "Укажите день начала недели (например: пн, ср, вс или число 1–7)", nil)
-	}
-	weekStartDay, ok := parseWeekStartDay(arg)
-	if !ok {
-		return ctx.Reply(b, "Не удалось распознать день недели. Используйте пн/вт/ср/чт/пт/сб/вс или число 1–7.", nil)
-	}
-	if err := h.service.SetWeekStartDay(ctx.StdContext(), ctx.TargetChatID(), weekStartDay); err != nil {
+func (h *Handler) ManageWeekStart(b *gotgbot.Bot, ctx *cmd.Context) error {
+	c, err := h.service.GetChat(ctx.StdContext(), ctx.TargetChatID())
+	if err != nil {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, "📅 Начало недели в чате изменено")
+	if ctx.FirstArgument() == "" {
+		return ctx.ReplyHTML(b, view.FormatWeekStart(int(c.WeekStartDay), c.WeekStartTime))
+	}
+
+	newDay := int(c.WeekStartDay)
+	newTime := c.WeekStartTime
+	daySet := false
+	timeSet := false
+
+	args := strings.Fields(ctx.FirstArgument())
+
+	for _, arg := range args {
+		if day, ok := parseWeekStartDay(arg); ok && !daySet {
+			newDay = day
+			daySet = true
+			continue
+		}
+
+		if hour, minute, ok := parseTime(arg); ok && !timeSet {
+			newTime = fmt.Sprintf("%02d:%02d", hour, minute)
+			timeSet = true
+			continue
+		}
+	}
+
+	if !daySet && !timeSet {
+		return ctx.Reply(b, "❌ Не удалось распознать день недели или время. Используйте пн/вт/... или ЧЧ:ММ.", nil)
+	}
+
+	if err := h.service.SetWeekStartDay(ctx.StdContext(), ctx.TargetChatID(), newDay); err != nil {
+		return err
+	}
+	if err := h.service.SetWeekStartTime(ctx.StdContext(), ctx.TargetChatID(), newTime); err != nil {
+		return err
+	}
+
+	return ctx.ReplyHTML(b, view.FormatWeekStartSet(newDay, newTime))
+}
+
+func parseTime(arg string) (int, int, bool) {
+	var h, m int
+	if _, err := fmt.Sscanf(arg, "%d:%d", &h, &m); err == nil {
+		if h >= 0 && h <= 23 && m >= 0 && m <= 59 {
+			return h, m, true
+		}
+	}
+	if _, err := fmt.Sscanf(arg, "%d", &h); err == nil {
+		if h >= 0 && h <= 23 {
+			return h, 0, true
+		}
+	}
+	return 0, 0, false
 }
 
 func parseWeekStartDay(arg string) (int, bool) {

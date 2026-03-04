@@ -111,3 +111,26 @@ func pluralRu(n int, one, few, many string) string {
 		return many
 	}
 }
+
+func FormatWeekStartDay(day int) string {
+	days := [...]string{
+		"понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье",
+	}
+	if day < 1 || day > 7 {
+		return "неизвестно"
+	}
+	return days[day-1]
+}
+
+func TimeToMicroseconds(s string) int64 {
+	var h, m int
+	fmt.Sscanf(s, "%d:%d", &h, &m)
+	return int64(h)*3600*1000000 + int64(m)*60*1000000
+}
+
+func MicrosecondsToTime(micros int64) string {
+	seconds := micros / 1000000
+	h := seconds / 3600
+	m := (seconds % 3600) / 60
+	return fmt.Sprintf("%02d:%02d", h, m)
+}

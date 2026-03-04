@@ -25,4 +25,5 @@ type Repository interface {
 	SetMentionTypes(ctx context.Context, chatID int64, types int32) error
 	GetChatsWithoutNorm(ctx context.Context, userID int64) ([]model.ChatWithoutNorm, error)
 	SetTagsEnabled(ctx context.Context, chatID int64, enabled bool) error
+	SetWeekStartTime(ctx context.Context, chatID int64, time string) error
 }
