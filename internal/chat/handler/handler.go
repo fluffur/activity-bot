@@ -404,7 +404,14 @@ func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	isAdmin, err := h.adminService.IsAdmin(ctx.StdContext(), chatID, ctx.EffectiveUser.Id)
-	if err != nil || !isAdmin {
+	if err != nil {
+		return err
+	}
+	isDeveloper, err := h.adminService.IsDeveloper(ctx.StdContext(), chatID, ctx.EffectiveUser.Id)
+	if err != nil {
+		return err
+	}
+	if !isAdmin && !isDeveloper {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text:      "У вас больше нет прав администратора в этом чате",
 			ShowAlert: true,
