@@ -240,6 +240,7 @@ func (h *Handler) WhoAreUser(
 				{
 					Text:         "📊 Показать график",
 					CallbackData: fmt.Sprintf("profile_graph:%d", userID),
+					Style:        "primary",
 				},
 			},
 		},
