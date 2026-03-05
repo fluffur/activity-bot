@@ -23,6 +23,6 @@ func OnlyGroups(sessionService interface {
 			}
 		}
 
-		return false, "Команда доступна только в группах или при активной сессии управления чатом в ЛС"
+		return false, "Укажитие сначала нужный вам чат через команду <code>управление</code>"
 	})
 }
