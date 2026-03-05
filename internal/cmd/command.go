@@ -61,7 +61,8 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 		}
 		chatID, err := GetChatID(f.sessionService, ctx, ctxWithTimeout)
 		if err != nil {
-			return err
+			logger.L.Warn("Chat ID not found for callback, use effective chat", "error", err)
+			chatID = ctx.EffectiveChat.Id
 		}
 		cmdCtx := &Context{
 			Context:      ctx,
