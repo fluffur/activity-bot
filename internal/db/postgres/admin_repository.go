@@ -255,10 +255,6 @@ func (r *AdminRepository) GetAllDevelopers(ctx context.Context, chatID int64) ([
 	return users, roles, nil
 }
 
-func (r *AdminRepository) GetDevelopersCount(ctx context.Context, chatID int64) (int64, error) {
-	return r.queries.GetDevelopersCount(ctx, chatID)
-}
-
 func (r *AdminRepository) GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]model.Warn, error) {
 	warns, err := r.queries.GetActiveWarnsByChat(ctx, chatID)
 	if err != nil {

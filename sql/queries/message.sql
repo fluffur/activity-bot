@@ -8,7 +8,7 @@ SELECT cm.user_id,
        u.username,
        u.first_name,
        u.last_name,
-       COUNT(m.chat_id) AS messages_count,
+       COALESCE(m.messages_count, 0) AS messages_count,
        c.norm_warn,
        c.norm_ban,
        cm.joined_at,
@@ -18,19 +18,15 @@ SELECT cm.user_id,
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
-         LEFT JOIN messages m
-                   ON m.chat_id = cm.chat_id
-                       AND m.user_id = cm.user_id
-                       AND (
-                          (m.created_at >= @from_date OR @from_date::timestamptz IS NULL)
-                              AND (m.created_at < @to_date OR @to_date::timestamptz IS NULL)
-                          )
+         LEFT JOIN (SELECT chat_id, user_id, COUNT(*) AS messages_count
+                    FROM messages
+                    WHERE (@from_date::timestamptz IS NULL OR created_at >= @from_date)
+                      AND (@to_date::timestamptz IS NULL OR created_at < @to_date)
+                    GROUP BY chat_id, user_id) m ON m.chat_id = cm.chat_id
+    AND m.user_id = cm.user_id
 WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
-GROUP BY cm.user_id, u.username, u.first_name, u.last_name,
-         c.norm_warn, c.norm_ban, cm.joined_at, c.newbie_threshold_days,
-         cm.status, cm.custom_title
 ORDER BY messages_count DESC;
 
 
@@ -40,26 +36,26 @@ SELECT cm.user_id,
        u.first_name,
        u.last_name,
 
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now() AT TIME ZONE 'Europe/Moscow') AT TIME ZONE 'Europe/Moscow'), 0)::bigint   AS day_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day'),
-                0)::bigint                                                                             AS day_rolling_count,
-       COALESCE(
-                       COUNT(m.chat_id) FILTER (
-                   WHERE m.created_at >= (
-                       (date_trunc('day', now() AT TIME ZONE 'Europe/Moscow') AT TIME ZONE 'Europe/Moscow')
-                           - ((extract(isodow from now() AT TIME ZONE 'Europe/Moscow')::int - c.week_start_day + 7) % 7)
-                           * interval '1 day'
-                       )
-                   ),
-                       0
-       )::bigint                                                                                       AS week_count,
+       COUNT(m.id) FILTER (WHERE m.created_at >= date_trunc('day', now() AT TIME ZONE 'Europe/Moscow') AT TIME ZONE
+                                                 'Europe/Moscow')          AS day_count,
+       COUNT(m.id) FILTER (WHERE m.created_at >= now() - interval '1 day') AS day_rolling_count,
+       COUNT(m.id) FILTER (
+           WHERE m.created_at >= (
+               (date_trunc('day', t) AT TIME ZONE 'Europe/Moscow')
+                   - ((extract(isodow from now() AT TIME ZONE 'Europe/Moscow')::int - c.week_start_day + 7) % 7)
+                   * interval '1 day'
+               )
+           )
+        ,
 
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '7 days'),
-                0)::bigint                                                                             AS week_rolling_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('month', now() AT TIME ZONE 'Europe/Moscow') AT TIME ZONE 'Europe/Moscow'), 0)::bigint AS month_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '30 days'),
-                0)::bigint                                                                             AS month_rolling_count,
-       COALESCE(COUNT(m.chat_id), 0)::bigint                                                           AS all_time_count,
+       COALESCE(COUNT(m.id) FILTER (WHERE m.created_at >= now() - interval '7 days'),
+                0)::bigint                                                 AS week_rolling_count,
+       COALESCE(COUNT(m.id) FILTER (WHERE m.created_at >=
+                                          date_trunc('month', t) AT TIME ZONE
+                                          'Europe/Moscow'), 0)::bigint     AS month_count,
+       COALESCE(COUNT(m.id) FILTER (WHERE m.created_at >= now() - interval '30 days'),
+                0)::bigint                                                 AS month_rolling_count,
+       COALESCE(COUNT(m.id), 0)::bigint                                    AS all_time_count,
 
        c.norm_ban,
        c.norm_warn,
@@ -72,6 +68,7 @@ SELECT cm.user_id,
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
+         CROSS JOIN (SELECT now() AT TIME ZONE 'Europe/Moscow' AS msk_now) t
          LEFT JOIN messages m
                    ON m.chat_id = cm.chat_id
                        AND m.user_id = cm.user_id
@@ -93,7 +90,7 @@ GROUP BY cm.user_id,
 
 -- name: MessageActivityByDay :many
 SELECT date_trunc('day', m.created_at AT TIME ZONE 'Europe/Moscow')::date AS day,
-       COUNT(m.chat_id)                      AS messages_count
+       COUNT(m.chat_id)                                                   AS messages_count
 FROM messages m
          JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = m.user_id
 WHERE m.chat_id = @chat_id
@@ -107,7 +104,7 @@ ORDER BY day;
 
 -- name: MessageActivityByDayAll :many
 SELECT date_trunc('day', m.created_at AT TIME ZONE 'Europe/Moscow')::date AS day,
-       COUNT(*)                              AS messages_count
+       COUNT(*)                                                           AS messages_count
 FROM messages m
 WHERE m.chat_id = $1
   AND m.created_at >= COALESCE(@from_date, now() - interval '30 days')

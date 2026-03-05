@@ -22,7 +22,6 @@ type Repository interface {
 	RemoveDeveloperRole(ctx context.Context, chatID, userID int64) error
 	IsDeveloper(ctx context.Context, chatID, userID int64) (bool, error)
 	GetAllDevelopers(ctx context.Context, chatID int64) ([]model.User, []string, error)
-	GetDevelopersCount(ctx context.Context, chatID int64) (int64, error)
 	CreateModerationAction(ctx context.Context, actionType string, chatID, userID, modID int64, reason string, until *time.Time) error
 	GetWarnsCount(ctx context.Context, chatID, userID int64) (int64, error)
 	ClearWarns(ctx context.Context, chatID, userID int64) error

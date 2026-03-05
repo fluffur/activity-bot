@@ -123,33 +123,6 @@ func (r *MemberRepository) GetWithCustomTitles(ctx context.Context, chatID int64
 	return res, nil
 }
 
-func (r *MemberRepository) GetAnyWithCustomTitles(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
-	members, err := r.queries.GetAnyChatMembersWithTitles(ctx, chatID)
-	if err != nil {
-		return nil, err
-	}
-	res := make([]model.ChatMember, len(members))
-	for i, m := range members {
-		var username *string
-		if m.Username.Valid {
-			username = &m.Username.String
-		}
-
-		res[i] = model.ChatMember{
-			ChatID: chatID,
-			User: model.User{
-				Username:  username,
-				FirstName: m.FirstName.String,
-				LastName:  m.LastName.String,
-				ID:        m.UserID,
-			},
-			CustomTitle: m.CustomTitle.String,
-			Status:      m.Status,
-		}
-	}
-	return res, nil
-}
-
 func (r *MemberRepository) UpsertChatMembers(ctx context.Context, chatID int64, users []model.ChatMemberUpdate) error {
 	userIDs := make([]int64, len(users))
 	customTitles := make([]string, len(users))
@@ -185,19 +158,6 @@ func (r *MemberRepository) Remove(ctx context.Context, chatID int64, userID int6
 		ChatID: chatID,
 		UserID: userID,
 	})
-}
-
-func (r *MemberRepository) EnsureExists(ctx context.Context, chatID int64, userID int64, status string) (model.ChatMember, error) {
-	m, err := r.queries.EnsureChatMemberExists(ctx, db.EnsureChatMemberExistsParams{
-		ChatID: chatID,
-		UserID: userID,
-		Status: status,
-	})
-	if err != nil {
-		return model.ChatMember{}, err
-	}
-
-	return mapChatMember(m), nil
 }
 
 func (r *MemberRepository) EnsureFull(ctx context.Context, chatID, userID int64, role, firstName, lastName, username string, normWarn int32) (model.ChatMember, error) {

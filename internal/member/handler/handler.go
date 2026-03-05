@@ -91,7 +91,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetChatID := ctx.TargetChatID()
-	members, err := h.service.GetAnyMembersWithTitle(ctx.StdContext(), targetChatID)
+	members, err := h.service.GetMembersWithTitle(ctx.StdContext(), targetChatID)
 	if err != nil {
 		_ = ctx.Reply(b, "Не удалось получить список ролей из базы", nil)
 		return err

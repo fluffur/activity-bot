@@ -12,13 +12,6 @@ FROM chats
 WHERE id = $1
 LIMIT 1;
 
--- name: GetOrCreateChat :one
-INSERT INTO chats(id, title, norm_warn)
-VALUES ($1, $2, $3)
-ON CONFLICT(id) DO UPDATE SET norm_warn = chats.norm_warn,
-                              title     = EXCLUDED.title
-RETURNING *;
-
 -- name: UpdateChatWarnNorm :exec
 UPDATE chats
 SET norm_warn = $1
@@ -36,16 +29,9 @@ UPDATE chats
 SET newbie_threshold_days = $1
 WHERE id = $2;
 
--- name: GetChat :one
-SELECT *
-FROM chats
-WHERE id = $1;
-
 -- name: GetAllChats :many
 SELECT *
-FROM chats
-WHERE id < 0
-  AND title <> '';
+FROM chats;
 
 -- name: UpdateChatTitle :exec
 UPDATE chats
@@ -56,12 +42,6 @@ WHERE id = $2;
 UPDATE chats
 SET ai_system_prompt = $1
 WHERE id = @chat_id;
-
--- name: GetChatMaxLadder :one
-SELECT max_ladder
-FROM chats
-WHERE id = @chat_id
-LIMIT 1;
 
 -- name: SetChatMaxLadder :exec
 UPDATE chats
@@ -126,19 +106,18 @@ FROM chats c
                    ON m.chat_id = c.id
                        AND m.user_id = @user_id
                        AND m.created_at >= (
-                           date_trunc('day', now())
-                               - ((extract(isodow from now())::int - c.week_start_day + 7) % 7) * interval '1 day'
-                               + c.week_start_time::interval
-                           ) - CASE WHEN now()::time < c.week_start_time THEN interval '7 days' ELSE interval '0 days' END
-
-WHERE c.id < 0
-  AND c.title <> ''
-
+                                               date_trunc('day', now())
+                                                   - ((extract(isodow from now())::int - c.week_start_day + 7) % 7) *
+                                                     interval '1 day'
+                                                   + c.week_start_time::interval
+                                               ) - CASE
+                                                       WHEN now()::time < c.week_start_time THEN interval '7 days'
+                                                       ELSE interval '0 days' END
 GROUP BY c.id, c.title, c.norm_ban, c.norm_warn, c.week_start_time
-
 HAVING COUNT(m.id) < GREATEST(c.norm_ban, c.norm_warn)
-
 ORDER BY week_count;
 
 -- name: GetChatsWithoutTitle :many
-SELECT * FROM chats WHERE title = '' AND id < 0;
+SELECT *
+FROM chats
+WHERE title = '';

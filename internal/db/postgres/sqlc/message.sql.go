@@ -193,7 +193,7 @@ SELECT cm.user_id,
        u.username,
        u.first_name,
        u.last_name,
-       COUNT(m.chat_id) AS messages_count,
+       COALESCE(m.messages_count, 0) AS messages_count,
        c.norm_warn,
        c.norm_ban,
        cm.joined_at,
@@ -203,19 +203,17 @@ SELECT cm.user_id,
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
-         LEFT JOIN messages m
-                   ON m.chat_id = cm.chat_id
-                       AND m.user_id = cm.user_id
-                       AND (
-                          (m.created_at >= $1 OR $1::timestamptz IS NULL)
-                              AND (m.created_at < $2 OR $2::timestamptz IS NULL)
-                          )
+         LEFT JOIN (
+    SELECT chat_id, user_id, COUNT(*) AS messages_count
+    FROM messages
+    WHERE ($1::timestamptz IS NULL OR created_at >= $1)
+      AND ($2::timestamptz IS NULL OR created_at < $2)
+    GROUP BY chat_id, user_id
+) m ON m.chat_id = cm.chat_id
+    AND m.user_id = cm.user_id
 WHERE cm.chat_id = $3
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
-GROUP BY cm.user_id, u.username, u.first_name, u.last_name,
-         c.norm_warn, c.norm_ban, cm.joined_at, c.newbie_threshold_days,
-         cm.status, cm.custom_title
 ORDER BY messages_count DESC
 `
 

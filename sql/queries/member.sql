@@ -5,14 +5,6 @@ WHERE chat_id = $1
   AND user_id = $2;
 
 
--- name: EnsureChatMemberExists :one
-INSERT INTO chat_members(chat_id, user_id, status)
-VALUES ($1, $2, @status)
-ON CONFLICT(chat_id, user_id) DO UPDATE SET status  = EXCLUDED.status,
-                                            left_at = NULL
-RETURNING *;
-
-
 -- name: GetChatMember :one
 SELECT *
 FROM chat_members

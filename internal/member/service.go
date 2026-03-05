@@ -35,10 +35,6 @@ func (s *Service) GetMembersWithTitle(ctx context.Context, chatID int64) ([]mode
 	return s.repo.GetWithCustomTitles(ctx, chatID)
 }
 
-func (s *Service) GetAnyMembersWithTitle(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
-	return s.repo.GetAnyWithCustomTitles(ctx, chatID)
-}
-
 func (s *Service) GetMemberTitle(ctx context.Context, chatID int64, userID int64) (string, error) {
 	return s.repo.GetCustomTitle(ctx, chatID, userID)
 }

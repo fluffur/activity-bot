@@ -80,8 +80,6 @@ func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsPara
 const getAllChats = `-- name: GetAllChats :many
 SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
 FROM chats
-WHERE id < 0
-  AND title <> ''
 `
 
 func (q *Queries) GetAllChats(ctx context.Context) ([]Chat, error) {
@@ -139,18 +137,15 @@ FROM chats c
                    ON m.chat_id = c.id
                        AND m.user_id = $1
                        AND m.created_at >= (
-                           date_trunc('day', now())
-                               - ((extract(isodow from now())::int - c.week_start_day + 7) % 7) * interval '1 day'
-                               + c.week_start_time::interval
-                           ) - CASE WHEN now()::time < c.week_start_time THEN interval '7 days' ELSE interval '0 days' END
-
-WHERE c.id < 0
-  AND c.title <> ''
-
+                                               date_trunc('day', now())
+                                                   - ((extract(isodow from now())::int - c.week_start_day + 7) % 7) *
+                                                     interval '1 day'
+                                                   + c.week_start_time::interval
+                                               ) - CASE
+                                                       WHEN now()::time < c.week_start_time THEN interval '7 days'
+                                                       ELSE interval '0 days' END
 GROUP BY c.id, c.title, c.norm_ban, c.norm_warn, c.week_start_time
-
 HAVING COUNT(m.id) < GREATEST(c.norm_ban, c.norm_warn)
-
 ORDER BY week_count
 `
 
@@ -188,53 +183,10 @@ func (q *Queries) GetAllUserChatsWithoutNorm(ctx context.Context, userID int64) 
 	return items, nil
 }
 
-const getChat = `-- name: GetChat :one
+const getChatsWithoutTitle = `-- name: GetChatsWithoutTitle :many
 SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
 FROM chats
-WHERE id = $1
-`
-
-func (q *Queries) GetChat(ctx context.Context, id int64) (Chat, error) {
-	row := q.db.QueryRow(ctx, getChat, id)
-	var i Chat
-	err := row.Scan(
-		&i.ID,
-		&i.NormWarn,
-		&i.NewbieThresholdDays,
-		&i.AiSystemPrompt,
-		&i.MaxLadder,
-		&i.CallOnJoin,
-		&i.WelcomeCallMessage,
-		&i.WeekStartDay,
-		&i.MaxWarns,
-		&i.NormBan,
-		&i.CommandPrefix,
-		&i.AllowPrefixless,
-		&i.MentionsPerMessage,
-		&i.MentionTypes,
-		&i.Title,
-		&i.TagsEnabled,
-		&i.WeekStartTime,
-	)
-	return i, err
-}
-
-const getChatMaxLadder = `-- name: GetChatMaxLadder :one
-SELECT max_ladder
-FROM chats
-WHERE id = $1
-LIMIT 1
-`
-
-func (q *Queries) GetChatMaxLadder(ctx context.Context, chatID int64) (int32, error) {
-	row := q.db.QueryRow(ctx, getChatMaxLadder, chatID)
-	var max_ladder int32
-	err := row.Scan(&max_ladder)
-	return max_ladder, err
-}
-
-const getChatsWithoutTitle = `-- name: GetChatsWithoutTitle :many
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time FROM chats WHERE title = '' AND id < 0
+WHERE title = ''
 `
 
 func (q *Queries) GetChatsWithoutTitle(ctx context.Context) ([]Chat, error) {
@@ -273,45 +225,6 @@ func (q *Queries) GetChatsWithoutTitle(ctx context.Context) ([]Chat, error) {
 		return nil, err
 	}
 	return items, nil
-}
-
-const getOrCreateChat = `-- name: GetOrCreateChat :one
-INSERT INTO chats(id, title, norm_warn)
-VALUES ($1, $2, $3)
-ON CONFLICT(id) DO UPDATE SET norm_warn = chats.norm_warn,
-                              title     = EXCLUDED.title
-RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
-`
-
-type GetOrCreateChatParams struct {
-	ID       int64  `db:"id" json:"id"`
-	Title    string `db:"title" json:"title"`
-	NormWarn int32  `db:"norm_warn" json:"normWarn"`
-}
-
-func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams) (Chat, error) {
-	row := q.db.QueryRow(ctx, getOrCreateChat, arg.ID, arg.Title, arg.NormWarn)
-	var i Chat
-	err := row.Scan(
-		&i.ID,
-		&i.NormWarn,
-		&i.NewbieThresholdDays,
-		&i.AiSystemPrompt,
-		&i.MaxLadder,
-		&i.CallOnJoin,
-		&i.WelcomeCallMessage,
-		&i.WeekStartDay,
-		&i.MaxWarns,
-		&i.NormBan,
-		&i.CommandPrefix,
-		&i.AllowPrefixless,
-		&i.MentionsPerMessage,
-		&i.MentionTypes,
-		&i.Title,
-		&i.TagsEnabled,
-		&i.WeekStartTime,
-	)
-	return i, err
 }
 
 const setChatAISystemPrompt = `-- name: SetChatAISystemPrompt :exec
