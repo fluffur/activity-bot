@@ -64,7 +64,7 @@ func FormatProfile(m model.MemberStats) string {
 			)
 		} else {
 			text += fmt.Sprintf(
-				"\n\n<blockquote>💤 Последний рест был завершен %s</blockquote>",
+				"\n\n<blockquote>💤 Последний рест был завершен %s</blockquote> ",
 				helpers.FormatToHumanDate(*m.RestUntil),
 			)
 		}
