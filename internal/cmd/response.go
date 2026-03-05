@@ -22,6 +22,7 @@ type Context struct {
 	users        []*model.User
 	targetChatID int64
 	parsedDates  []time.Time
+	userLevel    int16
 }
 
 func (c *Context) TargetChatID() int64 {
@@ -68,6 +69,10 @@ func (c *Context) HTML() string {
 
 func (c *Context) StdContext() context.Context {
 	return c.ctx
+}
+
+func (c *Context) UserLevel() int16 {
+	return c.userLevel
 }
 
 func (c *Context) Reply(b *gotgbot.Bot, text string, opts *gotgbot.SendMessageOpts) error {

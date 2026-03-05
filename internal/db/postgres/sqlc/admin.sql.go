@@ -136,7 +136,7 @@ func (q *Queries) GetChatsWhereUserIsAdmin(ctx context.Context, userID int64) ([
 }
 
 const getMembersWithExpiredMute = `-- name: GetMembersWithExpiredMute :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason, cm.level
 FROM moderation_actions ma
          JOIN chat_members cm ON ma.chat_id = cm.chat_id AND ma.user_id = cm.user_id
 WHERE ma.type = 'mute'
@@ -162,6 +162,7 @@ func (q *Queries) GetMembersWithExpiredMute(ctx context.Context) ([]ChatMember, 
 			&i.Status,
 			&i.LeftAt,
 			&i.RestReason,
+			&i.Level,
 		); err != nil {
 			return nil, err
 		}

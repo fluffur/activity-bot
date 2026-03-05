@@ -31,20 +31,38 @@ func FormatAdminRemoved(user model.User) string {
 	)
 }
 
-func FormatDevelopersList(users []model.User, roles []string) string {
+func FormatDevelopersList(users []model.User, levels []int16) string {
 	var sb strings.Builder
 	sb.WriteString("🛠 Разработчики бота:\n")
+	mapping := map[int16]string{
+		0: "участник",
+		3: "администратор",
+		5: "создатель",
+	}
 	for i, u := range users {
-		sb.WriteString(fmt.Sprintf("\n%d. %s (%s)", i+1, helpers.Link(u), roles[i]))
+		roleName := mapping[levels[i]]
+		if roleName == "" {
+			roleName = fmt.Sprintf("уровень %d", levels[i])
+		}
+		sb.WriteString(fmt.Sprintf("\n%d. %s (%s)", i+1, helpers.Link(u), roleName))
 	}
 	return sb.String()
 }
 
-func FormatDeveloperAdded(user model.User, role string) string {
+func FormatDeveloperAdded(user model.User, level int16) string {
+	mapping := map[int16]string{
+		0: "участник",
+		3: "администратор",
+		5: "создатель",
+	}
+	roleName := mapping[level]
+	if roleName == "" {
+		roleName = fmt.Sprintf("уровень %d", level)
+	}
 	return fmt.Sprintf("Участник %s %s разработчиком бота с ролью %s",
 		helpers.Link(user),
 		helpers.Gendered(user.Gender, "назначен", "назначена", "назначен(а)"),
-		role,
+		roleName,
 	)
 }
 

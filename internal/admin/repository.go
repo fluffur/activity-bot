@@ -17,11 +17,11 @@ type Repository interface {
 	GetAllChats(ctx context.Context) ([]model.Chat, error)
 
 	EnsureDeveloperUser(ctx context.Context, userID int64) error
-	GetDeveloperRole(ctx context.Context, chatID, userID int64) (string, error)
-	SetDeveloperRole(ctx context.Context, chatID, userID int64, role string) error
+	GetDeveloperLevel(ctx context.Context, chatID, userID int64) (int16, error)
+	SetDeveloperLevel(ctx context.Context, chatID, userID int64, level int16) error
 	RemoveDeveloperRole(ctx context.Context, chatID, userID int64) error
 	IsDeveloper(ctx context.Context, chatID, userID int64) (bool, error)
-	GetAllDevelopers(ctx context.Context, chatID int64) ([]model.User, []string, error)
+	GetAllDevelopers(ctx context.Context, chatID int64) ([]model.User, []int16, error)
 	GetDevelopersCount(ctx context.Context, chatID int64) (int64, error)
 	CreateModerationAction(ctx context.Context, actionType string, chatID, userID, modID int64, reason string, until *time.Time) error
 	GetWarnsCount(ctx context.Context, chatID, userID int64) (int64, error)

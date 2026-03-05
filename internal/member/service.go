@@ -110,3 +110,11 @@ func (s *Service) SetOnlyNewbies(ctx context.Context, chatID int64, users []*mod
 func (s *Service) SetNewbies(ctx context.Context, chatID int64, users []*model.User) error {
 	return s.repo.SetNewbies(ctx, chatID, users)
 }
+
+func (s *Service) GetCommandLevels(ctx context.Context, chatID int64) (map[string]int16, error) {
+	return s.repo.GetCommandLevels(ctx, chatID)
+}
+
+func (s *Service) SetCommandLevel(ctx context.Context, chatID int64, commandID string, level int16) error {
+	return s.repo.SetCommandLevel(ctx, chatID, commandID, level)
+}

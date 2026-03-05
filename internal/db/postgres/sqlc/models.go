@@ -99,9 +99,9 @@ func (ns NullRestStatus) Value() (driver.Value, error) {
 }
 
 type BotDeveloper struct {
-	UserID int64  `db:"user_id" json:"userId"`
-	Role   string `db:"role" json:"role"`
-	ChatID int64  `db:"chat_id" json:"chatId"`
+	UserID int64 `db:"user_id" json:"userId"`
+	Level  int16 `db:"level" json:"level"`
+	ChatID int64 `db:"chat_id" json:"chatId"`
 }
 
 type Chat struct {
@@ -124,6 +124,12 @@ type Chat struct {
 	WeekStartTime       pgtype.Time `db:"week_start_time" json:"weekStartTime"`
 }
 
+type ChatCommandLevel struct {
+	ChatID    int64  `db:"chat_id" json:"chatId"`
+	CommandID string `db:"command_id" json:"commandId"`
+	Level     int16  `db:"level" json:"level"`
+}
+
 type ChatMember struct {
 	ChatID      int64              `db:"chat_id" json:"chatId"`
 	UserID      int64              `db:"user_id" json:"userId"`
@@ -133,6 +139,7 @@ type ChatMember struct {
 	Status      string             `db:"status" json:"status"`
 	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
 	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
+	Level       int16              `db:"level" json:"level"`
 }
 
 type Message struct {

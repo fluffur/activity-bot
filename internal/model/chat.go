@@ -30,6 +30,7 @@ type ChatMember struct {
 	RestReason  string
 	CustomTitle string
 	Status      string
+	Level       int16
 }
 
 type ChatWithoutNorm struct {

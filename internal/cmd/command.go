@@ -20,16 +20,25 @@ const ArgsCountNone = 0
 var defaultTriggers = []string{"/"}
 
 type Factory struct {
-	userService    *user.Service
-	chatService    *chat.Service
+	userService   *user.Service
+	chatService   *chat.Service
+	memberService interface {
+		GetChatMember(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error)
+		GetCommandLevels(ctx context.Context, chatID int64) (map[string]int16, error)
+	}
 	sessionService interface {
 		GetActiveChat(ctx context.Context, userID int64) (int64, error)
 	}
-	uniquePrefix string
-	triggers     []string
+	uniquePrefix  string
+	triggers      []string
+	commands      map[string]*Command
+	defaultGuards []Guard
 }
 
-func NewFactory(userService *user.Service, chatService *chat.Service, sessionService interface {
+func NewFactory(userService *user.Service, chatService *chat.Service, memberService interface {
+	GetChatMember(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error)
+	GetCommandLevels(ctx context.Context, chatID int64) (map[string]int16, error)
+}, sessionService interface {
 	GetActiveChat(ctx context.Context, userID int64) (int64, error)
 }, uniquePrefix string, triggers ...string) *Factory {
 	if len(triggers) == 0 {
@@ -40,11 +49,22 @@ func NewFactory(userService *user.Service, chatService *chat.Service, sessionSer
 		triggers[i] = strings.ToLower(t)
 	}
 
-	return &Factory{userService, chatService, sessionService, strings.ToLower(uniquePrefix), triggers}
+	return &Factory{userService, chatService, memberService, sessionService, strings.ToLower(uniquePrefix), triggers, make(map[string]*Command), make([]Guard, 0)}
+}
+
+func (f *Factory) AddDefaultGuards(guards ...Guard) {
+	f.defaultGuards = append(f.defaultGuards, guards...)
+}
+
+func (f *Factory) RegisteredCommands() map[string]*Command {
+	return f.commands
 }
 
 func (f *Factory) New(r Response, c string, aliases ...string) *Command {
-	return New(append(aliases, c), f.triggers, r, f.userService, f.chatService, f.sessionService, f.uniquePrefix)
+	cmd := New(append(aliases, c), f.triggers, r, f.userService, f.chatService, f.memberService, f.sessionService, f.uniquePrefix)
+	cmd.WithGuards(f.defaultGuards...)
+	f.commands[c] = cmd
+	return cmd
 }
 
 func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -134,13 +154,27 @@ type Command struct {
 	fallbackToSender bool
 	userService      *user.Service
 	chatService      *chat.Service
-	sessionService   SessionService
-	uniquePrefix     string
-	guards           []Guard
-	forcePrefix      bool
+	memberService    interface {
+		GetChatMember(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error)
+		GetCommandLevels(ctx context.Context, chatID int64) (map[string]int16, error)
+	}
+	sessionService SessionService
+	uniquePrefix   string
+	guards         []Guard
+	forcePrefix    bool
+
+	id                  string
+	description         string
+	detailedDescription string
+	examples            []string
+	category            string
+	defaultLevel        int16
 }
 
-func New(commands []string, triggers []string, response Response, userService *user.Service, chatService *chat.Service, sessionService interface {
+func New(commands []string, triggers []string, response Response, userService *user.Service, chatService *chat.Service, memberService interface {
+	GetChatMember(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error)
+	GetCommandLevels(ctx context.Context, chatID int64) (map[string]int16, error)
+}, sessionService interface {
 	GetActiveChat(ctx context.Context, userID int64) (int64, error)
 }, uniquePrefix string) *Command {
 	for i, c := range commands {
@@ -155,14 +189,13 @@ func New(commands []string, triggers []string, response Response, userService *u
 		argsCount:        ArgsCountNone,
 		userService:      userService,
 		chatService:      chatService,
+		memberService:    memberService,
 		sessionService:   sessionService,
 		uniquePrefix:     uniquePrefix,
 		guards:           make([]Guard, 0),
 		forcePrefix:      false,
 	}
 }
-
-var dateParser = helpers.NewDateParser()
 
 func (c *Command) WithGuards(guards ...Guard) *Command {
 	c.guards = append(c.guards, guards...)
@@ -205,6 +238,63 @@ func (c *Command) AddAliases(aliases ...string) *Command {
 	return c
 }
 
+func (c *Command) SetID(id string) *Command {
+	c.id = id
+	return c
+}
+
+func (c *Command) ID() string {
+	if c.id != "" {
+		return c.id
+	}
+	return c.commands[0]
+}
+
+func (c *Command) SetDescription(description string) *Command {
+	c.description = description
+	return c
+}
+
+func (c *Command) Description() string {
+	return c.description
+}
+
+func (c *Command) SetDetailedDescription(desc string) *Command {
+	c.detailedDescription = desc
+	return c
+}
+
+func (c *Command) DetailedDescription() string {
+	return c.detailedDescription
+}
+
+func (c *Command) SetExamples(examples ...string) *Command {
+	c.examples = examples
+	return c
+}
+
+func (c *Command) Examples() []string {
+	return c.examples
+}
+
+func (c *Command) SetCategory(category string) *Command {
+	c.category = category
+	return c
+}
+
+func (c *Command) Category() string {
+	return c.category
+}
+
+func (c *Command) SetLevel(level int16) *Command {
+	c.defaultLevel = level
+	return c
+}
+
+func (c *Command) Level() int16 {
+	return c.defaultLevel
+}
+
 func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	if ctx.Message == nil || ctx.Message.ForwardOrigin != nil || ctx.Message.GetText() == "" {
 		return false
@@ -218,6 +308,21 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 
 func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 	ctxWithTimeout := context.Background()
+
+	chatID, err := GetChatID(c.sessionService, ctx, ctxWithTimeout)
+	if err != nil {
+		logger.L.Error("GetChatID error", "error", err)
+		return err
+	}
+
+	m, err := c.memberService.GetChatMember(ctxWithTimeout, chatID, ctx.EffectiveUser.Id)
+	if err != nil {
+		logger.L.Error("Failed to get member for context", "error", err, "chat_id", chatID, "user_id", ctx.EffectiveUser.Id)
+		return err
+	}
+
+	userLevel := m.Level
+
 	for _, guard := range c.guards {
 		if ok, message := guard.Check(ctx, c.commands[0], ctxWithTimeout); !ok {
 			if message != "" {
@@ -228,7 +333,11 @@ func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 		}
 	}
 
-	return c.response(b, c.parseArgs(b, ctx, ctxWithTimeout))
+	cmdCtx := c.parseArgs(b, ctx, ctxWithTimeout)
+	cmdCtx.targetChatID = chatID
+	cmdCtx.userLevel = userLevel
+
+	return c.response(b, cmdCtx)
 }
 
 func (c *Command) ensureUser(ctx context.Context, u *gotgbot.User) (model.User, error) {
@@ -331,7 +440,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 
 	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix, allowPrefixless && !c.forcePrefix)
 	if !matched {
-		return &Context{ctx, cctx, []string{}, "", users, 0, parsedDates}
+		return &Context{ctx, cctx, []string{}, "", users, 0, parsedDates, 0}
 	}
 
 	rest = strings.TrimSpace(rest)
@@ -365,17 +474,31 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 	chatID, err := GetChatID(c.sessionService, ctx, cctx)
 	if err != nil {
 		logger.L.Error("GetChatID error", "error", err)
-		return &Context{ctx, cctx, []string{}, "", users, 0, parsedDates}
+		return &Context{ctx, cctx, []string{}, "", users, 0, parsedDates, 0}
 	}
-	return &Context{ctx, cctx, args, htmlRest, users, chatID, parsedDates}
+	return &Context{ctx, cctx, args, htmlRest, users, chatID, parsedDates, 0}
 }
 
 func (c *Command) Name() string {
 	if len(c.commands) > 0 {
-		return "command_" + c.commands[0]
+		return c.commands[0]
 	}
 	return "unnamed_command"
+}
 
+func (c *Command) Aliases() []string {
+	return c.commands
+}
+
+func (c *Command) PrimaryAlias() string {
+	for _, a := range c.commands {
+		for _, r := range a {
+			if (r >= 'А' && r <= 'я') || r == 'Ё' || r == 'ё' {
+				return a
+			}
+		}
+	}
+	return c.Name()
 }
 
 func GetChatID(sessionService SessionService, ctx *ext.Context, cctx context.Context) (int64, error) {

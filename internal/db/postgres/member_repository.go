@@ -154,10 +154,12 @@ func (r *MemberRepository) UpsertChatMembers(ctx context.Context, chatID int64, 
 	userIDs := make([]int64, len(users))
 	customTitles := make([]string, len(users))
 	statuses := make([]string, len(users))
+	levels := make([]int16, len(users))
 	for i, u := range users {
 		userIDs[i] = u.User.ID
 		customTitles[i] = u.CustomTitle
 		statuses[i] = u.Status
+		levels[i] = u.Level
 	}
 
 	return r.queries.UpsertChatMembers(ctx, db.UpsertChatMembersParams{
@@ -165,6 +167,7 @@ func (r *MemberRepository) UpsertChatMembers(ctx context.Context, chatID int64, 
 		UserIds:      userIDs,
 		CustomTitles: customTitles,
 		Statuses:     statuses,
+		Levels:       levels,
 	})
 }
 
@@ -296,5 +299,26 @@ func (r *MemberRepository) SetNewbies(ctx context.Context, chatID int64, users [
 	return r.queries.MoveChatMembersToNew(ctx, db.MoveChatMembersToNewParams{
 		ChatID:  chatID,
 		UserIds: userIDs,
+	})
+}
+
+func (r *MemberRepository) GetCommandLevels(ctx context.Context, chatID int64) (map[string]int16, error) {
+	rows, err := r.queries.GetChatCommandLevels(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make(map[string]int16, len(rows))
+	for _, row := range rows {
+		res[row.CommandID] = row.Level
+	}
+	return res, nil
+}
+
+func (r *MemberRepository) SetCommandLevel(ctx context.Context, chatID int64, commandID string, level int16) error {
+	return r.queries.SetChatCommandLevel(ctx, db.SetChatCommandLevelParams{
+		ChatID:    chatID,
+		CommandID: commandID,
+		Level:     level,
 	})
 }

@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	DevRoleMember  = "member"
-	DevRoleAdmin   = "admin"
-	DevRoleCreator = "creator"
+	DevLevelMember  = 0
+	DevLevelAdmin   = 3
+	DevLevelCreator = 5
 )
 
 type ChatMemberStatusProvider interface {
@@ -50,23 +50,23 @@ func NewService(repo Repository, statusProvider ChatMemberStatusProvider, modera
 	}
 }
 
-func (s *Service) GetDevRole(ctx context.Context, chatID, userID int64) (string, error) {
-	role, err := s.repo.GetDeveloperRole(ctx, chatID, userID)
+func (s *Service) GetDevLevel(ctx context.Context, chatID, userID int64) (int16, error) {
+	level, err := s.repo.GetDeveloperLevel(ctx, chatID, userID)
 	if err != nil {
-		return DevRoleMember, nil
+		return DevLevelMember, nil
 	}
-	return role, nil
+	return level, nil
 }
 
-func (s *Service) SetDevRole(ctx context.Context, chatID, userID int64, role string) error {
-	return s.repo.SetDeveloperRole(ctx, chatID, userID, role)
+func (s *Service) SetDevLevel(ctx context.Context, chatID, userID int64, level int16) error {
+	return s.repo.SetDeveloperLevel(ctx, chatID, userID, level)
 }
 
 func (s *Service) RemoveDeveloper(ctx context.Context, chatID, userID int64) error {
 	return s.repo.RemoveDeveloperRole(ctx, chatID, userID)
 }
 
-func (s *Service) GetAllDevelopers(ctx context.Context, chatID int64) ([]model.User, []string, error) {
+func (s *Service) GetAllDevelopers(ctx context.Context, chatID int64) ([]model.User, []int16, error) {
 	return s.repo.GetAllDevelopers(ctx, chatID)
 }
 
@@ -149,8 +149,8 @@ func (s *Service) GetAdminsEnsured(
 }
 
 func (s *Service) IsCreator(ctx context.Context, chatID int64, userID int64) (bool, error) {
-	role, _ := s.GetDevRole(ctx, chatID, userID)
-	if role == DevRoleCreator {
+	level, _ := s.GetDevLevel(ctx, chatID, userID)
+	if level == DevLevelCreator {
 		return true, nil
 	}
 
@@ -185,8 +185,8 @@ func (s *Service) CheckIsCreator(ctx context.Context, chatID, userID int64) bool
 }
 
 func (s *Service) IsAdmin(ctx context.Context, chatID, userID int64) (bool, error) {
-	role, _ := s.GetDevRole(ctx, chatID, userID)
-	if role == DevRoleCreator || role == DevRoleAdmin {
+	level, _ := s.GetDevLevel(ctx, chatID, userID)
+	if level >= DevLevelAdmin {
 		return true, nil
 	}
 

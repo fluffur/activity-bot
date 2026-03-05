@@ -50,8 +50,8 @@ func (g *DevCreatorGuard) Check(ctx *ext.Context, _ string, stdCtx context.Conte
 		return false, "Не удалось определить чат"
 	}
 
-	role, _ := g.service.GetDevRole(stdCtx, chatID, userID)
-	if role != admin.DevRoleCreator {
+	level, _ := g.service.GetDevLevel(stdCtx, chatID, userID)
+	if level < admin.DevLevelCreator {
 		return false, ""
 	}
 

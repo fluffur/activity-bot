@@ -11,19 +11,29 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const ensureDeveloperUser = `-- name: EnsureDeveloperUser :exec
+const ensureDeveloperUser = `-- name: EnsureDeveloperUser :one
 INSERT INTO users (id, first_name, last_name)
 VALUES ($1, 'Developer', '')
-ON CONFLICT (id) DO NOTHING
+ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name
+RETURNING id, username, first_name, last_name, created_at, gender
 `
 
-func (q *Queries) EnsureDeveloperUser(ctx context.Context, id int64) error {
-	_, err := q.db.Exec(ctx, ensureDeveloperUser, id)
-	return err
+func (q *Queries) EnsureDeveloperUser(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRow(ctx, ensureDeveloperUser, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.FirstName,
+		&i.LastName,
+		&i.CreatedAt,
+		&i.Gender,
+	)
+	return i, err
 }
 
 const getAllDevelopers = `-- name: GetAllDevelopers :many
-SELECT bd.user_id, bd.role, bd.chat_id, u.username, u.first_name, u.last_name
+SELECT bd.user_id, bd.level, bd.chat_id, u.username, u.first_name, u.last_name
 FROM bot_developers bd
 JOIN users u ON bd.user_id = u.id
 WHERE bd.chat_id = $1
@@ -32,7 +42,7 @@ ORDER BY bd.user_id
 
 type GetAllDevelopersRow struct {
 	UserID    int64       `db:"user_id" json:"userId"`
-	Role      string      `db:"role" json:"role"`
+	Level     int16       `db:"level" json:"level"`
 	ChatID    int64       `db:"chat_id" json:"chatId"`
 	Username  pgtype.Text `db:"username" json:"username"`
 	FirstName pgtype.Text `db:"first_name" json:"firstName"`
@@ -50,7 +60,7 @@ func (q *Queries) GetAllDevelopers(ctx context.Context, chatID int64) ([]GetAllD
 		var i GetAllDevelopersRow
 		if err := rows.Scan(
 			&i.UserID,
-			&i.Role,
+			&i.Level,
 			&i.ChatID,
 			&i.Username,
 			&i.FirstName,
@@ -67,7 +77,7 @@ func (q *Queries) GetAllDevelopers(ctx context.Context, chatID int64) ([]GetAllD
 }
 
 const getDeveloper = `-- name: GetDeveloper :one
-SELECT user_id, role, chat_id FROM bot_developers WHERE user_id = $1 AND chat_id = $2
+SELECT user_id, level, chat_id FROM bot_developers WHERE user_id = $1 AND chat_id = $2
 `
 
 type GetDeveloperParams struct {
@@ -78,7 +88,7 @@ type GetDeveloperParams struct {
 func (q *Queries) GetDeveloper(ctx context.Context, arg GetDeveloperParams) (BotDeveloper, error) {
 	row := q.db.QueryRow(ctx, getDeveloper, arg.UserID, arg.ChatID)
 	var i BotDeveloper
-	err := row.Scan(&i.UserID, &i.Role, &i.ChatID)
+	err := row.Scan(&i.UserID, &i.Level, &i.ChatID)
 	return i, err
 }
 
@@ -124,18 +134,18 @@ func (q *Queries) RemoveDeveloper(ctx context.Context, arg RemoveDeveloperParams
 }
 
 const setDeveloper = `-- name: SetDeveloper :exec
-INSERT INTO bot_developers (user_id, chat_id, role)
+INSERT INTO bot_developers (user_id, chat_id, level)
 VALUES ($1, $2, $3)
-ON CONFLICT (user_id, chat_id) DO UPDATE SET role = EXCLUDED.role
+ON CONFLICT (user_id, chat_id) DO UPDATE SET level = EXCLUDED.level
 `
 
 type SetDeveloperParams struct {
-	UserID int64  `db:"user_id" json:"userId"`
-	ChatID int64  `db:"chat_id" json:"chatId"`
-	Role   string `db:"role" json:"role"`
+	UserID int64 `db:"user_id" json:"userId"`
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	Level  int16 `db:"level" json:"level"`
 }
 
 func (q *Queries) SetDeveloper(ctx context.Context, arg SetDeveloperParams) error {
-	_, err := q.db.Exec(ctx, setDeveloper, arg.UserID, arg.ChatID, arg.Role)
+	_, err := q.db.Exec(ctx, setDeveloper, arg.UserID, arg.ChatID, arg.Level)
 	return err
 }

@@ -443,38 +443,50 @@ func (h *Handler) Unwarn(b *gotgbot.Bot, ctx *cmd.Context) error {
 func (h *Handler) ToggleRights(b *gotgbot.Bot, ctx *cmd.Context) error {
 	arg := ctx.FirstArgument()
 	if arg == "" {
-		role, _ := h.service.GetDevRole(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id())
-		mapping := map[string]string{
-			admin.DevRoleMember:  "участник",
-			admin.DevRoleAdmin:   "администратор",
-			admin.DevRoleCreator: "создатель",
+		level, _ := h.service.GetDevLevel(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id())
+		mapping := map[int16]string{
+			admin.DevLevelMember:  "участник",
+			admin.DevLevelAdmin:   "администратор",
+			admin.DevLevelCreator: "создатель",
 		}
-		return ctx.Reply(b, fmt.Sprintf("Текущая роль разработчика: %s\n\nИспользуйте: !права [участник|админ|создатель]", mapping[role]), nil)
+		roleName := mapping[level]
+		if roleName == "" {
+			roleName = fmt.Sprintf("уровень %d", level)
+		}
+		return ctx.Reply(b, fmt.Sprintf("Текущая роль разработчика: %s\n\nИспользуйте: !права [участник|админ|создатель]", roleName), nil)
 	}
 
-	var targetRole string
+	var targetLevel int16
 	switch strings.ToLower(arg) {
 	case "участник", "member":
-		targetRole = admin.DevRoleMember
+		targetLevel = admin.DevLevelMember
 	case "админ", "администратор", "admin":
-		targetRole = admin.DevRoleAdmin
+		targetLevel = admin.DevLevelAdmin
 	case "создатель", "creator":
-		targetRole = admin.DevRoleCreator
+		targetLevel = admin.DevLevelCreator
 	default:
-		return ctx.Reply(b, "Неизвестная роль. Используйте: участник, админ или создатель", nil)
+		lvl, err := strconv.Atoi(arg)
+		if err != nil || lvl < 0 || lvl > 5 {
+			return ctx.Reply(b, "Неизвестная роль или уровень. Используйте: участник (0), админ (3), создатель (5)", nil)
+		}
+		targetLevel = int16(lvl)
 	}
 
-	if err := h.service.SetDevRole(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id(), targetRole); err != nil {
+	if err := h.service.SetDevLevel(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id(), targetLevel); err != nil {
 		_ = ctx.Reply(b, "Не удалось сохранить права", nil)
 		return err
 	}
 
-	mapping := map[string]string{
-		admin.DevRoleMember:  "участник",
-		admin.DevRoleAdmin:   "администратор",
-		admin.DevRoleCreator: "создатель",
+	mapping := map[int16]string{
+		admin.DevLevelMember:  "участник",
+		admin.DevLevelAdmin:   "администратор",
+		admin.DevLevelCreator: "создатель",
 	}
-	return ctx.Reply(b, fmt.Sprintf("Роль разработчика изменена на: %s", mapping[targetRole]), nil)
+	roleName := mapping[targetLevel]
+	if roleName == "" {
+		roleName = fmt.Sprintf("уровень %d", targetLevel)
+	}
+	return ctx.Reply(b, fmt.Sprintf("Роль разработчика изменена на: %s", roleName), nil)
 }
 
 func (h *Handler) AddDeveloper(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -483,24 +495,29 @@ func (h *Handler) AddDeveloper(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return cmd.ErrNoUser
 	}
 
-	role := admin.DevRoleMember
+	level := admin.DevLevelMember
 	if arg := ctx.SecondArgument(); arg != "" {
 		switch strings.ToLower(arg) {
 		case "участник", "member":
-			role = admin.DevRoleMember
+			level = admin.DevLevelMember
 		case "админ", "admin":
-			role = admin.DevRoleAdmin
+			level = admin.DevLevelAdmin
 		case "создатель", "creator":
-			role = admin.DevRoleCreator
+			level = admin.DevLevelCreator
+		default:
+			lvl, err := strconv.Atoi(arg)
+			if err == nil && lvl >= 0 && lvl <= 5 {
+				level = lvl
+			}
 		}
 	}
 
-	if err := h.service.SetDevRole(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, role); err != nil {
+	if err := h.service.SetDevLevel(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, int16(level)); err != nil {
 		_ = ctx.Reply(b, "Не удалось добавить разработчика", nil)
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatDeveloperAdded(*targetUser, role))
+	return ctx.ReplyHTML(b, view.FormatDeveloperAdded(*targetUser, int16(level)))
 }
 
 func (h *Handler) RemoveDeveloper(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -520,13 +537,13 @@ func (h *Handler) RemoveDeveloper(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) ListDevelopers(b *gotgbot.Bot, ctx *cmd.Context) error {
-	users, roles, err := h.service.GetAllDevelopers(ctx.StdContext(), ctx.TargetChatID())
+	users, levels, err := h.service.GetAllDevelopers(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		_ = ctx.Reply(b, "Не удалось получить список разработчиков", nil)
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatDevelopersList(users, roles))
+	return ctx.ReplyHTML(b, view.FormatDevelopersList(users, levels))
 }
 func (h *Handler) UpdateChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	chats, err := h.service.GetUserManagedChats(ctx.StdContext(), ctx.EffectiveSender.Id())

@@ -24,4 +24,6 @@ type Repository interface {
 	SetOnlyNewbies(ctx context.Context, chatID int64, users []*model.User) error
 	SetNewbies(ctx context.Context, chatID int64, users []*model.User) error
 	GetAnyWithCustomTitles(ctx context.Context, chatID int64) ([]model.ChatMember, error)
+	GetCommandLevels(ctx context.Context, chatID int64) (map[string]int16, error)
+	SetCommandLevel(ctx context.Context, chatID int64, commandID string, level int16) error
 }

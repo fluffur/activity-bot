@@ -187,25 +187,26 @@ func (r *AdminRepository) RemoveLatestWarn(ctx context.Context, chatID, userID i
 }
 
 func (r *AdminRepository) EnsureDeveloperUser(ctx context.Context, userID int64) error {
-	return r.queries.EnsureDeveloperUser(ctx, userID)
+	_, err := r.queries.EnsureDeveloperUser(ctx, userID)
+	return err
 }
 
-func (r *AdminRepository) GetDeveloperRole(ctx context.Context, chatID, userID int64) (string, error) {
+func (r *AdminRepository) GetDeveloperLevel(ctx context.Context, chatID, userID int64) (int16, error) {
 	dev, err := r.queries.GetDeveloper(ctx, db.GetDeveloperParams{
 		UserID: userID,
 		ChatID: chatID,
 	})
 	if err != nil {
-		return "", err
+		return 0, err
 	}
-	return dev.Role, nil
+	return dev.Level, nil
 }
 
-func (r *AdminRepository) SetDeveloperRole(ctx context.Context, chatID, userID int64, role string) error {
+func (r *AdminRepository) SetDeveloperLevel(ctx context.Context, chatID, userID int64, level int16) error {
 	return r.queries.SetDeveloper(ctx, db.SetDeveloperParams{
 		UserID: userID,
 		ChatID: chatID,
-		Role:   role,
+		Level:  level,
 	})
 }
 
@@ -223,14 +224,14 @@ func (r *AdminRepository) IsDeveloper(ctx context.Context, chatID, userID int64)
 	})
 }
 
-func (r *AdminRepository) GetAllDevelopers(ctx context.Context, chatID int64) ([]model.User, []string, error) {
+func (r *AdminRepository) GetAllDevelopers(ctx context.Context, chatID int64) ([]model.User, []int16, error) {
 	rows, err := r.queries.GetAllDevelopers(ctx, chatID)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	users := make([]model.User, len(rows))
-	roles := make([]string, len(rows))
+	levels := make([]int16, len(rows))
 	for i, row := range rows {
 		var username *string
 		if row.Username.Valid {
@@ -242,9 +243,9 @@ func (r *AdminRepository) GetAllDevelopers(ctx context.Context, chatID int64) ([
 			LastName:  row.LastName.String,
 			Username:  username,
 		}
-		roles[i] = row.Role
+		levels[i] = row.Level
 	}
-	return users, roles, nil
+	return users, levels, nil
 }
 
 func (r *AdminRepository) GetDevelopersCount(ctx context.Context, chatID int64) (int64, error) {

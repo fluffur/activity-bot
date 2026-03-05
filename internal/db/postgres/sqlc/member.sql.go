@@ -34,7 +34,7 @@ INSERT INTO chat_members(chat_id, user_id, status)
 VALUES ($1, $2, $3)
 ON CONFLICT(chat_id, user_id) DO UPDATE SET status  = EXCLUDED.status,
                                             left_at = NULL
-RETURNING chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason
+RETURNING chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, level
 `
 
 type EnsureChatMemberExistsParams struct {
@@ -55,6 +55,7 @@ func (q *Queries) EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemb
 		&i.Status,
 		&i.LeftAt,
 		&i.RestReason,
+		&i.Level,
 	)
 	return i, err
 }
@@ -62,22 +63,23 @@ func (q *Queries) EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemb
 const ensureMemberFull = `-- name: EnsureMemberFull :one
 WITH chat_upsert AS (
     INSERT INTO chats (id, norm_warn)
-        VALUES ($2, $3)
+        VALUES ($3, $4)
         ON CONFLICT (id) DO UPDATE
             SET norm_warn = chats.norm_warn
         RETURNING id),
      user_upsert AS (
          INSERT INTO users (id, username, first_name, last_name)
-             VALUES ($4, $5, $6, $7)
+             VALUES ($5, $6, $7, $8)
              ON CONFLICT (id) DO UPDATE
                  SET username = EXCLUDED.username,
                      first_name = EXCLUDED.first_name,
                      last_name = EXCLUDED.last_name
              RETURNING id)
-INSERT INTO chat_members (chat_id, user_id, custom_title)
+INSERT INTO chat_members (chat_id, user_id, custom_title, level)
 SELECT chat_upsert.id,
        user_upsert.id,
-       $1
+       $1,
+       $2
 FROM chat_upsert,
      user_upsert
 ON CONFLICT (chat_id, user_id) DO UPDATE
@@ -86,12 +88,17 @@ ON CONFLICT (chat_id, user_id) DO UPDATE
                                THEN $1
                            ELSE chat_members.custom_title
         END,
+        level = CASE
+                    WHEN $2 > 0 THEN $2
+                    ELSE chat_members.level
+        END,
         left_at = NULL
-RETURNING chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason
+RETURNING chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, level
 `
 
 type EnsureMemberFullParams struct {
 	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
+	Level       int16       `db:"level" json:"level"`
 	ChatID      int64       `db:"chat_id" json:"chatId"`
 	NormWarn    int32       `db:"norm_warn" json:"normWarn"`
 	UserID      int64       `db:"user_id" json:"userId"`
@@ -103,6 +110,7 @@ type EnsureMemberFullParams struct {
 func (q *Queries) EnsureMemberFull(ctx context.Context, arg EnsureMemberFullParams) (ChatMember, error) {
 	row := q.db.QueryRow(ctx, ensureMemberFull,
 		arg.CustomTitle,
+		arg.Level,
 		arg.ChatID,
 		arg.NormWarn,
 		arg.UserID,
@@ -120,12 +128,13 @@ func (q *Queries) EnsureMemberFull(ctx context.Context, arg EnsureMemberFullPara
 		&i.Status,
 		&i.LeftAt,
 		&i.RestReason,
+		&i.Level,
 	)
 	return i, err
 }
 
 const getAnyChatMembersWithTitles = `-- name: GetAnyChatMembersWithTitles :many
-SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username
+SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username, cm.level
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = $1
@@ -141,6 +150,7 @@ type GetAnyChatMembersWithTitlesRow struct {
 	FirstName   pgtype.Text `db:"first_name" json:"firstName"`
 	LastName    pgtype.Text `db:"last_name" json:"lastName"`
 	Username    pgtype.Text `db:"username" json:"username"`
+	Level       int16       `db:"level" json:"level"`
 }
 
 func (q *Queries) GetAnyChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetAnyChatMembersWithTitlesRow, error) {
@@ -159,6 +169,7 @@ func (q *Queries) GetAnyChatMembersWithTitles(ctx context.Context, chatID int64)
 			&i.FirstName,
 			&i.LastName,
 			&i.Username,
+			&i.Level,
 		); err != nil {
 			return nil, err
 		}
@@ -170,8 +181,39 @@ func (q *Queries) GetAnyChatMembersWithTitles(ctx context.Context, chatID int64)
 	return items, nil
 }
 
+const getChatCommandLevels = `-- name: GetChatCommandLevels :many
+SELECT command_id, level
+FROM chat_command_levels
+WHERE chat_id = $1
+`
+
+type GetChatCommandLevelsRow struct {
+	CommandID string `db:"command_id" json:"commandId"`
+	Level     int16  `db:"level" json:"level"`
+}
+
+func (q *Queries) GetChatCommandLevels(ctx context.Context, chatID int64) ([]GetChatCommandLevelsRow, error) {
+	rows, err := q.db.Query(ctx, getChatCommandLevels, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetChatCommandLevelsRow{}
+	for rows.Next() {
+		var i GetChatCommandLevelsRow
+		if err := rows.Scan(&i.CommandID, &i.Level); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getChatMember = `-- name: GetChatMember :one
-SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, id, username, first_name, last_name, created_at, gender
+SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, level, id, username, first_name, last_name, created_at, gender
 FROM chat_members
          JOIN users ON users.id = user_id
 WHERE left_at IS NULL
@@ -193,6 +235,7 @@ type GetChatMemberRow struct {
 	Status      string             `db:"status" json:"status"`
 	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
 	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
+	Level       int16              `db:"level" json:"level"`
 	ID          int64              `db:"id" json:"id"`
 	Username    pgtype.Text        `db:"username" json:"username"`
 	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
@@ -213,6 +256,7 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 		&i.Status,
 		&i.LeftAt,
 		&i.RestReason,
+		&i.Level,
 		&i.ID,
 		&i.Username,
 		&i.FirstName,
@@ -224,7 +268,7 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 }
 
 const getChatMembers = `-- name: GetChatMembers :many
-SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, id, username, first_name, last_name, created_at, gender
+SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, level, id, username, first_name, last_name, created_at, gender
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
@@ -240,6 +284,7 @@ type GetChatMembersRow struct {
 	Status      string             `db:"status" json:"status"`
 	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
 	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
+	Level       int16              `db:"level" json:"level"`
 	ID          int64              `db:"id" json:"id"`
 	Username    pgtype.Text        `db:"username" json:"username"`
 	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
@@ -266,6 +311,7 @@ func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMe
 			&i.Status,
 			&i.LeftAt,
 			&i.RestReason,
+			&i.Level,
 			&i.ID,
 			&i.Username,
 			&i.FirstName,
@@ -284,7 +330,7 @@ func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMe
 }
 
 const getChatMembersWithTitles = `-- name: GetChatMembersWithTitles :many
-SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username
+SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username, cm.level
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = $1
@@ -300,6 +346,7 @@ type GetChatMembersWithTitlesRow struct {
 	FirstName   pgtype.Text `db:"first_name" json:"firstName"`
 	LastName    pgtype.Text `db:"last_name" json:"lastName"`
 	Username    pgtype.Text `db:"username" json:"username"`
+	Level       int16       `db:"level" json:"level"`
 }
 
 func (q *Queries) GetChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetChatMembersWithTitlesRow, error) {
@@ -318,6 +365,7 @@ func (q *Queries) GetChatMembersWithTitles(ctx context.Context, chatID int64) ([
 			&i.FirstName,
 			&i.LastName,
 			&i.Username,
+			&i.Level,
 		); err != nil {
 			return nil, err
 		}
@@ -404,6 +452,23 @@ func (q *Queries) MoveChatMembersToOldExcept(ctx context.Context, arg MoveChatMe
 	return err
 }
 
+const setChatCommandLevel = `-- name: SetChatCommandLevel :exec
+INSERT INTO chat_command_levels (chat_id, command_id, level)
+VALUES ($1, $2, $3)
+ON CONFLICT (chat_id, command_id) DO UPDATE SET level = EXCLUDED.level
+`
+
+type SetChatCommandLevelParams struct {
+	ChatID    int64  `db:"chat_id" json:"chatId"`
+	CommandID string `db:"command_id" json:"commandId"`
+	Level     int16  `db:"level" json:"level"`
+}
+
+func (q *Queries) SetChatCommandLevel(ctx context.Context, arg SetChatCommandLevelParams) error {
+	_, err := q.db.Exec(ctx, setChatCommandLevel, arg.ChatID, arg.CommandID, arg.Level)
+	return err
+}
+
 const updateChatMemberTitle = `-- name: UpdateChatMemberTitle :exec
 UPDATE chat_members
 SET custom_title = $1
@@ -422,27 +487,52 @@ func (q *Queries) UpdateChatMemberTitle(ctx context.Context, arg UpdateChatMembe
 	return err
 }
 
-const updateMemberStatus = `-- name: UpdateMemberStatus :exec
+const updateMemberLevel = `-- name: UpdateMemberLevel :exec
 UPDATE chat_members
-SET status = $1
+SET level = $1
 WHERE chat_id = $2
   AND user_id = $3
 `
 
+type UpdateMemberLevelParams struct {
+	Level  int16 `db:"level" json:"level"`
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	UserID int64 `db:"user_id" json:"userId"`
+}
+
+func (q *Queries) UpdateMemberLevel(ctx context.Context, arg UpdateMemberLevelParams) error {
+	_, err := q.db.Exec(ctx, updateMemberLevel, arg.Level, arg.ChatID, arg.UserID)
+	return err
+}
+
+const updateMemberStatus = `-- name: UpdateMemberStatus :exec
+UPDATE chat_members
+SET status = $1,
+    level = $2
+WHERE chat_id = $3
+  AND user_id = $4
+`
+
 type UpdateMemberStatusParams struct {
 	Status string `db:"status" json:"status"`
+	Level  int16  `db:"level" json:"level"`
 	ChatID int64  `db:"chat_id" json:"chatId"`
 	UserID int64  `db:"user_id" json:"userId"`
 }
 
 func (q *Queries) UpdateMemberStatus(ctx context.Context, arg UpdateMemberStatusParams) error {
-	_, err := q.db.Exec(ctx, updateMemberStatus, arg.Status, arg.ChatID, arg.UserID)
+	_, err := q.db.Exec(ctx, updateMemberStatus,
+		arg.Status,
+		arg.Level,
+		arg.ChatID,
+		arg.UserID,
+	)
 	return err
 }
 
 const upsertChatMembers = `-- name: UpsertChatMembers :exec
-INSERT INTO chat_members(chat_id, user_id, custom_title, status)
-SELECT $1, UNNEST($2::BIGINT[]), UNNEST($3::TEXT[]), UNNEST($4::TEXT[])
+INSERT INTO chat_members(chat_id, user_id, custom_title, status, level)
+SELECT $1, UNNEST($2::BIGINT[]), UNNEST($3::TEXT[]), UNNEST($4::TEXT[]), UNNEST($5::SMALLINT[])
 ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = CASE
                                                                 WHEN EXCLUDED.custom_title <> ''
                                                                     THEN EXCLUDED.custom_title
@@ -454,6 +544,7 @@ ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = CASE
                                                                     THEN 'administrator'
                                                                 ELSE EXCLUDED.status
                                                  END,
+                                             level        = EXCLUDED.level,
                                              left_at      = NULL
 `
 
@@ -462,6 +553,7 @@ type UpsertChatMembersParams struct {
 	UserIds      []int64  `db:"user_ids" json:"userIds"`
 	CustomTitles []string `db:"custom_titles" json:"customTitles"`
 	Statuses     []string `db:"statuses" json:"statuses"`
+	Levels       []int16  `db:"levels" json:"levels"`
 }
 
 func (q *Queries) UpsertChatMembers(ctx context.Context, arg UpsertChatMembersParams) error {
@@ -470,6 +562,7 @@ func (q *Queries) UpsertChatMembers(ctx context.Context, arg UpsertChatMembersPa
 		arg.UserIds,
 		arg.CustomTitles,
 		arg.Statuses,
+		arg.Levels,
 	)
 	return err
 }

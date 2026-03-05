@@ -30,7 +30,7 @@ WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL;
 
 -- name: GetChatMembersWithTitles :many
-SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username
+SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username, cm.level
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = @chat_id
@@ -39,7 +39,7 @@ WHERE cm.chat_id = @chat_id
   AND cm.custom_title <> '';
 
 -- name: GetAnyChatMembersWithTitles :many
-SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username
+SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username, cm.level
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = @chat_id
@@ -63,7 +63,14 @@ WHERE chat_id = @chat_id
 
 -- name: UpdateMemberStatus :exec
 UPDATE chat_members
-SET status = @status
+SET status = @status,
+    level = @level
+WHERE chat_id = @chat_id
+  AND user_id = @user_id;
+
+-- name: UpdateMemberLevel :exec
+UPDATE chat_members
+SET level = @level
 WHERE chat_id = @chat_id
   AND user_id = @user_id;
 
@@ -98,8 +105,8 @@ ON CONFLICT (chat_id, user_id) DO UPDATE
 RETURNING *;
 
 -- name: UpsertChatMembers :exec
-INSERT INTO chat_members(chat_id, user_id, custom_title, status)
-SELECT @chat_id, UNNEST(@user_ids::BIGINT[]), UNNEST(@custom_titles::TEXT[]), UNNEST(@statuses::TEXT[])
+INSERT INTO chat_members(chat_id, user_id, custom_title, status, level)
+SELECT @chat_id, UNNEST(@user_ids::BIGINT[]), UNNEST(@custom_titles::TEXT[]), UNNEST(@statuses::TEXT[]), UNNEST(@levels::SMALLINT[])
 ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = CASE
                                                                 WHEN EXCLUDED.custom_title <> ''
                                                                     THEN EXCLUDED.custom_title
@@ -111,6 +118,7 @@ ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = CASE
                                                                     THEN 'administrator'
                                                                 ELSE EXCLUDED.status
                                                  END,
+                                             level        = EXCLUDED.level,
                                              left_at      = NULL
 ;
 
@@ -137,3 +145,13 @@ FROM chats c
 WHERE c.id = cm.chat_id
   AND cm.chat_id = $1
   AND cm.user_id = ANY (@user_ids::BIGINT[]);
+
+-- name: GetChatCommandLevels :many
+SELECT command_id, level
+FROM chat_command_levels
+WHERE chat_id = $1;
+
+-- name: SetChatCommandLevel :exec
+INSERT INTO chat_command_levels (chat_id, command_id, level)
+VALUES ($1, $2, $3)
+ON CONFLICT (chat_id, command_id) DO UPDATE SET level = EXCLUDED.level;

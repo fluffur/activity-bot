@@ -1,15 +1,16 @@
 -- name: GetDeveloper :one
 SELECT * FROM bot_developers WHERE user_id = $1 AND chat_id = $2;
 
--- name: EnsureDeveloperUser :exec
+-- name: EnsureDeveloperUser :one
 INSERT INTO users (id, first_name, last_name)
 VALUES ($1, 'Developer', '')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name
+RETURNING *;
 
 -- name: SetDeveloper :exec
-INSERT INTO bot_developers (user_id, chat_id, role)
+INSERT INTO bot_developers (user_id, chat_id, level)
 VALUES ($1, $2, $3)
-ON CONFLICT (user_id, chat_id) DO UPDATE SET role = EXCLUDED.role;
+ON CONFLICT (user_id, chat_id) DO UPDATE SET level = EXCLUDED.level;
 
 -- name: RemoveDeveloper :exec
 DELETE FROM bot_developers WHERE user_id = $1 AND chat_id = $2;

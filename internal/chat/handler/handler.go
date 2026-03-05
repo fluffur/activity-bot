@@ -8,6 +8,7 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"activity-bot/internal/session"
+	"context"
 	"fmt"
 	"html"
 	"strconv"
@@ -18,10 +19,15 @@ import (
 )
 
 type Handler struct {
-	service        *chat.Service
+	service       *chat.Service
+	memberService interface {
+		SetCommandLevel(ctx context.Context, chatID int64, commandID string, level int16) error
+		GetCommandLevels(ctx context.Context, chatID int64) (map[string]int16, error)
+	}
 	adminService   *admin.Service
 	sessionService *session.Service
 	dateParser     *helpers.DateParser
+	factory        *cmd.Factory
 }
 
 type chatInfo struct {
@@ -29,8 +35,11 @@ type chatInfo struct {
 	Title string
 }
 
-func New(service *chat.Service, adminService *admin.Service, sessionService *session.Service, dateParser *helpers.DateParser) *Handler {
-	return &Handler{service, adminService, sessionService, dateParser}
+func New(service *chat.Service, memberService interface {
+	SetCommandLevel(ctx context.Context, chatID int64, commandID string, level int16) error
+	GetCommandLevels(ctx context.Context, chatID int64) (map[string]int16, error)
+}, adminService *admin.Service, sessionService *session.Service, dateParser *helpers.DateParser, factory *cmd.Factory) *Handler {
+	return &Handler{service, memberService, adminService, sessionService, dateParser, factory}
 }
 
 func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -108,6 +117,141 @@ func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	return ctx.Reply(b, "Промпт установлен успешно", nil)
+}
+
+func (h *Handler) SetCommandLevel(b *gotgbot.Bot, ctx *cmd.Context) error {
+	fields := strings.Fields(ctx.FirstArgument())
+
+	overrides, _ := h.memberService.GetCommandLevels(ctx.StdContext(), ctx.TargetChatID())
+	commands := h.factory.RegisteredCommands()
+	if len(fields) == 0 {
+		if len(fields) == 0 {
+			categorySet := make(map[string]struct{})
+			for _, c := range commands {
+				if c.Category() != "" {
+					categorySet[c.Category()] = struct{}{}
+				}
+			}
+
+			if len(categorySet) == 0 {
+				return ctx.Reply(b, "❌ Нет доступных категорий команд", nil)
+			}
+
+			var sb strings.Builder
+			sb.WriteString("📂 <b>Доступные категории:</b>\n\n")
+
+			for category := range categorySet {
+				sb.WriteString(fmt.Sprintf("• <code>%s</code>\n", html.EscapeString(category)))
+			}
+
+			sb.WriteString("\nИспользование:\n")
+			sb.WriteString("дк команда уровень\n")
+			sb.WriteString("дк команда\n")
+			sb.WriteString("дк категория")
+
+			return ctx.Reply(b, sb.String(), &gotgbot.SendMessageOpts{
+				ParseMode: gotgbot.ParseModeHTML,
+			})
+		}
+	}
+
+	arg1 := fields[0]
+
+	// 1. Check if it's a SET operation: дк <id_команды> <уровень>
+	if len(fields) >= 2 {
+		levelStr := fields[1]
+		level, err := strconv.Atoi(levelStr)
+		if err == nil && level >= 0 && level <= 5 {
+			var targetCmd *cmd.Command
+			for _, c := range commands {
+				if strings.EqualFold(c.ID(), arg1) {
+					targetCmd = c
+					break
+				}
+				for _, alias := range c.Aliases() {
+					if strings.EqualFold(alias, arg1) {
+						targetCmd = c
+						break
+					}
+				}
+				if targetCmd != nil {
+					break
+				}
+			}
+
+			if targetCmd == nil {
+				return ctx.Reply(b, fmt.Sprintf("❌ Команда <code>%s</code> не найдена", html.EscapeString(arg1)), &gotgbot.SendMessageOpts{
+					ParseMode: gotgbot.ParseModeHTML,
+				})
+			}
+
+			if err := h.memberService.SetCommandLevel(ctx.StdContext(), ctx.TargetChatID(), targetCmd.ID(), int16(level)); err != nil {
+				return err
+			}
+			return ctx.Reply(b, fmt.Sprintf("✅ Уровень доступа для команды <code>%s</code> установлен на %d", html.EscapeString(targetCmd.PrimaryAlias()), level), &gotgbot.SendMessageOpts{
+				ParseMode: gotgbot.ParseModeHTML,
+			})
+		}
+	}
+
+	// 2. VIEW operation: дк <id_команды> or дк <категория>
+
+	// 2.1 Check if arg1 is a command ID or alias
+	var targetCmd *cmd.Command
+	for _, c := range commands {
+		if strings.EqualFold(c.ID(), arg1) {
+			targetCmd = c
+			break
+		}
+		for _, alias := range c.Aliases() {
+			if strings.EqualFold(alias, arg1) {
+				targetCmd = c
+				break
+			}
+		}
+		if targetCmd != nil {
+			break
+		}
+	}
+
+	if targetCmd != nil {
+		lvl := targetCmd.Level()
+		if overrideLvl, overridden := overrides[targetCmd.ID()]; overridden {
+			lvl = overrideLvl
+		}
+		return ctx.Reply(b, fmt.Sprintf("📊 Уровень доступа команды <code>%s</code>: <b>%d</b>", html.EscapeString(targetCmd.PrimaryAlias()), lvl), &gotgbot.SendMessageOpts{
+			ParseMode: gotgbot.ParseModeHTML,
+		})
+	}
+
+	// 2.2 Check if arg1 is a category
+	var matches []*cmd.Command
+	for _, c := range commands {
+		if strings.EqualFold(c.Category(), arg1) {
+			matches = append(matches, c)
+		}
+	}
+
+	if len(matches) > 0 {
+		var sb strings.Builder
+		sb.WriteString(fmt.Sprintf("📂 <b>Уровни доступа в категории [%s]:</b>\n\n", html.EscapeString(arg1)))
+
+		for _, c := range matches {
+			lvl := c.Level()
+			if overrideLvl, overridden := overrides[c.ID()]; overridden {
+				lvl = overrideLvl
+			}
+			sb.WriteString(fmt.Sprintf("• <code>%s</code> — <b>%d</b>\n", html.EscapeString(c.PrimaryAlias()), lvl))
+		}
+
+		return ctx.Reply(b, sb.String(), &gotgbot.SendMessageOpts{
+			ParseMode: gotgbot.ParseModeHTML,
+		})
+	}
+
+	return ctx.Reply(b, fmt.Sprintf("❌ Команда или категория <code>%s</code> не найдена", html.EscapeString(arg1)), &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+	})
 }
 
 func (h *Handler) ShowPrompt(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -384,7 +528,7 @@ func (h *Handler) CallbackManagePage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return err
 }
 
-func (h *Handler) OnNewChatTitle(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) OnNewChatTitle(_ *gotgbot.Bot, ctx *cmd.Context) error {
 	newTitle := ctx.EffectiveMessage.NewChatTitle
 	if newTitle == "" {
 		return nil
