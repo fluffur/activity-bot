@@ -42,10 +42,13 @@ FROM chats
 WHERE id = $1;
 
 -- name: GetAllChats :many
-SELECT *
-FROM chats
-WHERE id < 0
-  AND title <> '';
+SELECT c.*
+FROM chats c
+WHERE c.id < 0
+  AND c.title <> ''
+ORDER BY (SELECT COUNT(*)
+          FROM messages m
+          WHERE m.chat_id = c.id) DESC;
 
 -- name: UpdateChatTitle :exec
 UPDATE chats
@@ -126,10 +129,13 @@ FROM chats c
                    ON m.chat_id = c.id
                        AND m.user_id = @user_id
                        AND m.created_at >= (
-                           date_trunc('day', now())
-                               - ((extract(isodow from now())::int - c.week_start_day + 7) % 7) * interval '1 day'
-                               + c.week_start_time::interval
-                           ) - CASE WHEN now()::time < c.week_start_time THEN interval '7 days' ELSE interval '0 days' END
+                                               date_trunc('day', now())
+                                                   - ((extract(isodow from now())::int - c.week_start_day + 7) % 7) *
+                                                     interval '1 day'
+                                                   + c.week_start_time::interval
+                                               ) - CASE
+                                                       WHEN now()::time < c.week_start_time THEN interval '7 days'
+                                                       ELSE interval '0 days' END
 
 WHERE c.id < 0
   AND c.title <> ''
@@ -141,4 +147,7 @@ HAVING COUNT(m.id) < GREATEST(c.norm_ban, c.norm_warn)
 ORDER BY week_count;
 
 -- name: GetChatsWithoutTitle :many
-SELECT * FROM chats WHERE title = '' AND id < 0;
+SELECT *
+FROM chats
+WHERE title = ''
+  AND id < 0;

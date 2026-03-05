@@ -78,10 +78,13 @@ func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsPara
 }
 
 const getAllChats = `-- name: GetAllChats :many
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
-FROM chats
-WHERE id < 0
-  AND title <> ''
+SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time
+FROM chats c
+WHERE c.id < 0
+  AND c.title <> ''
+ORDER BY (SELECT COUNT(*)
+          FROM messages m
+          WHERE m.chat_id = c.id) DESC
 `
 
 func (q *Queries) GetAllChats(ctx context.Context) ([]Chat, error) {
@@ -139,10 +142,13 @@ FROM chats c
                    ON m.chat_id = c.id
                        AND m.user_id = $1
                        AND m.created_at >= (
-                           date_trunc('day', now())
-                               - ((extract(isodow from now())::int - c.week_start_day + 7) % 7) * interval '1 day'
-                               + c.week_start_time::interval
-                           ) - CASE WHEN now()::time < c.week_start_time THEN interval '7 days' ELSE interval '0 days' END
+                                               date_trunc('day', now())
+                                                   - ((extract(isodow from now())::int - c.week_start_day + 7) % 7) *
+                                                     interval '1 day'
+                                                   + c.week_start_time::interval
+                                               ) - CASE
+                                                       WHEN now()::time < c.week_start_time THEN interval '7 days'
+                                                       ELSE interval '0 days' END
 
 WHERE c.id < 0
   AND c.title <> ''
@@ -234,7 +240,10 @@ func (q *Queries) GetChatMaxLadder(ctx context.Context, chatID int64) (int32, er
 }
 
 const getChatsWithoutTitle = `-- name: GetChatsWithoutTitle :many
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time FROM chats WHERE title = '' AND id < 0
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
+FROM chats
+WHERE title = ''
+  AND id < 0
 `
 
 func (q *Queries) GetChatsWithoutTitle(ctx context.Context) ([]Chat, error) {
