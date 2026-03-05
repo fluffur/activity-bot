@@ -4,16 +4,16 @@ import "time"
 
 func TranslateMemberStatus(status string, leftAt *time.Time) string {
 	if leftAt != nil {
-		return "не в чате"
+		return "Не в чате"
 	}
 	switch status {
 	case "member":
-		return "участник"
+		return "Участник"
 	case "administrator":
-		return "администратор"
+		return "Администратор"
 	case "creator":
-		return "владелец"
+		return "Владелец"
 
 	}
-	return "неизвестно"
+	return "Неизвестно"
 }

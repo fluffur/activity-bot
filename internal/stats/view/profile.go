@@ -4,21 +4,25 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"fmt"
+	"strings"
 	"time"
 )
 
 func FormatProfile(m model.MemberStats) string {
-	customTitle := "—"
+	var displayName string
 	if m.CustomTitle != nil && *m.CustomTitle != "" {
-		customTitle = *m.CustomTitle
+		displayName = *m.CustomTitle
+	} else {
+		fullName := strings.TrimSpace(m.User.FirstName + " " + m.User.LastName)
+		if fullName == "" {
+			fullName = "—"
+		}
+		displayName = fullName
 	}
-	lastName := ""
-	if m.User.LastName != "" {
-		lastName = " " + m.User.LastName
-	}
+
 	name := helpers.LinkWithContent(
 		m.User,
-		fmt.Sprintf("%s (%s)", m.User.FirstName+lastName, customTitle),
+		displayName,
 	)
 
 	status := helpers.TranslateMemberStatus(m.Status, m.LeftAt)
@@ -27,37 +31,40 @@ func FormatProfile(m model.MemberStats) string {
 		leftAtInfo = ", покинул чат" + helpers.FormatToHumanDate(*m.LeftAt)
 	}
 	text := fmt.Sprintf(
-		`👤 <b>Информация о:</b> %s
-🔰 <b>Статус:</b> %s (присоединился %s%s)
-	
-📊 <b>Активность</b>
-└ Сегодня: <b>%d</b>
-└ Неделя: <b>%d</b>
-└ Всего: <b>%d</b>
-
-⏰ <b>Динамика</b>
-└ 24ч: <b>%d</b> | 7д: <b>%d</b> | 30д: <b>%d</b>`,
+		`> <b>Информация о %s</b>
+> %s (в чате с %s%s)
+────────────────
+📊 Актив<blockquote expandable>▸ сегодня: %d
+▸ эта неделя: %d
+▸ этот месяц: %d</blockquote>
+────────────────
+⏰ За последние<blockquote expandable>▸ сутки: %d 
+▸ 7 дней: %d
+▸ 30 дней: %d</blockquote>
+────────────────
+📝 <b>Всего сообщений</b>: %d`,
 		name,
 		status,
 		helpers.FormatToHumanDateTime(m.JoinedAt),
 		leftAtInfo,
 		m.DayCount,
 		m.WeekCount,
-		m.AllTime,
+		m.MonthCount,
 		m.DayRollingCount,
 		m.WeekRollingCount,
 		m.MonthRollingCount,
+		m.AllTime,
 	)
 
 	if m.RestUntil != nil {
 		if m.RestUntil.After(time.Now()) {
 			text += fmt.Sprintf(
-				"\n\n💤 <b>Рест до:</b> %s",
+				"<blockquote>💤 Рест до %s</blockquote>",
 				helpers.FormatToHumanDateTime(*m.RestUntil),
 			)
 		} else {
 			text += fmt.Sprintf(
-				"\n\n💤 <b>Последний рест был завершен:</b> %s",
+				"\n\n💤 <blockquote>Последний рест был завершен %s</blockquote>",
 				helpers.FormatToHumanDate(*m.RestUntil),
 			)
 		}
@@ -66,7 +73,7 @@ func FormatProfile(m model.MemberStats) string {
 
 	if !isRestActive && (m.NormWarn > 0 || m.NormBan > 0) {
 		normStatus := getNormStatusEmoji(m.WeekCount, m.NormWarn, m.NormBan)
-		text += fmt.Sprintf("\n\n%s", normStatus)
+		text += fmt.Sprintf("<blockquote>%s</blockquote>", normStatus)
 	}
 
 	return text
@@ -74,10 +81,10 @@ func FormatProfile(m model.MemberStats) string {
 
 func getNormStatusEmoji(weekCount, normWarn, normBan int32) string {
 	if normBan > 0 && weekCount < normBan {
-		return fmt.Sprintf("🚫 Норма не набрана (%d/%d), бан", weekCount, normBan)
+		return fmt.Sprintf("🚫 Норма не набрана (%d/%d), <b>бан</b>", weekCount, normBan)
 	}
 	if normWarn > 0 && weekCount < normWarn {
-		return fmt.Sprintf("⚠️ Норма не набрана (%d/%d), варн", weekCount, normWarn)
+		return fmt.Sprintf("⚠️ Норма не набрана (%d/%d), <b>варн</b>", weekCount, normWarn)
 	}
 	return "✅ Норма набрана"
 }
