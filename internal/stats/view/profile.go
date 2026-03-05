@@ -34,16 +34,15 @@ func FormatProfile(m model.MemberStats) string {
 		`> Информация о %s
 > %s (в чате с %s%s)
 ───────────────
-📊 Актив<blockquote expandable>▸ сегодня: %d
+📊 Актив<blockquote>▸ сегодня: %d
 ▸ эта неделя: %d
 ▸ этот месяц: %d</blockquote>
 ───────────────
-⏰ За последние<blockquote expandable>▸ сутки: %d 
+⏰ За последние<blockquote>▸ сутки: %d 
 ▸ 7 дней: %d
 ▸ 30 дней: %d
 ▸ всего: %d
-</blockquote>
-───────────────`,
+</blockquote>───────────────`,
 		name,
 		status,
 		helpers.FormatToHumanDateTime(m.JoinedAt),
