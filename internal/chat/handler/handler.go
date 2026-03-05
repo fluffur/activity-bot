@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/chat/view"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
+	"activity-bot/internal/logger"
 	"activity-bot/internal/model"
 	"activity-bot/internal/session"
 	"fmt"
@@ -442,7 +443,7 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
-
+	logger.L.Info("chats", "chats", chats)
 	if len(chats) == 0 {
 		_, err := ctx.EffectiveChat.SendMessage(
 			b,
