@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
+	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
@@ -529,7 +530,7 @@ func (h *Handler) ListDevelopers(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.ReplyHTML(b, view.FormatDevelopersList(users, roles))
 }
 func (h *Handler) UpdateChats(b *gotgbot.Bot, ctx *cmd.Context) error {
-	chats, err := h.service.GetUserManagedChats(ctx.StdContext(), ctx.EffectiveSender.Id())
+	chats, err := h.service.GetChatsWithoutTitle(ctx.StdContext())
 	if err != nil {
 		return err
 	}
@@ -546,7 +547,7 @@ func (h *Handler) UpdateChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 			slog.Error("failed to get chat", "chat", c, "err", err)
 			continue
 		}
-
+		logger.L.Info("found chat title", "title", ch.Title)
 		if err := h.chatService.SetTitle(ctx.StdContext(), ch.Id, ch.Title); err != nil {
 			return err
 		}

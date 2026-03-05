@@ -200,6 +200,15 @@ func (r *ChatRepository) GetChatsWithoutNorm(ctx context.Context, userID int64) 
 
 }
 
+func mapChats(chats []db.Chat) []model.Chat {
+	result := make([]model.Chat, len(chats))
+	for i, c := range chats {
+		result[i] = mapChat(db.EnsureChatExistsRow(c))
+	}
+	return result
+
+}
+
 func mapChatsWithoutNorm(chats []db.GetAllUserChatsWithoutNormRow) []model.ChatWithoutNorm {
 	result := make([]model.ChatWithoutNorm, len(chats))
 	for i, c := range chats {

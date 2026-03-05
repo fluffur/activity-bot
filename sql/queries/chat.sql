@@ -139,3 +139,6 @@ GROUP BY c.id, c.title, c.norm_ban, c.norm_warn, c.week_start_time
 HAVING COUNT(m.id) < GREATEST(c.norm_ban, c.norm_warn)
 
 ORDER BY week_count;
+
+-- name: GetChatsWithoutTitle :many
+SELECT * FROM chats WHERE title = '' AND id < 0;

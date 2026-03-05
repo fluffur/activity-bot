@@ -14,6 +14,14 @@ type AdminRepository struct {
 	queries *db.Queries
 }
 
+func (r *AdminRepository) GetChatsWithoutTitle(ctx context.Context) ([]model.Chat, error) {
+	chats, err := r.queries.GetChatsWithoutTitle(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return mapChats(chats), nil
+}
+
 func NewAdminRepository(queries *db.Queries) admin.Repository {
 	return &AdminRepository{queries}
 }

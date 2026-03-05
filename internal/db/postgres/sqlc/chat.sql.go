@@ -233,6 +233,48 @@ func (q *Queries) GetChatMaxLadder(ctx context.Context, chatID int64) (int32, er
 	return max_ladder, err
 }
 
+const getChatsWithoutTitle = `-- name: GetChatsWithoutTitle :many
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time FROM chats WHERE title = '' AND id < 0
+`
+
+func (q *Queries) GetChatsWithoutTitle(ctx context.Context) ([]Chat, error) {
+	rows, err := q.db.Query(ctx, getChatsWithoutTitle)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Chat{}
+	for rows.Next() {
+		var i Chat
+		if err := rows.Scan(
+			&i.ID,
+			&i.NormWarn,
+			&i.NewbieThresholdDays,
+			&i.AiSystemPrompt,
+			&i.MaxLadder,
+			&i.CallOnJoin,
+			&i.WelcomeCallMessage,
+			&i.WeekStartDay,
+			&i.MaxWarns,
+			&i.NormBan,
+			&i.CommandPrefix,
+			&i.AllowPrefixless,
+			&i.MentionsPerMessage,
+			&i.MentionTypes,
+			&i.Title,
+			&i.TagsEnabled,
+			&i.WeekStartTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOrCreateChat = `-- name: GetOrCreateChat :one
 INSERT INTO chats(id, title, norm_warn)
 VALUES ($1, $2, $3)

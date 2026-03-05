@@ -32,4 +32,5 @@ type Repository interface {
 	RemoveLatestWarn(ctx context.Context, chatID, userID int64) error
 	GetActiveWarns(ctx context.Context, chatID, userID int64) ([]model.Warn, error)
 	GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]model.Warn, error)
+	GetChatsWithoutTitle(ctx context.Context) ([]model.Chat, error)
 }

@@ -346,3 +346,7 @@ func (s *Service) GetWarns(ctx context.Context, chatID, userID int64) ([]model.W
 func (s *Service) GetWarnsByChat(ctx context.Context, chatID int64) ([]model.Warn, error) {
 	return s.repo.GetActiveWarnsByChat(ctx, chatID)
 }
+
+func (s *Service) GetChatsWithoutTitle(ctx context.Context) ([]model.Chat, error) {
+	return s.repo.GetChatsWithoutTitle(ctx)
+}
