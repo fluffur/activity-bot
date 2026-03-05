@@ -424,10 +424,13 @@ func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	cht, err := b.GetChat(chatID, nil)
-	title := "чатом"
-	if err == nil {
-		title = cht.Title
+	if err != nil {
+		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "Ошибка: " + err.Error(),
+		})
+		return err
 	}
+	title := cht.Title
 
 	_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 		Text: "Выбран чат: " + title,
