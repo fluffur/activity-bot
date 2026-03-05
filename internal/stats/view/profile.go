@@ -64,12 +64,16 @@ func FormatProfile(m model.MemberStats) string {
 	}
 
 	if m.RestUntil != nil {
+
+		now := time.Now()
+		daysSinceRestEnd := int(now.Sub(*m.RestUntil).Hours() / 24)
+
 		if m.RestUntil.After(time.Now()) {
 			text += fmt.Sprintf(
 				"<blockquote>💤 Рест до %s</blockquote>",
 				helpers.FormatToHumanDateTime(*m.RestUntil),
 			)
-		} else {
+		} else if daysSinceRestEnd >= 0 && daysSinceRestEnd <= 3 {
 			text += fmt.Sprintf(
 				"\n<blockquote>💤 Последний рест был завершен %s</blockquote>",
 				helpers.FormatToHumanDate(*m.RestUntil),
