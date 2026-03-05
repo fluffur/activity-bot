@@ -33,17 +33,17 @@ func FormatProfile(m model.MemberStats) string {
 	text := fmt.Sprintf(
 		`> Информация о %s
 > %s (в чате с %s%s)
-────────────────
+───────────────
 📊 Актив<blockquote expandable>▸ сегодня: %d
 ▸ эта неделя: %d
 ▸ этот месяц: %d</blockquote>
-────────────────
-📝 Всего сообщений: %d
-────────────────
+───────────────
 ⏰ За последние<blockquote expandable>▸ сутки: %d 
 ▸ 7 дней: %d
-▸ 30 дней: %d</blockquote>
-────────────────`,
+▸ 30 дней: %d
+▸ всего: %d
+</blockquote>
+───────────────`,
 		name,
 		status,
 		helpers.FormatToHumanDateTime(m.JoinedAt),
@@ -51,10 +51,10 @@ func FormatProfile(m model.MemberStats) string {
 		m.DayCount,
 		m.WeekCount,
 		m.MonthCount,
-		m.AllTime,
 		m.DayRollingCount,
 		m.WeekRollingCount,
 		m.MonthRollingCount,
+		m.AllTime,
 	)
 	isRestActive := m.RestUntil != nil && m.RestUntil.After(time.Now())
 
