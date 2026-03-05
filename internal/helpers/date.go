@@ -75,25 +75,40 @@ func PluralizeDays(n int) string {
 }
 
 func FormatLastSeen(t time.Time) string {
-	d := time.Since(t)
+	t = t.In(MoscowLocation)
+	now := time.Now().In(MoscowLocation)
+
+	d := now.Sub(t)
+
+	var human string
 
 	if d < time.Hour {
-		return "меньше часа назад"
+		human = fmt.Sprintf("<tg-time unix=\"%d\">меньше часа назад</tg-time>)", t.Unix())
+	} else {
+		days := int(d.Hours()) / 24
+		hours := int(d.Hours()) % 24
+
+		var parts []string
+
+		if days > 0 {
+			parts = append(parts,
+				fmt.Sprintf("%d %s", days, pluralRu(days, "день", "дня", "дней")),
+			)
+		}
+		if hours > 0 {
+			parts = append(parts,
+				fmt.Sprintf("%d %s", hours, pluralRu(hours, "час", "часа", "часов")),
+			)
+		}
+
+		human = strings.Join(parts, " ") + " назад"
 	}
 
-	days := int(d.Hours()) / 24
-	hours := int(d.Hours()) % 24
-
-	var parts []string
-
-	if days > 0 {
-		parts = append(parts, fmt.Sprintf("%d %s", days, pluralRu(days, "день", "дня", "дней")))
-	}
-	if hours > 0 {
-		parts = append(parts, fmt.Sprintf("%d %s", hours, pluralRu(hours, "час", "часа", "часов")))
-	}
-
-	return strings.Join(parts, " ")
+	return fmt.Sprintf(
+		"<tg-time unix=\"%d\">%s</tg-time>",
+		t.Unix(),
+		human,
+	)
 }
 
 func pluralRu(n int, one, few, many string) string {
