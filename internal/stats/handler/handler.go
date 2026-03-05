@@ -249,6 +249,9 @@ func (h *Handler) WhoAreUser(
 	_, err = tgCtx.EffectiveMessage.Reply(b, text, &gotgbot.SendMessageOpts{
 		ParseMode:   gotgbot.ParseModeHTML,
 		ReplyMarkup: kb,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			ShowAboveText: true,
+		},
 	})
 
 	return err

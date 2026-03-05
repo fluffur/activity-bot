@@ -31,7 +31,7 @@ func FormatProfile(m model.MemberStats) string {
 		leftAtInfo = ", покинул чат" + helpers.FormatToHumanDate(*m.LeftAt)
 	}
 	text := fmt.Sprintf(
-		`> <b>Информация о %s</b>
+		`> Информация о %s
 > %s (в чате с %s%s)
 ────────────────
 📊 Актив<blockquote expandable>▸ сегодня: %d
@@ -42,7 +42,7 @@ func FormatProfile(m model.MemberStats) string {
 ▸ 7 дней: %d
 ▸ 30 дней: %d</blockquote>
 ────────────────
-📝 <b>Всего сообщений</b>: %d`,
+📝 Всего сообщений: %d`,
 		name,
 		status,
 		helpers.FormatToHumanDateTime(m.JoinedAt),
@@ -55,31 +55,34 @@ func FormatProfile(m model.MemberStats) string {
 		m.MonthRollingCount,
 		m.AllTime,
 	)
+	isRestActive := m.RestUntil != nil && m.RestUntil.After(time.Now())
+
+	if m.NormWarn > 0 || m.NormBan > 0 {
+		normStatus := getNormStatusEmoji(m.WeekCount, m.NormWarn, m.NormBan, isRestActive)
+		text += fmt.Sprintf("\n%s", normStatus)
+	}
 
 	if m.RestUntil != nil {
 		if m.RestUntil.After(time.Now()) {
 			text += fmt.Sprintf(
-				"<blockquote>💤 Рест до %s</blockquote> ",
+				"<blockquote>💤 Рест до %s</blockquote>",
 				helpers.FormatToHumanDateTime(*m.RestUntil),
 			)
 		} else {
 			text += fmt.Sprintf(
-				"\n\n<blockquote>💤 Последний рест был завершен %s</blockquote> ",
+				"\n<blockquote>💤 Последний рест был завершен %s</blockquote>",
 				helpers.FormatToHumanDate(*m.RestUntil),
 			)
 		}
-	}
-	isRestActive := m.RestUntil != nil && m.RestUntil.After(time.Now())
-
-	if !isRestActive && (m.NormWarn > 0 || m.NormBan > 0) {
-		normStatus := getNormStatusEmoji(m.WeekCount, m.NormWarn, m.NormBan)
-		text += fmt.Sprintf("<blockquote>%s</blockquote>", normStatus)
 	}
 
 	return text
 }
 
-func getNormStatusEmoji(weekCount, normWarn, normBan int32) string {
+func getNormStatusEmoji(weekCount, normWarn, normBan int32, isRestActive bool) string {
+	if isRestActive {
+		return "🕊 Освобождение от нормы"
+	}
 	if normBan > 0 && weekCount < normBan {
 		return fmt.Sprintf("🚫 Норма не набрана (%d/%d), <b>бан</b>", weekCount, normBan)
 	}
