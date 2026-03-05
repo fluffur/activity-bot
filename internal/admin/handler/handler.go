@@ -547,7 +547,7 @@ func (h *Handler) UpdateChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 			slog.Error("failed to get chat", "chat", c, "err", err)
 			continue
 		}
-		logger.L.Info("found chat title", "title", ch.Title)
+		logger.L.Info("found chat title", "title", ch.Title, "id", ch.Id)
 		if err := h.chatService.SetTitle(ctx.StdContext(), c.ID, ch.Title); err != nil {
 			return err
 		}
