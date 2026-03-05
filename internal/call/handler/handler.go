@@ -32,6 +32,24 @@ func (h *Handler) CallInactive(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return h.service.CallInactive(ctx, b, ctx.HTML())
 }
 
+func (h *Handler) CallInactiveCallback(b *gotgbot.Bot, ctx *cmd.Context) error {
+
+	isAdmin, err := h.adminService.IsAdmin(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+	if err != nil {
+		return err
+	}
+	if !isAdmin {
+		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "Требуются права администратора",
+		})
+		return err
+	}
+	_, _ = ctx.CallbackQuery.Answer(b, nil)
+
+	return h.service.CallInactive(ctx, b, ctx.HTML())
+
+}
+
 func (h *Handler) SetMentionsPerMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	countStr := ctx.FirstArgument()
 	count, err := strconv.Atoi(countStr)

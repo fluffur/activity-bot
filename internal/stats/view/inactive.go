@@ -19,9 +19,8 @@ func FormatInactiveMembers(members []model.InactiveMember) string {
 		sb.WriteString(fmt.Sprintf(
 			"%d. %s",
 			i+1,
-			helpers.Mention(
-				m.Member.User.ID,
-				userTitle,
+			helpers.Link(
+				m.Member.User,
 			),
 		))
 

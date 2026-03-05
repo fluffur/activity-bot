@@ -255,7 +255,7 @@ func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx context.Context, tgCtx *ext.Con
 	return err
 }
 
-func (h *Handler) Inactive(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) ListInactive(b *gotgbot.Bot, ctx *cmd.Context) error {
 	members, err := h.service.GetInactiveMembers(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
@@ -270,7 +270,17 @@ func (h *Handler) Inactive(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	text := view.FormatInactiveMembers(members)
 
-	return ctx.ReplyHTML(b, text)
+	return ctx.Reply(b, text, &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		ReplyMarkup: &gotgbot.InlineKeyboardMarkup{
+			InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
+				{{Text: "Созвать неактивных", CallbackData: "call_inactive"}},
+			},
+		},
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+	})
 }
 
 func (h *Handler) ShowRestList(b *gotgbot.Bot, ctx *cmd.Context) error {
