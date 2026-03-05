@@ -12,7 +12,6 @@ import (
 	"activity-bot/internal/user"
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -220,38 +219,79 @@ func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 	)
 }
 
-func (h *Handler) WhoAreUser(b *gotgbot.Bot, ctx context.Context, tgCtx *ext.Context, dataChatID int64, userID int64) error {
+func (h *Handler) WhoAreUser(
+	b *gotgbot.Bot,
+	ctx context.Context,
+	tgCtx *ext.Context,
+	dataChatID int64,
+	userID int64,
+) error {
+
 	m, err := h.service.GetMemberStats(ctx, dataChatID, userID)
 	if err != nil {
 		return err
 	}
 
-	buf, err := h.service.GetMessageActivityGraph(ctx, dataChatID, userID)
-	if err != nil {
-		slog.Warn("Failed to get graph", "error", err)
-	}
-
 	text := view.FormatProfile(m)
 
-	if buf == nil {
-		_, err = tgCtx.EffectiveMessage.Reply(b, text, &gotgbot.SendMessageOpts{
-			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-				IsDisabled: true,
+	kb := gotgbot.InlineKeyboardMarkup{
+		InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
+			{
+				{
+					Text:         "📊 Показать график",
+					CallbackData: fmt.Sprintf("profile_graph:%d", userID),
+				},
 			},
-			ParseMode: gotgbot.ParseModeHTML,
+		},
+	}
+
+	_, err = tgCtx.EffectiveMessage.Reply(b, text, &gotgbot.SendMessageOpts{
+		ParseMode:   gotgbot.ParseModeHTML,
+		ReplyMarkup: kb,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+	})
+
+	return err
+}
+
+func (h *Handler) CallbackProfileGraph(b *gotgbot.Bot, ctx *cmd.Context) error {
+	var userID int64
+	if _, err := fmt.Sscanf(ctx.CallbackQuery.Data, "profile_graph:%d", &userID); err != nil {
+		return err
+	}
+
+	_, _ = ctx.CallbackQuery.Answer(b, nil)
+
+	chatID := ctx.TargetChatID()
+
+	buf, err := h.service.GetMessageActivityGraph(ctx.StdContext(), chatID, userID)
+	if err != nil || buf == nil {
+		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "Недостаточно данных для графика",
 		})
 		return err
 	}
 
-	_, err = b.SendPhoto(tgCtx.EffectiveChat.Id, gotgbot.InputFileByReader("activity.png", buf), &gotgbot.SendPhotoOpts{
-		Caption: text,
-		ReplyParameters: &gotgbot.ReplyParameters{
-			MessageId:                tgCtx.EffectiveMessage.MessageId,
-			ChatId:                   tgCtx.EffectiveChat.Id,
-			AllowSendingWithoutReply: true,
-		},
+	m, err := h.service.GetMemberStats(ctx.StdContext(), chatID, userID)
+	if err != nil {
+		return err
+	}
+
+	text := view.FormatProfile(m)
+
+	media := gotgbot.InputMediaPhoto{
+		Media:     gotgbot.InputFileByReader("activity.png", buf),
+		Caption:   text,
 		ParseMode: gotgbot.ParseModeHTML,
-	})
+	}
+
+	_, _, err = ctx.CallbackQuery.Message.EditMedia(
+		b,
+		media,
+		&gotgbot.EditMessageMediaOpts{},
+	)
 	return err
 }
 

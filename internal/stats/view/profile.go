@@ -4,7 +4,6 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"fmt"
-	"log/slog"
 	"time"
 )
 
@@ -14,7 +13,6 @@ func FormatProfile(m model.MemberStats) string {
 		customTitle = *m.CustomTitle
 	}
 	lastName := ""
-	slog.Info("lastname", "lastname", m.User.LastName)
 	if m.User.LastName != "" {
 		lastName = " " + m.User.LastName
 	}
@@ -30,7 +28,7 @@ func FormatProfile(m model.MemberStats) string {
 	}
 	text := fmt.Sprintf(
 		`👤 <b>Информация о:</b> %s
-👑 <b>Статус:</b> %s (присоединился %s%s)
+🔰 <b>Статус:</b> %s (присоединился %s%s)
 	
 📊 <b>Активность</b>
 └ Сегодня: <b>%d</b>
@@ -41,8 +39,8 @@ func FormatProfile(m model.MemberStats) string {
 └ 24ч: <b>%d</b> | 7д: <b>%d</b> | 30д: <b>%d</b>`,
 		name,
 		status,
-		leftAtInfo,
 		helpers.FormatToHumanDateTime(m.JoinedAt),
+		leftAtInfo,
 		m.DayCount,
 		m.WeekCount,
 		m.AllTime,
@@ -64,8 +62,9 @@ func FormatProfile(m model.MemberStats) string {
 			)
 		}
 	}
+	isRestActive := m.RestUntil != nil && m.RestUntil.After(time.Now())
 
-	if m.NormWarn > 0 || m.NormBan > 0 {
+	if !isRestActive && (m.NormWarn > 0 || m.NormBan > 0) {
 		normStatus := getNormStatusEmoji(m.WeekCount, m.NormWarn, m.NormBan)
 		text += fmt.Sprintf("\n\n%s", normStatus)
 	}
