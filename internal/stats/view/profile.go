@@ -59,7 +59,7 @@ func FormatProfile(m model.MemberStats) string {
 	if m.RestUntil != nil {
 		if m.RestUntil.After(time.Now()) {
 			text += fmt.Sprintf(
-				"<blockquote>💤 Рест до %s</blockquote>",
+				"<blockquote>💤 Рест до %s</blockquote> ",
 				helpers.FormatToHumanDateTime(*m.RestUntil),
 			)
 		} else {
