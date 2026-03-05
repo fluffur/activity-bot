@@ -25,7 +25,11 @@ func New(service *call.Service, chatService *chat.Service, adminService *admin.S
 }
 
 func (h *Handler) Call(b *gotgbot.Bot, ctx *cmd.Context) error {
-	return h.service.Call(ctx, b, ctx.HTML())
+	return h.service.CallAll(ctx, b, ctx.HTML())
+}
+
+func (h *Handler) CallInactive(b *gotgbot.Bot, ctx *cmd.Context) error {
+	return h.service.CallInactive(ctx, b, ctx.HTML())
 }
 
 func (h *Handler) SetMentionsPerMessage(b *gotgbot.Bot, ctx *cmd.Context) error {

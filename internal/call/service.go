@@ -5,8 +5,9 @@ import (
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
+	"activity-bot/internal/model"
+	"activity-bot/internal/stats"
 	"context"
-	"log/slog"
 	"math/rand"
 	"regexp"
 	"strings"
@@ -38,10 +39,11 @@ var callEmojis = []string{
 type Service struct {
 	repo          chat.Repository
 	memberService *member.Service
+	statsService  *stats.Service
 }
 
-func NewService(repo chat.Repository, memberService *member.Service) *Service {
-	return &Service{repo, memberService}
+func NewService(repo chat.Repository, memberService *member.Service, statsService *stats.Service) *Service {
+	return &Service{repo, memberService, statsService}
 }
 
 var tgMentionRegex = regexp.MustCompile(`(?i)<a\s+href="tg://user\?id=\d+">([^<]+)</a>`)
@@ -79,14 +81,20 @@ func replaceMentionsWithLinks(input string) string {
 	flushText()
 	return sb.String()
 }
-
-func (s *Service) Call(ctx *cmd.Context, b *gotgbot.Bot, message string) error {
-	slog.Info("call message", "message", message)
-	members, err := s.memberService.GetChatMembers(ctx.StdContext(), ctx.TargetChatID())
+func (s *Service) CallInactive(ctx *cmd.Context, b *gotgbot.Bot, message string) error {
+	inactive, err := s.statsService.GetInactiveMembers(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
 	}
+	members := make([]model.ChatMember, len(inactive))
+	for i, m := range inactive {
+		members[i] = m.Member
+	}
 
+	return s.Call(ctx, b, message, members)
+}
+
+func (s *Service) Call(ctx *cmd.Context, b *gotgbot.Bot, message string, members []model.ChatMember) error {
 	var replyParams *gotgbot.ReplyParameters
 	if ctx.EffectiveMessage.ReplyToMessage != nil {
 		replyParams = &gotgbot.ReplyParameters{
@@ -185,6 +193,14 @@ func (s *Service) Call(ctx *cmd.Context, b *gotgbot.Bot, message string) error {
 	}
 
 	return nil
+}
+
+func (s *Service) CallAll(ctx *cmd.Context, b *gotgbot.Bot, message string) error {
+	members, err := s.memberService.GetChatMembers(ctx.StdContext(), ctx.TargetChatID())
+	if err != nil {
+		return err
+	}
+	return s.Call(ctx, b, message, members)
 }
 
 func (s *Service) SetWelcomeCallMessage(ctx context.Context, chatID int64, message string) error {

@@ -205,7 +205,7 @@ func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if chatData.CallOnJoin {
-		return h.callService.Call(ctx, b, chatData.WelcomeCallMessage)
+		return h.callService.CallAll(ctx, b, chatData.WelcomeCallMessage)
 	}
 
 	return nil

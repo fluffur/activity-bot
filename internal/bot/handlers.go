@@ -42,7 +42,7 @@ func (a *App) RegisterHandlers() {
 	restService := rest.NewService(restRepository)
 	messageService := msg.NewService(messageRepository)
 
-	callService := call.NewService(chatRepository, a.MemberService)
+	callService := call.NewService(chatRepository, a.MemberService, statsService)
 	sessionService := session.NewService(sessionRepository)
 
 	dateParser := helpers.NewDateParser()
@@ -259,6 +259,12 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
+	a.Dispatcher.AddHandler(cf.New(callHandler.CallInactive, "call_inactive", "калл инактив", "калл неактив").
+		AddTriggers("+").
+		WithGuards(groupGuard, adminGuard, rateLimiterGuard).
+		SetArgsCount(1),
+	)
+
 	a.Dispatcher.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл", "all", "каллалл").
 		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard, rateLimiterGuard).
