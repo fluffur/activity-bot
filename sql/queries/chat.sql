@@ -2,7 +2,7 @@
 WITH ins AS (
     INSERT INTO chats (id, title, norm_warn)
         VALUES ($1, $2, $3)
-        ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title
+        ON CONFLICT (id) DO UPDATE SET title = COALESCE(NULLIF(EXCLUDED.title, ''), chats.title)
         RETURNING *)
 SELECT *
 FROM ins
@@ -16,7 +16,7 @@ LIMIT 1;
 INSERT INTO chats(id, title, norm_warn)
 VALUES ($1, $2, $3)
 ON CONFLICT(id) DO UPDATE SET norm_warn = chats.norm_warn,
-                              title     = EXCLUDED.title
+                              title     = COALESCE(NULLIF(EXCLUDED.title, ''), chats.title)
 RETURNING *;
 
 -- name: UpdateChatWarnNorm :exec
