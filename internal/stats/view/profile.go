@@ -28,7 +28,7 @@ func FormatProfile(m model.MemberStats) string {
 	status := helpers.TranslateMemberStatus(m.Status, m.LeftAt)
 	leftAtInfo := ""
 	if m.LeftAt != nil {
-		leftAtInfo = ", покинул чат" + helpers.FormatToHumanDate(*m.LeftAt)
+		leftAtInfo = ", покинул чат " + helpers.FormatToHumanDate(*m.LeftAt)
 	}
 	text := fmt.Sprintf(
 		`> Информация о %s
