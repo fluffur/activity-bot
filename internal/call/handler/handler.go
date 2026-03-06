@@ -15,6 +15,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -28,6 +29,9 @@ type Handler struct {
 	chatService    *chat.Service
 	adminService   *admin.Service
 	sessionService *session.Service
+	mu             sync.Mutex
+	// promptMessages[chatID][userID] = messageID вопроса "введите сообщение созыва"
+	promptMessages map[int64]map[int64]int
 }
 
 const (
@@ -38,7 +42,14 @@ const (
 )
 
 func New(service *call.Service, memberService *member.Service, chatService *chat.Service, adminService *admin.Service, sessionService *session.Service) *Handler {
-	return &Handler{service, memberService, chatService, adminService, sessionService}
+	return &Handler{
+		service:        service,
+		memberService:  memberService,
+		chatService:    chatService,
+		adminService:   adminService,
+		sessionService: sessionService,
+		promptMessages: make(map[int64]map[int64]int),
+	}
 }
 
 func (h *Handler) callMembers(
@@ -186,10 +197,10 @@ func (h *Handler) doCall(
 ) error {
 
 	var replyParams *gotgbot.ReplyParameters
-	if srcMsg != nil && srcMsg.ReplyToMessage != nil {
+	if srcMsg != nil {
 		replyParams = &gotgbot.ReplyParameters{
 			ChatId:    chatID,
-			MessageId: srcMsg.ReplyToMessage.MessageId,
+			MessageId: srcMsg.MessageId,
 		}
 	}
 
@@ -479,7 +490,7 @@ func (h *Handler) startCallConversation(
 	}
 
 	text := "Введите сообщение созыва, которое будет добавлено перед упоминаниями, либо выберите вариант ниже."
-	_, err = ctx.EffectiveMessage.Reply(
+	promptMsg, err := ctx.EffectiveMessage.Reply(
 		b,
 		text,
 		&gotgbot.SendMessageOpts{
@@ -503,6 +514,15 @@ func (h *Handler) startCallConversation(
 	)
 	if err != nil {
 		return err
+	}
+
+	if ctx.EffectiveSender != nil {
+		h.mu.Lock()
+		if h.promptMessages[chatID] == nil {
+			h.promptMessages[chatID] = make(map[int64]int)
+		}
+		h.promptMessages[chatID][ctx.EffectiveSender.Id()] = int(promptMsg.MessageId)
+		h.mu.Unlock()
 	}
 
 	if ctx.CallbackQuery != nil {
@@ -538,6 +558,27 @@ func (h *Handler) handleCallWithMessage(
 	chatID, err := cmd.GetChatID(h.sessionService, ctx, stdCtx)
 	if err != nil {
 		chatID = ctx.EffectiveChat.Id
+	}
+
+	if ctx.EffectiveSender != nil {
+		userID := ctx.EffectiveSender.Id()
+		h.mu.Lock()
+		if byUser, ok := h.promptMessages[chatID]; ok {
+			if msgID, ok2 := byUser[userID]; ok2 {
+				delete(byUser, userID)
+				if len(byUser) == 0 {
+					delete(h.promptMessages, chatID)
+				}
+				h.mu.Unlock()
+				if _, errDel := b.DeleteMessage(chatID, int64(msgID), nil); errDel != nil {
+					logger.L.Warn("failed to delete call prompt message", "error", errDel, "chat_id", chatID, "user_id", userID, "message_id", msgID)
+				}
+			} else {
+				h.mu.Unlock()
+			}
+		} else {
+			h.mu.Unlock()
+		}
 	}
 
 	members, err := getMembers(stdCtx, chatID)
