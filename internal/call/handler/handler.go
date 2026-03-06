@@ -30,8 +30,8 @@ type Handler struct {
 	adminService   *admin.Service
 	sessionService *session.Service
 	mu             sync.Mutex
-	// promptMessages[chatID][userID] = messageID вопроса "введите сообщение созыва"
-	promptMessages map[int64]map[int64]int
+	// promptMessages[chatID][userID] = messageID вопроса "ответьте на это сообщение..."
+	promptMessages map[int64]map[int64]int64
 }
 
 const (
@@ -48,7 +48,7 @@ func New(service *call.Service, memberService *member.Service, chatService *chat
 		chatService:    chatService,
 		adminService:   adminService,
 		sessionService: sessionService,
-		promptMessages: make(map[int64]map[int64]int),
+		promptMessages: make(map[int64]map[int64]int64),
 	}
 }
 
@@ -489,11 +489,34 @@ func (h *Handler) startCallConversation(
 		return handlers.EndConversation()
 	}
 
-	text := "Введите сообщение созыва, которое будет добавлено перед упоминаниями, либо выберите вариант ниже."
+	// Человекочитаемое имя типа созыва.
+	callType := "всех"
+	switch nextState {
+	case CallStateInactive:
+		callType = "неактивных"
+	case CallStateNoNorm:
+		callType = "без нормы"
+	case CallStateNoNormWarn:
+		callType = "без нормы (предупреждение)"
+	case CallStateNoNormBan:
+		callType = "без нормы (бан)"
+	}
+
+	userMention := "Пользователь"
+	if ctx.EffectiveUser != nil {
+		userMention = helpers.Mention(ctx.EffectiveUser.Id, ctx.EffectiveUser.FirstName)
+	}
+
+	text := fmt.Sprintf(
+		"%s, введите сообщение созыва типа %s: ",
+		userMention,
+		callType,
+	)
 	promptMsg, err := ctx.EffectiveMessage.Reply(
 		b,
 		text,
 		&gotgbot.SendMessageOpts{
+			ParseMode: gotgbot.ParseModeHTML,
 			ReplyMarkup: gotgbot.InlineKeyboardMarkup{
 				InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
 					{
@@ -517,11 +540,12 @@ func (h *Handler) startCallConversation(
 	}
 
 	if ctx.EffectiveSender != nil {
+		uid := ctx.EffectiveSender.Id()
 		h.mu.Lock()
 		if h.promptMessages[chatID] == nil {
-			h.promptMessages[chatID] = make(map[int64]int)
+			h.promptMessages[chatID] = make(map[int64]int64)
 		}
-		h.promptMessages[chatID][ctx.EffectiveSender.Id()] = int(promptMsg.MessageId)
+		h.promptMessages[chatID][uid] = promptMsg.MessageId
 		h.mu.Unlock()
 	}
 
@@ -561,23 +585,32 @@ func (h *Handler) handleCallWithMessage(
 	}
 
 	if ctx.EffectiveSender != nil {
-		userID := ctx.EffectiveSender.Id()
+		uid := ctx.EffectiveSender.Id()
+
+		var promptID int64
 		h.mu.Lock()
 		if byUser, ok := h.promptMessages[chatID]; ok {
-			if msgID, ok2 := byUser[userID]; ok2 {
-				delete(byUser, userID)
+			if mid, ok2 := byUser[uid]; ok2 {
+				promptID = mid
+				delete(byUser, uid)
 				if len(byUser) == 0 {
 					delete(h.promptMessages, chatID)
 				}
-				h.mu.Unlock()
-				if _, errDel := b.DeleteMessage(chatID, int64(msgID), nil); errDel != nil {
-					logger.L.Warn("failed to delete call prompt message", "error", errDel, "chat_id", chatID, "user_id", userID, "message_id", msgID)
-				}
-			} else {
-				h.mu.Unlock()
 			}
-		} else {
-			h.mu.Unlock()
+		}
+		h.mu.Unlock()
+
+		if promptID != 0 {
+			m := &gotgbot.Message{MessageId: promptID, Chat: gotgbot.Chat{Id: chatID}}
+			if _, ok, errEdit := m.EditReplyMarkup(b, nil); errEdit != nil || !ok {
+				logger.L.Warn(
+					"failed to clear stored call prompt keyboard",
+					"error", errEdit,
+					"edited", ok,
+					"chat_id", chatID,
+					"message_id", promptID,
+				)
+			}
 		}
 	}
 
@@ -661,10 +694,9 @@ func (h *Handler) CancelCallConversation(b *gotgbot.Bot, ctx *ext.Context) error
 	if ctx.CallbackQuery != nil && ctx.CallbackQuery.Message != nil {
 		if _, _, err := ctx.CallbackQuery.Message.EditText(
 			b,
-			"❌ Операция созыва отменена.",
-			nil,
+			"❌ Операция созыва отменена.", nil,
 		); err != nil {
-			logger.L.Error("Failed to edit text", "error", err)
+			logger.L.Error("Failed to edit cancel call prompt", "error", err)
 		}
 	}
 
@@ -744,6 +776,15 @@ func (h *Handler) NoMessageCallConversation(b *gotgbot.Bot, ctx *ext.Context) er
 	}
 
 	if ctx.CallbackQuery != nil {
+		if ctx.CallbackQuery.Message != nil {
+			if _, _, err := ctx.CallbackQuery.Message.EditReplyMarkup(
+				b,
+				&gotgbot.EditMessageReplyMarkupOpts{},
+			); err != nil {
+				logger.L.Warn("failed to clear keyboard on no-message call", "error", err)
+			}
+		}
+
 		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Созыв отправлен без сообщения.",
 		})
