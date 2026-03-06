@@ -488,10 +488,12 @@ func (h *Handler) startCallConversation(
 					{
 						{
 							Text:         "Без сообщения",
+							Style:        "primary",
 							CallbackData: fmt.Sprintf("call_nomsg:%s", nextState),
 						},
 						{
 							Text:         "Отменить",
+							Style:        "danger",
 							CallbackData: "call_cancel",
 						},
 					},
