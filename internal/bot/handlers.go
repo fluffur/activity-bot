@@ -260,7 +260,7 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
-	a.Dispatcher.AddHandler(cf.New(callHandler.CallInactive, "call_inactive", "калл инактив", "калл неактив").
+	a.Dispatcher.AddHandler(cf.New(callHandler.CallInactive, "call_inactive", "калл инактив", "калл неактив", "созвать неактивных").
 		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard, rateLimiterGuard).
 		SetArgsCount(1),
