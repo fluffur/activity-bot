@@ -82,7 +82,8 @@ WITH chat_upsert AS (
                      first_name = EXCLUDED.first_name,
                      last_name = EXCLUDED.last_name
              RETURNING id)
-INSERT INTO chat_members (chat_id, user_id, custom_title)
+INSERT
+INTO chat_members (chat_id, user_id, custom_title)
 SELECT chat_upsert.id,
        user_upsert.id,
        @custom_title
@@ -94,7 +95,7 @@ ON CONFLICT (chat_id, user_id) DO UPDATE
                                THEN @custom_title
                            ELSE chat_members.custom_title
         END,
-        left_at = NULL
+        left_at      = NULL
 RETURNING *;
 
 -- name: UpsertChatMembers :exec
@@ -137,3 +138,28 @@ FROM chats c
 WHERE c.id = cm.chat_id
   AND cm.chat_id = $1
   AND cm.user_id = ANY (@user_ids::BIGINT[]);
+
+-- name: GetNoNormMembers :many
+SELECT cm.*, u.*
+FROM chat_members cm
+         JOIN chats c ON c.id = cm.chat_id
+         JOIN users u ON u.id = cm.user_id
+         LEFT JOIN (
+    SELECT chat_id, user_id, COUNT(*) AS msg_count
+    FROM messages
+    WHERE (messages.created_at >= @from_date OR @from_date::timestamptz IS NULL)
+      AND (messages.created_at < @to_date OR @to_date::timestamptz IS NULL)
+    GROUP BY chat_id, user_id
+) m ON m.chat_id = cm.chat_id AND m.user_id = cm.user_id
+
+WHERE cm.chat_id = @chat_id
+  AND cm.left_at IS NULL
+  AND (cm.rest_until IS NULL OR cm.rest_until < now())
+  AND (
+    (@mode = 'warn' AND COALESCE(m.msg_count,0) < c.norm_warn)
+        OR (@mode = 'ban'  AND COALESCE(m.msg_count,0) < c.norm_ban)
+        OR (@mode = 'any'  AND (
+        COALESCE(m.msg_count,0) < c.norm_warn
+            OR COALESCE(m.msg_count,0) < c.norm_ban
+        ))
+    );

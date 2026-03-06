@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"context"
+	"time"
 )
 
 type ChatAdminsProvider interface {
@@ -109,4 +110,16 @@ func (s *Service) SetOnlyNewbies(ctx context.Context, chatID int64, users []*mod
 
 func (s *Service) SetNewbies(ctx context.Context, chatID int64, users []*model.User) error {
 	return s.repo.SetNewbies(ctx, chatID, users)
+}
+
+func (s *Service) GetNoNormMembers(ctx context.Context, chatID int64, from, to *time.Time) ([]model.ChatMember, error) {
+	return s.repo.GetNoNormMembers(ctx, chatID, from, to)
+}
+
+func (s *Service) GetNoNormWarnMembers(ctx context.Context, chatID int64, from *time.Time, to *time.Time) ([]model.ChatMember, error) {
+	return s.repo.GetNoNormWarnMembers(ctx, chatID, from, to)
+}
+
+func (s *Service) GetNoNormBanMembers(ctx context.Context, chatID int64, from *time.Time, to *time.Time) ([]model.ChatMember, error) {
+	return s.repo.GetNoNormBanMembers(ctx, chatID, from, to)
 }

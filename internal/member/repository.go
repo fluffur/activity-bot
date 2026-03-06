@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/model"
 	"context"
 	"errors"
+	"time"
 )
 
 var ErrMemberNotFound = errors.New("member not found")
@@ -24,4 +25,7 @@ type Repository interface {
 	SetOnlyNewbies(ctx context.Context, chatID int64, users []*model.User) error
 	SetNewbies(ctx context.Context, chatID int64, users []*model.User) error
 	GetAnyWithCustomTitles(ctx context.Context, chatID int64) ([]model.ChatMember, error)
+	GetNoNormMembers(ctx context.Context, id int64, from, to *time.Time) ([]model.ChatMember, error)
+	GetNoNormBanMembers(ctx context.Context, id int64, from, to *time.Time) ([]model.ChatMember, error)
+	GetNoNormWarnMembers(ctx context.Context, id int64, from, to *time.Time) ([]model.ChatMember, error)
 }

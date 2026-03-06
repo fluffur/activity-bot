@@ -56,7 +56,7 @@ func (a *App) RegisterHandlers() {
 
 	messageHandler := messageH.New(messageService, a.MemberService, a.ChatService, a.Deepseek)
 	memberHandler := memberH.New(a.MemberService, a.ChatService, a.UserService, callService, a.AdminService)
-	callHandler := callH.New(callService, a.ChatService, a.AdminService, sessionService)
+	callHandler := callH.New(callService, a.MemberService, a.ChatService, a.AdminService, sessionService)
 	userHandler := userH.New(a.UserService)
 
 	adminGuard := guard.NewAdminGuard(a.AdminService, sessionService)
@@ -260,11 +260,26 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(1),
 	)
+
 	a.Dispatcher.AddHandler(cf.New(callHandler.CallInactive, "call_inactive", "калл инактив", "калл неактив", "созвать неактивных").
-		AddTriggers("+").
-		WithGuards(groupGuard, adminGuard, rateLimiterGuard).
-		SetArgsCount(1),
+		WithGuards(groupGuard, adminGuard, rateLimiterGuard),
 	)
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_inactive"), cf.WrapCallback(callHandler.CallInactiveCallback)))
+
+	a.Dispatcher.AddHandler(cf.New(callHandler.CallNoNorm, "call_no_norm", "калл без нормы", "созвать без нормы").
+		WithGuards(groupGuard, adminGuard, rateLimiterGuard),
+	)
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_no_norm"), cf.WrapCallback(callHandler.CallNoNormCallback)))
+
+	a.Dispatcher.AddHandler(cf.New(callHandler.CallNoNormWarn, "call_no_norm_warn", "калл без нормы варн", "созвать без нормы варн").
+		WithGuards(groupGuard, adminGuard, rateLimiterGuard),
+	)
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_no_norm_warn"), cf.WrapCallback(callHandler.CallNoNormWarnCallback)))
+
+	a.Dispatcher.AddHandler(cf.New(callHandler.CallNoNormWarn, "call_no_norm_ban", "калл без нормы бан", "созвать без нормы бан").
+		WithGuards(groupGuard, adminGuard, rateLimiterGuard),
+	)
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_no_norm_ban"), cf.WrapCallback(callHandler.CallNoNormWarnCallback)))
 
 	a.Dispatcher.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл", "all", "каллалл").
 		AddTriggers("+").
@@ -329,7 +344,7 @@ func (a *App) RegisterHandlers() {
 
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"), cf.WrapCallback(restHandler.ApproveRestRequest)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("reject:"), cf.WrapCallback(restHandler.RejectRestRequest)))
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_inactive"), cf.WrapCallback(callHandler.CallInactiveCallback)))
+
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.LeftChatMember, cf.WrapEvent(memberHandler.OnLeftMember)))
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.NewChatMembers, cf.WrapEvent(memberHandler.OnJoinMember)))
 	a.Dispatcher.AddHandler(handlers.NewMyChatMember(chatmember.NewStatus("administrator"), cf.WrapEvent(memberHandler.OnBotPromote)))

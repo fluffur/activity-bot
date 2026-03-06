@@ -12,8 +12,93 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type NormMode string
+
+const (
+	NormModeWarn NormMode = "warn"
+	NormModeBan  NormMode = "ban"
+	NormModeAny  NormMode = "any"
+)
+
 type MemberRepository struct {
 	queries *db.Queries
+}
+
+func (r *MemberRepository) GetNoNormWarnMembers(ctx context.Context, id int64, from, to *time.Time) ([]model.ChatMember, error) {
+	members, err := r.queries.GetNoNormMembers(ctx, noNormMembersParams(id, from, to, NormModeWarn))
+	if err != nil {
+		return nil, err
+	}
+	return mapMembers(members), nil
+}
+
+func (r *MemberRepository) GetNoNormBanMembers(ctx context.Context, id int64, from, to *time.Time) ([]model.ChatMember, error) {
+	members, err := r.queries.GetNoNormMembers(ctx, noNormMembersParams(id, from, to, NormModeBan))
+	if err != nil {
+		return nil, err
+	}
+	return mapMembers(members), nil
+
+}
+func (r *MemberRepository) GetNoNormMembers(ctx context.Context, id int64, from, to *time.Time) ([]model.ChatMember, error) {
+	members, err := r.queries.GetNoNormMembers(ctx, noNormMembersParams(id, from, to, NormModeAny))
+	if err != nil {
+		return nil, err
+	}
+	return mapMembers(members), nil
+}
+
+func noNormMembersParams(id int64, from, to *time.Time, mode NormMode) db.GetNoNormMembersParams {
+	var fromTime time.Time
+	if from != nil {
+		fromTime = *from
+	}
+
+	var toTime time.Time
+	if to != nil {
+		toTime = *to
+	}
+	return db.GetNoNormMembersParams{
+		FromDate: pgtype.Timestamptz{
+			Time:  fromTime,
+			Valid: from != nil,
+		},
+		ToDate: pgtype.Timestamptz{
+			Time:  toTime,
+			Valid: to != nil,
+		},
+		ChatID: id,
+		Mode:   mode,
+	}
+}
+
+func mapMembers(members []db.GetNoNormMembersRow) []model.ChatMember {
+	result := make([]model.ChatMember, len(members))
+	for i, m := range members {
+		var restUntil *time.Time
+		if m.RestUntil.Valid {
+			restUntil = &m.RestUntil.Time
+		}
+		var username *string
+		if m.Username.Valid {
+			username = &m.Username.String
+		}
+		result[i] = model.ChatMember{
+			User: model.User{
+				ID:        m.ID,
+				FirstName: m.FirstName.String,
+				LastName:  m.LastName.String,
+				Username:  username,
+				Gender:    m.Gender,
+			},
+			ChatID:      m.ChatID,
+			RestUntil:   restUntil,
+			RestReason:  m.RestReason.String,
+			CustomTitle: m.CustomTitle.String,
+			Status:      m.Status,
+		}
+	}
+	return result
 }
 
 func NewMemberRepository(queries *db.Queries) member.Repository {

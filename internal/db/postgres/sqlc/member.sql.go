@@ -74,7 +74,8 @@ WITH chat_upsert AS (
                      first_name = EXCLUDED.first_name,
                      last_name = EXCLUDED.last_name
              RETURNING id)
-INSERT INTO chat_members (chat_id, user_id, custom_title)
+INSERT
+INTO chat_members (chat_id, user_id, custom_title)
 SELECT chat_upsert.id,
        user_upsert.id,
        $1
@@ -86,7 +87,7 @@ ON CONFLICT (chat_id, user_id) DO UPDATE
                                THEN $1
                            ELSE chat_members.custom_title
         END,
-        left_at = NULL
+        left_at      = NULL
 RETURNING chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason
 `
 
@@ -346,6 +347,96 @@ func (q *Queries) GetMemberCustomTitle(ctx context.Context, arg GetMemberCustomT
 	var custom_title pgtype.Text
 	err := row.Scan(&custom_title)
 	return custom_title, err
+}
+
+const getNoNormMembers = `-- name: GetNoNormMembers :many
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender
+FROM chat_members cm
+         JOIN chats c ON c.id = cm.chat_id
+         JOIN users u ON u.id = cm.user_id
+         LEFT JOIN (
+    SELECT chat_id, user_id, COUNT(*) AS msg_count
+    FROM messages
+    WHERE (messages.created_at >= $1 OR $1::timestamptz IS NULL)
+      AND (messages.created_at < $2 OR $2::timestamptz IS NULL)
+    GROUP BY chat_id, user_id
+) m ON m.chat_id = cm.chat_id AND m.user_id = cm.user_id
+
+WHERE cm.chat_id = $3
+  AND cm.left_at IS NULL
+  AND (cm.rest_until IS NULL OR cm.rest_until < now())
+  AND (
+    ($4 = 'warn' AND COALESCE(m.msg_count,0) < c.norm_warn)
+        OR ($4 = 'ban'  AND COALESCE(m.msg_count,0) < c.norm_ban)
+        OR ($4 = 'any'  AND (
+        COALESCE(m.msg_count,0) < c.norm_warn
+            OR COALESCE(m.msg_count,0) < c.norm_ban
+        ))
+    )
+`
+
+type GetNoNormMembersParams struct {
+	FromDate pgtype.Timestamptz `db:"from_date" json:"fromDate"`
+	ToDate   pgtype.Timestamptz `db:"to_date" json:"toDate"`
+	ChatID   int64              `db:"chat_id" json:"chatId"`
+	Mode     interface{}        `db:"mode" json:"mode"`
+}
+
+type GetNoNormMembersRow struct {
+	ChatID      int64              `db:"chat_id" json:"chatId"`
+	UserID      int64              `db:"user_id" json:"userId"`
+	JoinedAt    pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
+	Status      string             `db:"status" json:"status"`
+	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
+	ID          int64              `db:"id" json:"id"`
+	Username    pgtype.Text        `db:"username" json:"username"`
+	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender      string             `db:"gender" json:"gender"`
+}
+
+func (q *Queries) GetNoNormMembers(ctx context.Context, arg GetNoNormMembersParams) ([]GetNoNormMembersRow, error) {
+	rows, err := q.db.Query(ctx, getNoNormMembers,
+		arg.FromDate,
+		arg.ToDate,
+		arg.ChatID,
+		arg.Mode,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetNoNormMembersRow{}
+	for rows.Next() {
+		var i GetNoNormMembersRow
+		if err := rows.Scan(
+			&i.ChatID,
+			&i.UserID,
+			&i.JoinedAt,
+			&i.RestUntil,
+			&i.CustomTitle,
+			&i.Status,
+			&i.LeftAt,
+			&i.RestReason,
+			&i.ID,
+			&i.Username,
+			&i.FirstName,
+			&i.LastName,
+			&i.CreatedAt,
+			&i.Gender,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const markChatMembersLeftNotInList = `-- name: MarkChatMembersLeftNotInList :exec

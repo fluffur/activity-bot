@@ -349,9 +349,46 @@ func (h *Handler) ShowFailedNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatFailedNorm(report, from, to))
-}
+	text := view.FormatFailedNorm(report, from, to)
 
+	if len(report) == 0 {
+		return ctx.ReplyHTML(b, text)
+	}
+
+	var buttons [][]gotgbot.InlineKeyboardButton
+	row := []gotgbot.InlineKeyboardButton{}
+
+	if c.NormWarn != 0 {
+		row = append(row, gotgbot.InlineKeyboardButton{
+			Text:         "Созвать варн",
+			CallbackData: "call_no_norm_warn",
+		})
+	}
+	if c.NormBan != 0 {
+		row = append(row, gotgbot.InlineKeyboardButton{
+			Text:         "Созвать бан",
+			CallbackData: "call_no_norm_ban",
+		})
+	}
+
+	if len(row) > 0 {
+		buttons = append(buttons, row)
+	}
+
+	buttons = append(buttons, []gotgbot.InlineKeyboardButton{
+		{Text: "Созвать всех", CallbackData: "call_no_norm"},
+	})
+
+	return ctx.Reply(b, text, &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		ReplyMarkup: &gotgbot.InlineKeyboardMarkup{
+			InlineKeyboard: buttons,
+		},
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+	})
+}
 func (h *Handler) ShowNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
 	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {

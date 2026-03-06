@@ -18,18 +18,6 @@ func NewService(repo chat.Repository, memberService *member.Service, statsServic
 	return &Service{repo, memberService, statsService}
 }
 
-func (s *Service) GetInactiveMembers(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
-	inactive, err := s.statsService.GetInactiveMembers(ctx, chatID)
-	if err != nil {
-		return nil, err
-	}
-	members := make([]model.ChatMember, len(inactive))
-	for i, m := range inactive {
-		members[i] = m.Member
-	}
-	return members, nil
-}
-
 func (s *Service) GetAllMembers(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
 	return s.memberService.GetChatMembers(ctx, chatID)
 }
@@ -56,4 +44,16 @@ func (s *Service) SetMentionsPerMessage(ctx context.Context, chatID int64, count
 
 func (s *Service) SetMentionTypes(ctx context.Context, chatID int64, types int32) error {
 	return s.repo.SetMentionTypes(ctx, chatID, types)
+}
+
+func (s *Service) GetInactiveMembers(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
+	inactive, err := s.statsService.GetInactiveMembers(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+	members := make([]model.ChatMember, len(inactive))
+	for i, m := range inactive {
+		members[i] = m.Member
+	}
+	return members, nil
 }
