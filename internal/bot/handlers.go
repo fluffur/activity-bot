@@ -23,7 +23,9 @@ import (
 	userH "activity-bot/internal/user/handler"
 	"time"
 
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/conversation"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/callbackquery"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/chatmember"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/message"
@@ -264,22 +266,49 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(callHandler.CallInactive, "call_inactive", "калл инактив", "калл неактив", "созвать неактивных").
 		WithGuards(groupGuard, adminGuard, rateLimiterGuard),
 	)
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_inactive"), cf.WrapCallback(callHandler.CallInactiveCallback)))
 
 	a.Dispatcher.AddHandler(cf.New(callHandler.CallNoNorm, "call_no_norm", "калл без нормы", "созвать без нормы").
 		WithGuards(groupGuard, adminGuard, rateLimiterGuard),
 	)
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_no_norm"), cf.WrapCallback(callHandler.CallNoNormCallback)))
 
 	a.Dispatcher.AddHandler(cf.New(callHandler.CallNoNormWarn, "call_no_norm_warn", "калл без нормы варн", "созвать без нормы варн").
 		WithGuards(groupGuard, adminGuard, rateLimiterGuard),
 	)
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_no_norm_warn"), cf.WrapCallback(callHandler.CallNoNormWarnCallback)))
 
 	a.Dispatcher.AddHandler(cf.New(callHandler.CallNoNormWarn, "call_no_norm_ban", "калл без нормы бан", "созвать без нормы бан").
 		WithGuards(groupGuard, adminGuard, rateLimiterGuard),
 	)
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_no_norm_ban"), cf.WrapCallback(callHandler.CallNoNormWarnCallback)))
+	callConversation := handlers.NewConversation(
+		[]ext.Handler{
+			handlers.NewCallback(callbackquery.Prefix("call_inactive"), callHandler.StartCallInactiveConversation),
+			handlers.NewCallback(callbackquery.Prefix("call_no_norm"), callHandler.StartCallNoNormConversation),
+			handlers.NewCallback(callbackquery.Prefix("call_no_norm_warn"), callHandler.StartCallNoNormWarnConversation),
+			handlers.NewCallback(callbackquery.Prefix("call_no_norm_ban"), callHandler.StartCallNoNormBanConversation),
+		},
+		map[string][]ext.Handler{
+			callH.CallStateInactive: {
+				handlers.NewMessage(message.Text, callHandler.HandleCallInactiveMessage),
+			},
+			callH.CallStateNoNorm: {
+				handlers.NewMessage(message.Text, callHandler.HandleCallNoNormMessage),
+			},
+			callH.CallStateNoNormWarn: {
+				handlers.NewMessage(message.Text, callHandler.HandleCallNoNormWarnMessage),
+			},
+			callH.CallStateNoNormBan: {
+				handlers.NewMessage(message.Text, callHandler.HandleCallNoNormBanMessage),
+			},
+		},
+		&handlers.ConversationOpts{
+			Exits: []ext.Handler{
+				handlers.NewCallback(callbackquery.Prefix("call_cancel"), callHandler.CancelCallConversation),
+				handlers.NewCallback(callbackquery.Prefix("call_nomsg:"), callHandler.NoMessageCallConversation),
+			},
+			StateStorage: conversation.NewInMemoryStorage(conversation.KeyStrategySenderAndChat),
+			AllowReEntry: true,
+		},
+	)
+	a.Dispatcher.AddHandler(callConversation)
 
 	a.Dispatcher.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл", "all", "каллалл").
 		AddTriggers("+").

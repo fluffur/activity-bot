@@ -356,7 +356,7 @@ func (h *Handler) ShowFailedNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	var buttons [][]gotgbot.InlineKeyboardButton
-	row := []gotgbot.InlineKeyboardButton{}
+	var row []gotgbot.InlineKeyboardButton
 
 	if c.NormWarn != 0 {
 		row = append(row, gotgbot.InlineKeyboardButton{

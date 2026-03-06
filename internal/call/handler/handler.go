@@ -7,15 +7,19 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
+	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"activity-bot/internal/session"
 	"activity-bot/internal/stats"
+	"context"
 	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
 )
 
 type Handler struct {
@@ -25,6 +29,13 @@ type Handler struct {
 	adminService   *admin.Service
 	sessionService *session.Service
 }
+
+const (
+	CallStateInactive   = "call_inactive_msg"
+	CallStateNoNorm     = "call_no_norm_msg"
+	CallStateNoNormWarn = "call_no_norm_warn_msg"
+	CallStateNoNormBan  = "call_no_norm_ban_msg"
+)
 
 func New(service *call.Service, memberService *member.Service, chatService *chat.Service, adminService *admin.Service, sessionService *session.Service) *Handler {
 	return &Handler{service, memberService, chatService, adminService, sessionService}
@@ -162,15 +173,27 @@ func (h *Handler) CallNoNormWarnCallback(b *gotgbot.Bot, ctx *cmd.Context) error
 
 func (h *Handler) handleCall(b *gotgbot.Bot, ctx *cmd.Context, members []model.ChatMember) error {
 
+	return h.doCall(ctx.StdContext(), b, ctx.TargetChatID(), ctx.EffectiveMessage, ctx.HTML(), members)
+}
+
+func (h *Handler) doCall(
+	stdCtx context.Context,
+	b *gotgbot.Bot,
+	chatID int64,
+	srcMsg *gotgbot.Message,
+	htmlMessage string,
+	members []model.ChatMember,
+) error {
+
 	var replyParams *gotgbot.ReplyParameters
-	if ctx.EffectiveMessage.ReplyToMessage != nil {
+	if srcMsg != nil && srcMsg.ReplyToMessage != nil {
 		replyParams = &gotgbot.ReplyParameters{
-			ChatId:    ctx.EffectiveChat.Id,
-			MessageId: ctx.EffectiveMessage.ReplyToMessage.MessageId,
+			ChatId:    chatID,
+			MessageId: srcMsg.ReplyToMessage.MessageId,
 		}
 	}
 
-	chatSettings, err := h.service.GetChatSettings(ctx.StdContext(), ctx.TargetChatID())
+	chatSettings, err := h.service.GetChatSettings(stdCtx, chatID)
 	if err != nil {
 		return err
 	}
@@ -180,7 +203,7 @@ func (h *Handler) handleCall(b *gotgbot.Bot, ctx *cmd.Context, members []model.C
 		mentionsLimit = 5
 	}
 
-	message := ctx.HTML()
+	message := htmlMessage
 	if message == "" {
 		message = chatSettings.WelcomeCallMessage
 	}
@@ -198,17 +221,17 @@ func (h *Handler) handleCall(b *gotgbot.Bot, ctx *cmd.Context, members []model.C
 
 		chunkText := view.FormatCallChunk(message, members[i:end], chatSettings.MentionTypes)
 
-		if len(ctx.EffectiveMessage.Photo) > 0 {
+		if srcMsg != nil && len(srcMsg.Photo) > 0 {
 
-			lastPhoto := ctx.EffectiveMessage.Photo[len(ctx.EffectiveMessage.Photo)-1]
+			lastPhoto := srcMsg.Photo[len(srcMsg.Photo)-1]
 
 			if _, err := b.SendPhoto(
-				ctx.TargetChatID(),
+				chatID,
 				gotgbot.InputFileByID(lastPhoto.FileId),
 				&gotgbot.SendPhotoOpts{
 					ParseMode:       gotgbot.ParseModeHTML,
 					Caption:         chunkText,
-					HasSpoiler:      ctx.EffectiveMessage.HasMediaSpoiler,
+					HasSpoiler:      srcMsg.HasMediaSpoiler,
 					ReplyParameters: replyParams,
 				},
 			); err != nil {
@@ -217,8 +240,8 @@ func (h *Handler) handleCall(b *gotgbot.Bot, ctx *cmd.Context, members []model.C
 
 		} else {
 
-			if _, err := ctx.EffectiveMessage.Reply(
-				b,
+			if _, err := b.SendMessage(
+				chatID,
 				chunkText,
 				&gotgbot.SendMessageOpts{
 					ParseMode: gotgbot.ParseModeHTML,
@@ -426,4 +449,262 @@ func (h *Handler) ShowWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error
 		return err
 	}
 	return ctx.Reply(b, view.FormatWelcomeCallMessage(c.WelcomeCallMessage), nil)
+}
+
+func (h *Handler) startCallConversation(
+	b *gotgbot.Bot,
+	ctx *ext.Context,
+	nextState string,
+) error {
+	stdCtx := context.Background()
+
+	chatID, err := cmd.GetChatID(h.sessionService, ctx, stdCtx)
+	if err != nil {
+		chatID = ctx.EffectiveChat.Id
+	}
+
+	isAdmin, err := h.adminService.IsAdmin(stdCtx, chatID, ctx.EffectiveSender.Id())
+	if err != nil {
+		return err
+	}
+
+	if !isAdmin {
+		if ctx.CallbackQuery != nil {
+			_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+				Text:      "Требуются права администратора",
+				ShowAlert: true,
+			})
+		}
+		return handlers.EndConversation()
+	}
+
+	text := "Введите сообщение созыва, которое будет добавлено перед упоминаниями, либо выберите вариант ниже."
+	_, err = ctx.EffectiveMessage.Reply(
+		b,
+		text,
+		&gotgbot.SendMessageOpts{
+			ReplyMarkup: gotgbot.InlineKeyboardMarkup{
+				InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
+					{
+						{
+							Text:         "Без сообщения",
+							CallbackData: fmt.Sprintf("call_nomsg:%s", nextState),
+						},
+						{
+							Text:         "Отменить",
+							CallbackData: "call_cancel",
+						},
+					},
+				},
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	if ctx.CallbackQuery != nil {
+		_, _ = ctx.CallbackQuery.Answer(b, nil)
+	}
+
+	return handlers.NextConversationState(nextState)
+}
+
+func (h *Handler) StartCallInactiveConversation(b *gotgbot.Bot, ctx *ext.Context) error {
+	return h.startCallConversation(b, ctx, CallStateInactive)
+}
+
+func (h *Handler) StartCallNoNormConversation(b *gotgbot.Bot, ctx *ext.Context) error {
+	return h.startCallConversation(b, ctx, CallStateNoNorm)
+}
+
+func (h *Handler) StartCallNoNormWarnConversation(b *gotgbot.Bot, ctx *ext.Context) error {
+	return h.startCallConversation(b, ctx, CallStateNoNormWarn)
+}
+
+func (h *Handler) StartCallNoNormBanConversation(b *gotgbot.Bot, ctx *ext.Context) error {
+	return h.startCallConversation(b, ctx, CallStateNoNormBan)
+}
+
+func (h *Handler) handleCallWithMessage(
+	b *gotgbot.Bot,
+	ctx *ext.Context,
+	getMembers func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error),
+) error {
+	stdCtx := context.Background()
+
+	chatID, err := cmd.GetChatID(h.sessionService, ctx, stdCtx)
+	if err != nil {
+		chatID = ctx.EffectiveChat.Id
+	}
+
+	members, err := getMembers(stdCtx, chatID)
+	if err != nil {
+		return err
+	}
+
+	if len(members) == 0 {
+		_, err = ctx.EffectiveMessage.Reply(b, "Не найдено пользователей для созыва.", nil)
+		if err != nil {
+			return err
+		}
+		return handlers.EndConversation()
+	}
+
+	html := ctx.EffectiveMessage.OriginalHTML()
+
+	if err := h.doCall(stdCtx, b, chatID, ctx.EffectiveMessage, html, members); err != nil {
+		return err
+	}
+
+	return handlers.EndConversation()
+}
+
+func (h *Handler) HandleCallInactiveMessage(b *gotgbot.Bot, ctx *ext.Context) error {
+	return h.handleCallWithMessage(b, ctx, func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
+		return h.service.GetInactiveMembers(stdCtx, chatID)
+	})
+}
+
+func (h *Handler) HandleCallNoNormMessage(b *gotgbot.Bot, ctx *ext.Context) error {
+	return h.handleCallWithMessage(
+		b,
+		ctx,
+		func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
+			c, err := h.chatService.GetChat(stdCtx, chatID)
+			if err != nil {
+				return nil, err
+			}
+
+			from, to := stats.ResolvePeriod(
+				stats.PeriodWeek,
+				time.Now().In(helpers.MoscowLocation),
+				c.WeekStartDay,
+				c.WeekStartTime,
+			)
+
+			return h.memberService.GetNoNormMembers(stdCtx, chatID, from, to)
+		},
+	)
+}
+
+func (h *Handler) HandleCallNoNormWarnMessage(b *gotgbot.Bot, ctx *ext.Context) error {
+	return h.handleCallWithMessage(
+		b,
+		ctx,
+		func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
+			c, err := h.chatService.GetChat(stdCtx, chatID)
+			if err != nil {
+				return nil, err
+			}
+
+			from, to := stats.ResolvePeriod(
+				stats.PeriodWeek,
+				time.Now().In(helpers.MoscowLocation),
+				c.WeekStartDay,
+				c.WeekStartTime,
+			)
+
+			return h.memberService.GetNoNormWarnMembers(stdCtx, chatID, from, to)
+		},
+	)
+}
+
+func (h *Handler) HandleCallNoNormBanMessage(b *gotgbot.Bot, ctx *ext.Context) error {
+	return h.HandleCallNoNormWarnMessage(b, ctx)
+}
+
+func (h *Handler) CancelCallConversation(b *gotgbot.Bot, ctx *ext.Context) error {
+	if ctx.CallbackQuery != nil && ctx.CallbackQuery.Message != nil {
+		if _, _, err := ctx.CallbackQuery.Message.EditText(
+			b,
+			"❌ Операция созыва отменена.",
+			nil,
+		); err != nil {
+			logger.L.Error("Failed to edit text", "error", err)
+		}
+	}
+
+	if ctx.CallbackQuery != nil {
+		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "Созыв отменён",
+		})
+	}
+	return handlers.EndConversation()
+}
+
+func (h *Handler) NoMessageCallConversation(b *gotgbot.Bot, ctx *ext.Context) error {
+	stdCtx := context.Background()
+
+	chatID, err := cmd.GetChatID(h.sessionService, ctx, stdCtx)
+	if err != nil {
+		chatID = ctx.EffectiveChat.Id
+	}
+
+	state := ""
+	if ctx.CallbackQuery != nil {
+		data := ctx.CallbackQuery.Data
+		const prefix = "call_nomsg:"
+		if len(data) > len(prefix) && data[:len(prefix)] == prefix {
+			state = data[len(prefix):]
+		}
+	}
+
+	var members []model.ChatMember
+	switch state {
+	case CallStateInactive:
+		members, err = h.service.GetInactiveMembers(stdCtx, chatID)
+	case CallStateNoNorm:
+		c, gErr := h.chatService.GetChat(stdCtx, chatID)
+		if gErr != nil {
+			return gErr
+		}
+		from, to := stats.ResolvePeriod(
+			stats.PeriodWeek,
+			time.Now().In(helpers.MoscowLocation),
+			c.WeekStartDay,
+			c.WeekStartTime,
+		)
+		members, err = h.memberService.GetNoNormMembers(stdCtx, chatID, from, to)
+	case CallStateNoNormWarn, CallStateNoNormBan:
+		c, gErr := h.chatService.GetChat(stdCtx, chatID)
+		if gErr != nil {
+			return gErr
+		}
+		from, to := stats.ResolvePeriod(
+			stats.PeriodWeek,
+			time.Now().In(helpers.MoscowLocation),
+			c.WeekStartDay,
+			c.WeekStartTime,
+		)
+		members, err = h.memberService.GetNoNormWarnMembers(stdCtx, chatID, from, to)
+	default:
+		return handlers.EndConversation()
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if len(members) == 0 {
+		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "Нет участников для созыва.",
+		})
+		if err != nil {
+			return err
+		}
+		return handlers.EndConversation()
+	}
+
+	if err := h.doCall(stdCtx, b, chatID, ctx.EffectiveMessage, "", members); err != nil {
+		return err
+	}
+
+	if ctx.CallbackQuery != nil {
+		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "Созыв отправлен без сообщения.",
+		})
+	}
+
+	return handlers.EndConversation()
 }
