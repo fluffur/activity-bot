@@ -50,6 +50,10 @@ func NewService(repo Repository, statusProvider ChatMemberStatusProvider, modera
 	}
 }
 
+func (s *Service) OwnerID() int64 {
+	return s.ownerID
+}
+
 func (s *Service) GetDevRole(ctx context.Context, chatID, userID int64) (string, error) {
 	role, err := s.repo.GetDeveloperRole(ctx, chatID, userID)
 	if err != nil {
@@ -75,14 +79,6 @@ func (s *Service) IsDeveloper(ctx context.Context, chatID, userID int64) (bool, 
 		return true, nil
 	}
 	return s.repo.IsDeveloper(ctx, chatID, userID)
-}
-
-func (s *Service) GetUserManagedChats(ctx context.Context, userID int64) ([]model.Chat, error) {
-	if userID == s.ownerID {
-		return s.repo.GetAllChats(ctx)
-	}
-
-	return s.repo.GetChatsWhereUserIsAdmin(ctx, userID)
 }
 
 func (s *Service) AddAdmin(ctx context.Context, chatID int64, userID int64) error {
@@ -345,8 +341,4 @@ func (s *Service) GetWarns(ctx context.Context, chatID, userID int64) ([]model.W
 
 func (s *Service) GetWarnsByChat(ctx context.Context, chatID int64) ([]model.Warn, error) {
 	return s.repo.GetActiveWarnsByChat(ctx, chatID)
-}
-
-func (s *Service) GetChatsWithoutTitle(ctx context.Context) ([]model.Chat, error) {
-	return s.repo.GetChatsWithoutTitle(ctx)
 }

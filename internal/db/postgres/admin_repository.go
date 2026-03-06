@@ -14,14 +14,6 @@ type AdminRepository struct {
 	queries *db.Queries
 }
 
-func (r *AdminRepository) GetChatsWithoutTitle(ctx context.Context) ([]model.Chat, error) {
-	chats, err := r.queries.GetChatsWithoutTitle(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return mapChats(chats), nil
-}
-
 func NewAdminRepository(queries *db.Queries) admin.Repository {
 	return &AdminRepository{queries}
 }
@@ -80,33 +72,6 @@ func (r *AdminRepository) GetRole(ctx context.Context, chatID int64, userID int6
 		ChatID: chatID,
 		UserID: userID,
 	})
-}
-
-func (r *AdminRepository) GetChatsWhereUserIsAdmin(ctx context.Context, userID int64) ([]model.Chat, error) {
-	chats, err := r.queries.GetChatsWhereUserIsAdmin(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	mapped := make([]model.Chat, len(chats))
-	for i, c := range chats {
-		mapped[i] = mapChat(db.EnsureChatExistsRow(c))
-	}
-
-	return mapped, nil
-}
-
-func (r *AdminRepository) GetAllChats(ctx context.Context) ([]model.Chat, error) {
-	chats, err := r.queries.GetAllChats(ctx)
-	if err != nil {
-		return nil, err
-	}
-	mapped := make([]model.Chat, len(chats))
-	for i, c := range chats {
-		mapped[i] = mapChat(db.EnsureChatExistsRow(c))
-	}
-
-	return mapped, nil
 }
 
 func (r *AdminRepository) CreateModerationAction(ctx context.Context, actionType string, chatID, userID, modID int64, reason string, until *time.Time) error {

@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/call/view"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
+	"activity-bot/internal/model"
 	"activity-bot/internal/session"
 	"fmt"
 	"strconv"
@@ -25,18 +26,32 @@ func New(service *call.Service, chatService *chat.Service, adminService *admin.S
 }
 
 func (h *Handler) Call(b *gotgbot.Bot, ctx *cmd.Context) error {
-	return h.service.CallAll(ctx, b, ctx.HTML())
+	members, err := h.service.GetAllMembers(ctx.StdContext(), ctx.TargetChatID())
+	if err != nil {
+		return fmt.Errorf("failed to get chat members: %w", err)
+	}
+	if len(members) == 0 {
+		return ctx.Reply(b, "Не найдено пользователей для созыва, скорее всего бот был добавлен недавно и понадобится время, чтобы он успел познакомиться со всеми участниками!", nil)
+	}
+	return h.handleCall(b, ctx, members)
 }
 
 func (h *Handler) CallInactive(b *gotgbot.Bot, ctx *cmd.Context) error {
-	return h.service.CallInactive(ctx, b, ctx.HTML())
+	members, err := h.service.GetInactiveMembers(ctx.StdContext(), ctx.TargetChatID())
+	if err != nil {
+		return fmt.Errorf("failed to get inactive members: %w", err)
+	}
+	if len(members) == 0 {
+		return ctx.Reply(b, "Нет участников, не писавших более суток", nil)
+	}
+	return h.handleCall(b, ctx, members)
 }
 
 func (h *Handler) CallInactiveCallback(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	isAdmin, err := h.adminService.IsAdmin(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check admin rights: %w", err)
 	}
 	if !isAdmin {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
@@ -46,8 +61,69 @@ func (h *Handler) CallInactiveCallback(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 	_, _ = ctx.CallbackQuery.Answer(b, nil)
 
-	return h.service.CallInactive(ctx, b, ctx.HTML())
+	return h.CallInactive(b, ctx)
+}
 
+func (h *Handler) handleCall(b *gotgbot.Bot, ctx *cmd.Context, members []model.ChatMember) error {
+	var replyParams *gotgbot.ReplyParameters
+	if ctx.EffectiveMessage.ReplyToMessage != nil {
+		replyParams = &gotgbot.ReplyParameters{
+			ChatId:    ctx.EffectiveChat.Id,
+			MessageId: ctx.EffectiveMessage.ReplyToMessage.MessageId,
+		}
+	}
+
+	chatSettings, err := h.service.GetChatSettings(ctx.StdContext(), ctx.TargetChatID())
+	if err != nil {
+		return err
+	}
+
+	mentionsLimit := int(chatSettings.MentionsPerMessage)
+	if mentionsLimit <= 0 {
+		mentionsLimit = 5
+	}
+
+	message := ctx.HTML()
+	if message == "" {
+		message = chatSettings.WelcomeCallMessage
+	}
+
+	if message != "" {
+		message = view.ReplaceMentionsWithLinks(message)
+	}
+
+	for i := 0; i < len(members); i += mentionsLimit {
+		end := i + mentionsLimit
+		if end > len(members) {
+			end = len(members)
+		}
+
+		chunkText := view.FormatCallChunk(message, members[i:end], chatSettings.MentionTypes)
+
+		if len(ctx.EffectiveMessage.Photo) > 0 {
+			lastPhoto := ctx.EffectiveMessage.Photo[len(ctx.EffectiveMessage.Photo)-1]
+			if _, err := b.SendPhoto(ctx.TargetChatID(), gotgbot.InputFileByID(lastPhoto.FileId), &gotgbot.SendPhotoOpts{
+				ParseMode:       gotgbot.ParseModeHTML,
+				Caption:         chunkText,
+				HasSpoiler:      ctx.EffectiveMessage.HasMediaSpoiler,
+				ReplyParameters: replyParams,
+			}); err != nil {
+				return err
+			}
+		} else {
+			if _, err := ctx.EffectiveMessage.Reply(b, chunkText, &gotgbot.SendMessageOpts{
+				ParseMode: gotgbot.ParseModeHTML,
+				LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+					IsDisabled: true,
+				},
+				ReplyParameters: replyParams,
+			}); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (h *Handler) SetMentionsPerMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -100,10 +176,10 @@ func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *cmd.Context) error {
 	current := c.MentionTypes
 	var newTypes int32
 
-	if bit == call.MentionTypeNWSP {
-		newTypes = call.MentionTypeNWSP
+	if bit == view.MentionTypeNWSP {
+		newTypes = view.MentionTypeNWSP
 	} else {
-		current &^= call.MentionTypeNWSP
+		current &^= view.MentionTypeNWSP
 		newTypes = current ^ bit
 	}
 	if newTypes == c.MentionTypes {
@@ -132,10 +208,10 @@ func (h *Handler) getCallTypesKeyboard(currentTypes int32) gotgbot.InlineKeyboar
 		name string
 		bit  int32
 	}{
-		{"Пустота", call.MentionTypeNWSP},
-		{"Эмодзи", call.MentionTypeEmoji},
-		{"Имя", call.MentionTypeName},
-		{"Роль", call.MentionTypeRole},
+		{"Пустота", view.MentionTypeNWSP},
+		{"Эмодзи", view.MentionTypeEmoji},
+		{"Имя", view.MentionTypeName},
+		{"Роль", view.MentionTypeRole},
 	}
 
 	var rows [][]gotgbot.InlineKeyboardButton

@@ -26,4 +26,8 @@ type Repository interface {
 	GetChatsWithoutNorm(ctx context.Context, userID int64) ([]model.ChatWithoutNorm, error)
 	SetTagsEnabled(ctx context.Context, chatID int64, enabled bool) error
 	SetWeekStartTime(ctx context.Context, chatID int64, time string) error
+
+	GetChatsWithoutTitle(ctx context.Context) ([]model.Chat, error)
+	GetUserManagedChats(ctx context.Context, userID int64) ([]model.Chat, error)
+	GetAllChats(ctx context.Context) ([]model.Chat, error)
 }

@@ -323,6 +323,51 @@ func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams
 	return i, err
 }
 
+const getUserManagedChats = `-- name: GetUserManagedChats :many
+SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time
+FROM chats c
+JOIN chat_members cm ON c.id = cm.chat_id
+WHERE c.id < 0 AND cm.user_id = $1 AND cm.status IN ('administrator', 'creator') AND title <> ''
+`
+
+func (q *Queries) GetUserManagedChats(ctx context.Context, userID int64) ([]Chat, error) {
+	rows, err := q.db.Query(ctx, getUserManagedChats, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Chat{}
+	for rows.Next() {
+		var i Chat
+		if err := rows.Scan(
+			&i.ID,
+			&i.NormWarn,
+			&i.NewbieThresholdDays,
+			&i.AiSystemPrompt,
+			&i.MaxLadder,
+			&i.CallOnJoin,
+			&i.WelcomeCallMessage,
+			&i.WeekStartDay,
+			&i.MaxWarns,
+			&i.NormBan,
+			&i.CommandPrefix,
+			&i.AllowPrefixless,
+			&i.MentionsPerMessage,
+			&i.MentionTypes,
+			&i.Title,
+			&i.TagsEnabled,
+			&i.WeekStartTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setChatAISystemPrompt = `-- name: SetChatAISystemPrompt :exec
 UPDATE chats
 SET ai_system_prompt = $1

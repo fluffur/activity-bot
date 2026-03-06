@@ -90,3 +90,14 @@ func (s *Service) EnableTags(ctx context.Context, chatID int64, enabled bool) er
 func (s *Service) SetWeekStartTime(ctx context.Context, chatID int64, time string) error {
 	return s.repo.SetWeekStartTime(ctx, chatID, time)
 }
+
+func (s *Service) GetChatsWithoutTitle(ctx context.Context) ([]model.Chat, error) {
+	return s.repo.GetChatsWithoutTitle(ctx)
+}
+
+func (s *Service) GetUserManagedChats(ctx context.Context, userID int64, ownerID int64) ([]model.Chat, error) {
+	if userID == ownerID {
+		return s.repo.GetAllChats(ctx) // Note: Need to add GetAllChats to chat repo if missing, or adjust logic!
+	}
+	return s.repo.GetUserManagedChats(ctx, userID)
+}

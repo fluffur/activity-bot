@@ -4,11 +4,12 @@ import (
 	"activity-bot/internal/adapter"
 	"activity-bot/internal/admin"
 	service "activity-bot/internal/call"
+	"activity-bot/internal/call/view"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
-	"activity-bot/internal/member/view"
+	memberview "activity-bot/internal/member/view"
 	"activity-bot/internal/user"
 	"errors"
 	"fmt"
@@ -40,7 +41,7 @@ func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.Reply(b, view.FormatSyncResult(count), nil)
+	return ctx.Reply(b, memberview.FormatSyncResult(count), nil)
 }
 
 func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -54,7 +55,7 @@ func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "В чате нет установленных ролей", nil)
 	}
 
-	return ctx.ReplyHTML(b, view.FormatRolesList(members))
+	return ctx.ReplyHTML(b, memberview.FormatRolesList(members))
 }
 func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
@@ -86,7 +87,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return fmt.Errorf("failed to set member title: %w", err)
 	}
 
-	return ctx.ReplyHTML(b, view.FormatRoleUpdated(*targetUser, tag))
+	return ctx.ReplyHTML(b, memberview.FormatRoleUpdated(*targetUser, tag))
 }
 
 func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -184,7 +185,7 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.ReplyHTML(b, fmt.Sprintf("У пользователя %s нет роли", helpers.Link(*targetUser)))
 	}
 
-	return ctx.ReplyHTML(b, view.FormatMemberRole(*targetUser, mTitle))
+	return ctx.ReplyHTML(b, memberview.FormatMemberRole(*targetUser, mTitle))
 }
 
 func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -205,7 +206,38 @@ func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if chatData.CallOnJoin {
-		return h.callService.CallAll(ctx, b, chatData.WelcomeCallMessage)
+		// handle call functionality inline
+		members, err := h.callService.GetAllMembers(ctx.StdContext(), ctx.EffectiveChat.Id)
+		if err != nil {
+			return err
+		}
+
+		mentionsLimit := int(chatData.MentionsPerMessage)
+		if mentionsLimit <= 0 {
+			mentionsLimit = 5
+		}
+
+		message := chatData.WelcomeCallMessage
+		if message != "" {
+			message = view.ReplaceMentionsWithLinks(message)
+		}
+
+		for i := 0; i < len(members); i += mentionsLimit {
+			end := i + mentionsLimit
+			if end > len(members) {
+				end = len(members)
+			}
+
+			chunkText := view.FormatCallChunk(message, members[i:end], chatData.MentionTypes)
+			if _, sendErr := ctx.EffectiveMessage.Reply(b, chunkText, &gotgbot.SendMessageOpts{
+				ParseMode: gotgbot.ParseModeHTML,
+				LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+					IsDisabled: true,
+				},
+			}); sendErr != nil {
+				return sendErr
+			}
+		}
 	}
 
 	return nil

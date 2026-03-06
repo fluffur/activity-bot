@@ -229,3 +229,38 @@ func (r *ChatRepository) SetWeekStartTime(ctx context.Context, chatID int64, tim
 		WeekStartTime: pgtype.Time{Microseconds: helpers.TimeToMicroseconds(time), Valid: true},
 	})
 }
+
+func (r *ChatRepository) GetChatsWithoutTitle(ctx context.Context) ([]model.Chat, error) {
+	chats, err := r.queries.GetChatsWithoutTitle(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return mapChats(chats), nil
+}
+
+func (r *ChatRepository) GetUserManagedChats(ctx context.Context, userID int64) ([]model.Chat, error) {
+	chats, err := r.queries.GetUserManagedChats(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	mapped := make([]model.Chat, len(chats))
+	for i, c := range chats {
+		mapped[i] = mapChat(db.EnsureChatExistsRow(c))
+	}
+
+	return mapped, nil
+}
+
+func (r *ChatRepository) GetAllChats(ctx context.Context) ([]model.Chat, error) {
+	chats, err := r.queries.GetAllChats(ctx)
+	if err != nil {
+		return nil, err
+	}
+	mapped := make([]model.Chat, len(chats))
+	for i, c := range chats {
+		mapped[i] = mapChat(db.EnsureChatExistsRow(c))
+	}
+
+	return mapped, nil
+}

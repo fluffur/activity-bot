@@ -530,7 +530,7 @@ func (h *Handler) ListDevelopers(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.ReplyHTML(b, view.FormatDevelopersList(users, roles))
 }
 func (h *Handler) UpdateChats(b *gotgbot.Bot, ctx *cmd.Context) error {
-	chats, err := h.service.GetChatsWithoutTitle(ctx.StdContext())
+	chats, err := h.chatService.GetChatsWithoutTitle(ctx.StdContext())
 	if err != nil {
 		return err
 	}

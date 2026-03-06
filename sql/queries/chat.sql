@@ -151,3 +151,9 @@ SELECT *
 FROM chats
 WHERE title = ''
   AND id < 0;
+
+-- name: GetUserManagedChats :many
+SELECT c.*
+FROM chats c
+JOIN chat_members cm ON c.id = cm.chat_id
+WHERE c.id < 0 AND cm.user_id = $1 AND cm.status IN ('administrator', 'creator') AND title <> '';

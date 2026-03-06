@@ -268,7 +268,7 @@ func (h *Handler) Manage(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "❌ Команда доступна только в ЛС бота", nil)
 	}
 
-	chatIDs, err := h.adminService.GetUserManagedChats(ctx.StdContext(), ctx.EffectiveUser.Id)
+	chatIDs, err := h.service.GetUserManagedChats(ctx.StdContext(), ctx.EffectiveUser.Id, h.adminService.OwnerID())
 	if err != nil {
 		return err
 	}
@@ -351,7 +351,7 @@ func (h *Handler) CallbackManagePage(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	chatIDs, err := h.adminService.GetUserManagedChats(ctx.StdContext(), ctx.EffectiveUser.Id)
+	chatIDs, err := h.service.GetUserManagedChats(ctx.StdContext(), ctx.EffectiveUser.Id, h.adminService.OwnerID())
 	if err != nil {
 		return err
 	}

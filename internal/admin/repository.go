@@ -13,8 +13,6 @@ type Repository interface {
 	IsAdmin(ctx context.Context, chatID int64, userID int64) (bool, error)
 	IsCreator(ctx context.Context, chatID int64, userID int64) (bool, error)
 	GetRole(ctx context.Context, chatID int64, userID int64) (string, error)
-	GetChatsWhereUserIsAdmin(ctx context.Context, userID int64) ([]model.Chat, error)
-	GetAllChats(ctx context.Context) ([]model.Chat, error)
 
 	EnsureDeveloperUser(ctx context.Context, userID int64) error
 	GetDeveloperRole(ctx context.Context, chatID, userID int64) (string, error)
@@ -32,5 +30,4 @@ type Repository interface {
 	RemoveLatestWarn(ctx context.Context, chatID, userID int64) error
 	GetActiveWarns(ctx context.Context, chatID, userID int64) ([]model.Warn, error)
 	GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]model.Warn, error)
-	GetChatsWithoutTitle(ctx context.Context) ([]model.Chat, error)
 }
