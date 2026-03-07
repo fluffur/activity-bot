@@ -364,7 +364,7 @@ func (a *App) RegisterHandlers() {
 		SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.DemoteTgAdmin, "разжаловать").WithGuards(groupGuard, adminGuard))
-	a.Dispatcher.AddHandler(cf.New(adminHandler.FakeLeave, "фейклив").FallbackToSender().WithGuards(groupGuard, adminGuard))
+	a.Dispatcher.AddHandler(cf.New(adminHandler.FakeLeave, "фейклив").FallbackToSender().WithGuards(groupGuard))
 	a.Dispatcher.AddHandler(cf.New(userHandler.ShowGender, "пол", "gender").FallbackToSender())
 	a.Dispatcher.AddHandler(cf.New(userHandler.SetGender, "пол", "gender").
 		FallbackToSender().
