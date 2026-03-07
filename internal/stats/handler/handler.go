@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
+	"activity-bot/internal/model"
 	"activity-bot/internal/rest"
 	"activity-bot/internal/session"
 	"activity-bot/internal/stats"
@@ -58,7 +59,13 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	text := view.FormatReport(report, restMembers, from, to)
 
-	return ctx.ReplyHTML(b, text)
+	return ctx.Reply(b, text, &gotgbot.SendMessageOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+		ReplyMarkup: getCallKeyboard(c),
+	})
 }
 
 func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -355,6 +362,16 @@ func (h *Handler) ShowFailedNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.ReplyHTML(b, text)
 	}
 
+	return ctx.Reply(b, text, &gotgbot.SendMessageOpts{
+		ParseMode:   gotgbot.ParseModeHTML,
+		ReplyMarkup: getCallKeyboard(c),
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
+	})
+}
+
+func getCallKeyboard(c model.Chat) *gotgbot.InlineKeyboardMarkup {
 	var buttons [][]gotgbot.InlineKeyboardButton
 	var row []gotgbot.InlineKeyboardButton
 
@@ -379,16 +396,11 @@ func (h *Handler) ShowFailedNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 		{Text: "Созвать всех", CallbackData: "call_no_norm"},
 	})
 
-	return ctx.Reply(b, text, &gotgbot.SendMessageOpts{
-		ParseMode: gotgbot.ParseModeHTML,
-		ReplyMarkup: &gotgbot.InlineKeyboardMarkup{
-			InlineKeyboard: buttons,
-		},
-		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-			IsDisabled: true,
-		},
-	})
+	return &gotgbot.InlineKeyboardMarkup{
+		InlineKeyboard: buttons,
+	}
 }
+
 func (h *Handler) ShowNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
 	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
