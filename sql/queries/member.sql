@@ -144,22 +144,17 @@ SELECT cm.*, u.*
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
-         LEFT JOIN (
-    SELECT chat_id, user_id, COUNT(*) AS msg_count
-    FROM messages
-    WHERE (messages.created_at >= @from_date OR @from_date::timestamptz IS NULL)
-      AND (messages.created_at < @to_date OR @to_date::timestamptz IS NULL)
-    GROUP BY chat_id, user_id
-) m ON m.chat_id = cm.chat_id AND m.user_id = cm.user_id
+         LEFT JOIN (SELECT chat_id, user_id, COUNT(*) AS msg_count
+                    FROM messages
+                    WHERE (messages.created_at >= @from_date OR @from_date::timestamptz IS NULL)
+                      AND (messages.created_at < @to_date OR @to_date::timestamptz IS NULL)
+                    GROUP BY chat_id, user_id) m ON m.chat_id = cm.chat_id AND m.user_id = cm.user_id
 
 WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
   AND (
-    (@mode = 'warn' AND COALESCE(m.msg_count,0) < c.norm_warn)
-        OR (@mode = 'ban'  AND COALESCE(m.msg_count,0) < c.norm_ban)
-        OR (@mode = 'any'  AND (
-        COALESCE(m.msg_count,0) < c.norm_warn
-            OR COALESCE(m.msg_count,0) < c.norm_ban
-        ))
+    (@mode = 'warn' AND COALESCE(m.msg_count, 0) > c.norm_ban AND COALESCE(m.msg_count, 0) < c.norm_warn)
+        OR (@mode = 'ban' AND COALESCE(m.msg_count, 0) < c.norm_ban)
+        OR (@mode = 'any' AND COALESCE(m.msg_count, 0) < GREATEST(c.norm_warn, c.norm_ban))
     );
