@@ -268,7 +268,7 @@ func (s *Service) Warn(ctx context.Context, chatID, userID, modID int64, reason 
 
 	if int(count) >= maxWarns {
 		if err := s.moderator.Ban(chatID, userID, nil); err != nil {
-			return int(count), false, err
+			return int(count), true, err
 		}
 		_ = s.repo.CreateModerationAction(ctx, "ban", chatID, userID, modID, "Превышен лимит предупреждений", nil)
 		_ = s.repo.ClearWarns(ctx, chatID, userID)

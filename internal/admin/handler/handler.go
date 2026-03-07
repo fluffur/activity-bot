@@ -132,8 +132,10 @@ func (h *Handler) Kick(b *gotgbot.Bot, ctx *cmd.Context) error {
 		if errors.Is(err, admin.ErrUserIsProtected) {
 			return ctx.Reply(b, "Нельзя кикнуть администратора или создателя", nil)
 		}
-		_ = ctx.Reply(b, "Не удалось кикнуть пользователя", nil)
-		return err
+		if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+			return err
+		}
+		return fmt.Errorf("failed to kick: %w", err)
 	}
 
 	if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
@@ -174,8 +176,10 @@ func (h *Handler) Ban(b *gotgbot.Bot, ctx *cmd.Context) error {
 		if errors.Is(err, admin.ErrUserIsProtected) {
 			return ctx.Reply(b, "Нельзя забанить администратора или создателя", nil)
 		}
-		_ = ctx.Reply(b, "Не удалось забанить пользователя", nil)
-		return err
+		if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+			return err
+		}
+		return fmt.Errorf("failed to ban: %w", err)
 	}
 
 	if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
@@ -342,10 +346,20 @@ func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
 		if errors.Is(err, admin.ErrUserIsProtected) {
 			return ctx.Reply(b, "Нельзя выдать предупреждение администратору или создателю", nil)
 		}
-		_ = ctx.Reply(b, "Не удалось выдать предупреждение", nil)
-		return err
+		if banned {
+			if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+				return err
+			}
+		} else {
+			_ = ctx.Reply(b, "Не удалось выдать предупреждение", nil)
+		}
+		return fmt.Errorf("failed to give warn: %w", err)
 	}
-
+	if banned {
+		if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+			return err
+		}
+	}
 	maxWarns, _ := h.service.GetMaxWarns(ctx.StdContext(), ctx.TargetChatID())
 
 	return ctx.ReplyHTML(b, view.FormatWarnInfo(*targetUser, count, maxWarns, until, reason, banned))
