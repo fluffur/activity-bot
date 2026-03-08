@@ -264,3 +264,15 @@ func (r *ChatRepository) GetAllChats(ctx context.Context) ([]model.Chat, error) 
 
 	return mapped, nil
 }
+
+func (r *ChatRepository) GetChatsWithEnabledBroadcast(ctx context.Context) ([]model.Chat, error) {
+	chats, err := r.queries.GetChatsWithEnabledBroadcast(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return mapChats(chats), nil
+}
+
+func (r *ChatRepository) DisableChatBroadcast(ctx context.Context, chatID int64) error {
+	return r.queries.DisableChatBroadcast(ctx, chatID)
+}

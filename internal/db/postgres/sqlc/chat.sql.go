@@ -11,16 +11,27 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const disableChatBroadcast = `-- name: DisableChatBroadcast :exec
+UPDATE chats
+SET broadcast_enabled = FALSE
+WHERE id = $1
+`
+
+func (q *Queries) DisableChatBroadcast(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, disableChatBroadcast, id)
+	return err
+}
+
 const ensureChatExists = `-- name: EnsureChatExists :one
 WITH ins AS (
     INSERT INTO chats (id, title, norm_warn)
         VALUES ($1, $2, $3)
         ON CONFLICT (id) DO UPDATE SET title = COALESCE(NULLIF(EXCLUDED.title, ''), chats.title)
-        RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time)
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
+        RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled)
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled
 FROM ins
 UNION ALL
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled
 FROM chats
 WHERE id = $1
 LIMIT 1
@@ -50,6 +61,7 @@ type EnsureChatExistsRow struct {
 	Title               string      `db:"title" json:"title"`
 	TagsEnabled         bool        `db:"tags_enabled" json:"tagsEnabled"`
 	WeekStartTime       pgtype.Time `db:"week_start_time" json:"weekStartTime"`
+	BroadcastEnabled    bool        `db:"broadcast_enabled" json:"broadcastEnabled"`
 }
 
 func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error) {
@@ -73,12 +85,13 @@ func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsPara
 		&i.Title,
 		&i.TagsEnabled,
 		&i.WeekStartTime,
+		&i.BroadcastEnabled,
 	)
 	return i, err
 }
 
 const getAllChats = `-- name: GetAllChats :many
-SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time
+SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled
 FROM chats c
 WHERE c.id < 0
   AND c.title <> ''
@@ -114,6 +127,7 @@ func (q *Queries) GetAllChats(ctx context.Context) ([]Chat, error) {
 			&i.Title,
 			&i.TagsEnabled,
 			&i.WeekStartTime,
+			&i.BroadcastEnabled,
 		); err != nil {
 			return nil, err
 		}
@@ -195,7 +209,7 @@ func (q *Queries) GetAllUserChatsWithoutNorm(ctx context.Context, userID int64) 
 }
 
 const getChat = `-- name: GetChat :one
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled
 FROM chats
 WHERE id = $1
 `
@@ -221,6 +235,7 @@ func (q *Queries) GetChat(ctx context.Context, id int64) (Chat, error) {
 		&i.Title,
 		&i.TagsEnabled,
 		&i.WeekStartTime,
+		&i.BroadcastEnabled,
 	)
 	return i, err
 }
@@ -239,8 +254,55 @@ func (q *Queries) GetChatMaxLadder(ctx context.Context, chatID int64) (int32, er
 	return max_ladder, err
 }
 
+const getChatsWithEnabledBroadcast = `-- name: GetChatsWithEnabledBroadcast :many
+SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled
+FROM chats c
+WHERE c.id < 0
+  AND c.title <> ''
+  AND c.broadcast_enabled
+`
+
+func (q *Queries) GetChatsWithEnabledBroadcast(ctx context.Context) ([]Chat, error) {
+	rows, err := q.db.Query(ctx, getChatsWithEnabledBroadcast)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Chat{}
+	for rows.Next() {
+		var i Chat
+		if err := rows.Scan(
+			&i.ID,
+			&i.NormWarn,
+			&i.NewbieThresholdDays,
+			&i.AiSystemPrompt,
+			&i.MaxLadder,
+			&i.CallOnJoin,
+			&i.WelcomeCallMessage,
+			&i.WeekStartDay,
+			&i.MaxWarns,
+			&i.NormBan,
+			&i.CommandPrefix,
+			&i.AllowPrefixless,
+			&i.MentionsPerMessage,
+			&i.MentionTypes,
+			&i.Title,
+			&i.TagsEnabled,
+			&i.WeekStartTime,
+			&i.BroadcastEnabled,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getChatsWithoutTitle = `-- name: GetChatsWithoutTitle :many
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled
 FROM chats
 WHERE title = ''
   AND id < 0
@@ -273,6 +335,7 @@ func (q *Queries) GetChatsWithoutTitle(ctx context.Context) ([]Chat, error) {
 			&i.Title,
 			&i.TagsEnabled,
 			&i.WeekStartTime,
+			&i.BroadcastEnabled,
 		); err != nil {
 			return nil, err
 		}
@@ -289,7 +352,7 @@ INSERT INTO chats(id, title, norm_warn)
 VALUES ($1, $2, $3)
 ON CONFLICT(id) DO UPDATE SET norm_warn = chats.norm_warn,
                               title     = COALESCE(NULLIF(EXCLUDED.title, ''), chats.title)
-RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time
+RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled
 `
 
 type GetOrCreateChatParams struct {
@@ -319,15 +382,19 @@ func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams
 		&i.Title,
 		&i.TagsEnabled,
 		&i.WeekStartTime,
+		&i.BroadcastEnabled,
 	)
 	return i, err
 }
 
 const getUserManagedChats = `-- name: GetUserManagedChats :many
-SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time
+SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled
 FROM chats c
-JOIN chat_members cm ON c.id = cm.chat_id
-WHERE c.id < 0 AND cm.user_id = $1 AND cm.status IN ('administrator', 'creator') AND title <> ''
+         JOIN chat_members cm ON c.id = cm.chat_id
+WHERE c.id < 0
+  AND cm.user_id = $1
+  AND cm.status IN ('administrator', 'creator')
+  AND title <> ''
 `
 
 func (q *Queries) GetUserManagedChats(ctx context.Context, userID int64) ([]Chat, error) {
@@ -357,6 +424,7 @@ func (q *Queries) GetUserManagedChats(ctx context.Context, userID int64) ([]Chat
 			&i.Title,
 			&i.TagsEnabled,
 			&i.WeekStartTime,
+			&i.BroadcastEnabled,
 		); err != nil {
 			return nil, err
 		}

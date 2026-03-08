@@ -27,6 +27,7 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+	"golang.org/x/time/rate"
 )
 
 type App struct {
@@ -237,6 +238,48 @@ func (a *App) registerWorkerHandlers() *asynq.ServeMux {
 		}
 
 		return a.RestService.EndMemberRest(ctx, p.ChatID, p.UserID)
+	})
+	var limiter = rate.NewLimiter(rate.Limit(25), 5)
+
+	mux.HandleFunc("broadcast:post", func(ctx context.Context, t *asynq.Task) error {
+		if err := limiter.Wait(ctx); err != nil {
+			return err
+		}
+
+		var p model.BroadcastPayload
+		if err := json.Unmarshal(t.Payload(), &p); err != nil {
+			return err
+		}
+
+		kb := &gotgbot.InlineKeyboardMarkup{
+			InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
+				{
+					{
+						Text:  "Открыть канал бота",
+						Url:   "https://t.me/FloodCMNews",
+						Style: "primary",
+					},
+				},
+				{
+					{
+						Text:         "Отключить рассылку",
+						CallbackData: "unsubscribe",
+						Style:        "danger",
+					},
+				},
+			},
+		}
+
+		_, err := a.Bot.CopyMessage(
+			p.ChatID,
+			p.FromChatID,
+			p.MessageID,
+			&gotgbot.CopyMessageOpts{
+				ReplyMarkup: kb,
+			},
+		)
+
+		return err
 	})
 
 	return mux

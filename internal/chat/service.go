@@ -95,9 +95,17 @@ func (s *Service) GetChatsWithoutTitle(ctx context.Context) ([]model.Chat, error
 	return s.repo.GetChatsWithoutTitle(ctx)
 }
 
+func (s *Service) GetChatsWithEnabledBroadcast(ctx context.Context) ([]model.Chat, error) {
+	return s.repo.GetChatsWithEnabledBroadcast(ctx)
+}
+
 func (s *Service) GetUserManagedChats(ctx context.Context, userID int64, ownerID int64) ([]model.Chat, error) {
 	if userID == ownerID {
-		return s.repo.GetAllChats(ctx) // Note: Need to add GetAllChats to chat repo if missing, or adjust logic!
+		return s.repo.GetAllChats(ctx) // Note: Need to add GetChatsWithEnabledBroadcast to chat repo if missing, or adjust logic!
 	}
 	return s.repo.GetUserManagedChats(ctx, userID)
+}
+
+func (s *Service) DisableBroadcast(ctx context.Context, chatID int64) error {
+	return s.repo.DisableChatBroadcast(ctx, chatID)
 }
