@@ -4,7 +4,6 @@ import (
 	"activity-bot/internal/model"
 	"fmt"
 	"html"
-	"strings"
 )
 
 func Link(u model.User) string {
@@ -30,13 +29,6 @@ func Mention(id int64, value string) string {
 	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, id, html.EscapeString(value))
 }
 
-func TelegramMessageLink(chatID int64, messageID int64, username string) string {
-	if username != "" {
-		return fmt.Sprintf("https://t.me/%s/%d", username, messageID)
-	}
-	if chatID < 0 {
-		id := strings.TrimPrefix(fmt.Sprint(chatID), "-100")
-		return fmt.Sprintf("https://t.me/c/%s/%d", id, messageID)
-	}
-	return ""
+func TelegramChannelLink(username string) string {
+	return fmt.Sprintf("https://t.me/%s", username)
 }
