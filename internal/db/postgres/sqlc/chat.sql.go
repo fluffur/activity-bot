@@ -15,7 +15,10 @@ const ensureChatExists = `-- name: EnsureChatExists :one
 WITH ins AS (
     INSERT INTO chats (id, title, norm_warn)
         VALUES ($1, $2, $3)
-        ON CONFLICT (id) DO UPDATE SET title = COALESCE(NULLIF(EXCLUDED.title, ''), chats.title)
+        ON CONFLICT (id) DO UPDATE
+            SET title = COALESCE(NULLIF(EXCLUDED.title, ''), chats.title)
+        -- Если EXCLUDED.title пустой строкой, оставляем старый chats.title
+        -- COALESCE защищает от NULL
         RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled)
 SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled
 FROM ins

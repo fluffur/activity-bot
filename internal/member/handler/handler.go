@@ -284,6 +284,9 @@ func (h *Handler) OnBotPromote(_ *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
+	if err := h.chatService.SetTitle(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveChat.Title); err != nil {
+		return err
+	}
 	slog.Info("updated chat members on bot join", "chat_id", ctx.EffectiveChat.Id, "count", count)
 	return nil
 }
