@@ -13,6 +13,7 @@ import (
 	"activity-bot/internal/user"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"strings"
 	"time"
@@ -191,6 +192,9 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *cmd.Context) error {
 	joinedMembers := ctx.EffectiveMessage.NewChatMembers
 	for _, u := range joinedMembers {
+		if u.Id == b.User.Id {
+			return h.OnBotPromote(b, ctx)
+		}
 		if u.IsBot {
 			continue
 		}
@@ -280,6 +284,7 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) OnBotPromote(_ *gotgbot.Bot, ctx *cmd.Context) error {
+	log.Println("on bot promote")
 	count, err := h.service.SyncChatMembers(ctx.StdContext(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
