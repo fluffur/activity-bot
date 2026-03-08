@@ -309,6 +309,60 @@ func (a *App) RegisterHandlers() {
 		},
 	)
 	a.Dispatcher.AddHandler(callConversation)
+	setupConversation := handlers.NewConversation(
+		[]ext.Handler{
+			cf.New(chatHandler.StartSetup, "setup", "настройка"),
+		},
+		map[string][]ext.Handler{
+			chatH.SetupStateNormWarn: {
+				handlers.NewMessage(message.Text, cf.WrapEvent(chatHandler.HandleSetupNormWarn)),
+				handlers.NewCallback(callbackquery.Prefix("setup_skip"), cf.WrapCallback(chatHandler.SkipSetupNormWarnCallback)),
+			},
+			chatH.SetupStateNormBan: {
+				handlers.NewMessage(message.Text, cf.WrapEvent(chatHandler.HandleSetupNormBan)),
+				handlers.NewCallback(callbackquery.Prefix("setup_skip"), cf.WrapCallback(chatHandler.SkipSetupNormBanCallback)),
+			},
+			chatH.SetupStateNewbie: {
+				handlers.NewMessage(message.Text, cf.WrapEvent(chatHandler.HandleSetupNewbie)),
+				handlers.NewCallback(callbackquery.Prefix("setup_skip"), cf.WrapCallback(chatHandler.HandleSkip(chatH.SetupStateWeekStart))),
+			},
+			chatH.SetupStateWeekStart: {
+				handlers.NewMessage(message.Text, cf.WrapEvent(chatHandler.HandleSetupWeekStart)),
+				handlers.NewCallback(callbackquery.Prefix("setup_skip"), cf.WrapCallback(chatHandler.HandleSkip(chatH.SetupStateMaxWarns))),
+			},
+			chatH.SetupStateMaxWarns: {
+				handlers.NewMessage(message.Text, cf.WrapEvent(chatHandler.HandleSetupMaxWarns)),
+				handlers.NewCallback(callbackquery.Prefix("setup_skip"), cf.WrapCallback(chatHandler.HandleSkip(chatH.SetupStatePrefix))),
+			},
+			chatH.SetupStatePrefix: {
+				handlers.NewMessage(message.Text, cf.WrapEvent(chatHandler.HandleSetupPrefix)),
+				handlers.NewCallback(callbackquery.Prefix("setup_skip"), cf.WrapCallback(chatHandler.HandleSkip(chatH.SetupStatePrefixless))),
+			},
+			chatH.SetupStatePrefixless: {
+				handlers.NewMessage(message.Text, cf.WrapEvent(chatHandler.HandleSetupPrefixless)),
+				handlers.NewCallback(callbackquery.Prefix("setup_skip"), cf.WrapCallback(chatHandler.HandleSkip(chatH.SetupStateMentions))),
+			},
+			chatH.SetupStateMentions: {
+				handlers.NewMessage(message.Text, cf.WrapEvent(chatHandler.HandleSetupMentions)),
+				handlers.NewCallback(callbackquery.Prefix("setup_skip"), cf.WrapCallback(chatHandler.HandleSkip(chatH.SetupStateWelcomeCall))),
+			},
+			chatH.SetupStateWelcomeCall: {
+				handlers.NewMessage(message.Text, cf.WrapEvent(chatHandler.HandleSetupWelcomeCall)),
+				handlers.NewCallback(callbackquery.Prefix("setup_skip"), cf.WrapCallback(chatHandler.HandleSkip(chatH.SetupStateCallOnJoin))),
+			},
+			chatH.SetupStateCallOnJoin: {
+				handlers.NewMessage(message.Text, cf.WrapEvent(chatHandler.HandleSetupCallOnJoin)),
+			},
+		},
+		&handlers.ConversationOpts{
+			Exits: []ext.Handler{
+				handlers.NewCallback(callbackquery.Prefix("setup_cancel"), cf.WrapCallback(chatHandler.SetupCancel)),
+			},
+			StateStorage: conversation.NewInMemoryStorage(conversation.KeyStrategySenderAndChat),
+			AllowReEntry: true,
+		},
+	)
+	a.Dispatcher.AddHandler(setupConversation)
 
 	a.Dispatcher.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл", "all", "каллалл").
 		AddTriggers("+").

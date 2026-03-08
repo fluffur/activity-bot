@@ -91,6 +91,18 @@ func (s *Service) SetWeekStartTime(ctx context.Context, chatID int64, time strin
 	return s.repo.SetWeekStartTime(ctx, chatID, time)
 }
 
+func (s *Service) SetWelcomeCallMessage(ctx context.Context, chatID int64, message string) error {
+	return s.repo.SetWelcomeCallMessage(ctx, chatID, message)
+}
+
+func (s *Service) UpdateCallOnJoin(ctx context.Context, chatID int64, isEnabled bool) error {
+	return s.repo.UpdateCallOnJoin(ctx, chatID, isEnabled)
+}
+
+func (s *Service) SetMentionsPerMessage(ctx context.Context, chatID int64, count int32) error {
+	return s.repo.SetMentionsPerMessage(ctx, chatID, count)
+}
+
 func (s *Service) GetChatsWithoutTitle(ctx context.Context) ([]model.Chat, error) {
 	return s.repo.GetChatsWithoutTitle(ctx)
 }
