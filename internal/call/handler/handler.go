@@ -687,6 +687,7 @@ func (h *Handler) HandleCallNoNormWarnMessage(b *gotgbot.Bot, ctx *ext.Context) 
 }
 
 func (h *Handler) HandleCallNoNormBanMessage(b *gotgbot.Bot, ctx *ext.Context) error {
+	logger.L.Info("saddasadsadsadsasd")
 	return h.handleCallWithMessage(
 		b,
 		ctx,
