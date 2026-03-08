@@ -210,7 +210,6 @@ func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if chatData.CallOnJoin {
-		// handle call functionality inline
 		members, err := h.callService.GetAllMembers(ctx.StdContext(), ctx.EffectiveChat.Id)
 		if err != nil {
 			return err
