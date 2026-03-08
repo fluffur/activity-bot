@@ -687,7 +687,25 @@ func (h *Handler) HandleCallNoNormWarnMessage(b *gotgbot.Bot, ctx *ext.Context) 
 }
 
 func (h *Handler) HandleCallNoNormBanMessage(b *gotgbot.Bot, ctx *ext.Context) error {
-	return h.HandleCallNoNormWarnMessage(b, ctx)
+	return h.handleCallWithMessage(
+		b,
+		ctx,
+		func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
+			c, err := h.chatService.GetChat(stdCtx, chatID)
+			if err != nil {
+				return nil, err
+			}
+
+			from, to := stats.ResolvePeriod(
+				stats.PeriodWeek,
+				time.Now().In(helpers.MoscowLocation),
+				c.WeekStartDay,
+				c.WeekStartTime,
+			)
+
+			return h.memberService.GetNoNormBanMembers(stdCtx, chatID, from, to)
+		},
+	)
 }
 
 func (h *Handler) CancelCallConversation(b *gotgbot.Bot, ctx *ext.Context) error {
