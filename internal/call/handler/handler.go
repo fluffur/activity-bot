@@ -14,6 +14,7 @@ import (
 	"activity-bot/internal/stats"
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"sync"
 	"time"
@@ -552,7 +553,7 @@ func (h *Handler) startCallConversation(
 	if ctx.CallbackQuery != nil {
 		_, _ = ctx.CallbackQuery.Answer(b, nil)
 	}
-
+	log.Println("next state", nextState)
 	return handlers.NextConversationState(nextState)
 }
 
@@ -687,7 +688,6 @@ func (h *Handler) HandleCallNoNormWarnMessage(b *gotgbot.Bot, ctx *ext.Context) 
 }
 
 func (h *Handler) HandleCallNoNormBanMessage(b *gotgbot.Bot, ctx *ext.Context) error {
-	logger.L.Info("saddasadsadsadsasd")
 	return h.handleCallWithMessage(
 		b,
 		ctx,
