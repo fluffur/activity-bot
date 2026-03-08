@@ -61,7 +61,7 @@ func (a *App) RegisterHandlers() {
 	memberHandler := memberH.New(a.MemberService, a.ChatService, a.UserService, callService, a.AdminService)
 	callHandler := callH.New(callService, a.MemberService, a.ChatService, a.AdminService, sessionService)
 	userHandler := userH.New(a.UserService)
-	channelHandler := channelH.New(a.ChatService, a.AsyncClient, a.Config.ChannelID)
+	channelHandler := channelH.New(a.AdminService, a.ChatService, a.AsyncClient, a.Config.ChannelID)
 
 	adminGuard := guard.NewAdminGuard(a.AdminService, sessionService)
 	creatorGuard := guard.NewCreatorGuard(a.AdminService, sessionService)
