@@ -281,9 +281,9 @@ func (a *App) RegisterHandlers() {
 	callConversation := handlers.NewConversation(
 		[]ext.Handler{
 			handlers.NewCallback(callbackquery.Prefix("call_inactive"), callHandler.StartCallInactiveConversation),
-			handlers.NewCallback(callbackquery.Prefix("call_no_norm"), callHandler.StartCallNoNormConversation),
 			handlers.NewCallback(callbackquery.Prefix("call_no_norm_warn"), callHandler.StartCallNoNormWarnConversation),
 			handlers.NewCallback(callbackquery.Prefix("call_no_norm_ban"), callHandler.StartCallNoNormBanConversation),
+			handlers.NewCallback(callbackquery.Prefix("call_no_norm"), callHandler.StartCallNoNormConversation),
 		},
 		map[string][]ext.Handler{
 			callH.CallStateInactive: {
