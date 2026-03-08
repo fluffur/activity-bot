@@ -61,7 +61,7 @@ func (a *App) RegisterHandlers() {
 	memberHandler := memberH.New(a.MemberService, a.ChatService, a.UserService, callService, a.AdminService)
 	callHandler := callH.New(callService, a.MemberService, a.ChatService, a.AdminService, sessionService)
 	userHandler := userH.New(a.UserService)
-	channelHandler := channelH.New(a.ChatService, a.AsyncClient)
+	channelHandler := channelH.New(a.ChatService, a.AsyncClient, a.Config.ChannelID)
 
 	adminGuard := guard.NewAdminGuard(a.AdminService, sessionService)
 	creatorGuard := guard.NewCreatorGuard(a.AdminService, sessionService)
@@ -379,7 +379,8 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.LeftChatMember, cf.WrapEvent(memberHandler.OnLeftMember)))
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.NewChatMembers, cf.WrapEvent(memberHandler.OnJoinMember)))
 	a.Dispatcher.AddHandler(handlers.NewMyChatMember(chatmember.NewStatus("administrator"), cf.WrapEvent(memberHandler.OnBotPromote)))
-	a.Dispatcher.AddHandler(handlers.NewMessage(message.Channel, cf.WrapEvent(channelHandler.Post)))
+	a.Dispatcher.AddHandler(handlers.NewMessage(message.Channel, cf.WrapEvent(channelHandler.Post)).SetAllowChannel(true))
+	a.Dispatcher.AddHandler(cf.New(channelHandler.Subscribe, "subscribe").WithGuards(groupGuard, adminGuard))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("unsubscribe"), cf.WrapEvent(channelHandler.Unsubscribe)))
 	a.Dispatcher.AddHandler(handlers.NewMessage(filter.OnlyGroups, cf.WrapEvent(messageHandler.Message)))
 

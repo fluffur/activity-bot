@@ -11,17 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const disableChatBroadcast = `-- name: DisableChatBroadcast :exec
-UPDATE chats
-SET broadcast_enabled = FALSE
-WHERE id = $1
-`
-
-func (q *Queries) DisableChatBroadcast(ctx context.Context, id int64) error {
-	_, err := q.db.Exec(ctx, disableChatBroadcast, id)
-	return err
-}
-
 const ensureChatExists = `-- name: EnsureChatExists :one
 WITH ins AS (
     INSERT INTO chats (id, title, norm_warn)
@@ -449,6 +438,22 @@ type SetChatAISystemPromptParams struct {
 
 func (q *Queries) SetChatAISystemPrompt(ctx context.Context, arg SetChatAISystemPromptParams) error {
 	_, err := q.db.Exec(ctx, setChatAISystemPrompt, arg.AiSystemPrompt, arg.ChatID)
+	return err
+}
+
+const setChatBroadcast = `-- name: SetChatBroadcast :exec
+UPDATE chats
+SET broadcast_enabled = $1
+WHERE id = $2
+`
+
+type SetChatBroadcastParams struct {
+	BroadcastEnabled bool  `db:"broadcast_enabled" json:"broadcastEnabled"`
+	ID               int64 `db:"id" json:"id"`
+}
+
+func (q *Queries) SetChatBroadcast(ctx context.Context, arg SetChatBroadcastParams) error {
+	_, err := q.db.Exec(ctx, setChatBroadcast, arg.BroadcastEnabled, arg.ID)
 	return err
 }
 

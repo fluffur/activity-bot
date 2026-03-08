@@ -168,7 +168,7 @@ WHERE c.id < 0
   AND c.title <> ''
   AND c.broadcast_enabled;
 
--- name: DisableChatBroadcast :exec
+-- name: SetChatBroadcast :exec
 UPDATE chats
-SET broadcast_enabled = FALSE
-WHERE id = $1;
+SET broadcast_enabled = $1
+WHERE id = $2;

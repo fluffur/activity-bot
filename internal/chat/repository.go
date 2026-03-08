@@ -31,5 +31,5 @@ type Repository interface {
 	GetUserManagedChats(ctx context.Context, userID int64) ([]model.Chat, error)
 	GetAllChats(ctx context.Context) ([]model.Chat, error)
 	GetChatsWithEnabledBroadcast(ctx context.Context) ([]model.Chat, error)
-	DisableChatBroadcast(ctx context.Context, chatID int64) error
+	SetChatBroadcast(ctx context.Context, chatID int64, enabled bool) error
 }

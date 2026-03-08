@@ -15,15 +15,16 @@ import (
 type Handler struct {
 	chatService *chat.Service
 	asyncClient *asynq.Client
+	channelID   int64
 }
 
-func New(chatService *chat.Service, asyncClient *asynq.Client) *Handler {
-	return &Handler{chatService, asyncClient}
+func New(chatService *chat.Service, asyncClient *asynq.Client, channelID int64) *Handler {
+	return &Handler{chatService, asyncClient, channelID}
 }
 
 func (h *Handler) Post(b *gotgbot.Bot, ctx *cmd.Context) error {
-	log.Println("post")
-	if ctx.EffectiveChat.Id != -1003824019217 {
+	log.Println("post", ctx.EffectiveChat.Id, h.channelID)
+	if ctx.EffectiveChat.Id != h.channelID {
 		return nil
 	}
 
@@ -66,7 +67,13 @@ func (h *Handler) Unsubscribe(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	_, err = b.SendMessage(chatID, "Рассылка отключена ❌", nil)
+	return ctx.Reply(b, "Рассылка отключена ❌", nil)
+}
 
-	return err
+func (h *Handler) Subscribe(b *gotgbot.Bot, ctx *cmd.Context) error {
+	chatID := ctx.EffectiveChat.Id
+	if err := h.chatService.EnableBroadcast(ctx.StdContext(), chatID); err != nil {
+		return err
+	}
+	return ctx.Reply(b, "Рассылка включена", nil)
 }

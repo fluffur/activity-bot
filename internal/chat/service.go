@@ -107,5 +107,9 @@ func (s *Service) GetUserManagedChats(ctx context.Context, userID int64, ownerID
 }
 
 func (s *Service) DisableBroadcast(ctx context.Context, chatID int64) error {
-	return s.repo.DisableChatBroadcast(ctx, chatID)
+	return s.repo.SetChatBroadcast(ctx, chatID, false)
+}
+
+func (s *Service) EnableBroadcast(ctx context.Context, chatID int64) error {
+	return s.repo.SetChatBroadcast(ctx, chatID, true)
 }

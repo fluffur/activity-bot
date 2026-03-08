@@ -255,8 +255,8 @@ func (a *App) registerWorkerHandlers() *asynq.ServeMux {
 			InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
 				{
 					{
-						Text:  "Открыть канал бота",
-						Url:   "https://t.me/FloodCMNews",
+						Text:  "Открыть пост в канале",
+						Url:   helpers.TelegramMessageLink(p.FromChatID, p.MessageID),
 						Style: "primary",
 					},
 				},
@@ -373,6 +373,12 @@ func (a *App) startPolling() error {
 		DropPendingUpdates: true,
 		GetUpdatesOpts: &gotgbot.GetUpdatesOpts{
 			Timeout: 9,
+			AllowedUpdates: []string{
+				"message",
+				"channel_post",
+				"edited_channel_post",
+				"callback_query",
+			},
 			RequestOpts: &gotgbot.RequestOpts{
 				Timeout: time.Second * 10,
 			},
