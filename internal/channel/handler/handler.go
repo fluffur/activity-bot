@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"activity-bot/internal/admin"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/model"
@@ -13,13 +14,14 @@ import (
 )
 
 type Handler struct {
-	chatService *chat.Service
-	asyncClient *asynq.Client
-	channelID   int64
+	adminService *admin.Service
+	chatService  *chat.Service
+	asyncClient  *asynq.Client
+	channelID    int64
 }
 
-func New(chatService *chat.Service, asyncClient *asynq.Client, channelID int64) *Handler {
-	return &Handler{chatService, asyncClient, channelID}
+func New(adminService *admin.Service, chatService *chat.Service, asyncClient *asynq.Client, channelID int64) *Handler {
+	return &Handler{adminService, chatService, asyncClient, channelID}
 }
 
 func (h *Handler) Post(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -55,9 +57,17 @@ func (h *Handler) Post(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 func (h *Handler) Unsubscribe(b *gotgbot.Bot, ctx *cmd.Context) error {
 
-	chatID := ctx.EffectiveChat.Id
-
-	err := h.chatService.DisableBroadcast(ctx.StdContext(), chatID)
+	isAdmin, err := h.adminService.IsAdmin(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+	if err != nil {
+		return err
+	}
+	if !isAdmin {
+		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+			Text: "У вас нет прав адмниистратора для этого",
+		})
+		return err
+	}
+	err = h.chatService.DisableBroadcast(ctx.StdContext(), ctx.EffectiveChat.Id)
 	if err != nil {
 		return err
 	}
