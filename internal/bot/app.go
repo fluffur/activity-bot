@@ -256,7 +256,7 @@ func (a *App) registerWorkerHandlers() *asynq.ServeMux {
 				{
 					{
 						Text:  "Открыть пост в канале",
-						Url:   helpers.TelegramMessageLink(p.FromChatID, p.MessageID),
+						Url:   helpers.TelegramMessageLink(p.FromChatID, p.MessageID, "FloodCMNews"),
 						Style: "primary",
 					},
 				},
