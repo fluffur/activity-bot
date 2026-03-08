@@ -490,7 +490,6 @@ func (h *Handler) startCallConversation(
 		return handlers.EndConversation()
 	}
 
-	// Человекочитаемое имя типа созыва.
 	callType := "всех"
 	switch nextState {
 	case CallStateInactive:
@@ -509,7 +508,7 @@ func (h *Handler) startCallConversation(
 	}
 
 	text := fmt.Sprintf(
-		"%s, введите сообщение созыва типа %s: ",
+		"%s, введите сообщение созыва %s: ",
 		userMention,
 		callType,
 	)
