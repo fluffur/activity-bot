@@ -255,7 +255,7 @@ func (a *App) registerWorkerHandlers() *asynq.ServeMux {
 			InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
 				{
 					{
-						Text:  "Открыть телеграм-канал",
+						Text:  "Открыть канал",
 						Url:   helpers.TelegramChannelLink("FloodCMNews"),
 						Style: "primary",
 					},
