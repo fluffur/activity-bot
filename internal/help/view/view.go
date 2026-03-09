@@ -5,20 +5,18 @@ import (
 	"fmt"
 )
 
-func FormatHelpText(ownerID int64) string {
+func FormatHelpText(ownerID int64, commandsLink string) string {
 	return fmt.Sprintf(`
-📌 <b>Справка по боту</b>
+📋 %s
 
-📋 Все доступные команды можно открыть через кнопку <b>"Команды бота"</b>.
-
-💬 Если нашли баг или есть предложения — %s
-`, helpers.Mention(ownerID, "напишите разработчику"))
+💬 %s
+`, helpers.AnyLink(commandsLink, "Посмотреть список команд"), helpers.Mention(ownerID, "Связаться с разработчиком"))
 }
 
-func FormatStartMessage() string {
-	return `👋 Привет!
+func FormatStartMessage(commandsLink string) string {
+	return fmt.Sprintf(`👋 Привет!
 
 Я чат-менеджер. Считаю сообщения и помогаю контролировать еженедельную активность
 
-Добавь меня в группу или открой список команд ниже 👇`
+Добавь меня в группу или %s`, helpers.AnyLink(commandsLink, "открой список команд"))
 }

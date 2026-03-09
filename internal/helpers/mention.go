@@ -14,6 +14,10 @@ func Link(u model.User) string {
 	return fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a>`, u.ID, html.EscapeString(u.FirstName))
 }
 
+func AnyLink(href, content string) string {
+	return "<a href=\"" + href + "\">" + content + "</a>"
+}
+
 func LinkWithContent(u model.User, content string) string {
 	if u.Username != nil && *u.Username != "" {
 		return fmt.Sprintf(`<a href="https://t.me/%s">%s</a>`, *u.Username, html.EscapeString(content))
