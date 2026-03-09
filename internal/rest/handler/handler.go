@@ -11,7 +11,6 @@ import (
 	"activity-bot/internal/rest/view"
 	"activity-bot/internal/session"
 	"activity-bot/internal/user"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -70,14 +69,6 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 		_ = ctx.Reply(b, "Не удалось создать рест", nil)
 		return err
 	}
-
-	payload, _ := json.Marshal(model.RestExpirePayload{
-		ChatID: ctx.TargetChatID(),
-		UserID: targetUser.ID,
-	})
-	task := asynq.NewTask("rest:expire", payload)
-	taskID := fmt.Sprintf("rest:expire:%d:%d", ctx.TargetChatID(), targetUser.ID)
-	_, _ = h.asyncClient.Enqueue(task, asynq.ProcessAt(date), asynq.TaskID(taskID))
 
 	text := view.FormatRestSet(*targetUser, date, ctx.SecondArgument())
 	return ctx.ReplyHTML(b, text)
@@ -187,13 +178,6 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	payload, _ := json.Marshal(model.RestExpirePayload{
-		ChatID: chatID,
-		UserID: fromID,
-	})
-	task := asynq.NewTask("rest:expire", payload)
-	taskID := fmt.Sprintf("rest:expire:%d:%d", chatID, fromID)
-	_, _ = h.asyncClient.Enqueue(task, asynq.ProcessAt(restRequest.RestUntil), asynq.TaskID(taskID))
 	u, err := h.userService.GetUser(ctx.StdContext(), fromID)
 	if err != nil {
 		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
