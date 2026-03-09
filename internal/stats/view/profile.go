@@ -33,7 +33,7 @@ func FormatProfile(m model.MemberStats) string {
 
 	text := fmt.Sprintf(
 		`> Информация о %s
-%s Ранг: %s (в чате с %s%s)
+%s %s (в чате с %s%s)
 ───────────────
 📊 Актив<blockquote>▸ сегодня: %d
 ▸ эта неделя: %d
@@ -44,8 +44,8 @@ func FormatProfile(m model.MemberStats) string {
 ▸ 7 дней: %d
 ▸ 30 дней: %d</blockquote>───────────────`,
 		name,
-		getStatusEmoji(m.Status),
 		status,
+		getStatusEmoji(m.Status),
 		helpers.FormatToHumanDateTime(m.JoinedAt),
 		leftAtInfo,
 		m.DayCount,
