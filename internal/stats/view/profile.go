@@ -30,9 +30,10 @@ func FormatProfile(m model.MemberStats) string {
 	if m.LeftAt != nil {
 		leftAtInfo = ", покинул чат " + helpers.FormatToHumanDate(*m.LeftAt)
 	}
+
 	text := fmt.Sprintf(
 		`> Информация о %s
-> %s (в чате с %s%s)
+%s Ранг: %s (в чате с %s%s)
 ───────────────
 📊 Актив<blockquote>▸ сегодня: %d
 ▸ эта неделя: %d
@@ -43,6 +44,7 @@ func FormatProfile(m model.MemberStats) string {
 ▸ 7 дней: %d
 ▸ 30 дней: %d</blockquote>───────────────`,
 		name,
+		getStatusEmoji(m.Status),
 		status,
 		helpers.FormatToHumanDateTime(m.JoinedAt),
 		leftAtInfo,
@@ -80,6 +82,19 @@ func FormatProfile(m model.MemberStats) string {
 	}
 
 	return text
+}
+
+func getStatusEmoji(status string) string {
+
+	switch status {
+	case "member":
+		return helpers.CustomEmoji(5298673841378191838, "🤓")
+	case "administrator":
+		return helpers.CustomEmoji(5296305123964773541, "💀")
+	case "creator":
+		return helpers.CustomEmoji(5298512178809168321, "😎")
+	}
+	return helpers.CustomEmoji(5298532506889382420, "😭")
 }
 
 func getNormStatusEmoji(weekCount, normWarn, normBan int32, isRestActive bool) string {
