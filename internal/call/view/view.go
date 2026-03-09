@@ -88,11 +88,7 @@ func FormatCallChunk(message string, members []model.ChatMember, mentionTypes in
 			parts = append(parts, m.User.FirstName)
 		}
 		if mentionTypes&MentionTypeRole > 0 && m.CustomTitle != "" {
-			if len(parts) > 0 {
-				parts = append(parts, "("+m.CustomTitle+")")
-			} else {
-				parts = append(parts, m.CustomTitle)
-			}
+			parts = append(parts, m.CustomTitle)
 		}
 
 		if len(parts) == 0 {

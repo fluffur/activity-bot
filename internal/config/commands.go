@@ -21,7 +21,7 @@ var BotCommands = []gotgbot.BotCommand{
 	{Command: "call_disable", Description: "📣 Отключить созыв при входе новичка"},
 	{Command: "call_message", Description: "💬 Сообщение для созыва"},
 	{Command: "call_limit", Description: "🔢 Лимит упоминаний в call"},
-	{Command: "call_type", Description: "⚙️ Тип упоминаний в call"},
+	{Command: "call_style", Description: "⚙️ Стиль упоминаний в call"},
 	{Command: "week_start", Description: "📅 День начала недели"},
 	{Command: "custom_prefix", Description: "🏷️ Кастомный префикс"},
 	{Command: "manage", Description: "💼 Управление чатами (в ЛС)"},

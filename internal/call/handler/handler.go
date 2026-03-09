@@ -232,7 +232,20 @@ func (h *Handler) doCall(
 		}
 
 		chunkText := view.FormatCallChunk(message, members[i:end], chatSettings.MentionTypes)
-
+		isLastChunk := end == len(members)
+		var kb *gotgbot.InlineKeyboardMarkup
+		if isLastChunk {
+			kb = &gotgbot.InlineKeyboardMarkup{
+				InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
+					{
+						{
+							Text:         "⚙️ Настроить стили созыва",
+							CallbackData: "call_style",
+						},
+					},
+				},
+			}
+		}
 		if srcMsg != nil && len(srcMsg.Photo) > 0 {
 
 			lastPhoto := srcMsg.Photo[len(srcMsg.Photo)-1]
@@ -245,6 +258,7 @@ func (h *Handler) doCall(
 					Caption:         chunkText,
 					HasSpoiler:      srcMsg.HasMediaSpoiler,
 					ReplyParameters: replyParams,
+					ReplyMarkup:     kb,
 				},
 			); err != nil {
 				return err
@@ -261,6 +275,7 @@ func (h *Handler) doCall(
 						IsDisabled: true,
 					},
 					ReplyParameters: replyParams,
+					ReplyMarkup:     kb,
 				},
 			); err != nil {
 				return err
@@ -296,7 +311,9 @@ func (h *Handler) SetMentionsPerMessage(b *gotgbot.Bot, ctx *cmd.Context) error 
 }
 
 func (h *Handler) ShowCallTypes(b *gotgbot.Bot, ctx *cmd.Context) error {
-
+	if ctx.CallbackQuery != nil {
+		_, _ = ctx.CallbackQuery.Answer(b, nil)
+	}
 	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
 	if err != nil {
 		return err
@@ -304,9 +321,9 @@ func (h *Handler) ShowCallTypes(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	return ctx.Reply(
 		b,
-		"Выберите типы упоминаний для команды call:",
+		"Настройте стиль упоминаний:",
 		&gotgbot.SendMessageOpts{
-			ReplyMarkup: h.getCallTypesKeyboard(int32(c.MentionTypes)),
+			ReplyMarkup: h.getCallTypesKeyboard(c.MentionTypes),
 		},
 	)
 }
