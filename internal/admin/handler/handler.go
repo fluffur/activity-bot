@@ -428,11 +428,6 @@ func (h *Handler) Unmute(b *gotgbot.Bot, ctx *cmd.Context) error {
 			return err
 		}
 
-		if _, err := b.SetChatAdministratorCustomTitle(ctx.TargetChatID(), targetUser.ID, title, nil); err != nil {
-			_ = ctx.Reply(b, "Пользователь размучен, но роль уже назначена кем-то другим", nil)
-
-			return err
-		}
 	}
 
 	return ctx.ReplyHTML(b, view.FormatUnmuteInfo(*targetUser))

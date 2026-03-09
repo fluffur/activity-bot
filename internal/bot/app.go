@@ -167,24 +167,25 @@ func (a *App) registerWorkerHandlers() *asynq.ServeMux {
 		if err := json.Unmarshal(t.Payload(), &p); err != nil {
 			return err
 		}
-
-		m, err := a.MemberService.GetChatMember(ctx, p.ChatID, p.UserID)
-		title := m.CustomTitle
-		if err != nil || title == "" {
+		c, err := a.ChatService.GetChat(ctx, p.ChatID)
+		if err != nil {
 			return err
 		}
-		_, err = a.Bot.PromoteChatMember(p.ChatID, p.UserID, &gotgbot.PromoteChatMemberOpts{
-			CanManageChat:   true,
-			CanPostMessages: true,
-			CanEditMessages: true,
-		})
+		m, err := a.MemberService.GetChatMember(ctx, p.ChatID, p.UserID)
 		if err != nil {
 			return err
 		}
 
-		if _, err = a.Bot.SetChatAdministratorCustomTitle(p.ChatID, p.UserID, title, nil); err != nil {
-			return err
+		if !c.TagsEnabled {
+			if _, err = a.Bot.PromoteChatMember(p.ChatID, p.UserID, &gotgbot.PromoteChatMemberOpts{
+				CanManageChat:   true,
+				CanPostMessages: true,
+				CanEditMessages: true,
+			}); err != nil {
+				return err
+			}
 		}
+
 		if _, err = a.Bot.SendMessage(p.ChatID, fmt.Sprintf("Срок мута для участника %s подошёл к концу", helpers.LinkWithContent(m.User, fmt.Sprintf("%s (%s)", m.User.FirstName, m.CustomTitle))), &gotgbot.SendMessageOpts{
 			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 				IsDisabled: true,

@@ -30,38 +30,19 @@ func (a *MemberTagAdapter) SetMemberTag(ctx context.Context, chatID int64, userI
 	if err != nil {
 		return err
 	}
+	if _, err := a.b.SetChatMemberTag(chatID, userID, &gotgbot.SetChatMemberTagOpts{
+		Tag: tag,
+	}); err != nil {
+		return err
+	}
+
 	if c.TagsEnabled {
-		_, err := a.b.Request("setChatMemberTag", map[string]any{
-			"chat_id": chatID,
-			"user_id": userID,
-			"tag":     tag,
-		}, nil)
-		if err != nil {
-			return err
-		}
 		return nil
 	}
 
 	m, err := a.b.GetChatMember(chatID, userID, nil)
 	if err != nil {
 		return ErrChatMemberNotFound
-	}
-
-	if m.GetStatus() == "creator" {
-		return ErrChatMemberIsCreator
-	}
-
-	mergedMember := m.MergeChatMember()
-	if m.GetStatus() == "administrator" {
-		if !mergedMember.CanBeEdited {
-			return ErrChatMemberCantBeEdited
-		}
-
-		if _, err := a.b.SetChatAdministratorCustomTitle(chatID, userID, tag, nil); err != nil {
-			return err
-		}
-		return nil
-
 	}
 
 	if m.GetStatus() == "member" || m.GetStatus() == "restricted" {
@@ -73,9 +54,6 @@ func (a *MemberTagAdapter) SetMemberTag(ctx context.Context, chatID int64, userI
 			return err
 		}
 
-		if _, err := a.b.SetChatAdministratorCustomTitle(chatID, userID, tag, nil); err != nil {
-			return err
-		}
 		return nil
 	}
 

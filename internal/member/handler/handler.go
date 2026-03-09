@@ -8,6 +8,7 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
+	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
 	memberview "activity-bot/internal/member/view"
 	"activity-bot/internal/user"
@@ -104,58 +105,25 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	var restoredCount int
-	var errorsCount int
-	limiter := rate.NewLimiter(rate.Every(1000*time.Millisecond), 1)
+	limiter := rate.NewLimiter(rate.Every(500*time.Millisecond), 1)
 
 	for _, m := range members {
 		if err := limiter.Wait(ctx.StdContext()); err != nil {
 			return err
 		}
-
-		tgMember, err := b.GetChatMember(targetChatID, m.User.ID, nil)
-		if err != nil {
-			slog.Error("Failed to get member info", "error", err)
-			_ = ctx.Reply(b, fmt.Sprintf("Не удалось получить пользователя %s", m.User.FirstName), nil)
-			errorsCount++
+		if m.Status == "creator" {
+			continue
+		}
+		if m.Status == "administrator" {
 			continue
 		}
 
-		if tgMember.GetStatus() == "creator" {
-			continue
-		}
-
-		merged := tgMember.MergeChatMember()
-		if tgMember.GetStatus() == "administrator" && merged.CustomTitle == m.CustomTitle {
-			restoredCount++
-			continue
-		}
-
-		var tgErr error
-		if tgMember.GetStatus() != "administrator" {
-			if ok, err := b.PromoteChatMember(targetChatID, m.User.ID, &gotgbot.PromoteChatMemberOpts{
-				CanManageChat:   true,
-				CanPostMessages: true,
-				CanEditMessages: true,
-			}); err != nil || !ok {
-				tgErr = err
-			} else {
-				if _, err := b.SetChatAdministratorCustomTitle(targetChatID, m.User.ID, m.CustomTitle, nil); err != nil {
-					tgErr = err
-				}
-			}
-		} else if merged.CanBeEdited {
-			if _, err := b.SetChatAdministratorCustomTitle(targetChatID, m.User.ID, m.CustomTitle, nil); err != nil {
-				tgErr = err
-			}
-		} else {
-			errorsCount++
-			_ = ctx.Reply(b, fmt.Sprintf("Не могу изменить администратора %s (недостаточно прав)", m.User.FirstName), nil)
-			continue
-		}
-
-		if tgErr != nil {
-			errorsCount++
-			_ = ctx.Reply(b, fmt.Sprintf("Ошибка при восстановлении пользователя %s: %s", m.User.FirstName, tgErr.Error()), nil)
+		if ok, err := b.PromoteChatMember(targetChatID, m.User.ID, &gotgbot.PromoteChatMemberOpts{
+			CanManageChat:   true,
+			CanPostMessages: true,
+			CanEditMessages: true,
+		}); err != nil || !ok {
+			logger.L.Warn("failed to promote chat member", "chatID", targetChatID, "userID", m.User.ID, "error", err)
 			continue
 		}
 
@@ -163,9 +131,6 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	msgText := fmt.Sprintf("✅ Восстановление ролей завершено.\n\nВосстановлено: %d", restoredCount)
-	if errorsCount > 0 {
-		msgText += fmt.Sprintf("\nОшибок: %d", errorsCount)
-	}
 
 	return ctx.Reply(b, msgText, nil)
 }
