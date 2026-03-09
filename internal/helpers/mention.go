@@ -6,12 +6,16 @@ import (
 	"html"
 )
 
-func Link(u model.User) string {
+func UserLink(u model.User) string {
 	if u.Username != nil && *u.Username != "" {
 		return fmt.Sprintf(`<a href="https://t.me/%s">%s</a>`, *u.Username, html.EscapeString(u.FirstName))
 	}
 
 	return fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a>`, u.ID, html.EscapeString(u.FirstName))
+}
+
+func Link(username, content string) string {
+	return fmt.Sprintf(`<a href="https://t.me/%s">%s</a>`, username, html.EscapeString(content))
 }
 
 func AnyLink(href, content string) string {

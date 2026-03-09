@@ -256,12 +256,12 @@ func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if len(activeWarns) == 0 {
-		return ctx.ReplyHTML(b, fmt.Sprintf("У пользователя %s нет активных варнов ✅", helpers.Link(*targetUser)))
+		return ctx.ReplyHTML(b, fmt.Sprintf("У пользователя %s нет активных варнов ✅", helpers.UserLink(*targetUser)))
 	}
 
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("⚠️ Варны пользователя %s (активные: %d/%d):\n\n",
-		helpers.Link(*targetUser), len(activeWarns), maxWarns))
+		helpers.UserLink(*targetUser), len(activeWarns), maxWarns))
 
 	for i, w := range activeWarns {
 		createdStr := helpers.FormatToHumanDateTime(w.CreatedAt)
@@ -270,7 +270,7 @@ func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 			expireStr = fmt.Sprintf(", истекает %s", helpers.FormatToHumanDateTime(w.ExpiresAt))
 		}
 
-		modName := helpers.Link(w.Moderator)
+		modName := helpers.UserLink(w.Moderator)
 
 		reasonStr := ""
 		if w.Reason != "" {
@@ -399,7 +399,7 @@ func (h *Handler) Unban(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	return ctx.ReplyHTML(b, fmt.Sprintf("Пользователь %s %s",
-		helpers.Link(*targetUser),
+		helpers.UserLink(*targetUser),
 		helpers.Gendered(targetUser.Gender, "разбанен", "разбанена", "разбанен(а)"),
 	))
 }

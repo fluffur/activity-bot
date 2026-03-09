@@ -50,7 +50,7 @@ func (a *App) RegisterHandlers() {
 
 	dateParser := helpers.NewDateParser()
 
-	helpHandler := helpH.New(a.Config.BotOwnerID)
+	helpHandler := helpH.New(a.Config.BotOwnerUsername, a.Config.CommandsLink)
 	statsHandler := statsH.New(statsService, restService, a.MemberService, a.UserService, a.ChatService, sessionService)
 	chatHandler := chatH.New(a.ChatService, a.AdminService, sessionService, dateParser)
 	restHandler := restH.New(restService, a.UserService, a.MemberService, a.AdminService, dateParser, sessionService, a.AsyncClient)

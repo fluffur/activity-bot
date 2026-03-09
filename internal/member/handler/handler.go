@@ -183,7 +183,7 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if mTitle == "" {
-		return ctx.ReplyHTML(b, fmt.Sprintf("У пользователя %s нет роли", helpers.Link(*targetUser)))
+		return ctx.ReplyHTML(b, fmt.Sprintf("У пользователя %s нет роли", helpers.UserLink(*targetUser)))
 	}
 
 	return ctx.ReplyHTML(b, memberview.FormatMemberRole(*targetUser, mTitle))

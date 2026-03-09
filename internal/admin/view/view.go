@@ -12,21 +12,21 @@ func FormatAdminsList(admins []model.User) string {
 	var sb strings.Builder
 	sb.WriteString("👮 Администраторы бота:\n")
 	for i, a := range admins {
-		sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, helpers.Link(a)))
+		sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, helpers.UserLink(a)))
 	}
 	return sb.String()
 }
 
 func FormatAdminAdded(user model.User) string {
 	return fmt.Sprintf("Участник %s %s администратором бота",
-		helpers.Link(user),
+		helpers.UserLink(user),
 		helpers.Gendered(user.Gender, "назначен", "назначена", "назначен(а)"),
 	)
 }
 
 func FormatAdminRemoved(user model.User) string {
 	return fmt.Sprintf("Участник %s %s из администраторов бота",
-		helpers.Link(user),
+		helpers.UserLink(user),
 		helpers.Gendered(user.Gender, "удалён", "удалена", "удалён(а)"),
 	)
 }
@@ -35,14 +35,14 @@ func FormatDevelopersList(users []model.User, roles []string) string {
 	var sb strings.Builder
 	sb.WriteString("🛠 Разработчики бота:\n")
 	for i, u := range users {
-		sb.WriteString(fmt.Sprintf("\n%d. %s (%s)", i+1, helpers.Link(u), roles[i]))
+		sb.WriteString(fmt.Sprintf("\n%d. %s (%s)", i+1, helpers.UserLink(u), roles[i]))
 	}
 	return sb.String()
 }
 
 func FormatDeveloperAdded(user model.User, role string) string {
 	return fmt.Sprintf("Участник %s %s разработчиком бота с ролью %s",
-		helpers.Link(user),
+		helpers.UserLink(user),
 		helpers.Gendered(user.Gender, "назначен", "назначена", "назначен(а)"),
 		role,
 	)
@@ -50,7 +50,7 @@ func FormatDeveloperAdded(user model.User, role string) string {
 
 func FormatDeveloperRemoved(user model.User) string {
 	return fmt.Sprintf("Участник %s %s из списка разработчиков",
-		helpers.Link(user),
+		helpers.UserLink(user),
 		helpers.Gendered(user.Gender, "удален", "удалена", "удален(а)"),
 	)
 }
@@ -72,7 +72,7 @@ func FormatModerationAction(user model.User, action string, until *time.Time, re
 		actionText = action
 	}
 
-	text := fmt.Sprintf("Пользователь %s %s", helpers.Link(user), actionText)
+	text := fmt.Sprintf("Пользователь %s %s", helpers.UserLink(user), actionText)
 
 	if action != "kick" {
 		if until != nil {
@@ -90,7 +90,7 @@ func FormatModerationAction(user model.User, action string, until *time.Time, re
 }
 
 func FormatWarnInfo(user model.User, count, maxWarns int, until *time.Time, reason string, banned bool) string {
-	text := fmt.Sprintf("Пользователю %s выдано предупреждение (%d/%d)", helpers.Link(user), count, maxWarns)
+	text := fmt.Sprintf("Пользователю %s выдано предупреждение (%d/%d)", helpers.UserLink(user), count, maxWarns)
 
 	if until != nil {
 		text += fmt.Sprintf(" до %s", helpers.FormatToHumanDateTime(*until))
@@ -110,11 +110,11 @@ func FormatWarnInfo(user model.User, count, maxWarns int, until *time.Time, reas
 }
 
 func FormatUnwarnInfo(user model.User, count, maxWarns int) string {
-	return fmt.Sprintf("С пользователя %s снято предупреждение (%d/%d)", helpers.Link(user), count, maxWarns)
+	return fmt.Sprintf("С пользователя %s снято предупреждение (%d/%d)", helpers.UserLink(user), count, maxWarns)
 }
 
 func FormatWarnsCleared(user model.User) string {
-	return fmt.Sprintf("Все предупреждения пользователя %s были аннулированы", helpers.Link(user))
+	return fmt.Sprintf("Все предупреждения пользователя %s были аннулированы", helpers.UserLink(user))
 }
 
 func FormatWarnlist(warns []model.Warn, maxWarns int) string {
@@ -137,14 +137,14 @@ func FormatWarnlist(warns []model.Warn, maxWarns int) string {
 	for _, userID := range userOrder {
 		ws := userWarns[userID]
 		u := ws[0].User
-		sb.WriteString(fmt.Sprintf("\n👤 %s (активные: %d/%d):\n", helpers.Link(u), len(ws), maxWarns))
+		sb.WriteString(fmt.Sprintf("\n👤 %s (активные: %d/%d):\n", helpers.UserLink(u), len(ws), maxWarns))
 		for i, w := range ws {
 			createdStr := helpers.FormatToHumanDateTime(w.CreatedAt)
 			expireStr := ""
 			if !w.ExpiresAt.IsZero() {
 				expireStr = fmt.Sprintf(", истекает %s", helpers.FormatToHumanDateTime(w.ExpiresAt))
 			}
-			modName := helpers.Link(w.Moderator)
+			modName := helpers.UserLink(w.Moderator)
 			reasonStr := ""
 			if w.Reason != "" {
 				reasonStr = fmt.Sprintf(", причина: %s", w.Reason)
@@ -159,7 +159,7 @@ func FormatWarnlist(warns []model.Warn, maxWarns int) string {
 
 func FormatUnmuteInfo(user model.User) string {
 	return fmt.Sprintf("Пользователь %s %s",
-		helpers.Link(user),
+		helpers.UserLink(user),
 		helpers.Gendered(user.Gender, "размучен", "размучена", "размучен(а)"),
 	)
 }

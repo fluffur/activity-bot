@@ -9,15 +9,16 @@ import (
 )
 
 type Handler struct {
-	ownerID int64
+	ownerUsername string
+	commandsLink  string
 }
 
-func New(ownerID int64) *Handler {
-	return &Handler{ownerID}
+func New(ownerUsername string, commandsLink string) *Handler {
+	return &Handler{ownerUsername, commandsLink}
 }
 
 func (h *Handler) Start(b *gotgbot.Bot, ctx *cmd.Context) error {
-	return ctx.Reply(b, view.FormatStartMessage("https://telegra.ph/Komandy-bota-02-15-2"), &gotgbot.SendMessageOpts{
+	return ctx.Reply(b, view.FormatStartMessage(h.commandsLink), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		ReplyMarkup: gotgbot.InlineKeyboardMarkup{
 			InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
@@ -30,8 +31,7 @@ func (h *Handler) Start(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) Help(b *gotgbot.Bot, ctx *cmd.Context) error {
-
-	return ctx.Reply(b, view.FormatHelpText(h.ownerID, "https://telegra.ph/Komandy-bota-02-15-2"), &gotgbot.SendMessageOpts{
+	return ctx.Reply(b, view.FormatHelpText(h.ownerUsername, h.commandsLink), &gotgbot.SendMessageOpts{
 		ParseMode:   gotgbot.ParseModeHTML,
 		ReplyMarkup: getKb(b),
 	})

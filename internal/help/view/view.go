@@ -5,12 +5,12 @@ import (
 	"fmt"
 )
 
-func FormatHelpText(ownerID int64, commandsLink string) string {
+func FormatHelpText(ownerUsername, commandsLink string) string {
 	return fmt.Sprintf(`
 📋 %s
 
 💬 %s
-`, helpers.AnyLink(commandsLink, "Посмотреть список команд"), helpers.Mention(ownerID, "Связаться с разработчиком"))
+`, helpers.AnyLink(commandsLink, "Посмотреть список команд"), helpers.Link(ownerUsername, "Связаться с разработчиком"))
 }
 
 func FormatStartMessage(commandsLink string) string {
