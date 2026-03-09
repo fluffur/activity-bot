@@ -99,7 +99,7 @@ func getStatusEmoji(status string) string {
 
 func getNormStatusEmoji(weekCount, normWarn, normBan int32, isRestActive bool) string {
 	if isRestActive {
-		return "🕊 Освобождение от нормы"
+		return fmt.Sprintf("%s Освобождение от нормы", helpers.CustomEmoji(5456648248968121823, "🕊"))
 	}
 	if normBan > 0 && weekCount < normBan {
 		return fmt.Sprintf("🚫 Норма не набрана (%d/%d), <b>бан</b>", weekCount, normBan)
