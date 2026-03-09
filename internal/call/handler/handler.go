@@ -233,9 +233,9 @@ func (h *Handler) doCall(
 
 		chunkText := view.FormatCallChunk(message, members[i:end], chatSettings.MentionTypes)
 		isLastChunk := end == len(members)
-		var kb *gotgbot.InlineKeyboardMarkup
+		var kb gotgbot.InlineKeyboardMarkup
 		if isLastChunk {
-			kb = &gotgbot.InlineKeyboardMarkup{
+			kb = gotgbot.InlineKeyboardMarkup{
 				InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
 					{
 						{
