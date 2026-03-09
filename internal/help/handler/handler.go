@@ -34,9 +34,6 @@ func (h *Handler) Help(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.Reply(b, view.FormatHelpText(h.ownerID, "https://telegra.ph/Komandy-bota-02-15-2"), &gotgbot.SendMessageOpts{
 		ParseMode:   gotgbot.ParseModeHTML,
 		ReplyMarkup: getKb(b),
-		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-			ShowAboveText: true,
-		},
 	})
 }
 
