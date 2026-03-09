@@ -417,7 +417,7 @@ func (h *Handler) ShowNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatNewbies(report, from, to))
+	return ctx.ReplyHTML(b, view.FormatNewbies(report))
 }
 
 func (h *Handler) resolvePeriod(ctx *cmd.Context, weekStartDay time.Weekday, weekStartTime string) (*time.Time, *time.Time, error) {
