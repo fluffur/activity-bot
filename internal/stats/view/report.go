@@ -20,7 +20,7 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	if len(sections.Passed) > 0 {
 		writeNumberedList(&sb, sections.Passed)
 	} else {
-		sb.WriteString("Пока никто не прошёл норму\n")
+		sb.WriteString("Список пуст\n")
 	}
 
 	sb.WriteString(fmt.Sprintf("\n⚠️ Не прошли норму️ %d (варн) \n", sections.NormWarn))
@@ -43,14 +43,14 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	if len(sections.Newbies) > 0 {
 		writeNumberedList(&sb, sections.Newbies)
 	} else {
-		sb.WriteString("Новичков нет\n")
+		sb.WriteString("Список пуст\n")
 	}
 
 	sb.WriteString("\n💤 Рест\n")
 	if len(sections.InRest) > 0 {
 		writeNumberedList(&sb, sections.InRest)
 	} else {
-		sb.WriteString("Пока никто не находится в ресте\n")
+		sb.WriteString("Список пуст\n")
 	}
 
 	sb.WriteString("</blockquote>")
@@ -75,7 +75,7 @@ func FormatRestList(restMembers []model.RestMember) string {
 	return sb.String()
 }
 
-func FormatNewbies(report []model.MessageReportMember, from, to *time.Time) string {
+func FormatNewbies(report []model.MessageReportMember) string {
 	sections := prepareReportSections(report, nil)
 
 	if len(sections.Newbies) == 0 {
