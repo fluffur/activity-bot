@@ -92,7 +92,7 @@ func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error 
 		)
 	}
 
-	caption := "📊 <b>Активность чата</b>"
+	caption := fmt.Sprintf("%s <b>Активность чата</b>", helpers.StatsEmoji())
 	if from != nil && to != nil {
 		caption += fmt.Sprintf(
 			"\n%s — %s",

@@ -35,14 +35,14 @@ func FormatProfile(m model.MemberStats) string {
 		`%s Информация о %s
 ▸ %s %s (в чате с %s%s)
 %s
-%s Актив<blockquote>▸ сегодня: %d
-▸ эта неделя: %d
-▸ этот месяц: %d
-▸ всего: %d</blockquote>
+%s Актив<blockquote>▸ сегодня: <code>%d</code>
+▸ эта неделя: <code>%d</code>
+▸ этот месяц: <code>%d</code>
+▸ всего: <code>%d</code></blockquote>
 %s
-%s За последние<blockquote>▸ сутки: %d 
-▸ 7 дней: %d
-▸ 30 дней: %d</blockquote>
+%s За последние<blockquote>▸ сутки: <code>%d</code> 
+▸ 7 дней: <code>%d</code>
+▸ 30 дней: <code>%d</code></blockquote>
 %s`,
 		helpers.CustomEmoji(5316727448644103237, "👤"),
 		name,
@@ -51,7 +51,7 @@ func FormatProfile(m model.MemberStats) string {
 		helpers.FormatToHumanDateTime(m.JoinedAt),
 		leftAtInfo,
 		helpers.Line(),
-		helpers.CustomEmoji(5425112292683435471, "📊"),
+		helpers.StatsEmoji(),
 		m.DayCount,
 		m.WeekCount,
 		m.MonthCount,

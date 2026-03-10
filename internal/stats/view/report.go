@@ -14,47 +14,60 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 
 	var sb strings.Builder
 	sb.WriteString(header + "\n\n")
-	sb.WriteString("<blockquote expandable>")
 
 	sb.WriteString(fmt.Sprintf("%s Прошли норму %d\n", helpers.CustomEmoji(5260446287391630603, "🌟"), sections.NormWarn))
+
+	sb.WriteString("<blockquote expandable>")
 	if len(sections.Passed) > 0 {
 		writeNumberedList(&sb, sections.Passed)
+
 	} else {
 		sb.WriteString("Список пуст\n")
 	}
+	sb.WriteString("</blockquote>")
 
-	sb.WriteString(fmt.Sprintf("\n⚠️ Не прошли норму️ %d (варн) \n", sections.NormWarn))
+	sb.WriteString(fmt.Sprintf("\n%s Не прошли норму️ %d (варн) \n", helpers.CustomEmoji(5224340348465073584, "⚠️"), sections.NormWarn))
+	sb.WriteString("<blockquote expandable>")
 	if len(sections.FailedWarn) > 0 {
 		writeNumberedList(&sb, sections.FailedWarn)
+
 	} else {
 		sb.WriteString("Список пуст\n")
 	}
+	sb.WriteString("</blockquote>")
 
 	if sections.NormBan != 0 {
-		sb.WriteString(fmt.Sprintf("\n🚫 Не прошли норму %d (бан) \n", sections.NormBan))
+		sb.WriteString(fmt.Sprintf("\n%s Не прошли норму %d (бан) \n", helpers.DangerEmoji(), sections.NormBan))
+		sb.WriteString("<blockquote expandable>")
 		if len(sections.FailedBan) > 0 {
 			writeNumberedList(&sb, sections.FailedBan)
+
 		} else {
 			sb.WriteString("Список пуст\n")
 		}
+		sb.WriteString("</blockquote>")
 	}
 
 	sb.WriteString("\n🐣 Новички\n")
+	sb.WriteString("<blockquote expandable>")
 	if len(sections.Newbies) > 0 {
 		writeNumberedList(&sb, sections.Newbies)
 	} else {
 		sb.WriteString("Список пуст\n")
 	}
+	sb.WriteString("</blockquote>")
 
 	sb.WriteString("\n💤 Рест\n")
+	sb.WriteString("<blockquote expandable>")
 	if len(sections.InRest) > 0 {
 		writeNumberedList(&sb, sections.InRest)
-	} else {
-		sb.WriteString("Список пуст\n")
-	}
 
+	} else {
+		sb.WriteString("Список пуст")
+	}
 	sb.WriteString("</blockquote>")
-	sb.WriteString(fmt.Sprintf("\n📝 Всего сообщений: %d\n", sections.TotalMessages))
+
+	sb.WriteString(fmt.Sprintf("\n\n📝 Всего сообщений: <code>%d</code>\n", sections.TotalMessages))
 
 	return sb.String()
 }
@@ -101,12 +114,12 @@ func FormatFailedNorm(report []model.MessageReportMember, from, to *time.Time) s
 	sb.WriteString("⚠️ <b>Не выполнили норму:</b>\n")
 
 	if len(sections.FailedWarn) > 0 {
-		sb.WriteString(fmt.Sprintf("\n📉 Меньше %d сообщений (варн):\n", sections.NormWarn))
+		sb.WriteString(fmt.Sprintf("\n%s Меньше %d сообщений (варн):\n", helpers.CustomEmoji(5224340348465073584, "⚠️"), sections.NormWarn))
 		writeNumberedList(&sb, sections.FailedWarn)
 	}
 
 	if len(sections.FailedBan) > 0 {
-		sb.WriteString(fmt.Sprintf("\n🚫 Меньше %d сообщений (бан):\n", sections.NormBan))
+		sb.WriteString(fmt.Sprintf("\n%s Меньше %d сообщений (бан):\n", helpers.DangerEmoji(), sections.NormBan))
 		writeNumberedList(&sb, sections.FailedBan)
 	}
 
@@ -144,7 +157,7 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 			userTitle = r.User.FirstName
 		}
 
-		line := fmt.Sprintf("%s — %d", helpers.LinkWithContent(r.User, userTitle), r.MessagesCount)
+		line := fmt.Sprintf("%s — <code>%d</code>", helpers.LinkWithContent(r.User, userTitle), r.MessagesCount)
 
 		isNewbie := false
 		if r.NewbieThresholdDays > 0 {
@@ -195,11 +208,11 @@ func formatRestLine(r model.RestMember) string {
 
 func formatPeriodHeader(from, to *time.Time) string {
 	if from != nil && to != nil {
-		return fmt.Sprintf("📊 Отчёт за период: %s — %s", helpers.FormatToHumanDateTime(*from), helpers.FormatToHumanDateTime(*to))
+		return fmt.Sprintf("%s Отчёт за период: %s — %s", helpers.StatsEmoji(), helpers.FormatToHumanDateTime(*from), helpers.FormatToHumanDateTime(*to))
 	} else if from != nil {
-		return fmt.Sprintf("📊 Отчёт с %s", helpers.FormatToHumanDateTime(*from))
+		return fmt.Sprintf("%s Отчёт с %s", helpers.StatsEmoji(), helpers.FormatToHumanDateTime(*from))
 	} else if to != nil {
-		return fmt.Sprintf("📊 Отчёт до %s", helpers.FormatToHumanDateTime(*to))
+		return fmt.Sprintf("%s Отчёт до %s", helpers.StatsEmoji(), helpers.FormatToHumanDateTime(*to))
 	}
 	return "📊 Отчёт за всё время"
 }

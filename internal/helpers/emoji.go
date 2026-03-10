@@ -16,10 +16,10 @@ func Line() string {
 }
 
 const (
-	DangerEmojiGray  = "5341701137282116906"
-	SuccessEmojiGray = "5341711423728789688"
-	SuccessEmojiID   = 5341711423728789688
-	DangerEmojiID    = 5341701137282116906
+	DangerEmojiGray  = "5416076321442777828"
+	SuccessEmojiGray = "5411197345968701560"
+	SuccessEmojiID   = 5411197345968701560
+	DangerEmojiID    = 5416076321442777828
 )
 
 func SuccessEmoji() string {
@@ -28,4 +28,8 @@ func SuccessEmoji() string {
 
 func DangerEmoji() string {
 	return CustomEmoji(DangerEmojiID, "❌")
+}
+
+func StatsEmoji() string {
+	return CustomEmoji(5425112292683435471, "📊")
 }
