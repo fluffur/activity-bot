@@ -79,8 +79,8 @@ func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *mo
 	kb := gotgbot.InlineKeyboardMarkup{
 		InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
 			{
-				{Text: "✅ Одобрить", CallbackData: fmt.Sprintf("approve:%d", targetUser.ID), Style: "success"},
-				{Text: "❎ Отклонить", CallbackData: fmt.Sprintf("reject:%d", targetUser.ID), Style: "danger"},
+				{Text: "Одобрить", CallbackData: fmt.Sprintf("approve:%d", targetUser.ID), Style: "success", IconCustomEmojiId: helpers.SuccessEmojiGray},
+				{Text: "Отклонить", CallbackData: fmt.Sprintf("reject:%d", targetUser.ID), Style: "danger", IconCustomEmojiId: helpers.DangerEmojiGray},
 			},
 		},
 	}

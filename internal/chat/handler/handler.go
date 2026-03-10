@@ -457,7 +457,7 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if len(chats) == 0 {
 		_, err := ctx.EffectiveChat.SendMessage(
 			b,
-			"✅ Все недельные нормы выполнены.",
+			fmt.Sprintf("%s Все недельные нормы выполнены.", helpers.SuccessEmoji()),
 			nil,
 		)
 		return err
@@ -557,7 +557,7 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if ctx.EffectiveChat.Type != "private" {
 		return ctx.Reply(
 			b,
-			"Список невыполненных норм отправлен вам в личные сообщения ✅",
+			fmt.Sprintf("Список невыполненных норм отправлен вам в личные сообщения %s", helpers.SuccessEmoji()),
 			nil,
 		)
 	}
@@ -570,7 +570,7 @@ func (h *Handler) EnableTags(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.Reply(b, "✅Поддержка тегов в чате включена. Теперь при установке роли админка не выдается", nil)
+	return ctx.Reply(b, "Поддержка тегов в чате включена. Теперь при установке роли админка не выдается", nil)
 }
 
 func (h *Handler) DisableTags(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -578,7 +578,7 @@ func (h *Handler) DisableTags(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.Reply(b, "❌ Поддержка тегов в чате выключена. Теперь при установке роли выдается админка с минимальными правами", nil)
+	return ctx.Reply(b, "Поддержка тегов в чате выключена. Теперь при установке роли выдается админка с минимальными правами", nil)
 }
 
 func (h *Handler) ShowTags(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -588,7 +588,7 @@ func (h *Handler) ShowTags(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if c.TagsEnabled {
-		return ctx.Reply(b, "✅ В чате поддерживаются теги. Это значит, что при установке роли  пользователю устанавливается телеграм-тег, а не минимальные права администратора с подписью", nil)
+		return ctx.Reply(b, fmt.Sprintf("%s В чате поддерживаются теги. Это значит, что при установке роли пользователю устанавливается телеграм-тег, а не минимальные права администратора с подписью", helpers.SuccessEmoji()), nil)
 	}
 
 	return ctx.Reply(b, "❌ В чате не поддерживаются теги. Это значит, что при установке роли пользователю выдаются минимальные права администратора с подписью, а не телеграм-тег", nil)

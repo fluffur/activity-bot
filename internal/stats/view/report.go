@@ -16,7 +16,7 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	sb.WriteString(header + "\n\n")
 	sb.WriteString("<blockquote expandable>")
 
-	sb.WriteString(fmt.Sprintf("🌟 Прошли норму %d\n", sections.NormWarn))
+	sb.WriteString(fmt.Sprintf("%s Прошли норму %d\n", helpers.CustomEmoji(5260446287391630603, "🌟"), sections.NormWarn))
 	if len(sections.Passed) > 0 {
 		writeNumberedList(&sb, sections.Passed)
 	} else {
@@ -93,7 +93,7 @@ func FormatFailedNorm(report []model.MessageReportMember, from, to *time.Time) s
 	sections := prepareReportSections(report, nil)
 
 	if len(sections.FailedWarn) == 0 && len(sections.FailedBan) == 0 {
-		return header + "\n\n✅ <b>Все участники выполнили норму!</b>"
+		return header + fmt.Sprintf("\n\n%s <b>Все участники выполнили норму!</b>", helpers.SuccessEmoji())
 	}
 
 	var sb strings.Builder

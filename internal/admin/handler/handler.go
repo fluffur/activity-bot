@@ -256,7 +256,7 @@ func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if len(activeWarns) == 0 {
-		return ctx.ReplyHTML(b, fmt.Sprintf("У пользователя %s нет активных варнов ✅", helpers.UserLink(*targetUser)))
+		return ctx.ReplyHTML(b, fmt.Sprintf("%s У пользователя %s нет активных варнов", helpers.SuccessEmoji(), helpers.UserLink(*targetUser)))
 	}
 
 	var sb strings.Builder

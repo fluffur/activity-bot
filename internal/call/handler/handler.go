@@ -142,7 +142,7 @@ func (h *Handler) CallNoNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 		func() ([]model.ChatMember, error) {
 			return h.memberService.GetNoNormMembers(ctx.StdContext(), chatID, from, to)
 		},
-		"✅ Все участники выполнили норму!",
+		fmt.Sprintf("%s Все участники выполнили норму!", helpers.SuccessEmoji()),
 	)
 }
 
@@ -167,7 +167,7 @@ func (h *Handler) CallNoNormWarn(b *gotgbot.Bot, ctx *cmd.Context) error {
 		func() ([]model.ChatMember, error) {
 			return h.memberService.GetNoNormWarnMembers(ctx.StdContext(), chatID, from, to)
 		},
-		"✅ Все участники выполнили норму предупреждения!",
+		fmt.Sprintf("%s Все участники выполнили норму предупреждения!", helpers.SuccessEmoji()),
 	)
 }
 
@@ -421,7 +421,7 @@ func (h *Handler) getCallTypesKeyboard(currentTypes int32) gotgbot.InlineKeyboar
 
 		if currentTypes&t.bit > 0 {
 			status = "primary"
-			checkMark = "✅ "
+			checkMark = helpers.SuccessEmoji() + " "
 		}
 
 		btn := gotgbot.InlineKeyboardButton{

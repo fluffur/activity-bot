@@ -32,29 +32,36 @@ func FormatProfile(m model.MemberStats) string {
 	}
 
 	text := fmt.Sprintf(
-		`> Информация о %s
-> %s %s (в чате с %s%s)
-───────────────
-📊 Актив<blockquote>▸ сегодня: %d
+		`%s Информация о %s
+▸ %s %s (в чате с %s%s)
+%s
+%s Актив<blockquote>▸ сегодня: %d
 ▸ эта неделя: %d
 ▸ этот месяц: %d
 ▸ всего: %d</blockquote>
-───────────────
-⏰ За последние<blockquote>▸ сутки: %d 
+%s
+%s За последние<blockquote>▸ сутки: %d 
 ▸ 7 дней: %d
-▸ 30 дней: %d</blockquote>───────────────`,
+▸ 30 дней: %d</blockquote>
+%s`,
+		helpers.CustomEmoji(5316727448644103237, "👤"),
 		name,
 		status,
 		getStatusEmoji(m.Status),
 		helpers.FormatToHumanDateTime(m.JoinedAt),
 		leftAtInfo,
+		helpers.Line(),
+		helpers.CustomEmoji(5425112292683435471, "📊"),
 		m.DayCount,
 		m.WeekCount,
 		m.MonthCount,
 		m.AllTime,
+		helpers.Line(),
+		helpers.CustomEmoji(5337121636992690373, "⏰"),
 		m.DayRollingCount,
 		m.WeekRollingCount,
 		m.MonthRollingCount,
+		helpers.Line(),
 	)
 	isRestActive := m.RestUntil != nil && m.RestUntil.After(time.Now())
 
@@ -102,10 +109,10 @@ func getNormStatusEmoji(weekCount, normWarn, normBan int32, isRestActive bool) s
 		return fmt.Sprintf("%s Освобождение от нормы", helpers.CustomEmoji(5456648248968121823, "🕊"))
 	}
 	if normBan > 0 && weekCount < normBan {
-		return fmt.Sprintf("🚫 Норма не набрана (%d/%d), <b>бан</b>", weekCount, normBan)
+		return fmt.Sprintf("%s Норма не набрана (%d/%d), <b>бан</b>", helpers.CustomEmoji(5224340348465073584, "🚫"), weekCount, normBan)
 	}
 	if normWarn > 0 && weekCount < normWarn {
-		return fmt.Sprintf("⚠️ Норма не набрана (%d/%d), <b>варн</b>", weekCount, normWarn)
+		return fmt.Sprintf("%s Норма не набрана (%d/%d), <b>варн</b>", helpers.CustomEmoji(5224340348465073584, "⚠️"), weekCount, normWarn)
 	}
-	return "✅ Норма набрана"
+	return fmt.Sprintf("%s Норма набрана", helpers.CustomEmoji(5224694451338759997, "✅"))
 }

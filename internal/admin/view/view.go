@@ -119,7 +119,7 @@ func FormatWarnsCleared(user model.User) string {
 
 func FormatWarnlist(warns []model.Warn, maxWarns int) string {
 	if len(warns) == 0 {
-		return "В этом чате нет активных предупреждений ✅"
+		return fmt.Sprintf("В этом чате нет активных предупреждений %s", helpers.SuccessEmoji())
 	}
 
 	var sb strings.Builder

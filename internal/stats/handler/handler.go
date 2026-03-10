@@ -205,7 +205,7 @@ func (h *Handler) CallbackWhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if len(buttons) == 0 {
-		if _, _, err := ctx.CallbackQuery.Message.EditText(b, "✅ Выбраны все участники из списка", nil); err != nil {
+		if _, _, err := ctx.CallbackQuery.Message.EditText(b, fmt.Sprintf("%s Выбраны все участники из списка", helpers.SuccessEmoji()), nil); err != nil {
 			return err
 		}
 	} else {
@@ -312,7 +312,7 @@ func (h *Handler) ListInactive(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if len(members) == 0 {
 		return ctx.Reply(
 			b,
-			"✅ Нет неактивных участников за последние сутки",
+			fmt.Sprintf("%s Нет неактивных участников за последние сутки", helpers.SuccessEmoji()),
 			nil,
 		)
 	}

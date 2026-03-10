@@ -130,7 +130,7 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 		restoredCount++
 	}
 
-	msgText := fmt.Sprintf("✅ Восстановление ролей завершено.\n\nВосстановлено: %d", restoredCount)
+	msgText := fmt.Sprintf("%s Восстановление завершено.\n\nВосстановлено: %d", helpers.SuccessEmoji(), restoredCount)
 
 	return ctx.Reply(b, msgText, nil)
 }
