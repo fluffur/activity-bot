@@ -35,7 +35,11 @@ func FormatRestShow(m model.ChatMember) string {
 	if m.RestUntil == nil {
 		return fmt.Sprintf("Участник %s не находится в ресте", helpers.UserLink(m.User))
 	}
-	text := fmt.Sprintf("Участник %s находится в ресте до %s", helpers.UserLink(m.User), helpers.FormatToHumanDateTime(*m.RestUntil))
+	message := "Участник %s находится в ресте до %s"
+	if m.RestUntil.Before(time.Now()) {
+		message = "Рест участника %s был завершен %s"
+	}
+	text := fmt.Sprintf(message, helpers.UserLink(m.User), helpers.FormatToHumanDateTime(*m.RestUntil))
 	if m.RestReason != "" {
 		text += fmt.Sprintf("\n\nПричина: %s", m.RestReason)
 	}
