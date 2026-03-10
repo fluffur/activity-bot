@@ -102,7 +102,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "whoareu", "ктоты", "кто ты", "профиль", "ты кто", "тыкто").
 		SetArgsCount(1).
-		WithGuards(groupGuard).FallbackToSender(),
+		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "whoami", "кто я", "профиль", "ктоя", "я кто").
 		WithGuards(groupGuard),

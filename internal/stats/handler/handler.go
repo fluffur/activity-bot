@@ -152,7 +152,7 @@ func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 			ReplyMarkup: kb,
 		})
 	} else if u == nil {
-		return fmt.Errorf("no role no user")
+		return ctx.Reply(b, "Пользователь не найден в чате", nil)
 
 	}
 
