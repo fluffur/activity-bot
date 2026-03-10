@@ -48,7 +48,7 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 		sb.WriteString("</blockquote>")
 	}
 
-	sb.WriteString("\n🐣 Новички\n")
+	sb.WriteString(fmt.Sprintf("\n%s Новички\n", helpers.NewbieEmoji()))
 	sb.WriteString("<blockquote expandable>")
 	if len(sections.Newbies) > 0 {
 		writeNumberedList(&sb, sections.Newbies)
@@ -57,24 +57,24 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	}
 	sb.WriteString("</blockquote>")
 
-	sb.WriteString("\n💤 Рест\n")
+	sb.WriteString(fmt.Sprintf("\n%s Рест\n", helpers.RestEmoji()))
 	sb.WriteString("<blockquote expandable>")
 	if len(sections.InRest) > 0 {
 		writeNumberedList(&sb, sections.InRest)
 
 	} else {
-		sb.WriteString("Список пуст")
+		sb.WriteString("Список пуст\n")
 	}
 	sb.WriteString("</blockquote>")
 
-	sb.WriteString(fmt.Sprintf("\n📝 Всего сообщений: <code>%d</code>\n", sections.TotalMessages))
+	sb.WriteString(fmt.Sprintf("\n%s Всего сообщений: <code>%d</code>\n", helpers.TotalEmoji(), sections.TotalMessages))
 
 	return sb.String()
 }
 
 func FormatRestList(restMembers []model.RestMember) string {
 	if len(restMembers) == 0 {
-		return "💤 <b>В ресте никого нет.</b>"
+		return fmt.Sprintf("%s <b>В ресте никого нет.</b>", helpers.RestEmoji())
 	}
 
 	var inRest []string
@@ -83,7 +83,7 @@ func FormatRestList(restMembers []model.RestMember) string {
 	}
 
 	var sb strings.Builder
-	sb.WriteString("💤 <b>Список участников в ресте:</b>\n\n")
+	sb.WriteString(fmt.Sprintf("%s <b>Список участников в ресте:</b>\n\n", helpers.RestEmoji()))
 	writeNumberedList(&sb, inRest)
 	return sb.String()
 }
@@ -92,11 +92,11 @@ func FormatNewbies(report []model.MessageReportMember) string {
 	sections := prepareReportSections(report, nil)
 
 	if len(sections.Newbies) == 0 {
-		return "🐣 <b>Новых участников за этот период не найдено.</b>"
+		return fmt.Sprintf("%s <b>Новых участников за этот период не найдено.</b>", helpers.NewbieEmoji())
 	}
 
 	var sb strings.Builder
-	sb.WriteString("🐣 <b>Новые участники:</b>\n\n")
+	sb.WriteString(fmt.Sprintf("%s <b>Новые участники:</b>\n\n", helpers.NewbieEmoji()))
 	writeNumberedList(&sb, sections.Newbies)
 	return sb.String()
 }
@@ -169,7 +169,7 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 
 		if isNewbie {
 			if normWarnDone {
-				s.Passed = append(s.Passed, fmt.Sprintf("%s 🐣 — <code>%d</code>", helpers.LinkWithContent(r.User, userTitle), r.MessagesCount))
+				s.Passed = append(s.Passed, fmt.Sprintf("%s %s — <code>%d</code>", helpers.NewbieEmoji(), helpers.LinkWithContent(r.User, userTitle), r.MessagesCount))
 			} else {
 				s.Newbies = append(s.Newbies, line)
 			}

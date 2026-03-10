@@ -77,12 +77,14 @@ func FormatProfile(m model.MemberStats) string {
 
 		if m.RestUntil.After(time.Now()) {
 			text += fmt.Sprintf(
-				"<blockquote>💤 Рест до %s</blockquote>",
+				"<blockquote>%s Рест до %s</blockquote>",
+				helpers.RestEmoji(),
 				helpers.FormatToHumanDateTime(*m.RestUntil),
 			)
 		} else if daysSinceRestEnd >= 0 && daysSinceRestEnd <= 3 {
 			text += fmt.Sprintf(
-				"\n<blockquote>💤 Последний рест был завершен %s</blockquote>",
+				"\n<blockquote>%s Последний рест был завершен %s</blockquote>",
+				helpers.RestEmoji(),
 				helpers.FormatToHumanDate(*m.RestUntil),
 			)
 		}

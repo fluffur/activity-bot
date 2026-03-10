@@ -6,6 +6,18 @@ func CustomEmoji(id int64, originalEmoji string) string {
 	return fmt.Sprintf(`<tg-emoji emoji-id="%d">%s</tg-emoji>`, id, originalEmoji)
 }
 
+func NewbieEmoji() string {
+	return CustomEmoji(5375247537693269646, "🐣")
+}
+
+func TotalEmoji() string {
+	return CustomEmoji(5870753782874246579, "📝")
+}
+
+func RestEmoji() string {
+	return CustomEmoji(5235961361736956044, "💤")
+}
+
 func Line() string {
 	middleEmoji := CustomEmoji(5404333313919834615, "↔️")
 	middleEmojis := ""
