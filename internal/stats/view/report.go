@@ -169,7 +169,7 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 
 		if isNewbie {
 			if normWarnDone {
-				s.Passed = append(s.Passed, fmt.Sprintf("%s 🐣 — %d", helpers.LinkWithContent(r.User, userTitle), r.MessagesCount))
+				s.Passed = append(s.Passed, fmt.Sprintf("%s 🐣 — <code>%d</code>", helpers.LinkWithContent(r.User, userTitle), r.MessagesCount))
 			} else {
 				s.Newbies = append(s.Newbies, line)
 			}
