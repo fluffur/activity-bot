@@ -125,10 +125,6 @@ func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *cmd.Context) error {
 func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 	u := ctx.FirstUser()
 
-	if u != nil && ctx.EffectiveSender.Id() == u.ID {
-		return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.TargetChatID(), ctx.EffectiveSender.Id())
-	}
-
 	if ctx.FirstArgument() != "" {
 		role := ctx.FirstArgument()
 		members, err := h.userService.GetByCustomTitle(ctx.StdContext(), ctx.TargetChatID(), role)
