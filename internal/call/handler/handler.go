@@ -416,18 +416,13 @@ func (h *Handler) getCallTypesKeyboard(currentTypes int32) gotgbot.InlineKeyboar
 
 	for i, t := range types {
 
-		status := ""
-		checkMark := ""
-
-		if currentTypes&t.bit > 0 {
-			status = "primary"
-			checkMark = helpers.SuccessEmoji() + " "
-		}
-
 		btn := gotgbot.InlineKeyboardButton{
-			Text:         fmt.Sprintf("%s%s", checkMark, t.name),
+			Text:         t.name,
 			CallbackData: fmt.Sprintf("call_type:%d", t.bit),
-			Style:        status,
+		}
+		if currentTypes&t.bit > 0 {
+			btn.Style = "primary"
+			btn.IconCustomEmojiId = strconv.Itoa(helpers.SuccessEmojiID)
 		}
 
 		row = append(row, btn)
