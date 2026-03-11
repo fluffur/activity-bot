@@ -33,7 +33,7 @@ func FormatProfile(m model.MemberStats) string {
 
 	text := fmt.Sprintf(
 		`%s Информация о %s
-▸ %s %s (в чате с %s%s)
+• %s %s (в чате с %s%s)
 %s
 %s Актив<blockquote>▸ сегодня: <code>%d</code>
 ▸ эта неделя: <code>%d</code>
