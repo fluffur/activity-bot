@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func FormatReport(report []model.MessageReportMember, restMembers []model.RestMember, from, to *time.Time) string {
+func FormatReport(report []model.MessageReportMember, restMembers []model.RestMember, newbieThresholdDays int32, from, to *time.Time) string {
 	header := formatPeriodHeader(from, to)
 	sections := prepareReportSections(report, restMembers)
 
@@ -48,7 +48,7 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 		sb.WriteString("</blockquote>")
 	}
 
-	sb.WriteString(fmt.Sprintf("\n%s Новички\n", helpers.NewbieEmoji()))
+	sb.WriteString(fmt.Sprintf("\n%s Новички (%d %s)\n", helpers.NewbieEmoji(), newbieThresholdDays, helpers.PluralizeDays(int(newbieThresholdDays))))
 	sb.WriteString("<blockquote expandable>")
 	if len(sections.Newbies) > 0 {
 		writeNumberedList(&sb, sections.Newbies)

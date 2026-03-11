@@ -57,7 +57,7 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.ReplyHTML(b, "📭 <b>За выбранный период активности не найдено.</b>")
 	}
 
-	text := view.FormatReport(report, restMembers, from, to)
+	text := view.FormatReport(report, restMembers, c.NewbieThresholdDays, from, to)
 
 	return ctx.Reply(b, text, &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
