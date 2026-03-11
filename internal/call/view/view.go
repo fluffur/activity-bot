@@ -72,6 +72,11 @@ func FormatCallChunk(message string, members []model.ChatMember, mentionTypes in
 		}
 	}
 
+	separator := " "
+	if mentionTypes&MentionTypeName > 0 || mentionTypes&MentionTypeRole > 0 {
+		separator = ", "
+	}
+
 	for j, m := range members {
 		var parts []string
 		emptyStr := "​"
@@ -99,11 +104,14 @@ func FormatCallChunk(message string, members []model.ChatMember, mentionTypes in
 		if strings.TrimSpace(title) == "" {
 			title = emptyStr
 		}
+
 		sb.WriteString(helpers.Mention(m.User.ID, title))
+
 		if j < len(members)-1 {
-			sb.WriteString(" ")
+			sb.WriteString(separator)
 		}
 	}
+
 	return sb.String()
 }
 
