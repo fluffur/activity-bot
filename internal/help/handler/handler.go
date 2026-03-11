@@ -42,7 +42,7 @@ func getKb(b *gotgbot.Bot) gotgbot.InlineKeyboardMarkup {
 	return gotgbot.InlineKeyboardMarkup{
 		InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
 			{
-				{Text: "Добавить бота в группу", Url: fmt.Sprintf("https://t.me/%s?startgroup=true", b.User.Username)},
+				{Text: "Добавить бота в группу", Url: fmt.Sprintf("https://t.me/%s?startgroup=true", b.User.Username), IconCustomEmojiId: "5289906211104247909"},
 			},
 		},
 	}
