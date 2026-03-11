@@ -15,7 +15,7 @@ func FormatReport(report []model.MessageReportMember, restMembers []model.RestMe
 	var sb strings.Builder
 	sb.WriteString(header + "\n\n")
 
-	sb.WriteString(fmt.Sprintf("%s Прошли норму %d\n", helpers.CustomEmoji(5260446287391630603, "🌟"), sections.NormWarn))
+	sb.WriteString(fmt.Sprintf("%s Прошли норму %d\n", helpers.CustomEmoji(5224694451338759997, "🌟"), sections.NormWarn))
 
 	sb.WriteString("<blockquote expandable>")
 	if len(sections.Passed) > 0 {
