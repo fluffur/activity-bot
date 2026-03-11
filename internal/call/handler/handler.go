@@ -22,6 +22,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
+	"golang.org/x/time/rate"
 )
 
 type Handler struct {
@@ -223,8 +224,11 @@ func (h *Handler) doCall(
 	if message != "" {
 		message = view.ReplaceMentionsWithLinks(message)
 	}
-
+	var chatLimiter = rate.NewLimiter(rate.Every(1100*time.Millisecond), 4)
 	for i := 0; i < len(members); i += mentionsLimit {
+		if err := chatLimiter.Wait(stdCtx); err != nil {
+			return err
+		}
 
 		end := i + mentionsLimit
 		if end > len(members) {
