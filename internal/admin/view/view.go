@@ -8,11 +8,15 @@ import (
 	"time"
 )
 
-func FormatAdminsList(admins []model.User) string {
+func FormatAdminsList(admins []model.ChatMember) string {
 	var sb strings.Builder
 	sb.WriteString("👮 Администраторы бота:\n")
 	for i, a := range admins {
-		sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, helpers.UserLink(a)))
+		title := a.CustomTitle
+		if a.CustomTitle == "" {
+			title = a.User.FirstName
+		}
+		sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, helpers.LinkWithContent(a.User, title)))
 	}
 	return sb.String()
 }

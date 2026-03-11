@@ -11,7 +11,7 @@ WHERE chat_id = $1
   AND user_id = $2;
 
 -- name: GetChatAdmins :many
-SELECT u.id, u.username, u.first_name, u.last_name, cm.joined_at as created_at
+SELECT cm.*, u.*
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1

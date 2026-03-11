@@ -127,7 +127,7 @@ func (s *Service) GetAdminsEnsured(
 	ctx context.Context,
 	chatID int64,
 	sync func(ctx context.Context, chatID int64) (int, error),
-) ([]model.User, error) {
+) ([]model.ChatMember, error) {
 	admins, err := s.repo.GetFromChat(ctx, chatID)
 	if err != nil {
 		return nil, err

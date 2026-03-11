@@ -29,7 +29,7 @@ func (q *Queries) AddChatAdmin(ctx context.Context, arg AddChatAdminParams) erro
 }
 
 const getChatAdmins = `-- name: GetChatAdmins :many
-SELECT u.id, u.username, u.first_name, u.last_name, cm.joined_at as created_at
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
@@ -38,11 +38,20 @@ ORDER BY cm.joined_at
 `
 
 type GetChatAdminsRow struct {
-	ID        int64              `db:"id" json:"id"`
-	Username  pgtype.Text        `db:"username" json:"username"`
-	FirstName pgtype.Text        `db:"first_name" json:"firstName"`
-	LastName  pgtype.Text        `db:"last_name" json:"lastName"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	ChatID      int64              `db:"chat_id" json:"chatId"`
+	UserID      int64              `db:"user_id" json:"userId"`
+	JoinedAt    pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
+	Status      string             `db:"status" json:"status"`
+	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
+	ID          int64              `db:"id" json:"id"`
+	Username    pgtype.Text        `db:"username" json:"username"`
+	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender      string             `db:"gender" json:"gender"`
 }
 
 func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdminsRow, error) {
@@ -55,11 +64,20 @@ func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdm
 	for rows.Next() {
 		var i GetChatAdminsRow
 		if err := rows.Scan(
+			&i.ChatID,
+			&i.UserID,
+			&i.JoinedAt,
+			&i.RestUntil,
+			&i.CustomTitle,
+			&i.Status,
+			&i.LeftAt,
+			&i.RestReason,
 			&i.ID,
 			&i.Username,
 			&i.FirstName,
 			&i.LastName,
 			&i.CreatedAt,
+			&i.Gender,
 		); err != nil {
 			return nil, err
 		}
