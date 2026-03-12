@@ -24,14 +24,14 @@ func FormatAdminsList(admins []model.ChatMember) string {
 func FormatAdminAdded(user model.User) string {
 	return fmt.Sprintf("Участник %s %s администратором бота",
 		helpers.UserLink(user),
-		helpers.Gendered(user.Gender, "назначен", "назначена", "назначен(а)"),
+		helpers.Gendered(user.Gender, "назначен", "назначена"),
 	)
 }
 
 func FormatAdminRemoved(user model.User) string {
 	return fmt.Sprintf("Участник %s %s из администраторов бота",
 		helpers.UserLink(user),
-		helpers.Gendered(user.Gender, "удалён", "удалена", "удалён(а)"),
+		helpers.Gendered(user.Gender, "удалён", "удалена"),
 	)
 }
 
@@ -47,7 +47,7 @@ func FormatDevelopersList(users []model.User, roles []string) string {
 func FormatDeveloperAdded(user model.User, role string) string {
 	return fmt.Sprintf("Участник %s %s разработчиком бота с ролью %s",
 		helpers.UserLink(user),
-		helpers.Gendered(user.Gender, "назначен", "назначена", "назначен(а)"),
+		helpers.Gendered(user.Gender, "назначен", "назначена"),
 		role,
 	)
 }
@@ -55,7 +55,7 @@ func FormatDeveloperAdded(user model.User, role string) string {
 func FormatDeveloperRemoved(user model.User) string {
 	return fmt.Sprintf("Участник %s %s из списка разработчиков",
 		helpers.UserLink(user),
-		helpers.Gendered(user.Gender, "удален", "удалена", "удален(а)"),
+		helpers.Gendered(user.Gender, "удален", "удалена"),
 	)
 }
 
@@ -63,15 +63,11 @@ func FormatModerationAction(user model.User, action string, until *time.Time, re
 	var actionText string
 	switch action {
 	case "ban":
-		actionText = helpers.Gendered(user.Gender, "забанен", "забанена", "забанен(а)")
+		actionText = helpers.Gendered(user.Gender, "забанен", "забанена")
 	case "mute":
-		actionText = helpers.Gendered(user.Gender, "замучен", "замучена", "замучен(а)")
+		actionText = helpers.Gendered(user.Gender, "замучен", "замучена")
 	case "kick":
-		actionText = helpers.Gendered(user.Gender,
-			"был кикнут из чата",
-			"была кикнута из чата",
-			"кикнут(а) из чата",
-		)
+		actionText = helpers.Gendered(user.Gender, "был кикнут из чата", "была кикнута из чата")
 	default:
 		actionText = action
 	}
@@ -106,7 +102,7 @@ func FormatWarnInfo(user model.User, count, maxWarns int, until *time.Time, reas
 
 	if banned {
 		text += fmt.Sprintf("\n\nПользователь %s за превышение лимита предупреждений.",
-			helpers.Gendered(user.Gender, "забанен", "забанена", "забанен(а)"),
+			helpers.Gendered(user.Gender, "забанен", "забанена"),
 		)
 	}
 
@@ -164,7 +160,7 @@ func FormatWarnlist(warns []model.Warn, maxWarns int) string {
 func FormatUnmuteInfo(user model.User) string {
 	return fmt.Sprintf("Пользователь %s %s",
 		helpers.UserLink(user),
-		helpers.Gendered(user.Gender, "размучен", "размучена", "размучен(а)"),
+		helpers.Gendered(user.Gender, "размучен", "размучена"),
 	)
 }
 
@@ -172,9 +168,9 @@ func FormatDirectModerationAction(user model.User, chatTitle string, action stri
 	var actionText string
 	switch action {
 	case "ban":
-		actionText = helpers.Gendered(user.Gender, "забанены", "забанены", "забанены")
+		actionText = helpers.Gendered(user.Gender, "забанены", "забанены")
 	case "kick":
-		actionText = helpers.Gendered(user.Gender, "кикнуты", "кикнуты", "кикнуты")
+		actionText = helpers.Gendered(user.Gender, "кикнуты", "кикнуты")
 	default:
 		actionText = action
 	}

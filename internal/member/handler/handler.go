@@ -236,7 +236,7 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 	_, err = ctx.EffectiveChat.SendMessage(b, fmt.Sprintf("🕊 %s %s нас..."+sb.String(),
 		helpers.LinkWithContent(m.User, title),
-		helpers.Gendered(m.User.Gender, "покинул", "покинула", "покинул(а)"),
+		helpers.Gendered(m.User.Gender, "покинул", "покинула"),
 	), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{

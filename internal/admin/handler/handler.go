@@ -400,7 +400,7 @@ func (h *Handler) Unban(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	return ctx.ReplyHTML(b, fmt.Sprintf("Пользователь %s %s",
 		helpers.UserLink(*targetUser),
-		helpers.Gendered(targetUser.Gender, "разбанен", "разбанена", "разбанен(а)"),
+		helpers.Gendered(targetUser.Gender, "разбанен", "разбанена"),
 	))
 }
 
@@ -591,7 +591,7 @@ func (h *Handler) FakeLeave(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 	_, err = b.SendMessage(ctx.TargetChatID(), fmt.Sprintf("🕊 %s %s нас...",
 		helpers.LinkWithContent(*u, title),
-		helpers.Gendered(u.Gender, "покинул", "покинула", "покинул(а)"),
+		helpers.Gendered(u.Gender, "покинул", "покинула"),
 	), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{

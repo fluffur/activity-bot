@@ -10,7 +10,7 @@ import (
 func FormatRestSet(user model.User, date time.Time, reason string) string {
 	text := fmt.Sprintf("Участник %s %s в рест до %s",
 		helpers.UserLink(user),
-		helpers.Gendered(user.Gender, "добавлен", "добавлена", "добавлен(а)"),
+		helpers.Gendered(user.Gender, "добавлен", "добавлена"),
 		helpers.FormatToHumanDateTime(date),
 	)
 	if reason != "" {
@@ -52,7 +52,7 @@ func FormatRestEnded(user model.User, isSelf bool) string {
 	}
 	return fmt.Sprintf("Участник %s успешно %s из реста",
 		helpers.UserLink(user),
-		helpers.Gendered(user.Gender, "удалён", "удалена", "удалён(а)"),
+		helpers.Gendered(user.Gender, "удалён", "удалена"),
 	)
 }
 
