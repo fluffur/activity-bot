@@ -6,12 +6,15 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/makeworld-the-better-one/go-isemoji"
 	"github.com/rivo/uniseg"
 )
+
+var tgEmojiRegex = regexp.MustCompile(`<tg-emoji[^>]*>.*?</tg-emoji>`)
 
 type Handler struct {
 	service *user.Service
@@ -66,42 +69,16 @@ func (h *Handler) ShowGender(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
-	msg := ctx.Message
+	emojis := strings.TrimSpace(ctx.HTML())
+	graphemes := parseEmojis(emojis)
 
-	emoji := strings.TrimSpace(ctx.FirstArgument())
-
-	if uniseg.GraphemeClusterCount(emoji) >= 3 {
-		return ctx.Reply(b, "❌ Нужно отправить не более 3 emoji", nil)
-	}
-	if !isemoji.IsEmoji(emoji) {
-		return ctx.Reply(b, "❌ Нужно отправить emoji", nil)
-	}
-	var customEmojiID string
-
-	for _, e := range msg.Entities {
-		if e.Type == "custom_emoji" {
-			customEmojiID = e.CustomEmojiId
-			break
-		}
+	if len(graphemes) > 3 {
+		return ctx.Reply(b, "❌ Нужно отправить не более 3 emojis", nil)
 	}
 
-	if customEmojiID == "" {
-		emoji = strings.TrimSpace(ctx.FirstArgument())
-
-		if !isemoji.IsEmoji(emoji) {
-			return ctx.Reply(b, "❌ Нужно отправить emoji", nil)
-		}
-	}
-
-	if err := h.service.SetEmoji(ctx.StdContext(), ctx.EffectiveSender.Id(), emoji); err != nil {
+	if err := h.service.SetEmoji(ctx.StdContext(), ctx.EffectiveSender.Id(), strings.Join(graphemes, "")); err != nil {
 		return fmt.Errorf("failed to set emoji: %w", err)
 	}
-	if customEmojiID != "" {
-		if err := h.service.SetCustomEmojiID(ctx.StdContext(), ctx.EffectiveSender.Id(), customEmojiID); err != nil {
-			return fmt.Errorf("failed to set emoji: %w", err)
-		}
-	}
-
 	return ctx.Reply(b, "Emoji установлено", nil)
 }
 
@@ -115,10 +92,38 @@ func (h *Handler) ShowEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.ReplyHTML(b, "У пользователя еще нет emoji\n\nДобавить emoji: <code>!эмоджи 😘</code>")
 	}
 
-	if u.CustomEmojiID != "" {
-		return ctx.ReplyHTML(b, fmt.Sprintf("Emoji пользователя: %s", helpers.CustomEmojiStr(u.CustomEmojiID, u.Emoji)))
-	}
-
 	return ctx.ReplyHTML(b, fmt.Sprintf("Emoji пользователя: %s", u.Emoji))
 
+}
+
+func parseEmojis(input string) []string {
+	var result []string
+
+	for len(input) > 0 {
+
+		if strings.HasPrefix(input, "<tg-emoji") {
+			loc := tgEmojiRegex.FindStringIndex(input)
+			if loc != nil {
+				result = append(result, input[loc[0]:loc[1]])
+				input = input[loc[1]:]
+				continue
+			}
+		}
+
+		g := uniseg.NewGraphemes(input)
+		if g.Next() {
+			part := g.Str()
+
+			if isemoji.IsEmoji(part) {
+				result = append(result, part)
+			}
+
+			input = input[len(part):]
+			continue
+		}
+
+		break
+	}
+
+	return result
 }

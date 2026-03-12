@@ -105,8 +105,8 @@ func FormatCallChunk(message string, members []model.ChatMember, mentionTypes in
 			title = emptyStr
 		}
 
-		if mentionTypes&MentionTypeEmoji > 0 && m.User.CustomEmojiID != "" {
-			sb.WriteString(helpers.CustomEmojiStr(m.User.CustomEmojiID, m.User.Emoji))
+		if mentionTypes&MentionTypeEmoji > 0 && hasCustomEmoji(emoji) {
+			sb.WriteString(emoji)
 
 			if mentionTypes&(MentionTypeName|MentionTypeRole) > 0 {
 				sb.WriteString(" ")
@@ -147,13 +147,13 @@ func FormatWelcomeCallMessage(message string) string {
 }
 
 func userEmoji(u model.User) string {
-	if u.CustomEmojiID != "" {
-		return ""
-	}
-
 	if u.Emoji != "" {
 		return u.Emoji
 	}
 
 	return callEmojis[rand.Intn(len(callEmojis))]
+}
+
+func hasCustomEmoji(s string) bool {
+	return strings.Contains(s, "<tg-emoji")
 }
