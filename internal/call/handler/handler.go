@@ -455,6 +455,14 @@ func (h *Handler) SetWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error 
 	return ctx.Reply(b, view.FormatWelcomeCallMessageSet(), nil)
 }
 
+func (h *Handler) DeleteWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
+	if err := h.service.SetWelcomeCallMessage(ctx.StdContext(), ctx.TargetChatID(), ""); err != nil {
+		return err
+	}
+
+	return ctx.ReplyHTML(b, "Сообщение удалено")
+}
+
 func (h *Handler) EnableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err := h.service.EnableCallOnJoin(ctx.StdContext(), ctx.TargetChatID()); err != nil {
 		return err

@@ -84,6 +84,10 @@ func (a *App) RegisterHandlers() {
 		SetArgsCount(1),
 	)
 
+	a.Dispatcher.AddHandler(cf.New(callHandler.DeleteWelcomeCallMessage, "-call_message", "-call сообщение", "-колл сообщение", "-калл сообщение").
+		WithGuards(groupGuard, adminGuard).
+		SetArgsCount(1),
+	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowNewbieThreshold, "newbie", "новички срок", "новички после").
 		WithGuards(groupGuard, adminGuard),
 	)
