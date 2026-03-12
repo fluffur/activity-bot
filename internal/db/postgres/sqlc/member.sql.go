@@ -126,7 +126,7 @@ func (q *Queries) EnsureMemberFull(ctx context.Context, arg EnsureMemberFullPara
 }
 
 const getAnyChatMembersWithTitles = `-- name: GetAnyChatMembersWithTitles :many
-SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = $1
@@ -136,12 +136,22 @@ WHERE cm.chat_id = $1
 `
 
 type GetAnyChatMembersWithTitlesRow struct {
-	UserID      int64       `db:"user_id" json:"userId"`
-	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
-	Status      string      `db:"status" json:"status"`
-	FirstName   pgtype.Text `db:"first_name" json:"firstName"`
-	LastName    pgtype.Text `db:"last_name" json:"lastName"`
-	Username    pgtype.Text `db:"username" json:"username"`
+	ChatID        int64              `db:"chat_id" json:"chatId"`
+	UserID        int64              `db:"user_id" json:"userId"`
+	JoinedAt      pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	CustomTitle   pgtype.Text        `db:"custom_title" json:"customTitle"`
+	Status        string             `db:"status" json:"status"`
+	LeftAt        pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	RestReason    pgtype.Text        `db:"rest_reason" json:"restReason"`
+	ID            int64              `db:"id" json:"id"`
+	Username      pgtype.Text        `db:"username" json:"username"`
+	FirstName     pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender        string             `db:"gender" json:"gender"`
+	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
+	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
 }
 
 func (q *Queries) GetAnyChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetAnyChatMembersWithTitlesRow, error) {
@@ -154,12 +164,22 @@ func (q *Queries) GetAnyChatMembersWithTitles(ctx context.Context, chatID int64)
 	for rows.Next() {
 		var i GetAnyChatMembersWithTitlesRow
 		if err := rows.Scan(
+			&i.ChatID,
 			&i.UserID,
+			&i.JoinedAt,
+			&i.RestUntil,
 			&i.CustomTitle,
 			&i.Status,
+			&i.LeftAt,
+			&i.RestReason,
+			&i.ID,
+			&i.Username,
 			&i.FirstName,
 			&i.LastName,
-			&i.Username,
+			&i.CreatedAt,
+			&i.Gender,
+			&i.Emoji,
+			&i.CustomEmojiID,
 		); err != nil {
 			return nil, err
 		}
@@ -172,7 +192,7 @@ func (q *Queries) GetAnyChatMembersWithTitles(ctx context.Context, chatID int64)
 }
 
 const getChatMember = `-- name: GetChatMember :one
-SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, id, username, first_name, last_name, created_at, gender
+SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id
 FROM chat_members
          JOIN users ON users.id = user_id
 WHERE left_at IS NULL
@@ -186,20 +206,22 @@ type GetChatMemberParams struct {
 }
 
 type GetChatMemberRow struct {
-	ChatID      int64              `db:"chat_id" json:"chatId"`
-	UserID      int64              `db:"user_id" json:"userId"`
-	JoinedAt    pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
-	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
-	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
-	Status      string             `db:"status" json:"status"`
-	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
-	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
-	ID          int64              `db:"id" json:"id"`
-	Username    pgtype.Text        `db:"username" json:"username"`
-	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
-	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	Gender      string             `db:"gender" json:"gender"`
+	ChatID        int64              `db:"chat_id" json:"chatId"`
+	UserID        int64              `db:"user_id" json:"userId"`
+	JoinedAt      pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	CustomTitle   pgtype.Text        `db:"custom_title" json:"customTitle"`
+	Status        string             `db:"status" json:"status"`
+	LeftAt        pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	RestReason    pgtype.Text        `db:"rest_reason" json:"restReason"`
+	ID            int64              `db:"id" json:"id"`
+	Username      pgtype.Text        `db:"username" json:"username"`
+	FirstName     pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender        string             `db:"gender" json:"gender"`
+	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
+	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
 }
 
 func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (GetChatMemberRow, error) {
@@ -220,12 +242,14 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 		&i.LastName,
 		&i.CreatedAt,
 		&i.Gender,
+		&i.Emoji,
+		&i.CustomEmojiID,
 	)
 	return i, err
 }
 
 const getChatMembers = `-- name: GetChatMembers :many
-SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, id, username, first_name, last_name, created_at, gender
+SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
@@ -233,20 +257,22 @@ WHERE cm.chat_id = $1
 `
 
 type GetChatMembersRow struct {
-	ChatID      int64              `db:"chat_id" json:"chatId"`
-	UserID      int64              `db:"user_id" json:"userId"`
-	JoinedAt    pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
-	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
-	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
-	Status      string             `db:"status" json:"status"`
-	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
-	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
-	ID          int64              `db:"id" json:"id"`
-	Username    pgtype.Text        `db:"username" json:"username"`
-	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
-	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	Gender      string             `db:"gender" json:"gender"`
+	ChatID        int64              `db:"chat_id" json:"chatId"`
+	UserID        int64              `db:"user_id" json:"userId"`
+	JoinedAt      pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	CustomTitle   pgtype.Text        `db:"custom_title" json:"customTitle"`
+	Status        string             `db:"status" json:"status"`
+	LeftAt        pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	RestReason    pgtype.Text        `db:"rest_reason" json:"restReason"`
+	ID            int64              `db:"id" json:"id"`
+	Username      pgtype.Text        `db:"username" json:"username"`
+	FirstName     pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender        string             `db:"gender" json:"gender"`
+	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
+	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
 }
 
 func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMembersRow, error) {
@@ -273,6 +299,8 @@ func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMe
 			&i.LastName,
 			&i.CreatedAt,
 			&i.Gender,
+			&i.Emoji,
+			&i.CustomEmojiID,
 		); err != nil {
 			return nil, err
 		}
@@ -285,7 +313,7 @@ func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMe
 }
 
 const getChatMembersWithTitles = `-- name: GetChatMembersWithTitles :many
-SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = $1
@@ -295,12 +323,22 @@ WHERE cm.chat_id = $1
 `
 
 type GetChatMembersWithTitlesRow struct {
-	UserID      int64       `db:"user_id" json:"userId"`
-	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
-	Status      string      `db:"status" json:"status"`
-	FirstName   pgtype.Text `db:"first_name" json:"firstName"`
-	LastName    pgtype.Text `db:"last_name" json:"lastName"`
-	Username    pgtype.Text `db:"username" json:"username"`
+	ChatID        int64              `db:"chat_id" json:"chatId"`
+	UserID        int64              `db:"user_id" json:"userId"`
+	JoinedAt      pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	CustomTitle   pgtype.Text        `db:"custom_title" json:"customTitle"`
+	Status        string             `db:"status" json:"status"`
+	LeftAt        pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	RestReason    pgtype.Text        `db:"rest_reason" json:"restReason"`
+	ID            int64              `db:"id" json:"id"`
+	Username      pgtype.Text        `db:"username" json:"username"`
+	FirstName     pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender        string             `db:"gender" json:"gender"`
+	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
+	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
 }
 
 func (q *Queries) GetChatMembersWithTitles(ctx context.Context, chatID int64) ([]GetChatMembersWithTitlesRow, error) {
@@ -313,12 +351,22 @@ func (q *Queries) GetChatMembersWithTitles(ctx context.Context, chatID int64) ([
 	for rows.Next() {
 		var i GetChatMembersWithTitlesRow
 		if err := rows.Scan(
+			&i.ChatID,
 			&i.UserID,
+			&i.JoinedAt,
+			&i.RestUntil,
 			&i.CustomTitle,
 			&i.Status,
+			&i.LeftAt,
+			&i.RestReason,
+			&i.ID,
+			&i.Username,
 			&i.FirstName,
 			&i.LastName,
-			&i.Username,
+			&i.CreatedAt,
+			&i.Gender,
+			&i.Emoji,
+			&i.CustomEmojiID,
 		); err != nil {
 			return nil, err
 		}
@@ -350,7 +398,7 @@ func (q *Queries) GetMemberCustomTitle(ctx context.Context, arg GetMemberCustomT
 }
 
 const getNoNormMembers = `-- name: GetNoNormMembers :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
@@ -378,20 +426,22 @@ type GetNoNormMembersParams struct {
 }
 
 type GetNoNormMembersRow struct {
-	ChatID      int64              `db:"chat_id" json:"chatId"`
-	UserID      int64              `db:"user_id" json:"userId"`
-	JoinedAt    pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
-	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
-	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
-	Status      string             `db:"status" json:"status"`
-	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
-	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
-	ID          int64              `db:"id" json:"id"`
-	Username    pgtype.Text        `db:"username" json:"username"`
-	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
-	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	Gender      string             `db:"gender" json:"gender"`
+	ChatID        int64              `db:"chat_id" json:"chatId"`
+	UserID        int64              `db:"user_id" json:"userId"`
+	JoinedAt      pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	CustomTitle   pgtype.Text        `db:"custom_title" json:"customTitle"`
+	Status        string             `db:"status" json:"status"`
+	LeftAt        pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	RestReason    pgtype.Text        `db:"rest_reason" json:"restReason"`
+	ID            int64              `db:"id" json:"id"`
+	Username      pgtype.Text        `db:"username" json:"username"`
+	FirstName     pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender        string             `db:"gender" json:"gender"`
+	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
+	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
 }
 
 func (q *Queries) GetNoNormMembers(ctx context.Context, arg GetNoNormMembersParams) ([]GetNoNormMembersRow, error) {
@@ -423,6 +473,8 @@ func (q *Queries) GetNoNormMembers(ctx context.Context, arg GetNoNormMembersPara
 			&i.LastName,
 			&i.CreatedAt,
 			&i.Gender,
+			&i.Emoji,
+			&i.CustomEmojiID,
 		); err != nil {
 			return nil, err
 		}

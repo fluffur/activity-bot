@@ -17,7 +17,7 @@ VALUES ($1, $2, $3, $4)
 ON CONFLICT (id) DO UPDATE SET username   = $2,
                                first_name = $3,
                                last_name  = $4
-RETURNING id, username, first_name, last_name, created_at, gender
+RETURNING id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id
 `
 
 type EnsureUserExistsParams struct {
@@ -42,12 +42,14 @@ func (q *Queries) EnsureUserExists(ctx context.Context, arg EnsureUserExistsPara
 		&i.LastName,
 		&i.CreatedAt,
 		&i.Gender,
+		&i.Emoji,
+		&i.CustomEmojiID,
 	)
 	return i, err
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, username, first_name, last_name, created_at, gender
+SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id
 FROM users
 WHERE id = $1
 `
@@ -62,12 +64,14 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.LastName,
 		&i.CreatedAt,
 		&i.Gender,
+		&i.Emoji,
+		&i.CustomEmojiID,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, first_name, last_name, created_at, gender
+SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id
 FROM users
 WHERE LOWER(username) = LOWER($1)
 `
@@ -82,12 +86,14 @@ func (q *Queries) GetUserByUsername(ctx context.Context, lower string) (User, er
 		&i.LastName,
 		&i.CreatedAt,
 		&i.Gender,
+		&i.Emoji,
+		&i.CustomEmojiID,
 	)
 	return i, err
 }
 
 const getUsersByCustomTitle = `-- name: GetUsersByCustomTitle :many
-SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, id, username, first_name, last_name, created_at, gender
+SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.custom_title ILIKE '%' || $1 || '%'
@@ -101,20 +107,22 @@ type GetUsersByCustomTitleParams struct {
 }
 
 type GetUsersByCustomTitleRow struct {
-	ChatID      int64              `db:"chat_id" json:"chatId"`
-	UserID      int64              `db:"user_id" json:"userId"`
-	JoinedAt    pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
-	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
-	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
-	Status      string             `db:"status" json:"status"`
-	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
-	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
-	ID          int64              `db:"id" json:"id"`
-	Username    pgtype.Text        `db:"username" json:"username"`
-	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
-	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	Gender      string             `db:"gender" json:"gender"`
+	ChatID        int64              `db:"chat_id" json:"chatId"`
+	UserID        int64              `db:"user_id" json:"userId"`
+	JoinedAt      pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	CustomTitle   pgtype.Text        `db:"custom_title" json:"customTitle"`
+	Status        string             `db:"status" json:"status"`
+	LeftAt        pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	RestReason    pgtype.Text        `db:"rest_reason" json:"restReason"`
+	ID            int64              `db:"id" json:"id"`
+	Username      pgtype.Text        `db:"username" json:"username"`
+	FirstName     pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender        string             `db:"gender" json:"gender"`
+	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
+	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
 }
 
 func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCustomTitleParams) ([]GetUsersByCustomTitleRow, error) {
@@ -141,6 +149,8 @@ func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCusto
 			&i.LastName,
 			&i.CreatedAt,
 			&i.Gender,
+			&i.Emoji,
+			&i.CustomEmojiID,
 		); err != nil {
 			return nil, err
 		}
@@ -150,6 +160,34 @@ func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCusto
 		return nil, err
 	}
 	return items, nil
+}
+
+const setUserCustomEmojiID = `-- name: SetUserCustomEmojiID :exec
+UPDATE users SET custom_emoji_id = $2 WHERE id = $1
+`
+
+type SetUserCustomEmojiIDParams struct {
+	ID            int64       `db:"id" json:"id"`
+	CustomEmojiID pgtype.Text `db:"custom_emoji_id" json:"customEmojiId"`
+}
+
+func (q *Queries) SetUserCustomEmojiID(ctx context.Context, arg SetUserCustomEmojiIDParams) error {
+	_, err := q.db.Exec(ctx, setUserCustomEmojiID, arg.ID, arg.CustomEmojiID)
+	return err
+}
+
+const setUserEmoji = `-- name: SetUserEmoji :exec
+UPDATE users SET emoji = $2 WHERE id = $1
+`
+
+type SetUserEmojiParams struct {
+	ID    int64       `db:"id" json:"id"`
+	Emoji pgtype.Text `db:"emoji" json:"emoji"`
+}
+
+func (q *Queries) SetUserEmoji(ctx context.Context, arg SetUserEmojiParams) error {
+	_, err := q.db.Exec(ctx, setUserEmoji, arg.ID, arg.Emoji)
+	return err
 }
 
 const setUserGender = `-- name: SetUserGender :exec

@@ -84,7 +84,7 @@ func FormatCallChunk(message string, members []model.ChatMember, mentionTypes in
 			emptyStr = "ㅤ"
 		}
 
-		emoji := callEmojis[rand.Intn(len(callEmojis))]
+		emoji := userEmoji(m.User)
 
 		if mentionTypes&MentionTypeEmoji > 0 {
 			parts = append(parts, emoji)
@@ -105,7 +105,19 @@ func FormatCallChunk(message string, members []model.ChatMember, mentionTypes in
 			title = emptyStr
 		}
 
-		sb.WriteString(helpers.Mention(m.User.ID, title))
+		if mentionTypes&MentionTypeEmoji > 0 && m.User.CustomEmojiID != "" {
+			sb.WriteString(helpers.CustomEmojiStr(m.User.CustomEmojiID, m.User.Emoji))
+
+			if mentionTypes&(MentionTypeName|MentionTypeRole) > 0 {
+				sb.WriteString(" ")
+				sb.WriteString(helpers.Mention(m.User.ID, title))
+			} else {
+				sb.WriteString(" ")
+				sb.WriteString(helpers.Mention(m.User.ID, "ㅤ"))
+			}
+		} else {
+			sb.WriteString(helpers.Mention(m.User.ID, title))
+		}
 
 		if j < len(members)-1 {
 			sb.WriteString(separator)
@@ -132,4 +144,16 @@ func FormatWelcomeCallMessage(message string) string {
 		return "Сообщение ещё не указано"
 	}
 	return "Сообщение: " + message
+}
+
+func userEmoji(u model.User) string {
+	if u.CustomEmojiID != "" {
+		return ""
+	}
+
+	if u.Emoji != "" {
+		return u.Emoji
+	}
+
+	return callEmojis[rand.Intn(len(callEmojis))]
 }

@@ -85,11 +85,13 @@ func mapMembers(members []db.GetNoNormMembersRow) []model.ChatMember {
 		}
 		result[i] = model.ChatMember{
 			User: model.User{
-				ID:        m.ID,
-				FirstName: m.FirstName.String,
-				LastName:  m.LastName.String,
-				Username:  username,
-				Gender:    m.Gender,
+				ID:            m.ID,
+				FirstName:     m.FirstName.String,
+				LastName:      m.LastName.String,
+				Username:      username,
+				Gender:        m.Gender,
+				Emoji:         m.Emoji.String,
+				CustomEmojiID: m.CustomEmojiID.String,
 			},
 			ChatID:      m.ChatID,
 			RestUntil:   restUntil,
@@ -165,11 +167,13 @@ func (r *MemberRepository) FindByChatID(ctx context.Context, chatID int64) ([]mo
 		}
 		result[i] = model.ChatMember{
 			User: model.User{
-				ID:        m.UserID,
-				FirstName: m.FirstName.String,
-				LastName:  m.LastName.String,
-				Username:  username,
-				Gender:    m.Gender,
+				ID:            m.UserID,
+				FirstName:     m.FirstName.String,
+				LastName:      m.LastName.String,
+				Username:      username,
+				Gender:        m.Gender,
+				Emoji:         m.Emoji.String,
+				CustomEmojiID: m.CustomEmojiID.String,
 			},
 			ChatID:      chatID,
 			RestUntil:   restUntil,
@@ -196,10 +200,13 @@ func (r *MemberRepository) GetWithCustomTitles(ctx context.Context, chatID int64
 		res[i] = model.ChatMember{
 			ChatID: chatID,
 			User: model.User{
-				Username:  username,
-				FirstName: m.FirstName.String,
-				LastName:  m.LastName.String,
-				ID:        m.UserID,
+				ID:            m.UserID,
+				FirstName:     m.FirstName.String,
+				LastName:      m.LastName.String,
+				Username:      username,
+				Gender:        m.Gender,
+				Emoji:         m.Emoji.String,
+				CustomEmojiID: m.CustomEmojiID.String,
 			},
 			CustomTitle: m.CustomTitle.String,
 			Status:      m.Status,
@@ -223,10 +230,13 @@ func (r *MemberRepository) GetAnyWithCustomTitles(ctx context.Context, chatID in
 		res[i] = model.ChatMember{
 			ChatID: chatID,
 			User: model.User{
-				Username:  username,
-				FirstName: m.FirstName.String,
-				LastName:  m.LastName.String,
-				ID:        m.UserID,
+				ID:            m.UserID,
+				FirstName:     m.FirstName.String,
+				LastName:      m.LastName.String,
+				Username:      username,
+				Gender:        m.Gender,
+				Emoji:         m.Emoji.String,
+				CustomEmojiID: m.CustomEmojiID.String,
 			},
 			CustomTitle: m.CustomTitle.String,
 			Status:      m.Status,
@@ -328,8 +338,10 @@ func mapChatMember(m db.ChatMember) model.ChatMember {
 		restUntil = &t
 	}
 	return model.ChatMember{
-		ChatID:      m.ChatID,
-		User:        model.User{ID: m.UserID},
+		ChatID: m.ChatID,
+		User: model.User{
+			ID: m.UserID,
+		},
 		RestUntil:   restUntil,
 		CustomTitle: m.CustomTitle.String,
 		Status:      m.Status,
@@ -349,11 +361,13 @@ func mapChatMemberRow(m db.GetChatMemberRow) model.ChatMember {
 	return model.ChatMember{
 		ChatID: m.ChatID,
 		User: model.User{
-			ID:        m.UserID,
-			FirstName: m.FirstName.String,
-			LastName:  m.LastName.String,
-			Username:  username,
-			Gender:    m.Gender,
+			ID:            m.UserID,
+			FirstName:     m.FirstName.String,
+			LastName:      m.LastName.String,
+			Username:      username,
+			Gender:        m.Gender,
+			Emoji:         m.Emoji.String,
+			CustomEmojiID: m.CustomEmojiID.String,
 		},
 		RestUntil:   restUntil,
 		RestReason:  m.RestReason.String,

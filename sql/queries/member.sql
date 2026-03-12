@@ -30,7 +30,7 @@ WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL;
 
 -- name: GetChatMembersWithTitles :many
-SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username
+SELECT cm.*, u.*
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = @chat_id
@@ -39,7 +39,7 @@ WHERE cm.chat_id = @chat_id
   AND cm.custom_title <> '';
 
 -- name: GetAnyChatMembersWithTitles :many
-SELECT cm.user_id, cm.custom_title, cm.status, u.first_name, u.last_name, u.username
+SELECT cm.*, u.*
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = @chat_id

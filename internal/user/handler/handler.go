@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/makeworld-the-better-one/go-isemoji"
 )
 
 type Handler struct {
@@ -61,4 +62,55 @@ func (h *Handler) ShowGender(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	return ctx.ReplyHTML(b, fmt.Sprintf("Пол %s: %s", helpers.LinkWithContent(*u, u.FirstName), gender))
+}
+
+func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
+	msg := ctx.Message
+
+	emoji := strings.TrimSpace(ctx.FirstArgument())
+	var customEmojiID string
+
+	for _, e := range msg.Entities {
+		if e.Type == "custom_emoji" {
+			customEmojiID = e.CustomEmojiId
+			break
+		}
+	}
+
+	if customEmojiID == "" {
+		emoji = strings.TrimSpace(ctx.FirstArgument())
+
+		if !isemoji.IsEmoji(emoji) {
+			return ctx.Reply(b, "❌ Нужно отправить emoji", nil)
+		}
+	}
+
+	if err := h.service.SetEmoji(ctx.StdContext(), ctx.EffectiveSender.Id(), emoji); err != nil {
+		return fmt.Errorf("failed to set emoji: %w", err)
+	}
+	if customEmojiID != "" {
+		if err := h.service.SetCustomEmojiID(ctx.StdContext(), ctx.EffectiveSender.Id(), customEmojiID); err != nil {
+			return fmt.Errorf("failed to set emoji: %w", err)
+		}
+	}
+
+	return ctx.Reply(b, "Emoji установлено", nil)
+}
+
+func (h *Handler) ShowEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
+	u := ctx.FirstUser()
+	if u == nil {
+		return cmd.ErrNoUser
+	}
+
+	if u.Emoji == "" {
+		return ctx.ReplyHTML(b, "У пользователя еще нет emoji\n\nДобавить emoji: <code>!эмоджи 😘</code>")
+	}
+
+	if u.CustomEmojiID != "" {
+		return ctx.ReplyHTML(b, fmt.Sprintf("Emoji пользователя: %s", helpers.CustomEmojiStr(u.CustomEmojiID, u.Emoji)))
+	}
+
+	return ctx.ReplyHTML(b, fmt.Sprintf("Emoji пользователя: %s", u.Emoji))
+
 }

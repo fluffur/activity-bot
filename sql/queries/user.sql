@@ -37,3 +37,9 @@ LIMIT 10;
 
 -- name: SetUserGender :exec
 UPDATE users SET gender = $2 WHERE id = $1;
+
+-- name: SetUserEmoji :exec
+UPDATE users SET emoji = $2 WHERE id = $1;
+
+-- name: SetUserCustomEmojiID :exec
+UPDATE users SET custom_emoji_id = $2 WHERE id = $1;

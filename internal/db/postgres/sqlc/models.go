@@ -167,12 +167,14 @@ type RestRequest struct {
 }
 
 type User struct {
-	ID        int64              `db:"id" json:"id"`
-	Username  pgtype.Text        `db:"username" json:"username"`
-	FirstName pgtype.Text        `db:"first_name" json:"firstName"`
-	LastName  pgtype.Text        `db:"last_name" json:"lastName"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	Gender    string             `db:"gender" json:"gender"`
+	ID            int64              `db:"id" json:"id"`
+	Username      pgtype.Text        `db:"username" json:"username"`
+	FirstName     pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender        string             `db:"gender" json:"gender"`
+	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
+	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
 }
 
 type UserPmSession struct {

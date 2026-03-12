@@ -373,6 +373,8 @@ func (a *App) RegisterHandlers() {
 		FallbackToSender().
 		SetArgsCount(1),
 	)
+	a.Dispatcher.AddHandler(cf.New(userHandler.ShowEmoji, "эмоджи", "эмодзи").FallbackToSender())
+	a.Dispatcher.AddHandler(cf.New(userHandler.SetEmoji, "эмоджи", "эмодзи").FallbackToSender().SetArgsCount(1))
 
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"), cf.WrapCallback(restHandler.ApproveRestRequest)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("reject:"), cf.WrapCallback(restHandler.RejectRestRequest)))

@@ -73,7 +73,7 @@ func (q *Queries) DeleteModerationActionsForUser(ctx context.Context, arg Delete
 }
 
 const getActiveWarns = `-- name: GetActiveWarns :many
-SELECT ma.id, type, chat_id, user_id, moderator_id, reason, ma.created_at, revoked_at, expires_at, u.id, username, first_name, last_name, u.created_at, gender
+SELECT ma.id, type, chat_id, user_id, moderator_id, reason, ma.created_at, revoked_at, expires_at, u.id, username, first_name, last_name, u.created_at, gender, emoji, custom_emoji_id
 FROM moderation_actions ma
          JOIN users u ON ma.moderator_id = u.id
 WHERE ma.chat_id = $1
@@ -88,21 +88,23 @@ type GetActiveWarnsParams struct {
 }
 
 type GetActiveWarnsRow struct {
-	ID          int64              `db:"id" json:"id"`
-	Type        ModerationType     `db:"type" json:"type"`
-	ChatID      int64              `db:"chat_id" json:"chatId"`
-	UserID      int64              `db:"user_id" json:"userId"`
-	ModeratorID int64              `db:"moderator_id" json:"moderatorId"`
-	Reason      pgtype.Text        `db:"reason" json:"reason"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	RevokedAt   pgtype.Timestamptz `db:"revoked_at" json:"revokedAt"`
-	ExpiresAt   pgtype.Timestamptz `db:"expires_at" json:"expiresAt"`
-	ID_2        int64              `db:"id_2" json:"id2"`
-	Username    pgtype.Text        `db:"username" json:"username"`
-	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
-	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
-	CreatedAt_2 pgtype.Timestamptz `db:"created_at_2" json:"createdAt2"`
-	Gender      string             `db:"gender" json:"gender"`
+	ID            int64              `db:"id" json:"id"`
+	Type          ModerationType     `db:"type" json:"type"`
+	ChatID        int64              `db:"chat_id" json:"chatId"`
+	UserID        int64              `db:"user_id" json:"userId"`
+	ModeratorID   int64              `db:"moderator_id" json:"moderatorId"`
+	Reason        pgtype.Text        `db:"reason" json:"reason"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	RevokedAt     pgtype.Timestamptz `db:"revoked_at" json:"revokedAt"`
+	ExpiresAt     pgtype.Timestamptz `db:"expires_at" json:"expiresAt"`
+	ID_2          int64              `db:"id_2" json:"id2"`
+	Username      pgtype.Text        `db:"username" json:"username"`
+	FirstName     pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt_2   pgtype.Timestamptz `db:"created_at_2" json:"createdAt2"`
+	Gender        string             `db:"gender" json:"gender"`
+	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
+	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
 }
 
 func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) ([]GetActiveWarnsRow, error) {
@@ -130,6 +132,8 @@ func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) 
 			&i.LastName,
 			&i.CreatedAt_2,
 			&i.Gender,
+			&i.Emoji,
+			&i.CustomEmojiID,
 		); err != nil {
 			return nil, err
 		}

@@ -96,6 +96,12 @@ func mapUser(u db.User) model.User {
 	if u.Username.Valid {
 		nu.Username = &u.Username.String
 	}
+	if u.CustomEmojiID.Valid {
+		nu.CustomEmojiID = u.CustomEmojiID.String
+	}
+	if u.Emoji.Valid {
+		nu.Emoji = u.Emoji.String
+	}
 	return nu
 }
 
@@ -120,5 +126,25 @@ func (r *UserRepository) SetGender(ctx context.Context, userID int64, gender str
 	return r.queries.SetUserGender(ctx, db.SetUserGenderParams{
 		ID:     userID,
 		Gender: gender,
+	})
+}
+
+func (r *UserRepository) SetEmoji(ctx context.Context, userID int64, emoji string) error {
+	return r.queries.SetUserEmoji(ctx, db.SetUserEmojiParams{
+		ID: userID,
+		Emoji: pgtype.Text{
+			String: emoji,
+			Valid:  emoji != "",
+		},
+	})
+}
+
+func (r *UserRepository) SetCustomEmojiID(ctx context.Context, userID int64, emojiID string) error {
+	return r.queries.SetUserCustomEmojiID(ctx, db.SetUserCustomEmojiIDParams{
+		ID: userID,
+		CustomEmojiID: pgtype.Text{
+			String: emojiID,
+			Valid:  emojiID != "",
+		},
 	})
 }

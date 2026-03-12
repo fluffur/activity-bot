@@ -6,6 +6,10 @@ func CustomEmoji(id int64, originalEmoji string) string {
 	return fmt.Sprintf(`<tg-emoji emoji-id="%d">%s</tg-emoji>`, id, originalEmoji)
 }
 
+func CustomEmojiStr(id string, originalEmoji string) string {
+	return fmt.Sprintf(`<tg-emoji emoji-id="%s">%s</tg-emoji>`, id, originalEmoji)
+}
+
 func NewbieEmoji() string {
 	return CustomEmoji(5375247537693269646, "🐣")
 }

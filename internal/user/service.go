@@ -32,3 +32,11 @@ func (s *Service) GetByCustomTitle(ctx context.Context, chatID int64, title stri
 func (s *Service) SetGender(ctx context.Context, userID int64, gender string) error {
 	return s.repo.SetGender(ctx, userID, gender)
 }
+
+func (s *Service) SetEmoji(ctx context.Context, userID int64, emoji string) error {
+	return s.repo.SetEmoji(ctx, userID, emoji)
+}
+
+func (s *Service) SetCustomEmojiID(ctx context.Context, userID int64, emojiID string) error {
+	return s.repo.SetCustomEmojiID(ctx, userID, emojiID)
+}

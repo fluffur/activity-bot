@@ -7,9 +7,11 @@ const (
 )
 
 type User struct {
-	ID        int64
-	FirstName string
-	LastName  string
-	Username  *string
-	Gender    string
+	ID            int64
+	FirstName     string
+	LastName      string
+	Username      *string
+	Gender        string
+	Emoji         string
+	CustomEmojiID string
 }
