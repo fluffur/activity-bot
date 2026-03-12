@@ -10,6 +10,7 @@ import (
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/makeworld-the-better-one/go-isemoji"
+	"github.com/rivo/uniseg"
 )
 
 type Handler struct {
@@ -68,6 +69,13 @@ func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 	msg := ctx.Message
 
 	emoji := strings.TrimSpace(ctx.FirstArgument())
+
+	if uniseg.GraphemeClusterCount(emoji) >= 3 {
+		return ctx.Reply(b, "❌ Нужно отправить не более 3 emoji", nil)
+	}
+	if !isemoji.IsEmoji(emoji) {
+		return ctx.Reply(b, "❌ Нужно отправить emoji", nil)
+	}
 	var customEmojiID string
 
 	for _, e := range msg.Entities {
