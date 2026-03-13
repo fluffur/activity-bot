@@ -86,7 +86,7 @@ func FormatCallChunk(message string, members []model.ChatMember, mentionTypes in
 
 		emoji := userEmoji(m.User)
 
-		if mentionTypes&MentionTypeEmoji > 0 {
+		if mentionTypes&MentionTypeEmoji > 0 && !hasCustomEmoji(emoji) {
 			parts = append(parts, emoji)
 		}
 		if mentionTypes&MentionTypeName > 0 {
@@ -96,7 +96,7 @@ func FormatCallChunk(message string, members []model.ChatMember, mentionTypes in
 			parts = append(parts, m.CustomTitle)
 		}
 
-		if len(parts) == 0 {
+		if len(parts) == 0 && !(mentionTypes&MentionTypeEmoji > 0 && hasCustomEmoji(emoji)) {
 			parts = append(parts, emptyStr)
 		}
 
@@ -107,12 +107,10 @@ func FormatCallChunk(message string, members []model.ChatMember, mentionTypes in
 
 		if mentionTypes&MentionTypeEmoji > 0 && hasCustomEmoji(emoji) {
 			sb.WriteString(emoji)
-
-			if mentionTypes&(MentionTypeName|MentionTypeRole) > 0 {
-				sb.WriteString(" ")
+			sb.WriteString(" ")
+			if title != "" {
 				sb.WriteString(helpers.Mention(m.User.ID, title))
 			} else {
-				sb.WriteString(" ")
 				sb.WriteString(helpers.Mention(m.User.ID, "ㅤ"))
 			}
 		} else {
