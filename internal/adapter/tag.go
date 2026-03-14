@@ -4,7 +4,6 @@ import (
 	"activity-bot/internal/chat"
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 )
@@ -53,9 +52,7 @@ func (a *MemberTagAdapter) SetMemberTag(ctx context.Context, chatID int64, userI
 		}); err != nil || !ok {
 			return err
 		}
-
-		return nil
 	}
 
-	return fmt.Errorf("status %s", m.GetStatus())
+	return nil
 }
