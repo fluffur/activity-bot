@@ -24,6 +24,20 @@ func FormatProfile(m model.MemberStats) string {
 		m.User,
 		displayName,
 	)
+	now := time.Now().In(helpers.MoscowLocation)
+
+	isNewbie := false
+	if m.NewbieThreshold > 0 {
+		newbieUntil := m.JoinedAt.AddDate(0, 0, int(m.NewbieThreshold))
+		if newbieUntil.After(now) {
+			isNewbie = true
+		}
+	}
+
+	var newbieEmoji string
+	if isNewbie {
+		newbieEmoji = helpers.NewbieEmoji() + " "
+	}
 
 	status := helpers.TranslateMemberStatus(m.Status, m.LeftAt)
 	leftAtInfo := ""
@@ -33,7 +47,7 @@ func FormatProfile(m model.MemberStats) string {
 
 	text := fmt.Sprintf(
 		`%s Информация о %s
-• %s %s (в чате с %s%s)
+• %s %s (%sв чате с %s%s)
 %s
 %s Актив<blockquote>▸ сегодня: <code>%d</code>
 ▸ эта неделя: <code>%d</code>
@@ -48,6 +62,7 @@ func FormatProfile(m model.MemberStats) string {
 		name,
 		status,
 		getStatusEmoji(m.Status),
+		newbieEmoji,
 		helpers.FormatToHumanDateTime(m.JoinedAt),
 		leftAtInfo,
 		helpers.Line(),
@@ -66,7 +81,7 @@ func FormatProfile(m model.MemberStats) string {
 	isRestActive := m.RestUntil != nil && m.RestUntil.After(time.Now())
 
 	if m.NormWarn > 0 || m.NormBan > 0 {
-		normStatus := getNormStatusEmoji(m.WeekCount, m.NormWarn, m.NormBan, isRestActive)
+		normStatus := getNormStatusEmoji(m.WeekCount, m.NormWarn, m.NormBan, isRestActive, isNewbie)
 		text += fmt.Sprintf("\n%s", normStatus)
 	}
 
@@ -106,8 +121,8 @@ func getStatusEmoji(status string) string {
 	return helpers.CustomEmoji(5298532506889382420, "😭")
 }
 
-func getNormStatusEmoji(weekCount, normWarn, normBan int32, isRestActive bool) string {
-	if isRestActive {
+func getNormStatusEmoji(weekCount, normWarn, normBan int32, isRestActive, isNewbie bool) string {
+	if isRestActive || isNewbie {
 		return fmt.Sprintf("%s Освобождение от нормы", helpers.CustomEmoji(5456648248968121823, "🕊"))
 	}
 	if normBan > 0 && weekCount < normBan {
