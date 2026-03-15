@@ -31,7 +31,7 @@ func FormatAdminAdded(user model.User) string {
 func FormatAdminRemoved(user model.User) string {
 	return fmt.Sprintf("Участник %s %s из администраторов бота",
 		helpers.UserLink(user),
-		helpers.Gendered(user.Gender, "удалён", "удалена"),
+		helpers.Gendered(user.Gender, "удален", "удалена"),
 	)
 }
 
