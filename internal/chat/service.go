@@ -6,24 +6,18 @@ import (
 )
 
 type Service struct {
-	repo              Repository
-	defaultWeeklyNorm int32
+	repo Repository
 }
 
-func NewService(repo Repository, defaultWeeklyNorm int32) *Service {
-	return &Service{repo, defaultWeeklyNorm}
+func NewService(repo Repository) *Service {
+	return &Service{repo}
 }
 
 func (s *Service) EnsureChatExists(ctx context.Context, chatID int64, title string) (model.Chat, error) {
 	return s.repo.Ensure(ctx, model.Chat{
-		ID:       chatID,
-		Title:    title,
-		NormWarn: s.defaultWeeklyNorm,
+		ID:    chatID,
+		Title: title,
 	})
-}
-
-func (s *Service) GetNorm(ctx context.Context, chatID int64) (int, error) {
-	return s.repo.GetNorm(ctx, chatID, s.defaultWeeklyNorm)
 }
 
 func (s *Service) SetNorm(ctx context.Context, chatID int64, norm int) error {

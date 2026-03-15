@@ -36,18 +36,18 @@ func FormatProfile(m model.MemberStats) string {
 
 	var newbieEmoji string
 	if isNewbie {
-		newbieEmoji = helpers.NewbieEmoji() + " "
+		newbieEmoji = " " + helpers.NewbieEmoji()
 	}
 
 	status := helpers.TranslateMemberStatus(m.Status, m.LeftAt)
 	leftAtInfo := ""
 	if !m.LeftAt.IsZero() {
-		leftAtInfo = ", покинул чат " + helpers.FormatToHumanDate(m.LeftAt)
+		leftAtInfo = ", покинул чат " + helpers.FormatLastSeen(m.LeftAt)
 	}
 
 	text := fmt.Sprintf(
 		`%s Информация о %s
-• %s %s (%sв чате с %s%s)
+• %s %s (зашёл %s%s%s)
 %s
 %s Актив<blockquote>▸ сегодня: <code>%d</code>
 ▸ эта неделя: <code>%d</code>
@@ -62,8 +62,8 @@ func FormatProfile(m model.MemberStats) string {
 		name,
 		status,
 		getStatusEmoji(m.Status),
+		helpers.FormatLastSeen(m.JoinedAt),
 		newbieEmoji,
-		helpers.FormatToHumanDateTime(m.JoinedAt),
 		leftAtInfo,
 		helpers.Line(),
 		helpers.StatsEmoji(),

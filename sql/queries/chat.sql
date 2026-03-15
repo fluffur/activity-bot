@@ -1,7 +1,7 @@
 -- name: EnsureChatExists :one
 WITH ins AS (
-    INSERT INTO chats (id, title, norm_warn)
-        VALUES ($1, $2, $3)
+    INSERT INTO chats (id, title)
+        VALUES ($1, $2)
         ON CONFLICT (id) DO UPDATE
             SET title = COALESCE(NULLIF(EXCLUDED.title, ''), chats.title)
         RETURNING *)

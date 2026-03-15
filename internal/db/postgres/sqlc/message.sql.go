@@ -219,7 +219,7 @@ type MessageReportRow struct {
 	ChatMember          ChatMember  `db:"chat_member" json:"chatMember"`
 	User                User        `db:"user" json:"user"`
 	MessagesCount       int64       `db:"messages_count" json:"messagesCount"`
-	NormWarn            int32       `db:"norm_warn" json:"normWarn"`
+	NormWarn            pgtype.Int4 `db:"norm_warn" json:"normWarn"`
 	NormBan             pgtype.Int4 `db:"norm_ban" json:"normBan"`
 	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 }
@@ -321,7 +321,7 @@ type MessageReportOneRow struct {
 	MonthRollingCount   int64       `db:"month_rolling_count" json:"monthRollingCount"`
 	AllTimeCount        int64       `db:"all_time_count" json:"allTimeCount"`
 	NormBan             pgtype.Int4 `db:"norm_ban" json:"normBan"`
-	NormWarn            int32       `db:"norm_warn" json:"normWarn"`
+	NormWarn            pgtype.Int4 `db:"norm_warn" json:"normWarn"`
 	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 }
 

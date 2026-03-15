@@ -18,12 +18,11 @@ type Service struct {
 	chatRepo         chat.Repository
 	userRepo         user.Repository
 	adminsProvider   ChatAdminsProvider
-	defaultNormWarn  int32
 	memberTagAdapter *adapter.MemberTagAdapter
 }
 
-func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Repository, adminsProvider ChatAdminsProvider, defaultWeeklyNorm int32, memberTagAdapter *adapter.MemberTagAdapter) *Service {
-	return &Service{repo, chatRepo, userRepo, adminsProvider, defaultWeeklyNorm, memberTagAdapter}
+func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Repository, adminsProvider ChatAdminsProvider, memberTagAdapter *adapter.MemberTagAdapter) *Service {
+	return &Service{repo, chatRepo, userRepo, adminsProvider, memberTagAdapter}
 }
 
 func (s *Service) SetMemberTitle(ctx context.Context, chatID int64, userID int64, title string) error {
@@ -53,7 +52,7 @@ func (s *Service) GetChatMembers(ctx context.Context, chatID int64) ([]model.Cha
 }
 
 func (s *Service) UpdateChatMembers(ctx context.Context, chatID int64, members []model.ChatMemberUpdate) error {
-	if _, err := s.chatRepo.Ensure(ctx, model.Chat{ID: chatID, NormWarn: s.defaultNormWarn}); err != nil {
+	if _, err := s.chatRepo.Ensure(ctx, model.Chat{ID: chatID}); err != nil {
 		return err
 	}
 
@@ -83,7 +82,7 @@ func (s *Service) ProcessLeftMember(ctx context.Context, chatID int64, userID in
 }
 
 func (s *Service) EnsureMemberExists(ctx context.Context, chatID int64, userID int64, username, firstName, lastName, role string) (model.ChatMember, error) {
-	return s.repo.EnsureFull(ctx, chatID, userID, role, firstName, lastName, username, s.defaultNormWarn)
+	return s.repo.EnsureFull(ctx, chatID, userID, role, firstName, lastName, username)
 }
 
 func (s *Service) SyncChatMembers(ctx context.Context, chatID int64) (int, error) {

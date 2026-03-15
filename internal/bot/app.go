@@ -82,9 +82,9 @@ func NewApp(cfg config.Config) (*App, error) {
 	memberTagAdapter := adapter.NewMemberTagAdapter(b, chatRepo)
 
 	userService := user.NewService(userRepo)
-	memberService := member.NewService(memberRepo, chatRepo, userRepo, adminsProvider, cfg.DefaultNormWarn, memberTagAdapter)
+	memberService := member.NewService(memberRepo, chatRepo, userRepo, adminsProvider, memberTagAdapter)
 	adminService := admin.NewService(adminRepo, statusProvider, moderator, cfg.BotOwnerID)
-	chatService := chat.NewService(chatRepo, cfg.DefaultNormWarn)
+	chatService := chat.NewService(chatRepo)
 	restService := rest.NewService(restRepo)
 
 	dp := ext.NewDispatcher(&ext.DispatcherOpts{

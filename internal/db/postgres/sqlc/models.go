@@ -106,7 +106,7 @@ type BotDeveloper struct {
 
 type Chat struct {
 	ID                  int64       `db:"id" json:"id"`
-	NormWarn            int32       `db:"norm_warn" json:"normWarn"`
+	NormWarn            pgtype.Int4 `db:"norm_warn" json:"normWarn"`
 	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 	AiSystemPrompt      pgtype.Text `db:"ai_system_prompt" json:"aiSystemPrompt"`
 	MaxLadder           int32       `db:"max_ladder" json:"maxLadder"`

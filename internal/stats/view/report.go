@@ -8,64 +8,78 @@ import (
 	"time"
 )
 
-func FormatReport(report []model.MessageReportMember, restMembers []model.RestMember, newbieThresholdDays int32, from, to *time.Time) string {
+func FormatStats(report []model.MessageReportMember, restMembers []model.RestMember, newbieThresholdDays int32, from, to *time.Time) string {
 	header := formatPeriodHeader(from, to)
 	sections := prepareReportSections(report, restMembers)
+	topOnly := sections.NormWarn == 0 && sections.NormBan == 0
 
 	var sb strings.Builder
 	sb.WriteString(header + "\n\n")
+	if !topOnly {
 
-	sb.WriteString(fmt.Sprintf("%s Прошли норму %d\n", helpers.CustomEmoji(5224694451338759997, "🌟"), sections.NormWarn))
+		if sections.NormWarn > 0 {
+			sb.WriteString(fmt.Sprintf("%s Прошли норму %d\n", helpers.CustomEmoji(5224694451338759997, "🌟"), sections.NormWarn))
 
-	sb.WriteString("<blockquote expandable>")
-	if len(sections.Passed) > 0 {
-		writeNumberedList(&sb, sections.Passed)
+			sb.WriteString("<blockquote expandable>")
+			if len(sections.Passed) > 0 {
+				writeNumberedList(&sb, sections.Passed)
+			} else {
+				sb.WriteString("Список пуст\n")
+			}
+			sb.WriteString("</blockquote>")
 
-	} else {
-		sb.WriteString("Список пуст\n")
-	}
-	sb.WriteString("</blockquote>")
+			sb.WriteString(fmt.Sprintf("\n%s Не прошли норму️ %d (варн) \n", helpers.CustomEmoji(5224340348465073584, "⚠️"), sections.NormWarn))
+			sb.WriteString("<blockquote expandable>")
+			if len(sections.FailedWarn) > 0 {
+				writeNumberedList(&sb, sections.FailedWarn)
+			} else {
+				sb.WriteString("Список пуст\n")
+			}
+			sb.WriteString("</blockquote>")
+		}
 
-	sb.WriteString(fmt.Sprintf("\n%s Не прошли норму️ %d (варн) \n", helpers.CustomEmoji(5224340348465073584, "⚠️"), sections.NormWarn))
-	sb.WriteString("<blockquote expandable>")
-	if len(sections.FailedWarn) > 0 {
-		writeNumberedList(&sb, sections.FailedWarn)
+		if sections.NormBan > 0 {
+			sb.WriteString(fmt.Sprintf("\n%s Не прошли норму %d (бан) \n", helpers.DangerEmoji(), sections.NormBan))
+			sb.WriteString("<blockquote expandable>")
+			if len(sections.FailedBan) > 0 {
+				writeNumberedList(&sb, sections.FailedBan)
+			} else {
+				sb.WriteString("Список пуст\n")
+			}
+			sb.WriteString("</blockquote>")
+		}
 
-	} else {
-		sb.WriteString("Список пуст\n")
-	}
-	sb.WriteString("</blockquote>")
-
-	if sections.NormBan != 0 {
-		sb.WriteString(fmt.Sprintf("\n%s Не прошли норму %d (бан) \n", helpers.DangerEmoji(), sections.NormBan))
+		sb.WriteString(fmt.Sprintf("\n%s Новички (%d %s)\n", helpers.NewbieEmoji(), newbieThresholdDays, helpers.PluralizeDays(int(newbieThresholdDays))))
 		sb.WriteString("<blockquote expandable>")
-		if len(sections.FailedBan) > 0 {
-			writeNumberedList(&sb, sections.FailedBan)
+		if len(sections.Newbies) > 0 {
+			writeNumberedList(&sb, sections.Newbies)
+		} else {
+			sb.WriteString("Список пуст\n")
+		}
+		sb.WriteString("</blockquote>")
+
+		sb.WriteString(fmt.Sprintf("\n%s Рест\n", helpers.RestEmoji()))
+		sb.WriteString("<blockquote expandable>")
+		if len(sections.InRest) > 0 {
+			writeNumberedList(&sb, sections.InRest)
 
 		} else {
 			sb.WriteString("Список пуст\n")
 		}
 		sb.WriteString("</blockquote>")
-	}
-
-	sb.WriteString(fmt.Sprintf("\n%s Новички (%d %s)\n", helpers.NewbieEmoji(), newbieThresholdDays, helpers.PluralizeDays(int(newbieThresholdDays))))
-	sb.WriteString("<blockquote expandable>")
-	if len(sections.Newbies) > 0 {
-		writeNumberedList(&sb, sections.Newbies)
-	} else {
-		sb.WriteString("Список пуст\n")
-	}
-	sb.WriteString("</blockquote>")
-
-	sb.WriteString(fmt.Sprintf("\n%s Рест\n", helpers.RestEmoji()))
-	sb.WriteString("<blockquote expandable>")
-	if len(sections.InRest) > 0 {
-		writeNumberedList(&sb, sections.InRest)
 
 	} else {
-		sb.WriteString("Список пуст\n")
+
+		sb.WriteString(fmt.Sprintf("%s Топ участников\n", helpers.CustomEmoji(5224694451338759997, "🌟")))
+
+		sb.WriteString("<blockquote expandable>")
+		if len(sections.Passed) > 0 {
+			writeNumberedList(&sb, sections.Passed)
+		} else {
+			sb.WriteString("Список пуст\n")
+		}
+		sb.WriteString("</blockquote>")
 	}
-	sb.WriteString("</blockquote>")
 
 	sb.WriteString(fmt.Sprintf("\n%s Всего сообщений: <code>%d</code>\n", helpers.TotalEmoji(), sections.TotalMessages))
 

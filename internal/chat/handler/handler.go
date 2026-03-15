@@ -40,7 +40,7 @@ func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.Reply(b, view.FormatNorm(c.NormWarn, c.NormBan), nil)
+	return ctx.ReplyHTML(b, view.FormatNorm(c.NormWarn, c.NormBan))
 }
 
 func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *cmd.Context) error {

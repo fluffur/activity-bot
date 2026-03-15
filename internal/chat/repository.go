@@ -10,7 +10,6 @@ type Repository interface {
 	SetWarnNorm(ctx context.Context, chatID int64, norm int32) error
 	SetBanNorm(ctx context.Context, chatID int64, norm int32) error
 	SetNewbieThreshold(ctx context.Context, chatID int64, threshold int32) error
-	GetNorm(ctx context.Context, chatID int64, fallbackNorm int32) (int, error)
 	GetNewbieThreshold(ctx context.Context, chatID int64) (int, error)
 	GetChat(ctx context.Context, chatID int64) (model.Chat, error)
 	SetTitle(ctx context.Context, chatID int64, title string) error

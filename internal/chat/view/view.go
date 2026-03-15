@@ -7,6 +7,9 @@ import (
 )
 
 func FormatNorm(norm, normBan int32) string {
+	if norm == 0 && normBan == 0 {
+		return fmt.Sprintf("Норма еще не установлена\n\nПопробуйте <code>!норма 100 варн</code> или <code>!норма 40 бан</code>")
+	}
 	if norm == normBan {
 		return fmt.Sprintf("Норма: %d сообщений", norm)
 	}

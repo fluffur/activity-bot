@@ -61,14 +61,18 @@ func (q *Queries) EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemb
 
 const ensureMemberFull = `-- name: EnsureMemberFull :one
 WITH chat_upsert AS (
-    INSERT INTO chats (id, norm_warn)
-        VALUES ($2, $3)
-        ON CONFLICT (id) DO UPDATE
-            SET norm_warn = chats.norm_warn
+    INSERT INTO chats (id)
+        VALUES ($2)
+        ON CONFLICT (id) DO NOTHING
         RETURNING id),
+     chat_id_resolve AS (
+         SELECT id FROM chat_upsert
+         UNION ALL
+         SELECT id FROM chats WHERE id = $2
+         LIMIT 1),
      user_upsert AS (
          INSERT INTO users (id, username, first_name, last_name)
-             VALUES ($4, $5, $6, $7)
+             VALUES ($3, $4, $5, $6)
              ON CONFLICT (id) DO UPDATE
                  SET username = EXCLUDED.username,
                      first_name = EXCLUDED.first_name,
@@ -76,10 +80,10 @@ WITH chat_upsert AS (
              RETURNING id)
 INSERT
 INTO chat_members (chat_id, user_id, custom_title)
-SELECT chat_upsert.id,
+SELECT chat_id_resolve.id,
        user_upsert.id,
        $1
-FROM chat_upsert,
+FROM chat_id_resolve,
      user_upsert
 ON CONFLICT (chat_id, user_id) DO UPDATE
     SET custom_title = CASE
@@ -94,7 +98,6 @@ RETURNING chat_id, user_id, joined_at, rest_until, custom_title, status, left_at
 type EnsureMemberFullParams struct {
 	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
 	ChatID      int64       `db:"chat_id" json:"chatId"`
-	NormWarn    int32       `db:"norm_warn" json:"normWarn"`
 	UserID      int64       `db:"user_id" json:"userId"`
 	Username    pgtype.Text `db:"username" json:"username"`
 	FirstName   pgtype.Text `db:"first_name" json:"firstName"`
@@ -105,7 +108,6 @@ func (q *Queries) EnsureMemberFull(ctx context.Context, arg EnsureMemberFullPara
 	row := q.db.QueryRow(ctx, ensureMemberFull,
 		arg.CustomTitle,
 		arg.ChatID,
-		arg.NormWarn,
 		arg.UserID,
 		arg.Username,
 		arg.FirstName,

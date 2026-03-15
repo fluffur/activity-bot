@@ -13,8 +13,8 @@ import (
 
 const ensureChatExists = `-- name: EnsureChatExists :one
 WITH ins AS (
-    INSERT INTO chats (id, title, norm_warn)
-        VALUES ($1, $2, $3)
+    INSERT INTO chats (id, title)
+        VALUES ($1, $2)
         ON CONFLICT (id) DO UPDATE
             SET title = COALESCE(NULLIF(EXCLUDED.title, ''), chats.title)
         RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled)
@@ -28,14 +28,13 @@ LIMIT 1
 `
 
 type EnsureChatExistsParams struct {
-	ID       int64  `db:"id" json:"id"`
-	Title    string `db:"title" json:"title"`
-	NormWarn int32  `db:"norm_warn" json:"normWarn"`
+	ID    int64  `db:"id" json:"id"`
+	Title string `db:"title" json:"title"`
 }
 
 type EnsureChatExistsRow struct {
 	ID                  int64       `db:"id" json:"id"`
-	NormWarn            int32       `db:"norm_warn" json:"normWarn"`
+	NormWarn            pgtype.Int4 `db:"norm_warn" json:"normWarn"`
 	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 	AiSystemPrompt      pgtype.Text `db:"ai_system_prompt" json:"aiSystemPrompt"`
 	MaxLadder           int32       `db:"max_ladder" json:"maxLadder"`
@@ -55,7 +54,7 @@ type EnsureChatExistsRow struct {
 }
 
 func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error) {
-	row := q.db.QueryRow(ctx, ensureChatExists, arg.ID, arg.Title, arg.NormWarn)
+	row := q.db.QueryRow(ctx, ensureChatExists, arg.ID, arg.Title)
 	var i EnsureChatExistsRow
 	err := row.Scan(
 		&i.ID,
@@ -168,7 +167,7 @@ type GetAllUserChatsWithoutNormRow struct {
 	ID        int64       `db:"id" json:"id"`
 	Title     string      `db:"title" json:"title"`
 	NormBan   pgtype.Int4 `db:"norm_ban" json:"normBan"`
-	NormWarn  int32       `db:"norm_warn" json:"normWarn"`
+	NormWarn  pgtype.Int4 `db:"norm_warn" json:"normWarn"`
 	WeekCount int64       `db:"week_count" json:"weekCount"`
 }
 
@@ -346,9 +345,9 @@ RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, ca
 `
 
 type GetOrCreateChatParams struct {
-	ID       int64  `db:"id" json:"id"`
-	Title    string `db:"title" json:"title"`
-	NormWarn int32  `db:"norm_warn" json:"normWarn"`
+	ID       int64       `db:"id" json:"id"`
+	Title    string      `db:"title" json:"title"`
+	NormWarn pgtype.Int4 `db:"norm_warn" json:"normWarn"`
 }
 
 func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams) (Chat, error) {
@@ -625,8 +624,8 @@ WHERE id = $2
 `
 
 type UpdateChatWarnNormParams struct {
-	NormWarn int32 `db:"norm_warn" json:"normWarn"`
-	ID       int64 `db:"id" json:"id"`
+	NormWarn pgtype.Int4 `db:"norm_warn" json:"normWarn"`
+	ID       int64       `db:"id" json:"id"`
 }
 
 func (q *Queries) UpdateChatWarnNorm(ctx context.Context, arg UpdateChatWarnNormParams) error {

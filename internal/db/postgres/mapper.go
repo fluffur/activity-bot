@@ -24,7 +24,7 @@ func mapChat(c db.Chat) model.Chat {
 	return model.Chat{
 		ID:                  c.ID,
 		Title:               c.Title,
-		NormWarn:            c.NormWarn,
+		NormWarn:            c.NormWarn.Int32,
 		NormBan:             c.NormBan.Int32,
 		NewbieThresholdDays: c.NewbieThresholdDays,
 		AISystemPrompt:      c.AiSystemPrompt.String,
@@ -85,7 +85,7 @@ func mapMessageReportRow(m db.MessageReportRow) model.MessageReportMember {
 	return model.MessageReportMember{
 		User:                mapUser(m.User),
 		MessagesCount:       int(m.MessagesCount),
-		NormWarn:            int(m.NormWarn),
+		NormWarn:            int(m.NormWarn.Int32),
 		NormBan:             int(m.NormBan.Int32),
 		NewbieThresholdDays: int(m.NewbieThresholdDays),
 		Status:              m.ChatMember.Status,
@@ -105,7 +105,7 @@ func mapMessageReportOneRow(m db.MessageReportOneRow) model.MemberStats {
 		MonthRollingCount: int(m.MonthRollingCount),
 		AllTime:           int(m.AllTimeCount),
 		NormBan:           int(m.NormBan.Int32),
-		NormWarn:          int(m.NormWarn),
+		NormWarn:          int(m.NormWarn.Int32),
 		JoinedAt:          m.ChatMember.JoinedAt.Time,
 		RestUntil:         m.ChatMember.RestUntil.Time,
 		NewbieThreshold:   int(m.NewbieThresholdDays),

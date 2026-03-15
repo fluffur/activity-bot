@@ -83,19 +83,45 @@ func FormatLastSeen(t time.Time) string {
 	var human string
 
 	if d < time.Hour {
-		human = fmt.Sprintf("<tg-time unix=\"%d\">меньше часа назад</tg-time>)", t.Unix())
+		minutes := int(d.Minutes())
+		if minutes <= 1 {
+			human = "только что"
+		} else {
+			human = fmt.Sprintf("%d %s назад",
+				minutes,
+				pluralRu(minutes, "минуту", "минуты", "минут"),
+			)
+		}
 	} else {
-		days := int(d.Hours()) / 24
-		hours := int(d.Hours()) % 24
+
+		totalHours := int(d.Hours())
+
+		years := totalHours / (24 * 365)
+		months := (totalHours % (24 * 365)) / (24 * 30)
+		days := (totalHours % (24 * 30)) / 24
+		hours := totalHours % 24
 
 		var parts []string
 
-		if days > 0 {
+		if years > 0 {
+			parts = append(parts,
+				fmt.Sprintf("%d %s", years, pluralRu(years, "год", "года", "лет")),
+			)
+		}
+
+		if months > 0 {
+			parts = append(parts,
+				fmt.Sprintf("%d %s", months, pluralRu(months, "месяц", "месяца", "месяцев")),
+			)
+		}
+
+		if days > 0 && years == 0 {
 			parts = append(parts,
 				fmt.Sprintf("%d %s", days, pluralRu(days, "день", "дня", "дней")),
 			)
 		}
-		if hours > 0 {
+
+		if hours > 0 && years == 0 && months == 0 {
 			parts = append(parts,
 				fmt.Sprintf("%d %s", hours, pluralRu(hours, "час", "часа", "часов")),
 			)

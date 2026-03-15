@@ -67,11 +67,15 @@ WHERE chat_id = @chat_id
 
 -- name: EnsureMemberFull :one
 WITH chat_upsert AS (
-    INSERT INTO chats (id, norm_warn)
-        VALUES (@chat_id, @norm_warn)
-        ON CONFLICT (id) DO UPDATE
-            SET norm_warn = chats.norm_warn
+    INSERT INTO chats (id)
+        VALUES (@chat_id)
+        ON CONFLICT (id) DO NOTHING
         RETURNING id),
+     chat_id_resolve AS (
+         SELECT id FROM chat_upsert
+         UNION ALL
+         SELECT id FROM chats WHERE id = @chat_id
+         LIMIT 1),
      user_upsert AS (
          INSERT INTO users (id, username, first_name, last_name)
              VALUES (@user_id, @username, @first_name, @last_name)
@@ -82,10 +86,10 @@ WITH chat_upsert AS (
              RETURNING id)
 INSERT
 INTO chat_members (chat_id, user_id, custom_title)
-SELECT chat_upsert.id,
+SELECT chat_id_resolve.id,
        user_upsert.id,
        @custom_title
-FROM chat_upsert,
+FROM chat_id_resolve,
      user_upsert
 ON CONFLICT (chat_id, user_id) DO UPDATE
     SET custom_title = CASE

@@ -57,7 +57,7 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.ReplyHTML(b, "📭 <b>За выбранный период активности не найдено.</b>")
 	}
 
-	text := view.FormatReport(report, restMembers, c.NewbieThresholdDays, from, to)
+	text := view.FormatStats(report, restMembers, c.NewbieThresholdDays, from, to)
 
 	return ctx.Reply(b, text, &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
@@ -378,14 +378,16 @@ func getCallKeyboard(c model.Chat) *gotgbot.InlineKeyboardMarkup {
 
 	if c.NormWarn != 0 {
 		row = append(row, gotgbot.InlineKeyboardButton{
-			Text:         "Созвать варн",
-			CallbackData: "call_no_norm_warn",
+			Text:              fmt.Sprintf("Без нормы %d", c.NormWarn),
+			CallbackData:      "call_no_norm_warn",
+			IconCustomEmojiId: "5433866857666855412",
 		})
 	}
 	if c.NormBan != 0 {
 		row = append(row, gotgbot.InlineKeyboardButton{
-			Text:         "Созвать бан",
-			CallbackData: "call_no_norm_ban",
+			Text:              fmt.Sprintf("Без нормы %d", c.NormBan),
+			CallbackData:      "call_no_norm_ban",
+			IconCustomEmojiId: "5433866857666855412",
 		})
 	}
 
@@ -393,9 +395,11 @@ func getCallKeyboard(c model.Chat) *gotgbot.InlineKeyboardMarkup {
 		buttons = append(buttons, row)
 	}
 
-	buttons = append(buttons, []gotgbot.InlineKeyboardButton{
-		{Text: "Созвать всех", CallbackData: "call_no_norm"},
-	})
+	if c.NormWarn != 0 || c.NormBan != 0 {
+		buttons = append(buttons, []gotgbot.InlineKeyboardButton{
+			{Text: "Всех без нормы", CallbackData: "call_no_norm", IconCustomEmojiId: "5433866857666855412"},
+		})
+	}
 
 	return &gotgbot.InlineKeyboardMarkup{
 		InlineKeyboard: buttons,

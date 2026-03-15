@@ -6,7 +6,9 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"context"
+	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -27,9 +29,8 @@ func (r *ChatRepository) SetTagsEnabled(ctx context.Context, chatID int64, enabl
 
 func (r *ChatRepository) Ensure(ctx context.Context, c model.Chat) (model.Chat, error) {
 	ch, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{
-		ID:       c.ID,
-		Title:    c.Title,
-		NormWarn: c.NormWarn,
+		ID:    c.ID,
+		Title: c.Title,
 	})
 	if err != nil {
 		return model.Chat{}, err
@@ -47,8 +48,8 @@ func (r *ChatRepository) SetTitle(ctx context.Context, chatID int64, title strin
 
 func (r *ChatRepository) SetWarnNorm(ctx context.Context, chatID int64, norm int32) error {
 	return r.queries.UpdateChatWarnNorm(ctx, db.UpdateChatWarnNormParams{
-		NormWarn: norm,
 		ID:       chatID,
+		NormWarn: pgtype.Int4{Int32: norm, Valid: true},
 	})
 }
 
@@ -67,8 +68,7 @@ func (r *ChatRepository) SetNewbieThreshold(ctx context.Context, chatID int64, t
 
 func (r *ChatRepository) GetNewbieThreshold(ctx context.Context, chatID int64) (int, error) {
 	c, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{
-		ID:       chatID,
-		NormWarn: 100,
+		ID: chatID,
 	})
 	if err != nil {
 		return 0, err
@@ -76,25 +76,21 @@ func (r *ChatRepository) GetNewbieThreshold(ctx context.Context, chatID int64) (
 	return int(c.NewbieThresholdDays), nil
 }
 
-func (r *ChatRepository) GetNorm(ctx context.Context, chatID int64, fallbackNorm int32) (int, error) {
-	c, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{
-		ID:       chatID,
-		NormWarn: fallbackNorm,
-	})
-	if err != nil {
-		return 0, err
-	}
-	return int(c.NormWarn), nil
-}
-
 func (r *ChatRepository) GetChat(ctx context.Context, chatID int64) (model.Chat, error) {
-	c, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{
-		ID: chatID,
-	})
+	c, err := r.queries.GetChat(ctx, chatID)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+
+			c, err := r.queries.EnsureChatExists(ctx, db.EnsureChatExistsParams{ID: chatID})
+			if err != nil {
+				return model.Chat{}, err
+			}
+			return mapChatFromRow(c), nil
+
+		}
 		return model.Chat{}, err
 	}
-	return mapChatFromRow(c), nil
+	return mapChat(c), nil
 }
 
 func (r *ChatRepository) SetChatPrompt(ctx context.Context, chatID int64, prompt string) error {
@@ -186,7 +182,7 @@ func mapChatsWithoutNorm(chats []db.GetAllUserChatsWithoutNormRow) []model.ChatW
 			ID:        c.ID,
 			Title:     c.Title,
 			NormBan:   c.NormBan.Int32,
-			NormWarn:  c.NormWarn,
+			NormWarn:  c.NormWarn.Int32,
 			WeekCount: c.WeekCount,
 		}
 	}
