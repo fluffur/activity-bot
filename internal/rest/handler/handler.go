@@ -4,7 +4,6 @@ import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
-	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"activity-bot/internal/rest"
@@ -46,7 +45,6 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	date := time.Time{}
 	ok := false
-	logger.L.Info("dates", "dates", ctx.ParsedDates())
 	if len(ctx.ParsedDates()) > 0 {
 		date = ctx.ParsedDates()[0]
 		ok = true
@@ -57,7 +55,7 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if !ok {
 		return ctx.Reply(b, "Не понял формат. Примеры:\n+рест 12.01\n+рест 2 недели\n+рест месяц", nil)
 	}
-	if date.Before(time.Now().In(helpers.MoscowLocation)) {
+	if date.Before(time.Now()) {
 		return ctx.Reply(b, "Нельзя указывать прошедшую дату", nil)
 	}
 

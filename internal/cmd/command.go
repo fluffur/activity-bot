@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"activity-bot/internal/chat"
-	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
@@ -163,8 +162,6 @@ func New(commands []string, triggers []string, response Response, userService *u
 	}
 }
 
-var dateParser = helpers.NewDateParser()
-
 func (c *Command) WithGuards(guards ...Guard) *Command {
 	c.guards = append(c.guards, guards...)
 	return c
@@ -296,7 +293,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		}
 
 		if e.UnixTime != 0 {
-			parsedDates = append(parsedDates, time.Unix(e.UnixTime, 0).In(helpers.MoscowLocation))
+			parsedDates = append(parsedDates, time.Unix(e.UnixTime, 0))
 		}
 
 	}

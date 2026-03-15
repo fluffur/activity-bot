@@ -213,7 +213,7 @@ func TestCommand_matchCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotRest, gotMatched := tt.command.matchCommand(tt.text, tt.botUsername, tt.chatPrefix)
+			gotRest, gotMatched := tt.command.matchCommand(tt.text, tt.botUsername, tt.chatPrefix, true)
 			if gotMatched != tt.wantMatched {
 				t.Errorf("matchCommand() matched = %v, want %v", gotMatched, tt.wantMatched)
 			}

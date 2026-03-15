@@ -1,7 +1,6 @@
 package stats
 
 import (
-	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"bytes"
 	"context"
@@ -89,7 +88,7 @@ func (s *Service) GetMessageActivityGraph(ctx context.Context, chatID, userID in
 	}
 
 	start := activity[0].Date.Truncate(24 * time.Hour)
-	today := time.Now().In(helpers.MoscowLocation).Truncate(24 * time.Hour)
+	today := time.Now().Truncate(24 * time.Hour)
 
 	if today.Sub(start).Hours()/24 > 30 {
 		start = today.AddDate(0, 0, -29)

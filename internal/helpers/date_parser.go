@@ -28,7 +28,7 @@ type DateParser struct {
 
 func NewDateParser() *DateParser {
 	return &DateParser{
-		now: func() time.Time { return time.Now().In(MoscowLocation) },
+		now: time.Now,
 	}
 }
 
@@ -37,11 +37,11 @@ func (p *DateParser) Parse(arg string) (time.Time, bool) {
 
 	switch arg {
 	case "сегодня":
-		return p.now(), true
+		return p.now().Truncate(24 * time.Hour), true
 	case "завтра":
-		return p.now().AddDate(0, 0, 1), true
+		return p.now().AddDate(0, 0, 1).Truncate(24 * time.Hour), true
 	case "вчера":
-		return p.now().AddDate(0, 0, -1), true
+		return p.now().AddDate(0, 0, -1).Truncate(24 * time.Hour), true
 	}
 
 	if t, ok := p.parseRussianDate(arg); ok {
@@ -53,7 +53,15 @@ func (p *DateParser) Parse(arg string) (time.Time, bool) {
 	}
 
 	if duration, ok := p.ParseDuration(arg); ok {
-		return p.now().Add(duration), true
+		now := p.now()
+		if duration%(24*time.Hour) == 0 {
+			now = now.Truncate(24 * time.Hour)
+		}
+		return now.Add(duration), true
+	}
+
+	if days, err := strconv.Atoi(arg); err == nil && days > 0 {
+		return p.now().Truncate(24*time.Hour).AddDate(0, 0, days), true
 	}
 
 	return time.Time{}, false
@@ -73,7 +81,7 @@ func (p *DateParser) ParseRange(args []string) (*time.Time, *time.Time, bool) {
 
 	if len(args) == 1 {
 		if days, err := strconv.Atoi(args[0]); err == nil && days > 0 {
-			from := p.now().AddDate(0, 0, -days)
+			from := p.now().Truncate(24*time.Hour).AddDate(0, 0, -days)
 
 			return &from, nil, true
 		}

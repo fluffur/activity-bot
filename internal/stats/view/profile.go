@@ -24,11 +24,11 @@ func FormatProfile(m model.MemberStats) string {
 		m.User,
 		displayName,
 	)
-	now := time.Now().In(helpers.MoscowLocation)
+	now := time.Now().UTC()
 
 	isNewbie := false
 	if m.NewbieThreshold > 0 {
-		newbieUntil := m.JoinedAt.AddDate(0, 0, int(m.NewbieThreshold))
+		newbieUntil := m.JoinedAt.AddDate(0, 0, m.NewbieThreshold)
 		if newbieUntil.After(now) {
 			isNewbie = true
 		}
@@ -47,7 +47,7 @@ func FormatProfile(m model.MemberStats) string {
 
 	text := fmt.Sprintf(
 		`%s Информация о %s
-• %s %s (зашёл %s%s%s)
+• %s %s (%s %s%s%s)
 %s
 %s Актив<blockquote>▸ сегодня: <code>%d</code>
 ▸ эта неделя: <code>%d</code>
@@ -62,6 +62,7 @@ func FormatProfile(m model.MemberStats) string {
 		name,
 		status,
 		getStatusEmoji(m.Status),
+		helpers.Gendered(m.User.Gender, "зашел", "зашла"),
 		helpers.FormatLastSeen(m.JoinedAt),
 		newbieEmoji,
 		leftAtInfo,

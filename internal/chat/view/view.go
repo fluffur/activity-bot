@@ -69,9 +69,7 @@ func FormatWeekStartSet(day int, time string) string {
 }
 
 func FormatWeek(msg string, day int, timeStr string) string {
-	loc := helpers.MoscowLocation
-
-	now := time.Now().In(loc)
+	now := time.Now()
 
 	var h, m int
 	fmt.Sscanf(timeStr, "%d:%d", &h, &m)
@@ -89,7 +87,7 @@ func FormatWeek(msg string, day int, timeStr string) string {
 		m,
 		0,
 		0,
-		loc,
+		time.Local,
 	)
 
 	return fmt.Sprintf(

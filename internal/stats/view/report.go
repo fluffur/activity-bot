@@ -152,7 +152,7 @@ type reportSections struct {
 }
 
 func prepareReportSections(report []model.MessageReportMember, restMembers []model.RestMember) reportSections {
-	now := time.Now().In(helpers.MoscowLocation)
+	now := time.Now().UTC()
 	s := reportSections{}
 
 	for _, r := range report {
@@ -175,7 +175,7 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 
 		isNewbie := false
 		if r.NewbieThresholdDays > 0 {
-			newbieUntil := r.JoinedAt.AddDate(0, 0, int(r.NewbieThresholdDays))
+			newbieUntil := r.JoinedAt.AddDate(0, 0, r.NewbieThresholdDays)
 			if newbieUntil.After(now) {
 				isNewbie = true
 			}

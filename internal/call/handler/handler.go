@@ -132,7 +132,7 @@ func (h *Handler) CallNoNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	from, to := stats.ResolvePeriod(
 		stats.PeriodWeek,
-		time.Now().In(helpers.MoscowLocation),
+		time.Now(),
 		c.WeekStartDay,
 		c.WeekStartTime,
 	)
@@ -157,7 +157,7 @@ func (h *Handler) CallNoNormWarn(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	from, to := stats.ResolvePeriod(
 		stats.PeriodWeek,
-		time.Now().In(helpers.MoscowLocation),
+		time.Now(),
 		c.WeekStartDay,
 		c.WeekStartTime,
 	)
@@ -678,7 +678,7 @@ func (h *Handler) HandleCallNoNormMessage(b *gotgbot.Bot, ctx *ext.Context) erro
 
 			from, to := stats.ResolvePeriod(
 				stats.PeriodWeek,
-				time.Now().In(helpers.MoscowLocation),
+				time.Now(),
 				c.WeekStartDay,
 				c.WeekStartTime,
 			)
@@ -700,7 +700,7 @@ func (h *Handler) HandleCallNoNormWarnMessage(b *gotgbot.Bot, ctx *ext.Context) 
 
 			from, to := stats.ResolvePeriod(
 				stats.PeriodWeek,
-				time.Now().In(helpers.MoscowLocation),
+				time.Now(),
 				c.WeekStartDay,
 				c.WeekStartTime,
 			)
@@ -722,7 +722,7 @@ func (h *Handler) HandleCallNoNormBanMessage(b *gotgbot.Bot, ctx *ext.Context) e
 
 			from, to := stats.ResolvePeriod(
 				stats.PeriodWeek,
-				time.Now().In(helpers.MoscowLocation),
+				time.Now(),
 				c.WeekStartDay,
 				c.WeekStartTime,
 			)
@@ -778,7 +778,7 @@ func (h *Handler) NoMessageCallConversation(b *gotgbot.Bot, ctx *ext.Context) er
 		}
 		from, to := stats.ResolvePeriod(
 			stats.PeriodWeek,
-			time.Now().In(helpers.MoscowLocation),
+			time.Now(),
 			c.WeekStartDay,
 			c.WeekStartTime,
 		)
@@ -790,7 +790,7 @@ func (h *Handler) NoMessageCallConversation(b *gotgbot.Bot, ctx *ext.Context) er
 		}
 		from, to := stats.ResolvePeriod(
 			stats.PeriodWeek,
-			time.Now().In(helpers.MoscowLocation),
+			time.Now(),
 			c.WeekStartDay,
 			c.WeekStartTime,
 		)

@@ -14,11 +14,12 @@ func init() {
 	if err != nil {
 		MoscowLocation = time.FixedZone("MSK", 3*3600)
 	}
+	time.Local = MoscowLocation
 }
 
 func FormatToHumanDateTime(date time.Time) string {
-	date = date.In(MoscowLocation)
-	now := time.Now().In(MoscowLocation)
+	date = date.Local()
+	now := time.Now()
 
 	months := [...]string{
 		"января", "февраля", "марта", "апреля", "мая", "июня",
@@ -38,8 +39,8 @@ func FormatToHumanDateTime(date time.Time) string {
 }
 
 func FormatToHumanDate(date time.Time) string {
-	date = date.In(MoscowLocation)
-	now := time.Now().In(MoscowLocation)
+	date = date.Local()
+	now := time.Now()
 
 	months := [...]string{
 		"января", "февраля", "марта", "апреля", "мая", "июня",
@@ -75,8 +76,8 @@ func PluralizeDays(n int) string {
 }
 
 func FormatLastSeen(t time.Time) string {
-	t = t.In(MoscowLocation)
-	now := time.Now().In(MoscowLocation)
+	t = t.Local()
+	now := time.Now()
 
 	d := now.Sub(t)
 
