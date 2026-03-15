@@ -137,7 +137,7 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return ctx.Reply(b, "Не удалось проверить рест пользователя", nil)
 	}
-	if m.RestUntil == nil {
+	if !m.RestUntil.IsZero() {
 		isSelf := targetUser.ID == ctx.EffectiveUser.Id
 		return ctx.ReplyHTML(b, view.FormatRestNotInRest(*targetUser, isSelf))
 	}

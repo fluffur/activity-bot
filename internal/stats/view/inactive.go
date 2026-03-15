@@ -25,10 +25,10 @@ func FormatInactiveMembers(members []model.InactiveMember) string {
 			),
 		))
 
-		if m.LastActivity != nil {
+		if !m.LastActivity.IsZero() {
 			sb.WriteString(fmt.Sprintf(
 				" — %s",
-				helpers.FormatLastSeen(*m.LastActivity),
+				helpers.FormatLastSeen(m.LastActivity),
 			))
 		} else {
 			sb.WriteString(" — не писал ни разу")

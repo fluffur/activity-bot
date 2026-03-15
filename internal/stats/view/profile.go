@@ -10,8 +10,8 @@ import (
 
 func FormatProfile(m model.MemberStats) string {
 	var displayName string
-	if m.CustomTitle != nil && *m.CustomTitle != "" {
-		displayName = *m.CustomTitle
+	if m.CustomTitle != "" {
+		displayName = m.CustomTitle
 	} else {
 		fullName := strings.TrimSpace(m.User.FirstName + " " + m.User.LastName)
 		if fullName == "" {
@@ -41,8 +41,8 @@ func FormatProfile(m model.MemberStats) string {
 
 	status := helpers.TranslateMemberStatus(m.Status, m.LeftAt)
 	leftAtInfo := ""
-	if m.LeftAt != nil {
-		leftAtInfo = ", покинул чат " + helpers.FormatToHumanDate(*m.LeftAt)
+	if !m.LeftAt.IsZero() {
+		leftAtInfo = ", покинул чат " + helpers.FormatToHumanDate(m.LeftAt)
 	}
 
 	text := fmt.Sprintf(
@@ -78,31 +78,27 @@ func FormatProfile(m model.MemberStats) string {
 		m.MonthRollingCount,
 		helpers.Line(),
 	)
-	isRestActive := m.RestUntil != nil && m.RestUntil.After(time.Now())
+	isRestActive := m.RestUntil.After(time.Now())
 
 	if m.NormWarn > 0 || m.NormBan > 0 {
 		normStatus := getNormStatusEmoji(m.WeekCount, m.NormWarn, m.NormBan, isRestActive, isNewbie)
 		text += fmt.Sprintf("\n%s", normStatus)
 	}
 
-	if m.RestUntil != nil {
+	daysSinceRestEnd := int(now.Sub(m.RestUntil).Hours() / 24)
 
-		now := time.Now()
-		daysSinceRestEnd := int(now.Sub(*m.RestUntil).Hours() / 24)
-
-		if m.RestUntil.After(time.Now()) {
-			text += fmt.Sprintf(
-				"<blockquote>%s Рест до %s</blockquote>",
-				helpers.RestEmoji(),
-				helpers.FormatToHumanDateTime(*m.RestUntil),
-			)
-		} else if daysSinceRestEnd >= 0 && daysSinceRestEnd <= 3 {
-			text += fmt.Sprintf(
-				"\n<blockquote>%s Последний рест был завершен %s</blockquote>",
-				helpers.RestEmoji(),
-				helpers.FormatToHumanDate(*m.RestUntil),
-			)
-		}
+	if isRestActive {
+		text += fmt.Sprintf(
+			"<blockquote>%s Рест до %s</blockquote>",
+			helpers.RestEmoji(),
+			helpers.FormatToHumanDateTime(m.RestUntil),
+		)
+	} else if daysSinceRestEnd >= 0 && daysSinceRestEnd <= 3 {
+		text += fmt.Sprintf(
+			"\n<blockquote>%s Последний рест был завершен %s</blockquote>",
+			helpers.RestEmoji(),
+			helpers.FormatToHumanDate(m.RestUntil),
+		)
 	}
 
 	return text
@@ -121,7 +117,7 @@ func getStatusEmoji(status string) string {
 	return helpers.CustomEmoji(5298532506889382420, "😭")
 }
 
-func getNormStatusEmoji(weekCount, normWarn, normBan int32, isRestActive, isNewbie bool) string {
+func getNormStatusEmoji(weekCount, normWarn, normBan int, isRestActive, isNewbie bool) string {
 	if isRestActive || isNewbie {
 		return fmt.Sprintf("%s Освобождение от нормы", helpers.CustomEmoji(5456648248968121823, "🕊"))
 	}

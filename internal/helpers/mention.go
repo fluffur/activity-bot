@@ -7,8 +7,8 @@ import (
 )
 
 func UserLink(u model.User) string {
-	if u.Username != nil && *u.Username != "" {
-		return fmt.Sprintf(`<a href="https://t.me/%s">%s</a>`, *u.Username, html.EscapeString(u.FirstName))
+	if u.Username != "" {
+		return fmt.Sprintf(`<a href="https://t.me/%s">%s</a>`, u.Username, html.EscapeString(u.FirstName))
 	}
 
 	return fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a>`, u.ID, html.EscapeString(u.FirstName))
@@ -23,8 +23,8 @@ func AnyLink(href, content string) string {
 }
 
 func LinkWithContent(u model.User, content string) string {
-	if u.Username != nil && *u.Username != "" {
-		return fmt.Sprintf(`<a href="https://t.me/%s">%s</a>`, *u.Username, html.EscapeString(content))
+	if u.Username != "" {
+		return fmt.Sprintf(`<a href="https://t.me/%s">%s</a>`, u.Username, html.EscapeString(content))
 	}
 
 	return fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a>`, u.ID, html.EscapeString(content))

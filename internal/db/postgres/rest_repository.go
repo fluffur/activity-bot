@@ -189,20 +189,12 @@ func mapRestRequest(er db.RestRequest) model.RestRequest {
 }
 
 func mapChatRestUsersRow(row db.GetRestMembersRow) model.RestMember {
-	fullName := row.FirstName.String
-	if row.LastName.Valid {
-		fullName += " " + row.LastName.String
-	}
-	var username *string
-	if row.Username.Valid {
-		username = &row.Username.String
-	}
 	return model.RestMember{
 		User: model.User{
 			ID:        row.UserID,
 			FirstName: row.FirstName.String,
 			LastName:  row.LastName.String,
-			Username:  username,
+			Username:  row.Username.String,
 		},
 		RestUntil:   row.RestUntil.Time,
 		Status:      row.Status,

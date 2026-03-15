@@ -30,7 +30,7 @@ func (s *Service) SetMemberTitle(ctx context.Context, chatID int64, userID int64
 	if err := s.memberTagAdapter.SetMemberTag(ctx, chatID, userID, title); err != nil {
 		return err
 	}
-	return s.repo.UpdateCustomTitle(ctx, chatID, userID, &title)
+	return s.repo.UpdateCustomTitle(ctx, chatID, userID, title)
 }
 func (s *Service) GetMembersWithTitle(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
 	return s.repo.GetWithCustomTitles(ctx, chatID)

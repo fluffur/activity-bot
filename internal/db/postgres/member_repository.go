@@ -75,26 +75,18 @@ func noNormMembersParams(id int64, from, to *time.Time, mode NormMode) db.GetNoN
 func mapMembers(members []db.GetNoNormMembersRow) []model.ChatMember {
 	result := make([]model.ChatMember, len(members))
 	for i, m := range members {
-		var restUntil *time.Time
-		if m.RestUntil.Valid {
-			restUntil = &m.RestUntil.Time
-		}
-		var username *string
-		if m.Username.Valid {
-			username = &m.Username.String
-		}
 		result[i] = model.ChatMember{
 			User: model.User{
 				ID:            m.ID,
 				FirstName:     m.FirstName.String,
 				LastName:      m.LastName.String,
-				Username:      username,
+				Username:      m.Username.String,
 				Gender:        m.Gender,
 				Emoji:         m.Emoji.String,
 				CustomEmojiID: m.CustomEmojiID.String,
 			},
 			ChatID:      m.ChatID,
-			RestUntil:   restUntil,
+			RestUntil:   m.RestUntil.Time,
 			RestReason:  m.RestReason.String,
 			CustomTitle: m.CustomTitle.String,
 			Status:      m.Status,
@@ -125,18 +117,14 @@ func (r *MemberRepository) GetCustomTitle(ctx context.Context, chatID int64, use
 	return title.String, nil
 }
 
-func (r *MemberRepository) UpdateCustomTitle(ctx context.Context, chatID int64, userID int64, title *string) error {
-	var customTitle pgtype.Text
-	if title != nil {
-		customTitle = pgtype.Text{
-			String: *title,
-			Valid:  true,
-		}
-	}
+func (r *MemberRepository) UpdateCustomTitle(ctx context.Context, chatID int64, userID int64, title string) error {
 	return r.queries.UpdateChatMemberTitle(ctx, db.UpdateChatMemberTitleParams{
-		ChatID:      chatID,
-		UserID:      userID,
-		CustomTitle: customTitle,
+		ChatID: chatID,
+		UserID: userID,
+		CustomTitle: pgtype.Text{
+			String: title,
+			Valid:  title != "",
+		},
 	})
 
 }
@@ -157,26 +145,18 @@ func (r *MemberRepository) FindByChatID(ctx context.Context, chatID int64) ([]mo
 
 	result := make([]model.ChatMember, len(members))
 	for i, m := range members {
-		var restUntil *time.Time
-		var username *string
-		if m.Username.Valid {
-			username = &m.Username.String
-		}
-		if m.RestUntil.Valid {
-			restUntil = &m.RestUntil.Time
-		}
 		result[i] = model.ChatMember{
 			User: model.User{
 				ID:            m.UserID,
 				FirstName:     m.FirstName.String,
 				LastName:      m.LastName.String,
-				Username:      username,
+				Username:      m.Username.String,
 				Gender:        m.Gender,
 				Emoji:         m.Emoji.String,
 				CustomEmojiID: m.CustomEmojiID.String,
 			},
 			ChatID:      chatID,
-			RestUntil:   restUntil,
+			RestUntil:   m.RestUntil.Time,
 			CustomTitle: m.CustomTitle.String,
 			Status:      m.Status,
 		}
@@ -192,18 +172,13 @@ func (r *MemberRepository) GetWithCustomTitles(ctx context.Context, chatID int64
 	}
 	res := make([]model.ChatMember, len(members))
 	for i, m := range members {
-		var username *string
-		if m.Username.Valid {
-			username = &m.Username.String
-		}
-
 		res[i] = model.ChatMember{
 			ChatID: chatID,
 			User: model.User{
 				ID:            m.UserID,
 				FirstName:     m.FirstName.String,
 				LastName:      m.LastName.String,
-				Username:      username,
+				Username:      m.Username.String,
 				Gender:        m.Gender,
 				Emoji:         m.Emoji.String,
 				CustomEmojiID: m.CustomEmojiID.String,
@@ -222,18 +197,13 @@ func (r *MemberRepository) GetAnyWithCustomTitles(ctx context.Context, chatID in
 	}
 	res := make([]model.ChatMember, len(members))
 	for i, m := range members {
-		var username *string
-		if m.Username.Valid {
-			username = &m.Username.String
-		}
-
 		res[i] = model.ChatMember{
 			ChatID: chatID,
 			User: model.User{
 				ID:            m.UserID,
 				FirstName:     m.FirstName.String,
 				LastName:      m.LastName.String,
-				Username:      username,
+				Username:      m.Username.String,
 				Gender:        m.Gender,
 				Emoji:         m.Emoji.String,
 				CustomEmojiID: m.CustomEmojiID.String,
@@ -332,44 +302,30 @@ func (r *MemberRepository) MarkLeftNotInList(ctx context.Context, chatID int64, 
 }
 
 func mapChatMember(m db.ChatMember) model.ChatMember {
-	var restUntil *time.Time
-	if m.RestUntil.Valid {
-		t := m.RestUntil.Time
-		restUntil = &t
-	}
 	return model.ChatMember{
 		ChatID: m.ChatID,
 		User: model.User{
 			ID: m.UserID,
 		},
-		RestUntil:   restUntil,
+		RestUntil:   m.RestUntil.Time,
 		CustomTitle: m.CustomTitle.String,
 		Status:      m.Status,
 	}
 }
 
 func mapChatMemberRow(m db.GetChatMemberRow) model.ChatMember {
-	var restUntil *time.Time
-	if m.RestUntil.Valid {
-		t := m.RestUntil.Time
-		restUntil = &t
-	}
-	var username *string
-	if m.Username.Valid {
-		username = &m.Username.String
-	}
 	return model.ChatMember{
 		ChatID: m.ChatID,
 		User: model.User{
 			ID:            m.UserID,
 			FirstName:     m.FirstName.String,
 			LastName:      m.LastName.String,
-			Username:      username,
+			Username:      m.Username.String,
 			Gender:        m.Gender,
 			Emoji:         m.Emoji.String,
 			CustomEmojiID: m.CustomEmojiID.String,
 		},
-		RestUntil:   restUntil,
+		RestUntil:   m.RestUntil.Time,
 		RestReason:  m.RestReason.String,
 		CustomTitle: m.CustomTitle.String,
 		Status:      m.Status,

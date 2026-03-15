@@ -66,8 +66,8 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []model.User) er
 
 	for i, u := range users {
 		ids[i] = u.ID
-		if u.Username != nil {
-			usernames[i] = *u.Username
+		if u.Username != "" {
+			usernames[i] = u.Username
 		}
 		firstNames[i] = u.FirstName
 		lastNames[i] = u.LastName
@@ -82,27 +82,15 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []model.User) er
 }
 
 func mapUser(u db.User) model.User {
-	nu := model.User{
-		ID:     u.ID,
-		Gender: u.Gender,
+	return model.User{
+		ID:            u.ID,
+		FirstName:     u.FirstName.String,
+		LastName:      u.LastName.String,
+		Username:      u.Username.String,
+		Gender:        u.Gender,
+		Emoji:         u.Emoji.String,
+		CustomEmojiID: u.CustomEmojiID.String,
 	}
-
-	if u.FirstName.Valid {
-		nu.FirstName = u.FirstName.String
-	}
-	if u.LastName.Valid {
-		nu.LastName = u.LastName.String
-	}
-	if u.Username.Valid {
-		nu.Username = &u.Username.String
-	}
-	if u.CustomEmojiID.Valid {
-		nu.CustomEmojiID = u.CustomEmojiID.String
-	}
-	if u.Emoji.Valid {
-		nu.Emoji = u.Emoji.String
-	}
-	return nu
 }
 
 func (r *UserRepository) GetByCustomTitle(ctx context.Context, chatID int64, title string) ([]model.ChatMember, error) {

@@ -132,9 +132,9 @@ type reportSections struct {
 	FailedBan     []string
 	Newbies       []string
 	InRest        []string
-	NormWarn      int32
-	NormBan       int32
-	TotalMessages int32
+	NormWarn      int
+	NormBan       int
+	TotalMessages int
 }
 
 func prepareReportSections(report []model.MessageReportMember, restMembers []model.RestMember) reportSections {

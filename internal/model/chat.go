@@ -26,7 +26,7 @@ type Chat struct {
 type ChatMember struct {
 	User        User
 	ChatID      int64
-	RestUntil   *time.Time
+	RestUntil   time.Time
 	RestReason  string
 	CustomTitle string
 	Status      string
@@ -42,5 +42,5 @@ type ChatWithoutNorm struct {
 
 type InactiveMember struct {
 	Member       ChatMember
-	LastActivity *time.Time
+	LastActivity time.Time
 }

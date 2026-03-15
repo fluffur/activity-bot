@@ -6,10 +6,10 @@ import (
 
 type MessageReportMember struct {
 	User                User
-	MessagesCount       int32
-	NormWarn            int32
-	NormBan             int32
-	NewbieThresholdDays int32
+	MessagesCount       int
+	NormWarn            int
+	NormBan             int
+	NewbieThresholdDays int
 	Status              string
 	CustomTitle         string
 	JoinedAt            time.Time
@@ -25,20 +25,20 @@ type RestMember struct {
 type MemberStats struct {
 	User User
 
-	DayCount          int32
-	DayRollingCount   int32
-	WeekCount         int32
-	WeekRollingCount  int32
-	MonthCount        int32
-	MonthRollingCount int32
-	AllTime           int32
+	DayCount          int
+	DayRollingCount   int
+	WeekCount         int
+	WeekRollingCount  int
+	MonthCount        int
+	MonthRollingCount int
+	AllTime           int
 
-	NormBan         int32
-	NormWarn        int32
+	NormBan         int
+	NormWarn        int
 	JoinedAt        time.Time
-	RestUntil       *time.Time
-	NewbieThreshold int32
+	RestUntil       time.Time
+	NewbieThreshold int
 	Status          string
-	CustomTitle     *string
-	LeftAt          *time.Time
+	CustomTitle     string
+	LeftAt          time.Time
 }

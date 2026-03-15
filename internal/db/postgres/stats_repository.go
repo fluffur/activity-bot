@@ -19,67 +19,45 @@ func NewStatsRepository(queries *db.Queries) stats.Repository {
 }
 
 func mapMemberStats(row db.MessageReportOneRow) model.MemberStats {
-	var username *string
-	if row.Username.Valid {
-		username = &row.Username.String
-	}
-
-	var customTitle *string
-	if row.CustomTitle.Valid {
-		customTitle = &row.CustomTitle.String
-	}
-	var restUntil *time.Time
-	if row.RestUntil.Valid {
-		restUntil = &row.RestUntil.Time
-	}
-	var leftAt *time.Time
-	if row.LeftAt.Valid {
-		leftAt = &row.LeftAt.Time
-	}
 	return model.MemberStats{
 		User: model.User{
 			ID:        row.UserID,
 			FirstName: row.FirstName.String,
 			LastName:  row.LastName.String,
-			Username:  username,
+			Username:  row.Username.String,
 		},
-		DayCount:          int32(row.DayCount),
-		DayRollingCount:   int32(row.DayRollingCount),
-		WeekCount:         int32(row.WeekCount),
-		WeekRollingCount:  int32(row.WeekRollingCount),
-		MonthCount:        int32(row.MonthCount),
-		MonthRollingCount: int32(row.MonthRollingCount),
-		AllTime:           int32(row.AllTimeCount),
+		DayCount:          int(row.DayCount),
+		DayRollingCount:   int(row.DayRollingCount),
+		WeekCount:         int(row.WeekCount),
+		WeekRollingCount:  int(row.WeekRollingCount),
+		MonthCount:        int(row.MonthCount),
+		MonthRollingCount: int(row.MonthRollingCount),
+		AllTime:           int(row.AllTimeCount),
 
-		RestUntil: restUntil,
+		RestUntil: row.RestUntil.Time,
 
-		NormBan:         row.NormBan.Int32,
-		NormWarn:        row.NormWarn,
+		NormBan:         int(row.NormBan.Int32),
+		NormWarn:        int(row.NormWarn),
 		JoinedAt:        row.JoinedAt.Time,
-		NewbieThreshold: row.NewbieThresholdDays,
+		NewbieThreshold: int(row.NewbieThresholdDays),
 		Status:          row.Status,
-		CustomTitle:     customTitle,
-		LeftAt:          leftAt,
+		CustomTitle:     row.CustomTitle.String,
+		LeftAt:          row.LeftAt.Time,
 	}
 }
 
 func mapWeeklyReportRow(row db.MessageReportRow) model.MessageReportMember {
-	var username *string
-	if row.Username.Valid {
-		username = &row.Username.String
-	}
-
 	return model.MessageReportMember{
 		User: model.User{
 			ID:        row.UserID,
 			FirstName: row.FirstName.String,
-			Username:  username,
+			Username:  row.Username.String,
 		},
-		MessagesCount:       int32(row.MessagesCount),
-		NormWarn:            row.NormWarn,
-		NormBan:             row.NormBan.Int32,
+		MessagesCount:       int(row.MessagesCount),
+		NormWarn:            int(row.NormWarn),
+		NormBan:             int(row.NormBan.Int32),
 		JoinedAt:            row.JoinedAt.Time,
-		NewbieThresholdDays: row.NewbieThresholdDays,
+		NewbieThresholdDays: int(row.NewbieThresholdDays),
 		CustomTitle:         row.CustomTitle.String,
 		Status:              row.Status,
 	}
@@ -157,32 +135,19 @@ func (r *StatsRepository) GetInactiveMembers(ctx context.Context, chatID int64) 
 
 	result := make([]model.InactiveMember, len(members))
 	for i, member := range members {
-		var lastMessageAt *time.Time
-		if member.LastMessageAt.Valid {
-			lastMessageAt = &member.LastMessageAt.Time
-		}
-		var username *string
-		if member.Username.Valid {
-			username = &member.Username.String
-		}
-		var restUntil *time.Time
-		if member.RestUntil.Valid {
-			restUntil = &member.RestUntil.Time
-		}
-
 		result[i] = model.InactiveMember{
 			Member: model.ChatMember{
 				User: model.User{
 					ID:        member.ID,
 					FirstName: member.FirstName.String,
 					LastName:  member.LastName.String,
-					Username:  username,
+					Username:  member.Username.String,
 				},
-				RestUntil:   restUntil,
+				RestUntil:   member.RestUntil.Time,
 				CustomTitle: member.CustomTitle.String,
 				Status:      member.Status,
 			},
-			LastActivity: lastMessageAt,
+			LastActivity: member.LastMessageAt.Time,
 		}
 	}
 	return result, nil

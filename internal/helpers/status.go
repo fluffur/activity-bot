@@ -2,8 +2,8 @@ package helpers
 
 import "time"
 
-func TranslateMemberStatus(status string, leftAt *time.Time) string {
-	if leftAt != nil {
+func TranslateMemberStatus(status string, leftAt time.Time) string {
+	if !leftAt.IsZero() {
 		return "Не в чате"
 	}
 	switch status {

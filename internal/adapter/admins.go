@@ -38,7 +38,7 @@ func (p *TelegramChatAdminsProvider) GetChatAdmins(chatID int64) ([]model.ChatMe
 				ID:        chatUser.User.Id,
 				FirstName: chatUser.User.FirstName,
 				LastName:  chatUser.User.LastName,
-				Username:  &chatUser.User.Username,
+				Username:  chatUser.User.Username,
 			},
 			CustomTitle: chatUser.CustomTitle,
 			Status:      role,

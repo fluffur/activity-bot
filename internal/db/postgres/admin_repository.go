@@ -40,20 +40,16 @@ func (r *AdminRepository) GetFromChat(ctx context.Context, chatID int64) ([]mode
 
 	admins := make([]model.ChatMember, len(rows))
 	for i, row := range rows {
-		var username *string
-		if row.Username.Valid {
-			username = &row.Username.String
-		}
 		admins[i] = model.ChatMember{
 			User: model.User{
 				ID:        row.ID,
 				FirstName: row.FirstName.String,
 				LastName:  row.LastName.String,
-				Username:  username,
+				Username:  row.Username.String,
 				Gender:    row.Gender,
 			},
 			ChatID:      row.ChatID,
-			RestUntil:   &row.RestUntil.Time,
+			RestUntil:   row.RestUntil.Time,
 			RestReason:  row.RestReason.String,
 			CustomTitle: row.CustomTitle.String,
 			Status:      row.Status,
@@ -125,7 +121,7 @@ func (r *AdminRepository) GetActiveWarns(ctx context.Context, chatID, userID int
 				ID:        warn.ModeratorID,
 				FirstName: warn.FirstName.String,
 				LastName:  warn.LastName.String,
-				Username:  &warn.Username.String,
+				Username:  warn.Username.String,
 			},
 			Reason:    warn.Reason.String,
 			CreatedAt: warn.CreatedAt.Time,
@@ -214,15 +210,11 @@ func (r *AdminRepository) GetAllDevelopers(ctx context.Context, chatID int64) ([
 	users := make([]model.User, len(rows))
 	roles := make([]string, len(rows))
 	for i, row := range rows {
-		var username *string
-		if row.Username.Valid {
-			username = &row.Username.String
-		}
 		users[i] = model.User{
 			ID:        row.UserID,
 			FirstName: row.FirstName.String,
 			LastName:  row.LastName.String,
-			Username:  username,
+			Username:  row.Username.String,
 		}
 		roles[i] = row.Role
 	}
@@ -246,14 +238,14 @@ func (r *AdminRepository) GetActiveWarnsByChat(ctx context.Context, chatID int64
 				ID:        warn.UserID,
 				FirstName: warn.UserFirstName.String,
 				LastName:  warn.UserLastName.String,
-				Username:  &warn.UserUsername.String,
+				Username:  warn.UserUsername.String,
 				Gender:    warn.UserGender,
 			},
 			Moderator: model.User{
 				ID:        warn.ModeratorID,
 				FirstName: warn.ModFirstName.String,
 				LastName:  warn.ModLastName.String,
-				Username:  &warn.ModUsername.String,
+				Username:  warn.ModUsername.String,
 				Gender:    warn.ModGender,
 			},
 			Reason:    warn.Reason.String,
