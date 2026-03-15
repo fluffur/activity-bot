@@ -141,6 +141,11 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, adminGuard).
 		SetArgsCount(2),
 	)
+	a.Dispatcher.AddHandler(cf.New(chatHandler.RemoveNorm, "-norm", "-норма", "-quota").
+		AddTriggers("+").
+		WithGuards(groupGuard, adminGuard).
+		SetArgsCount(1),
+	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.SetNewbies, "новички все").
 		AddTriggers("+").
 		WithGuards(groupGuard, creatorGuard),

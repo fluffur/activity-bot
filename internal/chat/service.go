@@ -20,7 +20,7 @@ func (s *Service) EnsureChatExists(ctx context.Context, chatID int64, title stri
 	})
 }
 
-func (s *Service) SetNorm(ctx context.Context, chatID int64, norm int) error {
+func (s *Service) SetWarnNorm(ctx context.Context, chatID int64, norm int) error {
 	return s.repo.SetWarnNorm(ctx, chatID, int32(norm))
 }
 
@@ -106,4 +106,12 @@ func (s *Service) DisableBroadcast(ctx context.Context, chatID int64) error {
 
 func (s *Service) EnableBroadcast(ctx context.Context, chatID int64) error {
 	return s.repo.SetChatBroadcast(ctx, chatID, true)
+}
+
+func (s *Service) RemoveWarnNorm(ctx context.Context, chatID int64) error {
+	return s.repo.SetWarnNorm(ctx, chatID, 0)
+}
+
+func (s *Service) RemoveBanNorm(ctx context.Context, chatID int64) error {
+	return s.repo.SetBanNorm(ctx, chatID, 0)
 }

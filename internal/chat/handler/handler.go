@@ -69,7 +69,7 @@ func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if action == "варн" {
-		if err := h.service.SetNorm(ctx.StdContext(), ctx.TargetChatID(), norm); err != nil {
+		if err := h.service.SetWarnNorm(ctx.StdContext(), ctx.TargetChatID(), norm); err != nil {
 			return err
 		}
 	} else {
@@ -79,6 +79,25 @@ func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	return ctx.Reply(b, view.FormatNormSet(norm, action), nil)
+}
+
+func (h *Handler) RemoveNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
+	action := ctx.FirstArgument()
+
+	if action == "варн" {
+		if err := h.service.SetWarnNorm(ctx.StdContext(), ctx.TargetChatID(), 0); err != nil {
+			return err
+		}
+	} else if action == "бан" {
+		if err := h.service.SetBanNorm(ctx.StdContext(), ctx.TargetChatID(), 0); err != nil {
+			return err
+		}
+	} else {
+		return ctx.Reply(b, "❌ Неверное действие. Допустимые: 'варн', 'бан'", nil)
+	}
+
+	return ctx.Reply(b, "Норма удалена", nil)
+
 }
 
 func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *cmd.Context) error {

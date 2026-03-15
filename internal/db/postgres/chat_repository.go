@@ -49,13 +49,13 @@ func (r *ChatRepository) SetTitle(ctx context.Context, chatID int64, title strin
 func (r *ChatRepository) SetWarnNorm(ctx context.Context, chatID int64, norm int32) error {
 	return r.queries.UpdateChatWarnNorm(ctx, db.UpdateChatWarnNormParams{
 		ID:       chatID,
-		NormWarn: pgtype.Int4{Int32: norm, Valid: true},
+		NormWarn: pgtype.Int4{Int32: norm, Valid: norm != 0},
 	})
 }
 
 func (r *ChatRepository) SetBanNorm(ctx context.Context, chatID int64, norm int32) error {
 	return r.queries.UpdateChatBanNorm(ctx, db.UpdateChatBanNormParams{
-		NormBan: pgtype.Int4{Int32: norm, Valid: true},
+		NormBan: pgtype.Int4{Int32: norm, Valid: norm != 0},
 		ID:      chatID,
 	})
 }
