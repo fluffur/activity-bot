@@ -111,14 +111,7 @@ func (q *Queries) GetAllActiveRests(ctx context.Context) ([]GetAllActiveRestsRow
 }
 
 const getRestMembers = `-- name: GetRestMembers :many
-SELECT cm.user_id,
-       u.username,
-       u.first_name,
-       u.last_name,
-       cm.rest_until,
-       cm.rest_reason,
-       cm.status,
-       cm.custom_title
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
@@ -128,14 +121,8 @@ ORDER BY cm.rest_until
 `
 
 type GetRestMembersRow struct {
-	UserID      int64              `db:"user_id" json:"userId"`
-	Username    pgtype.Text        `db:"username" json:"username"`
-	FirstName   pgtype.Text        `db:"first_name" json:"firstName"`
-	LastName    pgtype.Text        `db:"last_name" json:"lastName"`
-	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
-	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
-	Status      string             `db:"status" json:"status"`
-	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
+	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
+	User       User       `db:"user" json:"user"`
 }
 
 func (q *Queries) GetRestMembers(ctx context.Context, chatID int64) ([]GetRestMembersRow, error) {
@@ -148,14 +135,22 @@ func (q *Queries) GetRestMembers(ctx context.Context, chatID int64) ([]GetRestMe
 	for rows.Next() {
 		var i GetRestMembersRow
 		if err := rows.Scan(
-			&i.UserID,
-			&i.Username,
-			&i.FirstName,
-			&i.LastName,
-			&i.RestUntil,
-			&i.RestReason,
-			&i.Status,
-			&i.CustomTitle,
+			&i.ChatMember.ChatID,
+			&i.ChatMember.UserID,
+			&i.ChatMember.JoinedAt,
+			&i.ChatMember.RestUntil,
+			&i.ChatMember.CustomTitle,
+			&i.ChatMember.Status,
+			&i.ChatMember.LeftAt,
+			&i.ChatMember.RestReason,
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
 		); err != nil {
 			return nil, err
 		}

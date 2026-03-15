@@ -18,58 +18,6 @@ func NewStatsRepository(queries *db.Queries) stats.Repository {
 	return &StatsRepository{queries}
 }
 
-func mapMemberStats(row db.MessageReportOneRow) model.MemberStats {
-	return model.MemberStats{
-		User: model.User{
-			ID:        row.UserID,
-			FirstName: row.FirstName.String,
-			LastName:  row.LastName.String,
-			Username:  row.Username.String,
-		},
-		DayCount:          int(row.DayCount),
-		DayRollingCount:   int(row.DayRollingCount),
-		WeekCount:         int(row.WeekCount),
-		WeekRollingCount:  int(row.WeekRollingCount),
-		MonthCount:        int(row.MonthCount),
-		MonthRollingCount: int(row.MonthRollingCount),
-		AllTime:           int(row.AllTimeCount),
-
-		RestUntil: row.RestUntil.Time,
-
-		NormBan:         int(row.NormBan.Int32),
-		NormWarn:        int(row.NormWarn),
-		JoinedAt:        row.JoinedAt.Time,
-		NewbieThreshold: int(row.NewbieThresholdDays),
-		Status:          row.Status,
-		CustomTitle:     row.CustomTitle.String,
-		LeftAt:          row.LeftAt.Time,
-	}
-}
-
-func mapWeeklyReportRow(row db.MessageReportRow) model.MessageReportMember {
-	return model.MessageReportMember{
-		User: model.User{
-			ID:        row.UserID,
-			FirstName: row.FirstName.String,
-			Username:  row.Username.String,
-		},
-		MessagesCount:       int(row.MessagesCount),
-		NormWarn:            int(row.NormWarn),
-		NormBan:             int(row.NormBan.Int32),
-		JoinedAt:            row.JoinedAt.Time,
-		NewbieThresholdDays: int(row.NewbieThresholdDays),
-		CustomTitle:         row.CustomTitle.String,
-		Status:              row.Status,
-	}
-}
-
-func mapMessageActivity(row db.MessageActivityByDayRow) model.MessageActivity {
-	return model.MessageActivity{
-		Count: row.MessagesCount,
-		Date:  row.Day.Time,
-	}
-}
-
 func (r *StatsRepository) GetReport(ctx context.Context, chatID int64, from, to *time.Time) ([]model.MessageReportMember, error) {
 
 	var fromPg, toPg pgtype.Timestamptz
@@ -92,7 +40,7 @@ func (r *StatsRepository) GetReport(ctx context.Context, chatID int64, from, to 
 
 	result := make([]model.MessageReportMember, len(rows))
 	for i, row := range rows {
-		result[i] = mapWeeklyReportRow(row)
+		result[i] = mapMessageReportRow(row)
 	}
 
 	return result, nil
@@ -107,7 +55,7 @@ func (r *StatsRepository) GetReportOne(ctx context.Context, chatID int64, userID
 		return model.MemberStats{}, err
 	}
 
-	return mapMemberStats(row), nil
+	return mapMessageReportOneRow(row), nil
 }
 
 func (r *StatsRepository) GetMessageActivityByDay(ctx context.Context, chatID int64, userID int64) ([]model.MessageActivity, error) {
@@ -136,17 +84,7 @@ func (r *StatsRepository) GetInactiveMembers(ctx context.Context, chatID int64) 
 	result := make([]model.InactiveMember, len(members))
 	for i, member := range members {
 		result[i] = model.InactiveMember{
-			Member: model.ChatMember{
-				User: model.User{
-					ID:        member.ID,
-					FirstName: member.FirstName.String,
-					LastName:  member.LastName.String,
-					Username:  member.Username.String,
-				},
-				RestUntil:   member.RestUntil.Time,
-				CustomTitle: member.CustomTitle.String,
-				Status:      member.Status,
-			},
+			Member:       mapInactiveChatMembersRow(member),
 			LastActivity: member.LastMessageAt.Time,
 		}
 	}

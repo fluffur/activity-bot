@@ -7,8 +7,6 @@ package db
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const addChatAdmin = `-- name: AddChatAdmin :exec
@@ -38,22 +36,8 @@ ORDER BY cm.joined_at
 `
 
 type GetChatAdminsRow struct {
-	ChatID        int64              `db:"chat_id" json:"chatId"`
-	UserID        int64              `db:"user_id" json:"userId"`
-	JoinedAt      pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
-	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
-	CustomTitle   pgtype.Text        `db:"custom_title" json:"customTitle"`
-	Status        string             `db:"status" json:"status"`
-	LeftAt        pgtype.Timestamptz `db:"left_at" json:"leftAt"`
-	RestReason    pgtype.Text        `db:"rest_reason" json:"restReason"`
-	ID            int64              `db:"id" json:"id"`
-	Username      pgtype.Text        `db:"username" json:"username"`
-	FirstName     pgtype.Text        `db:"first_name" json:"firstName"`
-	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
-	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	Gender        string             `db:"gender" json:"gender"`
-	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
-	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
+	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
+	User       User       `db:"user" json:"user"`
 }
 
 func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdminsRow, error) {
@@ -66,22 +50,22 @@ func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdm
 	for rows.Next() {
 		var i GetChatAdminsRow
 		if err := rows.Scan(
-			&i.ChatID,
-			&i.UserID,
-			&i.JoinedAt,
-			&i.RestUntil,
-			&i.CustomTitle,
-			&i.Status,
-			&i.LeftAt,
-			&i.RestReason,
-			&i.ID,
-			&i.Username,
-			&i.FirstName,
-			&i.LastName,
-			&i.CreatedAt,
-			&i.Gender,
-			&i.Emoji,
-			&i.CustomEmojiID,
+			&i.ChatMember.ChatID,
+			&i.ChatMember.UserID,
+			&i.ChatMember.JoinedAt,
+			&i.ChatMember.RestUntil,
+			&i.ChatMember.CustomTitle,
+			&i.ChatMember.Status,
+			&i.ChatMember.LeftAt,
+			&i.ChatMember.RestReason,
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
 		); err != nil {
 			return nil, err
 		}
@@ -121,24 +105,28 @@ WHERE ma.type = 'mute'
   AND ma.expires_at <= NOW()
 `
 
-func (q *Queries) GetMembersWithExpiredMute(ctx context.Context) ([]ChatMember, error) {
+type GetMembersWithExpiredMuteRow struct {
+	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
+}
+
+func (q *Queries) GetMembersWithExpiredMute(ctx context.Context) ([]GetMembersWithExpiredMuteRow, error) {
 	rows, err := q.db.Query(ctx, getMembersWithExpiredMute)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ChatMember{}
+	items := []GetMembersWithExpiredMuteRow{}
 	for rows.Next() {
-		var i ChatMember
+		var i GetMembersWithExpiredMuteRow
 		if err := rows.Scan(
-			&i.ChatID,
-			&i.UserID,
-			&i.JoinedAt,
-			&i.RestUntil,
-			&i.CustomTitle,
-			&i.Status,
-			&i.LeftAt,
-			&i.RestReason,
+			&i.ChatMember.ChatID,
+			&i.ChatMember.UserID,
+			&i.ChatMember.JoinedAt,
+			&i.ChatMember.RestUntil,
+			&i.ChatMember.CustomTitle,
+			&i.ChatMember.Status,
+			&i.ChatMember.LeftAt,
+			&i.ChatMember.RestReason,
 		); err != nil {
 			return nil, err
 		}

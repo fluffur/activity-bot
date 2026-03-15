@@ -26,9 +26,17 @@ func (r *RestRepository) GetFromChat(ctx context.Context, chatID int64) ([]model
 		return nil, err
 	}
 
-	result := make([]model.RestMember, len(rows))
-	for i, row := range rows {
-		result[i] = mapChatRestUsersRow(row)
+	members := mapMembers(rows, func(row db.GetRestMembersRow) model.ChatMember {
+		return mapChatMemberFull(row.ChatMember, row.User)
+	})
+	result := make([]model.RestMember, len(members))
+	for i, m := range members {
+		result[i] = model.RestMember{
+			User:        m.User,
+			RestUntil:   m.RestUntil,
+			Status:      m.Status,
+			CustomTitle: m.CustomTitle,
+		}
 	}
 
 	return result, nil
@@ -175,29 +183,4 @@ func (r *RestRepository) withTx(
 	}
 
 	return tx.Commit(ctx)
-}
-
-func mapRestRequest(er db.RestRequest) model.RestRequest {
-	return model.RestRequest{
-		ChatID:      er.ChatID,
-		UserID:      er.UserID,
-		RequestedAt: er.RequestedAt.Time,
-		RestUntil:   er.RestUntil.Time,
-		Status:      string(er.Status),
-		MessageID:   er.MessageID,
-	}
-}
-
-func mapChatRestUsersRow(row db.GetRestMembersRow) model.RestMember {
-	return model.RestMember{
-		User: model.User{
-			ID:        row.UserID,
-			FirstName: row.FirstName.String,
-			LastName:  row.LastName.String,
-			Username:  row.Username.String,
-		},
-		RestUntil:   row.RestUntil.Time,
-		Status:      row.Status,
-		CustomTitle: row.CustomTitle.String,
-	}
 }

@@ -11,7 +11,7 @@ WHERE chat_id = $1
   AND user_id = $2;
 
 -- name: GetChatAdmins :many
-SELECT cm.*, u.*
+SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
@@ -40,7 +40,7 @@ WHERE chat_id = $1
   AND user_id = $2;
 
 -- name: GetMembersWithExpiredMute :many
-SELECT cm.*
+SELECT sqlc.embed(cm)
 FROM moderation_actions ma
          JOIN chat_members cm ON ma.chat_id = cm.chat_id AND ma.user_id = cm.user_id
 WHERE ma.type = 'mute'

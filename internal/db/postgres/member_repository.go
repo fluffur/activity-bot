@@ -29,7 +29,9 @@ func (r *MemberRepository) GetNoNormWarnMembers(ctx context.Context, id int64, f
 	if err != nil {
 		return nil, err
 	}
-	return mapMembers(members), nil
+	return mapMembers(members, func(row db.GetNoNormMembersRow) model.ChatMember {
+		return mapChatMemberFull(row.ChatMember, row.User)
+	}), nil
 }
 
 func (r *MemberRepository) GetNoNormBanMembers(ctx context.Context, id int64, from, to *time.Time) ([]model.ChatMember, error) {
@@ -37,7 +39,9 @@ func (r *MemberRepository) GetNoNormBanMembers(ctx context.Context, id int64, fr
 	if err != nil {
 		return nil, err
 	}
-	return mapMembers(members), nil
+	return mapMembers(members, func(row db.GetNoNormMembersRow) model.ChatMember {
+		return mapChatMemberFull(row.ChatMember, row.User)
+	}), nil
 
 }
 func (r *MemberRepository) GetNoNormMembers(ctx context.Context, id int64, from, to *time.Time) ([]model.ChatMember, error) {
@@ -45,7 +49,9 @@ func (r *MemberRepository) GetNoNormMembers(ctx context.Context, id int64, from,
 	if err != nil {
 		return nil, err
 	}
-	return mapMembers(members), nil
+	return mapMembers(members, func(row db.GetNoNormMembersRow) model.ChatMember {
+		return mapChatMemberFull(row.ChatMember, row.User)
+	}), nil
 }
 
 func noNormMembersParams(id int64, from, to *time.Time, mode NormMode) db.GetNoNormMembersParams {
@@ -70,29 +76,6 @@ func noNormMembersParams(id int64, from, to *time.Time, mode NormMode) db.GetNoN
 		ChatID: id,
 		Mode:   mode,
 	}
-}
-
-func mapMembers(members []db.GetNoNormMembersRow) []model.ChatMember {
-	result := make([]model.ChatMember, len(members))
-	for i, m := range members {
-		result[i] = model.ChatMember{
-			User: model.User{
-				ID:            m.ID,
-				FirstName:     m.FirstName.String,
-				LastName:      m.LastName.String,
-				Username:      m.Username.String,
-				Gender:        m.Gender,
-				Emoji:         m.Emoji.String,
-				CustomEmojiID: m.CustomEmojiID.String,
-			},
-			ChatID:      m.ChatID,
-			RestUntil:   m.RestUntil.Time,
-			RestReason:  m.RestReason.String,
-			CustomTitle: m.CustomTitle.String,
-			Status:      m.Status,
-		}
-	}
-	return result
 }
 
 func NewMemberRepository(queries *db.Queries) member.Repository {
@@ -145,21 +128,7 @@ func (r *MemberRepository) FindByChatID(ctx context.Context, chatID int64) ([]mo
 
 	result := make([]model.ChatMember, len(members))
 	for i, m := range members {
-		result[i] = model.ChatMember{
-			User: model.User{
-				ID:            m.UserID,
-				FirstName:     m.FirstName.String,
-				LastName:      m.LastName.String,
-				Username:      m.Username.String,
-				Gender:        m.Gender,
-				Emoji:         m.Emoji.String,
-				CustomEmojiID: m.CustomEmojiID.String,
-			},
-			ChatID:      chatID,
-			RestUntil:   m.RestUntil.Time,
-			CustomTitle: m.CustomTitle.String,
-			Status:      m.Status,
-		}
+		result[i] = mapChatMemberFull(m.ChatMember, m.User)
 	}
 
 	return result, nil
@@ -172,20 +141,7 @@ func (r *MemberRepository) GetWithCustomTitles(ctx context.Context, chatID int64
 	}
 	res := make([]model.ChatMember, len(members))
 	for i, m := range members {
-		res[i] = model.ChatMember{
-			ChatID: chatID,
-			User: model.User{
-				ID:            m.UserID,
-				FirstName:     m.FirstName.String,
-				LastName:      m.LastName.String,
-				Username:      m.Username.String,
-				Gender:        m.Gender,
-				Emoji:         m.Emoji.String,
-				CustomEmojiID: m.CustomEmojiID.String,
-			},
-			CustomTitle: m.CustomTitle.String,
-			Status:      m.Status,
-		}
+		res[i] = mapChatMemberFull(m.ChatMember, m.User)
 	}
 	return res, nil
 }
@@ -197,20 +153,7 @@ func (r *MemberRepository) GetAnyWithCustomTitles(ctx context.Context, chatID in
 	}
 	res := make([]model.ChatMember, len(members))
 	for i, m := range members {
-		res[i] = model.ChatMember{
-			ChatID: chatID,
-			User: model.User{
-				ID:            m.UserID,
-				FirstName:     m.FirstName.String,
-				LastName:      m.LastName.String,
-				Username:      m.Username.String,
-				Gender:        m.Gender,
-				Emoji:         m.Emoji.String,
-				CustomEmojiID: m.CustomEmojiID.String,
-			},
-			CustomTitle: m.CustomTitle.String,
-			Status:      m.Status,
-		}
+		res[i] = mapChatMemberFull(m.ChatMember, m.User)
 	}
 	return res, nil
 }
@@ -242,7 +185,7 @@ func (r *MemberRepository) Get(ctx context.Context, chatID int64, userID int64) 
 		return model.ChatMember{}, err
 	}
 
-	return mapChatMemberRow(m), nil
+	return mapChatMemberFull(m.ChatMember, m.User), nil
 }
 
 func (r *MemberRepository) Remove(ctx context.Context, chatID int64, userID int64) error {
@@ -299,37 +242,6 @@ func (r *MemberRepository) MarkLeftNotInList(ctx context.Context, chatID int64, 
 		ChatID:  chatID,
 		UserIds: userIDs,
 	})
-}
-
-func mapChatMember(m db.ChatMember) model.ChatMember {
-	return model.ChatMember{
-		ChatID: m.ChatID,
-		User: model.User{
-			ID: m.UserID,
-		},
-		RestUntil:   m.RestUntil.Time,
-		CustomTitle: m.CustomTitle.String,
-		Status:      m.Status,
-	}
-}
-
-func mapChatMemberRow(m db.GetChatMemberRow) model.ChatMember {
-	return model.ChatMember{
-		ChatID: m.ChatID,
-		User: model.User{
-			ID:            m.UserID,
-			FirstName:     m.FirstName.String,
-			LastName:      m.LastName.String,
-			Username:      m.Username.String,
-			Gender:        m.Gender,
-			Emoji:         m.Emoji.String,
-			CustomEmojiID: m.CustomEmojiID.String,
-		},
-		RestUntil:   m.RestUntil.Time,
-		RestReason:  m.RestReason.String,
-		CustomTitle: m.CustomTitle.String,
-		Status:      m.Status,
-	}
 }
 
 func (r *MemberRepository) SetOnlyNewbies(ctx context.Context, chatID int64, users []*model.User) error {

@@ -93,7 +93,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, lower string) (User, er
 }
 
 const getUsersByCustomTitle = `-- name: GetUsersByCustomTitle :many
-SELECT chat_id, user_id, joined_at, rest_until, custom_title, status, left_at, rest_reason, id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.custom_title ILIKE '%' || $1 || '%'
@@ -107,22 +107,8 @@ type GetUsersByCustomTitleParams struct {
 }
 
 type GetUsersByCustomTitleRow struct {
-	ChatID        int64              `db:"chat_id" json:"chatId"`
-	UserID        int64              `db:"user_id" json:"userId"`
-	JoinedAt      pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
-	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
-	CustomTitle   pgtype.Text        `db:"custom_title" json:"customTitle"`
-	Status        string             `db:"status" json:"status"`
-	LeftAt        pgtype.Timestamptz `db:"left_at" json:"leftAt"`
-	RestReason    pgtype.Text        `db:"rest_reason" json:"restReason"`
-	ID            int64              `db:"id" json:"id"`
-	Username      pgtype.Text        `db:"username" json:"username"`
-	FirstName     pgtype.Text        `db:"first_name" json:"firstName"`
-	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
-	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	Gender        string             `db:"gender" json:"gender"`
-	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
-	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
+	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
+	User       User       `db:"user" json:"user"`
 }
 
 func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCustomTitleParams) ([]GetUsersByCustomTitleRow, error) {
@@ -135,22 +121,22 @@ func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCusto
 	for rows.Next() {
 		var i GetUsersByCustomTitleRow
 		if err := rows.Scan(
-			&i.ChatID,
-			&i.UserID,
-			&i.JoinedAt,
-			&i.RestUntil,
-			&i.CustomTitle,
-			&i.Status,
-			&i.LeftAt,
-			&i.RestReason,
-			&i.ID,
-			&i.Username,
-			&i.FirstName,
-			&i.LastName,
-			&i.CreatedAt,
-			&i.Gender,
-			&i.Emoji,
-			&i.CustomEmojiID,
+			&i.ChatMember.ChatID,
+			&i.ChatMember.UserID,
+			&i.ChatMember.JoinedAt,
+			&i.ChatMember.RestUntil,
+			&i.ChatMember.CustomTitle,
+			&i.ChatMember.Status,
+			&i.ChatMember.LeftAt,
+			&i.ChatMember.RestReason,
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
 		); err != nil {
 			return nil, err
 		}

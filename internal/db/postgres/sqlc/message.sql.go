@@ -58,14 +58,7 @@ ORDER BY MAX(m.created_at) NULLS FIRST
 `
 
 type InactiveChatMembersRow struct {
-	ID            int64              `db:"id" json:"id"`
-	Username      pgtype.Text        `db:"username" json:"username"`
-	FirstName     pgtype.Text        `db:"first_name" json:"firstName"`
-	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
-	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	Gender        string             `db:"gender" json:"gender"`
-	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
-	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
+	User          User               `db:"user" json:"user"`
 	CustomTitle   pgtype.Text        `db:"custom_title" json:"customTitle"`
 	Status        string             `db:"status" json:"status"`
 	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
@@ -82,14 +75,14 @@ func (q *Queries) InactiveChatMembers(ctx context.Context, chatID int64) ([]Inac
 	for rows.Next() {
 		var i InactiveChatMembersRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.Username,
-			&i.FirstName,
-			&i.LastName,
-			&i.CreatedAt,
-			&i.Gender,
-			&i.Emoji,
-			&i.CustomEmojiID,
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
 			&i.CustomTitle,
 			&i.Status,
 			&i.RestUntil,
@@ -193,17 +186,12 @@ func (q *Queries) MessageActivityByDayAll(ctx context.Context, arg MessageActivi
 }
 
 const messageReport = `-- name: MessageReport :many
-SELECT cm.user_id,
-       u.username,
-       u.first_name,
-       u.last_name,
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason,
+       u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
        COUNT(m.chat_id) AS messages_count,
        c.norm_warn,
        c.norm_ban,
-       cm.joined_at,
-       c.newbie_threshold_days,
-       cm.status,
-       cm.custom_title
+       c.newbie_threshold_days
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
@@ -217,9 +205,7 @@ FROM chat_members cm
 WHERE cm.chat_id = $3
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
-GROUP BY cm.user_id, u.username, u.first_name, u.last_name,
-         c.norm_warn, c.norm_ban, cm.joined_at, c.newbie_threshold_days,
-         cm.status, cm.custom_title
+GROUP BY cm.chat_id, cm.user_id, u.id, c.id, cm.joined_at
 ORDER BY messages_count DESC
 `
 
@@ -230,17 +216,12 @@ type MessageReportParams struct {
 }
 
 type MessageReportRow struct {
-	UserID              int64              `db:"user_id" json:"userId"`
-	Username            pgtype.Text        `db:"username" json:"username"`
-	FirstName           pgtype.Text        `db:"first_name" json:"firstName"`
-	LastName            pgtype.Text        `db:"last_name" json:"lastName"`
-	MessagesCount       int64              `db:"messages_count" json:"messagesCount"`
-	NormWarn            int32              `db:"norm_warn" json:"normWarn"`
-	NormBan             pgtype.Int4        `db:"norm_ban" json:"normBan"`
-	JoinedAt            pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
-	NewbieThresholdDays int32              `db:"newbie_threshold_days" json:"newbieThresholdDays"`
-	Status              string             `db:"status" json:"status"`
-	CustomTitle         pgtype.Text        `db:"custom_title" json:"customTitle"`
+	ChatMember          ChatMember  `db:"chat_member" json:"chatMember"`
+	User                User        `db:"user" json:"user"`
+	MessagesCount       int64       `db:"messages_count" json:"messagesCount"`
+	NormWarn            int32       `db:"norm_warn" json:"normWarn"`
+	NormBan             pgtype.Int4 `db:"norm_ban" json:"normBan"`
+	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 }
 
 func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([]MessageReportRow, error) {
@@ -253,17 +234,26 @@ func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([
 	for rows.Next() {
 		var i MessageReportRow
 		if err := rows.Scan(
-			&i.UserID,
-			&i.Username,
-			&i.FirstName,
-			&i.LastName,
+			&i.ChatMember.ChatID,
+			&i.ChatMember.UserID,
+			&i.ChatMember.JoinedAt,
+			&i.ChatMember.RestUntil,
+			&i.ChatMember.CustomTitle,
+			&i.ChatMember.Status,
+			&i.ChatMember.LeftAt,
+			&i.ChatMember.RestReason,
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
 			&i.MessagesCount,
 			&i.NormWarn,
 			&i.NormBan,
-			&i.JoinedAt,
 			&i.NewbieThresholdDays,
-			&i.Status,
-			&i.CustomTitle,
 		); err != nil {
 			return nil, err
 		}
@@ -276,10 +266,8 @@ func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([
 }
 
 const messageReportOne = `-- name: MessageReportOne :one
-SELECT cm.user_id,
-       u.username,
-       u.first_name,
-       u.last_name,
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason,
+       u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
 
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now() AT TIME ZONE 'Europe/Moscow') AT TIME ZONE 'Europe/Moscow'), 0)::bigint   AS day_count,
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day'),
@@ -304,12 +292,7 @@ SELECT cm.user_id,
 
        c.norm_ban,
        c.norm_warn,
-       cm.joined_at,
-       c.newbie_threshold_days,
-       cm.status,
-       cm.custom_title,
-       cm.rest_until,
-       cm.left_at
+       c.newbie_threshold_days
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
@@ -319,18 +302,7 @@ FROM chat_members cm
 
 WHERE cm.chat_id = $1
   AND cm.user_id = $2
-GROUP BY cm.user_id,
-         u.username,
-         u.first_name,
-         u.last_name,
-         c.norm_warn,
-         c.norm_ban,
-         cm.joined_at,
-         c.newbie_threshold_days,
-         cm.status,
-         cm.custom_title,
-         cm.rest_until,
-         cm.left_at
+GROUP BY cm.chat_id, cm.user_id, u.id, c.id
 `
 
 type MessageReportOneParams struct {
@@ -339,35 +311,40 @@ type MessageReportOneParams struct {
 }
 
 type MessageReportOneRow struct {
-	UserID              int64              `db:"user_id" json:"userId"`
-	Username            pgtype.Text        `db:"username" json:"username"`
-	FirstName           pgtype.Text        `db:"first_name" json:"firstName"`
-	LastName            pgtype.Text        `db:"last_name" json:"lastName"`
-	DayCount            int64              `db:"day_count" json:"dayCount"`
-	DayRollingCount     int64              `db:"day_rolling_count" json:"dayRollingCount"`
-	WeekCount           int64              `db:"week_count" json:"weekCount"`
-	WeekRollingCount    int64              `db:"week_rolling_count" json:"weekRollingCount"`
-	MonthCount          int64              `db:"month_count" json:"monthCount"`
-	MonthRollingCount   int64              `db:"month_rolling_count" json:"monthRollingCount"`
-	AllTimeCount        int64              `db:"all_time_count" json:"allTimeCount"`
-	NormBan             pgtype.Int4        `db:"norm_ban" json:"normBan"`
-	NormWarn            int32              `db:"norm_warn" json:"normWarn"`
-	JoinedAt            pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
-	NewbieThresholdDays int32              `db:"newbie_threshold_days" json:"newbieThresholdDays"`
-	Status              string             `db:"status" json:"status"`
-	CustomTitle         pgtype.Text        `db:"custom_title" json:"customTitle"`
-	RestUntil           pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
-	LeftAt              pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	ChatMember          ChatMember  `db:"chat_member" json:"chatMember"`
+	User                User        `db:"user" json:"user"`
+	DayCount            int64       `db:"day_count" json:"dayCount"`
+	DayRollingCount     int64       `db:"day_rolling_count" json:"dayRollingCount"`
+	WeekCount           int64       `db:"week_count" json:"weekCount"`
+	WeekRollingCount    int64       `db:"week_rolling_count" json:"weekRollingCount"`
+	MonthCount          int64       `db:"month_count" json:"monthCount"`
+	MonthRollingCount   int64       `db:"month_rolling_count" json:"monthRollingCount"`
+	AllTimeCount        int64       `db:"all_time_count" json:"allTimeCount"`
+	NormBan             pgtype.Int4 `db:"norm_ban" json:"normBan"`
+	NormWarn            int32       `db:"norm_warn" json:"normWarn"`
+	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 }
 
 func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOneParams) (MessageReportOneRow, error) {
 	row := q.db.QueryRow(ctx, messageReportOne, arg.ChatID, arg.UserID)
 	var i MessageReportOneRow
 	err := row.Scan(
-		&i.UserID,
-		&i.Username,
-		&i.FirstName,
-		&i.LastName,
+		&i.ChatMember.ChatID,
+		&i.ChatMember.UserID,
+		&i.ChatMember.JoinedAt,
+		&i.ChatMember.RestUntil,
+		&i.ChatMember.CustomTitle,
+		&i.ChatMember.Status,
+		&i.ChatMember.LeftAt,
+		&i.ChatMember.RestReason,
+		&i.User.ID,
+		&i.User.Username,
+		&i.User.FirstName,
+		&i.User.LastName,
+		&i.User.CreatedAt,
+		&i.User.Gender,
+		&i.User.Emoji,
+		&i.User.CustomEmojiID,
 		&i.DayCount,
 		&i.DayRollingCount,
 		&i.WeekCount,
@@ -377,12 +354,7 @@ func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOnePara
 		&i.AllTimeCount,
 		&i.NormBan,
 		&i.NormWarn,
-		&i.JoinedAt,
 		&i.NewbieThresholdDays,
-		&i.Status,
-		&i.CustomTitle,
-		&i.RestUntil,
-		&i.LeftAt,
 	)
 	return i, err
 }

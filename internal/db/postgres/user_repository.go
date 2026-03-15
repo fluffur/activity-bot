@@ -81,18 +81,6 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []model.User) er
 	})
 }
 
-func mapUser(u db.User) model.User {
-	return model.User{
-		ID:            u.ID,
-		FirstName:     u.FirstName.String,
-		LastName:      u.LastName.String,
-		Username:      u.Username.String,
-		Gender:        u.Gender,
-		Emoji:         u.Emoji.String,
-		CustomEmojiID: u.CustomEmojiID.String,
-	}
-}
-
 func (r *UserRepository) GetByCustomTitle(ctx context.Context, chatID int64, title string) ([]model.ChatMember, error) {
 	u, err := r.queries.GetUsersByCustomTitle(ctx, db.GetUsersByCustomTitleParams{
 		CustomTitle: pgtype.Text{
@@ -102,12 +90,9 @@ func (r *UserRepository) GetByCustomTitle(ctx context.Context, chatID int64, tit
 		ChatID: chatID,
 	})
 
-	results := make([]model.ChatMember, len(u))
-	for i, u := range u {
-		results[i] = mapChatMemberRow(db.GetChatMemberRow(u))
-	}
-	return results, err
-
+	return mapMembers(u, func(row db.GetUsersByCustomTitleRow) model.ChatMember {
+		return mapChatMemberFull(row.ChatMember, row.User)
+	}), err
 }
 
 func (r *UserRepository) SetGender(ctx context.Context, userID int64, gender string) error {

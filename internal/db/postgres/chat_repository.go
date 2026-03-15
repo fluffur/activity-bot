@@ -18,27 +18,6 @@ func NewChatRepository(queries *db.Queries) chat.Repository {
 	return &ChatRepository{queries}
 }
 
-func mapChat(c db.EnsureChatExistsRow) model.Chat {
-	return model.Chat{
-		ID:                  c.ID,
-		Title:               c.Title,
-		NormWarn:            c.NormWarn,
-		NormBan:             c.NormBan.Int32,
-		NewbieThresholdDays: c.NewbieThresholdDays,
-		AISystemPrompt:      c.AiSystemPrompt.String,
-		MaxLadder:           c.MaxLadder,
-		WelcomeCallMessage:  c.WelcomeCallMessage.String,
-		CallOnJoin:          c.CallOnJoin,
-		WeekStartDay:        c.WeekStartDay,
-		CommandPrefix:       c.CommandPrefix.String,
-		AllowPrefixless:     c.AllowPrefixless,
-		MentionsPerMessage:  c.MentionsPerMessage,
-		MentionTypes:        c.MentionTypes,
-		TagsEnabled:         c.TagsEnabled,
-		WeekStartTime:       helpers.MicrosecondsToTime(c.WeekStartTime.Microseconds),
-	}
-}
-
 func (r *ChatRepository) SetTagsEnabled(ctx context.Context, chatID int64, enabled bool) error {
 	return r.queries.SetChatTagsEnabled(ctx, db.SetChatTagsEnabledParams{
 		TagsEnabled: enabled,
@@ -56,7 +35,7 @@ func (r *ChatRepository) Ensure(ctx context.Context, c model.Chat) (model.Chat, 
 		return model.Chat{}, err
 	}
 
-	return mapChat(ch), nil
+	return mapChatFromRow(ch), nil
 }
 
 func (r *ChatRepository) SetTitle(ctx context.Context, chatID int64, title string) error {
@@ -115,7 +94,7 @@ func (r *ChatRepository) GetChat(ctx context.Context, chatID int64) (model.Chat,
 	if err != nil {
 		return model.Chat{}, err
 	}
-	return mapChat(c), nil
+	return mapChatFromRow(c), nil
 }
 
 func (r *ChatRepository) SetChatPrompt(ctx context.Context, chatID int64, prompt string) error {
@@ -200,15 +179,6 @@ func (r *ChatRepository) GetChatsWithoutNorm(ctx context.Context, userID int64) 
 
 }
 
-func mapChats(chats []db.Chat) []model.Chat {
-	result := make([]model.Chat, len(chats))
-	for i, c := range chats {
-		result[i] = mapChat(db.EnsureChatExistsRow(c))
-	}
-	return result
-
-}
-
 func mapChatsWithoutNorm(chats []db.GetAllUserChatsWithoutNormRow) []model.ChatWithoutNorm {
 	result := make([]model.ChatWithoutNorm, len(chats))
 	for i, c := range chats {
@@ -246,7 +216,7 @@ func (r *ChatRepository) GetUserManagedChats(ctx context.Context, userID int64) 
 
 	mapped := make([]model.Chat, len(chats))
 	for i, c := range chats {
-		mapped[i] = mapChat(db.EnsureChatExistsRow(c))
+		mapped[i] = mapChatFromRow(db.EnsureChatExistsRow(c))
 	}
 
 	return mapped, nil
@@ -259,7 +229,7 @@ func (r *ChatRepository) GetAllChats(ctx context.Context) ([]model.Chat, error) 
 	}
 	mapped := make([]model.Chat, len(chats))
 	for i, c := range chats {
-		mapped[i] = mapChat(db.EnsureChatExistsRow(c))
+		mapped[i] = mapChatFromRow(db.EnsureChatExistsRow(c))
 	}
 
 	return mapped, nil

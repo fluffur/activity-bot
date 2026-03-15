@@ -1,12 +1,5 @@
 -- name: GetRestMembers :many
-SELECT cm.user_id,
-       u.username,
-       u.first_name,
-       u.last_name,
-       cm.rest_until,
-       cm.rest_reason,
-       cm.status,
-       cm.custom_title
+SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1

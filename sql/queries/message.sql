@@ -4,17 +4,12 @@ VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: MessageReport :many
-SELECT cm.user_id,
-       u.username,
-       u.first_name,
-       u.last_name,
+SELECT sqlc.embed(cm),
+       sqlc.embed(u),
        COUNT(m.chat_id) AS messages_count,
        c.norm_warn,
        c.norm_ban,
-       cm.joined_at,
-       c.newbie_threshold_days,
-       cm.status,
-       cm.custom_title
+       c.newbie_threshold_days
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
@@ -28,17 +23,13 @@ FROM chat_members cm
 WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
-GROUP BY cm.user_id, u.username, u.first_name, u.last_name,
-         c.norm_warn, c.norm_ban, cm.joined_at, c.newbie_threshold_days,
-         cm.status, cm.custom_title
+GROUP BY cm.chat_id, cm.user_id, u.id, c.id, cm.joined_at
 ORDER BY messages_count DESC;
 
 
 -- name: MessageReportOne :one
-SELECT cm.user_id,
-       u.username,
-       u.first_name,
-       u.last_name,
+SELECT sqlc.embed(cm),
+       sqlc.embed(u),
 
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now() AT TIME ZONE 'Europe/Moscow') AT TIME ZONE 'Europe/Moscow'), 0)::bigint   AS day_count,
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day'),
@@ -63,12 +54,7 @@ SELECT cm.user_id,
 
        c.norm_ban,
        c.norm_warn,
-       cm.joined_at,
-       c.newbie_threshold_days,
-       cm.status,
-       cm.custom_title,
-       cm.rest_until,
-       cm.left_at
+       c.newbie_threshold_days
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
@@ -78,18 +64,7 @@ FROM chat_members cm
 
 WHERE cm.chat_id = @chat_id
   AND cm.user_id = @user_id
-GROUP BY cm.user_id,
-         u.username,
-         u.first_name,
-         u.last_name,
-         c.norm_warn,
-         c.norm_ban,
-         cm.joined_at,
-         c.newbie_threshold_days,
-         cm.status,
-         cm.custom_title,
-         cm.rest_until,
-         cm.left_at;
+GROUP BY cm.chat_id, cm.user_id, u.id, c.id;
 
 -- name: MessageActivityByDay :many
 SELECT date_trunc('day', m.created_at AT TIME ZONE 'Europe/Moscow')::date AS day,
@@ -117,7 +92,7 @@ ORDER BY day;
 
 
 -- name: InactiveChatMembers :many
-SELECT u.*, cm.custom_title, cm.status, cm.rest_until, MAX(m.created_at)::timestamptz AS last_message_at
+SELECT sqlc.embed(u), cm.custom_title, cm.status, cm.rest_until, MAX(m.created_at)::timestamptz AS last_message_at
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
          LEFT JOIN messages m

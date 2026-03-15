@@ -38,24 +38,9 @@ func (r *AdminRepository) GetFromChat(ctx context.Context, chatID int64) ([]mode
 		return nil, err
 	}
 
-	admins := make([]model.ChatMember, len(rows))
-	for i, row := range rows {
-		admins[i] = model.ChatMember{
-			User: model.User{
-				ID:        row.ID,
-				FirstName: row.FirstName.String,
-				LastName:  row.LastName.String,
-				Username:  row.Username.String,
-				Gender:    row.Gender,
-			},
-			ChatID:      row.ChatID,
-			RestUntil:   row.RestUntil.Time,
-			RestReason:  row.RestReason.String,
-			CustomTitle: row.CustomTitle.String,
-			Status:      row.Status,
-		}
-	}
-	return admins, nil
+	return mapMembers(rows, func(row db.GetChatAdminsRow) model.ChatMember {
+		return mapChatMemberFull(row.ChatMember, row.User)
+	}), nil
 }
 
 func (r *AdminRepository) IsAdmin(ctx context.Context, chatID int64, userID int64) (bool, error) {

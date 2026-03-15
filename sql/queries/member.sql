@@ -14,23 +14,22 @@ RETURNING *;
 
 
 -- name: GetChatMember :one
-SELECT *
+SELECT sqlc.embed(chat_members), sqlc.embed(users)
 FROM chat_members
          JOIN users ON users.id = user_id
 WHERE left_at IS NULL
   AND chat_id = $1
-  AND user_id = $2
-;
+  AND user_id = $2;
 
 -- name: GetChatMembers :many
-SELECT *
+SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL;
 
 -- name: GetChatMembersWithTitles :many
-SELECT cm.*, u.*
+SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = @chat_id
@@ -39,14 +38,13 @@ WHERE cm.chat_id = @chat_id
   AND cm.custom_title <> '';
 
 -- name: GetAnyChatMembersWithTitles :many
-SELECT cm.*, u.*
+SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = @chat_id
   AND cm.custom_title IS NOT NULL
   AND cm.custom_title <> ''
-  AND cm.left_at IS NULL
-;
+  AND cm.left_at IS NULL;
 
 -- name: UpdateChatMemberTitle :exec
 UPDATE chat_members
@@ -140,7 +138,7 @@ WHERE c.id = cm.chat_id
   AND cm.user_id = ANY (@user_ids::BIGINT[]);
 
 -- name: GetNoNormMembers :many
-SELECT cm.*, u.*
+SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id

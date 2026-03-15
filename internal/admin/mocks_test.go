@@ -63,14 +63,16 @@ func (m *mockRepository) IsCreator(ctx context.Context, chatID, userID int64) (b
 	return m.creators[chatID][userID], nil
 }
 
-func (m *mockRepository) GetFromChat(ctx context.Context, chatID int64) ([]model.User, error) {
-	var users []model.User
+func (m *mockRepository) GetFromChat(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
+	var members []model.ChatMember
 	if m.admins[chatID] != nil {
 		for userID := range m.admins[chatID] {
-			users = append(users, model.User{ID: userID})
+			members = append(members, model.ChatMember{
+				User: model.User{ID: userID},
+			})
 		}
 	}
-	return users, nil
+	return members, nil
 }
 
 func (m *mockRepository) GetRole(ctx context.Context, chatID, userID int64) (string, error) {

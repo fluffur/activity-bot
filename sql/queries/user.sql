@@ -28,7 +28,7 @@ ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
                                last_name  = EXCLUDED.last_name;
 
 -- name: GetUsersByCustomTitle :many
-SELECT *
+SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.custom_title ILIKE '%' || @custom_title || '%'
