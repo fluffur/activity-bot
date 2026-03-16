@@ -3,6 +3,7 @@ package guard
 import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/cmd"
+	"activity-bot/internal/logger"
 	"context"
 
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
@@ -22,12 +23,13 @@ func (g *DeveloperGuard) Check(ctx *ext.Context, _ string, stdCtx context.Contex
 
 	chatID, err := cmd.GetChatID(g.sessionService, ctx, stdCtx)
 	if err != nil {
-		return false, "Не удалось определить чат"
+		logger.L.Error("get Chat Id developer guard", "error", err)
+		return false, ""
 	}
 
 	isDev, _ := g.service.IsDeveloper(stdCtx, chatID, userID)
 	if !isDev {
-		return false, "Эта команда доступна только разработчикам бота"
+		return false, ""
 	}
 
 	return true, ""
