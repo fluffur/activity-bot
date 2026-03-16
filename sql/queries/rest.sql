@@ -72,5 +72,5 @@ ORDER BY rr.requested_at DESC;
 SELECT sqlc.embed(rr), sqlc.embed(u)
 FROM rest_requests rr
          JOIN users u ON u.id = rr.user_id
-WHERE user_id = $1
+WHERE user_id = $1 AND chat_id = $2
 ORDER BY requested_at DESC;

@@ -302,17 +302,22 @@ const getUserRestRequests = `-- name: GetUserRestRequests :many
 SELECT rr.chat_id, rr.user_id, rr.requested_at, rr.rest_until, rr.status, rr.message_id, rr.reason, rr.id, rr.updated_at, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM rest_requests rr
          JOIN users u ON u.id = rr.user_id
-WHERE user_id = $1
+WHERE user_id = $1 AND chat_id = $2
 ORDER BY requested_at DESC
 `
+
+type GetUserRestRequestsParams struct {
+	UserID int64 `db:"user_id" json:"userId"`
+	ChatID int64 `db:"chat_id" json:"chatId"`
+}
 
 type GetUserRestRequestsRow struct {
 	RestRequest RestRequest `db:"rest_request" json:"restRequest"`
 	User        User        `db:"user" json:"user"`
 }
 
-func (q *Queries) GetUserRestRequests(ctx context.Context, userID int64) ([]GetUserRestRequestsRow, error) {
-	rows, err := q.db.Query(ctx, getUserRestRequests, userID)
+func (q *Queries) GetUserRestRequests(ctx context.Context, arg GetUserRestRequestsParams) ([]GetUserRestRequestsRow, error) {
+	rows, err := q.db.Query(ctx, getUserRestRequests, arg.UserID, arg.ChatID)
 	if err != nil {
 		return nil, err
 	}

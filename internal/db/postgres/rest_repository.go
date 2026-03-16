@@ -240,8 +240,11 @@ func (r *RestRepository) SetRestWithHistory(ctx context.Context, chatID int64, u
 	})
 }
 
-func (r *RestRepository) GetUserRestRequests(ctx context.Context, userID int64) ([]model.ApprovedRestRequest, error) {
-	rows, err := r.queries.GetUserRestRequests(ctx, userID)
+func (r *RestRepository) GetUserRestRequests(ctx context.Context, chatID, userID int64) ([]model.ApprovedRestRequest, error) {
+	rows, err := r.queries.GetUserRestRequests(ctx, db.GetUserRestRequestsParams{
+		UserID: userID,
+		ChatID: chatID,
+	})
 	if err != nil {
 		return nil, err
 	}

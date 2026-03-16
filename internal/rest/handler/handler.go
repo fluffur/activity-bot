@@ -127,7 +127,7 @@ func (h *Handler) AllUserRests(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 	var requests []model.ApprovedRestRequest
 
-	requests, err := h.service.GetRequests(ctx.StdContext(), targetUser.ID)
+	requests, err := h.service.GetRequests(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
 	if err != nil {
 		_ = ctx.Reply(b, "Не удалось получить список рестов", nil)
 		return err

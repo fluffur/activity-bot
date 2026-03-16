@@ -19,5 +19,5 @@ type Repository interface {
 	GetApprovedRequests(ctx context.Context) ([]model.ApprovedRestRequest, error)
 	GetUserApprovedRequests(ctx context.Context, userID int64) ([]model.ApprovedRestRequest, error)
 	SetRestWithHistory(ctx context.Context, chatID int64, userID int64, messageID int64, until time.Time, reason string) error
-	GetUserRestRequests(ctx context.Context, userID int64) ([]model.ApprovedRestRequest, error)
+	GetUserRestRequests(ctx context.Context, chatID, userID int64) ([]model.ApprovedRestRequest, error)
 }

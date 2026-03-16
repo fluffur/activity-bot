@@ -66,6 +66,6 @@ func (s *Service) GetApprovedRequests(ctx context.Context) ([]model.ApprovedRest
 	return s.repo.GetApprovedRequests(ctx)
 }
 
-func (s *Service) GetRequests(ctx context.Context, userID int64) ([]model.ApprovedRestRequest, error) {
-	return s.repo.GetUserRestRequests(ctx, userID)
+func (s *Service) GetRequests(ctx context.Context, chatID, userID int64) ([]model.ApprovedRestRequest, error) {
+	return s.repo.GetUserRestRequests(ctx, chatID, userID)
 }
