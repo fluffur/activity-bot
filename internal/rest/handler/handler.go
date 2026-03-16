@@ -120,6 +120,26 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 }
 
+func (h *Handler) List(b *gotgbot.Bot, ctx *cmd.Context) error {
+	targetUser := ctx.FirstUser()
+
+	var requests []model.ApprovedRestRequest
+	var err error
+
+	if targetUser != nil {
+		requests, err = h.service.GetUserApprovedRequests(ctx.StdContext(), targetUser.ID)
+	} else {
+		requests, err = h.service.GetApprovedRequests(ctx.StdContext())
+	}
+
+	if err != nil {
+		_ = ctx.Reply(b, "Не удалось получить список рестов", nil)
+		return err
+	}
+
+	return ctx.ReplyHTML(b, view.FormatRestRequests(requests))
+}
+
 func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
 

@@ -13,3 +13,8 @@ type RestRequest struct {
 	MessageID   int64
 	Reason      string
 }
+
+type ApprovedRestRequest struct {
+	RestRequest
+	User User
+}

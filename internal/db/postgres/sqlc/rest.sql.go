@@ -110,6 +110,55 @@ func (q *Queries) GetAllActiveRests(ctx context.Context) ([]GetAllActiveRestsRow
 	return items, nil
 }
 
+const getApprovedRestRequests = `-- name: GetApprovedRestRequests :many
+SELECT rr.chat_id, rr.user_id, rr.requested_at, rr.rest_until, rr.status, rr.message_id, rr.reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+FROM rest_requests rr
+         JOIN users u ON u.id = rr.user_id
+WHERE rr.status = 'approved'
+ORDER BY rr.requested_at DESC
+`
+
+type GetApprovedRestRequestsRow struct {
+	RestRequest RestRequest `db:"rest_request" json:"restRequest"`
+	User        User        `db:"user" json:"user"`
+}
+
+func (q *Queries) GetApprovedRestRequests(ctx context.Context) ([]GetApprovedRestRequestsRow, error) {
+	rows, err := q.db.Query(ctx, getApprovedRestRequests)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetApprovedRestRequestsRow{}
+	for rows.Next() {
+		var i GetApprovedRestRequestsRow
+		if err := rows.Scan(
+			&i.RestRequest.ChatID,
+			&i.RestRequest.UserID,
+			&i.RestRequest.RequestedAt,
+			&i.RestRequest.RestUntil,
+			&i.RestRequest.Status,
+			&i.RestRequest.MessageID,
+			&i.RestRequest.Reason,
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRestMembers = `-- name: GetRestMembers :many
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM chat_members cm
@@ -189,6 +238,56 @@ func (q *Queries) GetRestRequest(ctx context.Context, arg GetRestRequestParams) 
 		&i.Reason,
 	)
 	return i, err
+}
+
+const getUserApprovedRestRequests = `-- name: GetUserApprovedRestRequests :many
+SELECT rr.chat_id, rr.user_id, rr.requested_at, rr.rest_until, rr.status, rr.message_id, rr.reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+FROM rest_requests rr
+         JOIN users u ON u.id = rr.user_id
+WHERE rr.status = 'approved'
+  AND rr.user_id = $1
+ORDER BY rr.requested_at DESC
+`
+
+type GetUserApprovedRestRequestsRow struct {
+	RestRequest RestRequest `db:"rest_request" json:"restRequest"`
+	User        User        `db:"user" json:"user"`
+}
+
+func (q *Queries) GetUserApprovedRestRequests(ctx context.Context, userID int64) ([]GetUserApprovedRestRequestsRow, error) {
+	rows, err := q.db.Query(ctx, getUserApprovedRestRequests, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetUserApprovedRestRequestsRow{}
+	for rows.Next() {
+		var i GetUserApprovedRestRequestsRow
+		if err := rows.Scan(
+			&i.RestRequest.ChatID,
+			&i.RestRequest.UserID,
+			&i.RestRequest.RequestedAt,
+			&i.RestRequest.RestUntil,
+			&i.RestRequest.Status,
+			&i.RestRequest.MessageID,
+			&i.RestRequest.Reason,
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const rejectRestRequest = `-- name: RejectRestRequest :exec

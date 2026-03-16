@@ -52,3 +52,18 @@ SELECT chat_id, user_id, rest_until, rest_reason
 FROM chat_members
 WHERE rest_until IS NOT NULL
   AND rest_until >= now();
+
+-- name: GetApprovedRestRequests :many
+SELECT sqlc.embed(rr), sqlc.embed(u)
+FROM rest_requests rr
+         JOIN users u ON u.id = rr.user_id
+WHERE rr.status = 'approved'
+ORDER BY rr.requested_at DESC;
+
+-- name: GetUserApprovedRestRequests :many
+SELECT sqlc.embed(rr), sqlc.embed(u)
+FROM rest_requests rr
+         JOIN users u ON u.id = rr.user_id
+WHERE rr.status = 'approved'
+  AND rr.user_id = $1
+ORDER BY rr.requested_at DESC;

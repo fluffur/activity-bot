@@ -16,4 +16,6 @@ type Repository interface {
 	RejectRequest(ctx context.Context, chatID, userID, messageID int64) error
 	GetRequest(ctx context.Context, chatID, userID, messageID int64) (model.RestRequest, error)
 	GetAllActiveRests(ctx context.Context) ([]model.RestExpirePayload, error)
+	GetApprovedRequests(ctx context.Context) ([]model.ApprovedRestRequest, error)
+	GetUserApprovedRequests(ctx context.Context, userID int64) ([]model.ApprovedRestRequest, error)
 }

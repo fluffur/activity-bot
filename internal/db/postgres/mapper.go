@@ -140,5 +140,21 @@ func mapRestRequest(er db.RestRequest) model.RestRequest {
 		RestUntil:   er.RestUntil.Time,
 		Status:      string(er.Status),
 		MessageID:   er.MessageID,
+		Reason:      er.Reason.String,
 	}
+}
+
+func mapApprovedRestRequest(rr db.RestRequest, u db.User) model.ApprovedRestRequest {
+	return model.ApprovedRestRequest{
+		RestRequest: mapRestRequest(rr),
+		User:        mapUser(u),
+	}
+}
+
+func mapApprovedRestRequests[T any](rows []T, mapper func(T) model.ApprovedRestRequest) []model.ApprovedRestRequest {
+	result := make([]model.ApprovedRestRequest, len(rows))
+	for i, row := range rows {
+		result[i] = mapper(row)
+	}
+	return result
 }

@@ -161,6 +161,28 @@ func (r *RestRepository) GetAllActiveRests(ctx context.Context) ([]model.RestExp
 	return result, nil
 }
 
+func (r *RestRepository) GetApprovedRequests(ctx context.Context) ([]model.ApprovedRestRequest, error) {
+	rows, err := r.queries.GetApprovedRestRequests(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapApprovedRestRequests(rows, func(row db.GetApprovedRestRequestsRow) model.ApprovedRestRequest {
+		return mapApprovedRestRequest(row.RestRequest, row.User)
+	}), nil
+}
+
+func (r *RestRepository) GetUserApprovedRequests(ctx context.Context, userID int64) ([]model.ApprovedRestRequest, error) {
+	rows, err := r.queries.GetUserApprovedRestRequests(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapApprovedRestRequests(rows, func(row db.GetUserApprovedRestRequestsRow) model.ApprovedRestRequest {
+		return mapApprovedRestRequest(row.RestRequest, row.User)
+	}), nil
+}
+
 func (r *RestRepository) withTx(
 	ctx context.Context,
 	fn func(q *db.Queries) error,

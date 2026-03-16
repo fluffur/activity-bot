@@ -73,3 +73,18 @@ func FormatRestRequestRejected(user *model.User) string {
 	}
 	return fmt.Sprintf("Запрос на рест для %s отклонён", helpers.UserLink(*user))
 }
+
+func FormatRestRequests(requests []model.ApprovedRestRequest) string {
+	if len(requests) == 0 {
+		return "Список одобренных рестов пуст"
+	}
+
+	text := "<b>Список одобренных рестов:</b>\n"
+	for _, r := range requests {
+		text += fmt.Sprintf("\n%s — до %s", helpers.UserLink(r.User), helpers.FormatToHumanDateTime(r.RestUntil))
+		if r.Reason != "" {
+			text += fmt.Sprintf(" (%s)", r.Reason)
+		}
+	}
+	return text
+}
