@@ -137,9 +137,10 @@ func mapRestRequest(er db.RestRequest) model.RestRequest {
 		ChatID:      er.ChatID,
 		UserID:      er.UserID,
 		RequestedAt: er.RequestedAt.Time,
+		UpdatedAt:   er.UpdatedAt.Time,
 		RestUntil:   er.RestUntil.Time,
 		Status:      string(er.Status),
-		MessageID:   er.MessageID,
+		MessageID:   er.MessageID.Int64,
 		Reason:      er.Reason.String,
 	}
 }

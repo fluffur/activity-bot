@@ -22,6 +22,10 @@ func (s *Service) SetMemberRest(ctx context.Context, chatID int64, userID int64,
 	return s.repo.SetRest(ctx, chatID, userID, until, reason)
 }
 
+func (s *Service) SetMemberRestWithHistory(ctx context.Context, chatID int64, userID int64, messageID int64, until time.Time, reason string) error {
+	return s.repo.SetRestWithHistory(ctx, chatID, userID, messageID, until, reason)
+}
+
 func (s *Service) EndMemberRest(ctx context.Context, chatID int64, userID int64) error {
 	return s.repo.EndMemberRest(ctx, chatID, userID)
 }
@@ -62,6 +66,6 @@ func (s *Service) GetApprovedRequests(ctx context.Context) ([]model.ApprovedRest
 	return s.repo.GetApprovedRequests(ctx)
 }
 
-func (s *Service) GetUserApprovedRequests(ctx context.Context, userID int64) ([]model.ApprovedRestRequest, error) {
-	return s.repo.GetUserApprovedRequests(ctx, userID)
+func (s *Service) GetRequests(ctx context.Context, userID int64) ([]model.ApprovedRestRequest, error) {
+	return s.repo.GetUserRestRequests(ctx, userID)
 }

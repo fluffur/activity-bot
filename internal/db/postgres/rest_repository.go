@@ -72,20 +72,27 @@ func (r *RestRepository) AddRequest(ctx context.Context, request model.RestReque
 			Time:  request.RestUntil,
 			Valid: true,
 		},
-		MessageID: request.MessageID,
+		MessageID: pgtype.Int8{
+			Int64: request.MessageID,
+			Valid: request.MessageID != 0,
+		},
 		Reason: pgtype.Text{
 			String: request.Reason,
 			Valid:  request.Reason != "",
 		},
+		Status: db.RestStatus(request.Status),
 	})
 
 }
 
 func (r *RestRepository) ApproveRequest(ctx context.Context, request model.RestRequest) error {
 	return r.queries.ApproveRestRequest(ctx, db.ApproveRestRequestParams{
-		ChatID:    request.ChatID,
-		UserID:    request.UserID,
-		MessageID: request.MessageID,
+		ChatID: request.ChatID,
+		UserID: request.UserID,
+		MessageID: pgtype.Int8{
+			Int64: request.MessageID,
+			Valid: request.MessageID != 0,
+		},
 	})
 
 }
@@ -108,9 +115,12 @@ func (r *RestRepository) ApproveRequestWithTx(ctx context.Context, request model
 		}
 
 		if err := q.ApproveRestRequest(ctx, db.ApproveRestRequestParams{
-			ChatID:    request.ChatID,
-			UserID:    request.UserID,
-			MessageID: request.MessageID,
+			ChatID: request.ChatID,
+			UserID: request.UserID,
+			MessageID: pgtype.Int8{
+				Int64: request.MessageID,
+				Valid: request.MessageID != 0,
+			},
 		}); err != nil {
 			return err
 		}
@@ -121,18 +131,24 @@ func (r *RestRepository) ApproveRequestWithTx(ctx context.Context, request model
 
 func (r *RestRepository) RejectRequest(ctx context.Context, chatID, userID, messageID int64) error {
 	return r.queries.RejectRestRequest(ctx, db.RejectRestRequestParams{
-		ChatID:    chatID,
-		UserID:    userID,
-		MessageID: messageID,
+		ChatID: chatID,
+		UserID: userID,
+		MessageID: pgtype.Int8{
+			Int64: messageID,
+			Valid: messageID != 0,
+		},
 	})
 
 }
 
 func (r *RestRepository) GetRequest(ctx context.Context, chatID, userID, messageID int64) (model.RestRequest, error) {
 	er, err := r.queries.GetRestRequest(ctx, db.GetRestRequestParams{
-		ChatID:    chatID,
-		UserID:    userID,
-		MessageID: messageID,
+		ChatID: chatID,
+		UserID: userID,
+		MessageID: pgtype.Int8{
+			Int64: messageID,
+			Valid: messageID != 0,
+		},
 	})
 	if err != nil {
 		return model.RestRequest{}, err
@@ -181,6 +197,61 @@ func (r *RestRepository) GetUserApprovedRequests(ctx context.Context, userID int
 	return mapApprovedRestRequests(rows, func(row db.GetUserApprovedRestRequestsRow) model.ApprovedRestRequest {
 		return mapApprovedRestRequest(row.RestRequest, row.User)
 	}), nil
+}
+
+func (r *RestRepository) SetRestWithHistory(ctx context.Context, chatID int64, userID int64, messageID int64, until time.Time, reason string) error {
+	return r.withTx(ctx, func(q *db.Queries) error {
+		if err := q.SetMemberRest(ctx, db.SetMemberRestParams{
+			ChatID: chatID,
+			UserID: userID,
+			RestUntil: pgtype.Timestamptz{
+				Time:  until,
+				Valid: true,
+			},
+			RestReason: pgtype.Text{
+				String: reason,
+				Valid:  reason != "",
+			},
+		}); err != nil {
+			return err
+		}
+
+		if err := q.AddRestRequest(ctx, db.AddRestRequestParams{
+			ChatID: chatID,
+			UserID: userID,
+			RestUntil: pgtype.Timestamptz{
+				Time:  until,
+				Valid: true,
+			},
+			MessageID: pgtype.Int8{
+				Int64: messageID,
+				Valid: messageID != 0,
+			},
+			Status: db.RestStatusApproved,
+			Reason: pgtype.Text{
+				String: reason,
+				Valid:  reason != "",
+			},
+		}); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (r *RestRepository) GetUserRestRequests(ctx context.Context, userID int64) ([]model.ApprovedRestRequest, error) {
+	rows, err := r.queries.GetUserRestRequests(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]model.ApprovedRestRequest, len(rows))
+	for i, row := range rows {
+		result[i] = mapApprovedRestRequest(row.RestRequest, row.User)
+	}
+
+	return result, nil
 }
 
 func (r *RestRepository) withTx(

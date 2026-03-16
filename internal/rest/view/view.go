@@ -73,18 +73,53 @@ func FormatRestRequestRejected(user *model.User) string {
 	}
 	return fmt.Sprintf("Запрос на рест для %s отклонён", helpers.UserLink(*user))
 }
-
 func FormatRestRequests(requests []model.ApprovedRestRequest) string {
 	if len(requests) == 0 {
-		return "Список одобренных рестов пуст"
+		return "Список рестов пуст"
 	}
 
-	text := "<b>Список одобренных рестов:</b>\n"
-	for _, r := range requests {
-		text += fmt.Sprintf("\n%s — до %s", helpers.UserLink(r.User), helpers.FormatToHumanDateTime(r.RestUntil))
+	var approvedText, pendingText, rejectedText string
+
+	for i, r := range requests {
+		reasonPart := ""
 		if r.Reason != "" {
-			text += fmt.Sprintf(" (%s)", r.Reason)
+			reasonPart = fmt.Sprintf(" (%s)", r.Reason)
+		}
+
+		// Показываем дату обновления, если есть
+		timePart := ""
+		if !r.UpdatedAt.IsZero() {
+			timePart = fmt.Sprintf(" [обновлено: %s]", helpers.FormatToHumanDateTime(r.UpdatedAt))
+		} else {
+			// иначе показываем дату запроса
+			timePart = fmt.Sprintf(" [запрошено: %s]", helpers.FormatToHumanDateTime(r.RequestedAt))
+		}
+
+		line := fmt.Sprintf("%d. до %s%s%s\n", i+1, helpers.FormatToHumanDateTime(r.RestUntil), reasonPart, timePart)
+
+		switch r.Status {
+		case "approved":
+			approvedText += line
+		case "pending":
+			pendingText += line
+		case "rejected":
+			rejectedText += line
+		default:
+			pendingText += line
 		}
 	}
+
+	text := "<b>Список рестов:</b>\n"
+
+	if approvedText != "" {
+		text += "\n<b>Одобренные:</b>\n" + approvedText
+	}
+	if pendingText != "" {
+		text += "\n<b>В ожидании:</b>\n" + pendingText
+	}
+	if rejectedText != "" {
+		text += "\n<b>Отклонённые:</b>\n" + rejectedText
+	}
+
 	return text
 }

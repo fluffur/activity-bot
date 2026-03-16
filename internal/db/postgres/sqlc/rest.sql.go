@@ -12,16 +12,17 @@ import (
 )
 
 const addRestRequest = `-- name: AddRestRequest :exec
-INSERT INTO rest_requests(chat_id, user_id, rest_until, message_id, reason)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO rest_requests(chat_id, user_id, rest_until, message_id, reason, status)
+VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type AddRestRequestParams struct {
 	ChatID    int64              `db:"chat_id" json:"chatId"`
 	UserID    int64              `db:"user_id" json:"userId"`
 	RestUntil pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
-	MessageID int64              `db:"message_id" json:"messageId"`
+	MessageID pgtype.Int8        `db:"message_id" json:"messageId"`
 	Reason    pgtype.Text        `db:"reason" json:"reason"`
+	Status    RestStatus         `db:"status" json:"status"`
 }
 
 func (q *Queries) AddRestRequest(ctx context.Context, arg AddRestRequestParams) error {
@@ -31,6 +32,7 @@ func (q *Queries) AddRestRequest(ctx context.Context, arg AddRestRequestParams) 
 		arg.RestUntil,
 		arg.MessageID,
 		arg.Reason,
+		arg.Status,
 	)
 	return err
 }
@@ -44,9 +46,9 @@ WHERE chat_id = $1
 `
 
 type ApproveRestRequestParams struct {
-	ChatID    int64 `db:"chat_id" json:"chatId"`
-	UserID    int64 `db:"user_id" json:"userId"`
-	MessageID int64 `db:"message_id" json:"messageId"`
+	ChatID    int64       `db:"chat_id" json:"chatId"`
+	UserID    int64       `db:"user_id" json:"userId"`
+	MessageID pgtype.Int8 `db:"message_id" json:"messageId"`
 }
 
 func (q *Queries) ApproveRestRequest(ctx context.Context, arg ApproveRestRequestParams) error {
@@ -111,7 +113,7 @@ func (q *Queries) GetAllActiveRests(ctx context.Context) ([]GetAllActiveRestsRow
 }
 
 const getApprovedRestRequests = `-- name: GetApprovedRestRequests :many
-SELECT rr.chat_id, rr.user_id, rr.requested_at, rr.rest_until, rr.status, rr.message_id, rr.reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+SELECT rr.chat_id, rr.user_id, rr.requested_at, rr.rest_until, rr.status, rr.message_id, rr.reason, rr.id, rr.updated_at, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM rest_requests rr
          JOIN users u ON u.id = rr.user_id
 WHERE rr.status = 'approved'
@@ -140,6 +142,8 @@ func (q *Queries) GetApprovedRestRequests(ctx context.Context) ([]GetApprovedRes
 			&i.RestRequest.Status,
 			&i.RestRequest.MessageID,
 			&i.RestRequest.Reason,
+			&i.RestRequest.ID,
+			&i.RestRequest.UpdatedAt,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,
@@ -212,7 +216,7 @@ func (q *Queries) GetRestMembers(ctx context.Context, chatID int64) ([]GetRestMe
 }
 
 const getRestRequest = `-- name: GetRestRequest :one
-SELECT chat_id, user_id, requested_at, rest_until, status, message_id, reason
+SELECT chat_id, user_id, requested_at, rest_until, status, message_id, reason, id, updated_at
 FROM rest_requests
 WHERE chat_id = $1
   AND user_id = $2
@@ -220,9 +224,9 @@ WHERE chat_id = $1
 `
 
 type GetRestRequestParams struct {
-	ChatID    int64 `db:"chat_id" json:"chatId"`
-	UserID    int64 `db:"user_id" json:"userId"`
-	MessageID int64 `db:"message_id" json:"messageId"`
+	ChatID    int64       `db:"chat_id" json:"chatId"`
+	UserID    int64       `db:"user_id" json:"userId"`
+	MessageID pgtype.Int8 `db:"message_id" json:"messageId"`
 }
 
 func (q *Queries) GetRestRequest(ctx context.Context, arg GetRestRequestParams) (RestRequest, error) {
@@ -236,12 +240,14 @@ func (q *Queries) GetRestRequest(ctx context.Context, arg GetRestRequestParams) 
 		&i.Status,
 		&i.MessageID,
 		&i.Reason,
+		&i.ID,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getUserApprovedRestRequests = `-- name: GetUserApprovedRestRequests :many
-SELECT rr.chat_id, rr.user_id, rr.requested_at, rr.rest_until, rr.status, rr.message_id, rr.reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+SELECT rr.chat_id, rr.user_id, rr.requested_at, rr.rest_until, rr.status, rr.message_id, rr.reason, rr.id, rr.updated_at, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM rest_requests rr
          JOIN users u ON u.id = rr.user_id
 WHERE rr.status = 'approved'
@@ -271,6 +277,59 @@ func (q *Queries) GetUserApprovedRestRequests(ctx context.Context, userID int64)
 			&i.RestRequest.Status,
 			&i.RestRequest.MessageID,
 			&i.RestRequest.Reason,
+			&i.RestRequest.ID,
+			&i.RestRequest.UpdatedAt,
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUserRestRequests = `-- name: GetUserRestRequests :many
+SELECT rr.chat_id, rr.user_id, rr.requested_at, rr.rest_until, rr.status, rr.message_id, rr.reason, rr.id, rr.updated_at, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+FROM rest_requests rr
+         JOIN users u ON u.id = rr.user_id
+WHERE user_id = $1
+ORDER BY requested_at DESC
+`
+
+type GetUserRestRequestsRow struct {
+	RestRequest RestRequest `db:"rest_request" json:"restRequest"`
+	User        User        `db:"user" json:"user"`
+}
+
+func (q *Queries) GetUserRestRequests(ctx context.Context, userID int64) ([]GetUserRestRequestsRow, error) {
+	rows, err := q.db.Query(ctx, getUserRestRequests, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetUserRestRequestsRow{}
+	for rows.Next() {
+		var i GetUserRestRequestsRow
+		if err := rows.Scan(
+			&i.RestRequest.ChatID,
+			&i.RestRequest.UserID,
+			&i.RestRequest.RequestedAt,
+			&i.RestRequest.RestUntil,
+			&i.RestRequest.Status,
+			&i.RestRequest.MessageID,
+			&i.RestRequest.Reason,
+			&i.RestRequest.ID,
+			&i.RestRequest.UpdatedAt,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,
@@ -299,9 +358,9 @@ WHERE chat_id = $1
 `
 
 type RejectRestRequestParams struct {
-	ChatID    int64 `db:"chat_id" json:"chatId"`
-	UserID    int64 `db:"user_id" json:"userId"`
-	MessageID int64 `db:"message_id" json:"messageId"`
+	ChatID    int64       `db:"chat_id" json:"chatId"`
+	UserID    int64       `db:"user_id" json:"userId"`
+	MessageID pgtype.Int8 `db:"message_id" json:"messageId"`
 }
 
 func (q *Queries) RejectRestRequest(ctx context.Context, arg RejectRestRequestParams) error {

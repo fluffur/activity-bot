@@ -63,7 +63,7 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return h.createRequest(b, ctx, targetUser, date)
 	}
 
-	if err := h.service.SetMemberRest(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, date, ctx.SecondArgument()); err != nil {
+	if err := h.service.SetMemberRestWithHistory(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, ctx.EffectiveMessage.MessageId, date, ctx.SecondArgument()); err != nil {
 		_ = ctx.Reply(b, "Не удалось создать рест", nil)
 		return err
 	}
@@ -120,18 +120,14 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 }
 
-func (h *Handler) List(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) AllUserRests(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
-
-	var requests []model.ApprovedRestRequest
-	var err error
-
-	if targetUser != nil {
-		requests, err = h.service.GetUserApprovedRequests(ctx.StdContext(), targetUser.ID)
-	} else {
-		requests, err = h.service.GetApprovedRequests(ctx.StdContext())
+	if targetUser == nil {
+		return cmd.ErrNoUser
 	}
+	var requests []model.ApprovedRestRequest
 
+	requests, err := h.service.GetRequests(ctx.StdContext(), targetUser.ID)
 	if err != nil {
 		_ = ctx.Reply(b, "Не удалось получить список рестов", nil)
 		return err

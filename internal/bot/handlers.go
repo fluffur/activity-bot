@@ -125,8 +125,8 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowRestList, "rests", "ресты").
 		WithGuards(groupGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(restHandler.List, "all_rests", "все ресты", "история рестов").
-		WithGuards(groupGuard),
+	a.Dispatcher.AddHandler(cf.New(restHandler.AllUserRests, "all_rests", "все ресты", "история рестов").
+		WithGuards(groupGuard).FallbackToSender(),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowFailedNorm, "nonorm", "без нормы").
 		SetArgsCount(1).

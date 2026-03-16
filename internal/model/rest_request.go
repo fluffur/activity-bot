@@ -9,6 +9,7 @@ type RestRequest struct {
 	UserID      int64
 	RequestedAt time.Time
 	RestUntil   time.Time
+	UpdatedAt   time.Time
 	Status      string
 	MessageID   int64
 	Reason      string

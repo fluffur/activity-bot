@@ -23,8 +23,8 @@ WHERE user_id = $1
 
 
 -- name: AddRestRequest :exec
-INSERT INTO rest_requests(chat_id, user_id, rest_until, message_id, reason)
-VALUES ($1, $2, $3, $4, $5);
+INSERT INTO rest_requests(chat_id, user_id, rest_until, message_id, reason, status)
+VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: ApproveRestRequest :exec
 UPDATE rest_requests
@@ -67,3 +67,10 @@ FROM rest_requests rr
 WHERE rr.status = 'approved'
   AND rr.user_id = $1
 ORDER BY rr.requested_at DESC;
+
+-- name: GetUserRestRequests :many
+SELECT sqlc.embed(rr), sqlc.embed(u)
+FROM rest_requests rr
+         JOIN users u ON u.id = rr.user_id
+WHERE user_id = $1
+ORDER BY requested_at DESC;

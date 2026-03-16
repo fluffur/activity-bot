@@ -162,8 +162,10 @@ type RestRequest struct {
 	RequestedAt pgtype.Timestamptz `db:"requested_at" json:"requestedAt"`
 	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
 	Status      RestStatus         `db:"status" json:"status"`
-	MessageID   int64              `db:"message_id" json:"messageId"`
+	MessageID   pgtype.Int8        `db:"message_id" json:"messageId"`
 	Reason      pgtype.Text        `db:"reason" json:"reason"`
+	ID          pgtype.Int8        `db:"id" json:"id"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updatedAt"`
 }
 
 type User struct {
