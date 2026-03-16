@@ -24,18 +24,18 @@ SELECT cm.chat_id,
        cm.user_id,
        cm.rest_until,
        'approved'::rest_status,
-       MAX(cm.rest_reason) AS reason,
+       cm.rest_reason,
        now(),
        now()
 FROM chat_members cm
-         LEFT JOIN rest_requests rr
-                   ON rr.chat_id = cm.chat_id
-                       AND rr.user_id = cm.user_id
-                       AND rr.rest_until = cm.rest_until
-                       AND rr.status = 'approved'
 WHERE cm.rest_until IS NOT NULL
-  AND rr.id IS NULL
-GROUP BY cm.chat_id, cm.user_id, cm.rest_until;
+  AND NOT EXISTS (
+    SELECT 1
+    FROM rest_requests rr
+    WHERE rr.chat_id = cm.chat_id
+      AND rr.user_id = cm.user_id
+      AND rr.rest_until = cm.rest_until
+);
 
 CREATE OR REPLACE FUNCTION rest_requests_set_updated_at()
     RETURNS TRIGGER AS $$
