@@ -24,7 +24,7 @@ SELECT cm.chat_id,
        cm.user_id,
        cm.rest_until,
        'approved'::rest_status,
-       cm.rest_reason,
+       MAX(cm.rest_reason) AS reason,
        now(),
        now()
 FROM chat_members cm
@@ -34,7 +34,8 @@ FROM chat_members cm
                        AND rr.rest_until = cm.rest_until
                        AND rr.status = 'approved'
 WHERE cm.rest_until IS NOT NULL
-  AND rr.id IS NULL;
+  AND rr.id IS NULL
+GROUP BY cm.chat_id, cm.user_id, cm.rest_until;
 
 CREATE OR REPLACE FUNCTION rest_requests_set_updated_at()
     RETURNS TRIGGER AS $$
