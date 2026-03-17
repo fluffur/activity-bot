@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"activity-bot/internal/chat"
+	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -103,7 +105,43 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 			}
 		}
 
-		return r(b, cmdCtx)
+		err = r(b, cmdCtx)
+		if err != nil {
+			return err
+		}
+
+		// UI Enhancement: Remove the clicked user from the menu
+		if ctx.CallbackQuery != nil && ctx.EffectiveMessage != nil && ctx.EffectiveMessage.ReplyMarkup != nil {
+			var newButtons [][]gotgbot.InlineKeyboardButton
+			for _, row := range ctx.EffectiveMessage.ReplyMarkup.InlineKeyboard {
+				var newRow []gotgbot.InlineKeyboardButton
+				for _, button := range row {
+					if button.CallbackData == ctx.CallbackQuery.Data {
+						continue
+					}
+					newRow = append(newRow, button)
+				}
+				if len(newRow) > 0 {
+					newButtons = append(newButtons, newRow)
+				}
+			}
+
+			if len(newButtons) == 0 {
+				finalText := fmt.Sprintf("%s <b>Все участники из списка выбраны.</b>", helpers.SuccessEmoji())
+				_, _, err = ctx.EffectiveMessage.EditText(b, finalText, &gotgbot.EditMessageTextOpts{
+					ParseMode: gotgbot.ParseModeHTML,
+				})
+			} else {
+				_, _, err = ctx.EffectiveMessage.EditReplyMarkup(b, &gotgbot.EditMessageReplyMarkupOpts{
+					ReplyMarkup: gotgbot.InlineKeyboardMarkup{
+						InlineKeyboard: newButtons,
+					},
+				})
+			}
+			return err
+		}
+
+		return nil
 	}
 }
 

@@ -119,6 +119,20 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("rest_show:"), cf.WrapCallback(restHandler.Show)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("rest_set:"), cf.WrapCallback(restHandler.Set)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("rest_end:"), cf.WrapCallback(restHandler.End)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_is:"), cf.WrapCallback(adminHandler.IsAdmin)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_add:"), cf.WrapCallback(adminHandler.AddAdmin)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_remove:"), cf.WrapCallback(adminHandler.RemoveAdmin)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_unban:"), cf.WrapCallback(adminHandler.Unban)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_unmute:"), cf.WrapCallback(adminHandler.Unmute)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_unwarn:"), cf.WrapCallback(adminHandler.Unwarn)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_kick:"), cf.WrapCallback(adminHandler.Kick)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_ban:"), cf.WrapCallback(adminHandler.Ban)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_mute:"), cf.WrapCallback(adminHandler.Mute)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_warns:"), cf.WrapCallback(adminHandler.ShowWarns)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_warn:"), cf.WrapCallback(adminHandler.Warn)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_clear:"), cf.WrapCallback(adminHandler.ClearWarns)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("member_role_show:"), cf.WrapCallback(memberHandler.ShowRole)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("member_role_set:"), cf.WrapCallback(memberHandler.SetRole)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("profile_graph:"), cf.WrapCallback(statsHandler.CallbackProfileGraph)))
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "ты", "you").SetArgsCount(1).ForcePrefix().
 		WithGuards(groupGuard).
@@ -185,52 +199,64 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.IsAdmin, "админ", "admin", "is_admin", "адм", "модер", "mod", "is_mod").
 		WithGuards(groupGuard).
-		FallbackToSender(),
+		FallbackToSender().
+		WithAmbiguityResolution("admin_is"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.AddAdmin, "+админ", "+admin", "+адм", "+модер", "+mod").
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard, adminGuard).
+		WithAmbiguityResolution("admin_add"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.RemoveAdmin, "-администратор", "-админ", "-admin", "-адм", "-модер", "-mod").
-		WithGuards(groupGuard, creatorGuard),
+		WithGuards(groupGuard, creatorGuard).
+		WithAmbiguityResolution("admin_remove"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Unban, "unban", "-бан", "разбан", "разбанить").
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard, adminGuard).
+		WithAmbiguityResolution("admin_unban"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Unmute, "unmute", "размут", "размутить", "-мут").
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard, adminGuard).
+		WithAmbiguityResolution("admin_unmute"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Unwarn, "unwarn", "анварн", "снятьпред", "-варн", "-пред").
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard, adminGuard).
+		WithAmbiguityResolution("admin_unwarn"),
 	)
 
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Kick, "kick", "кик", "выгнать").
 		AddTriggers("+").
 		SetArgsCount(1).
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard, adminGuard).
+		WithAmbiguityResolution("admin_kick"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Ban, "ban", "бан").
 		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard).
-		SetArgsCount(2),
+		SetArgsCount(2).
+		WithAmbiguityResolution("admin_ban"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Mute, "mute", "мут", "замутить").
 		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard).
-		SetArgsCount(2),
+		SetArgsCount(2).
+		WithAmbiguityResolution("admin_mute"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowWarns, "warns", "варны", "преды").
 		FallbackToSender().
-		WithGuards(groupGuard),
+		WithGuards(groupGuard).
+		WithAmbiguityResolution("admin_warns"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Warnlist, "warnlist", "варнлист", "предывсе").
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Warn, "warn", "варн", "пред", "предупреждение").
 		AddTriggers("+").SetArgsCount(2).
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard, adminGuard).
+		WithAmbiguityResolution("admin_warn"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ClearWarns, "clear_warns", "очистить преды", "очистить варны").
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard, adminGuard).
+		WithAmbiguityResolution("admin_clear"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowMaxWarns, "макс преды", "макс варны", "max_warns").
 		WithGuards(groupGuard),
@@ -265,12 +291,14 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(memberHandler.ShowRole, "роль", "role", "title",
 		"какая роль", "роль у", "роль кого").
 		WithGuards(groupGuard).
-		FallbackToSender(),
+		FallbackToSender().
+		WithAmbiguityResolution("member_role_show"),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.SetRole, "роль", "role", "title").
 		AddTriggers("+").
 		WithGuards(groupGuard, adminGuard).
-		SetArgsCount(1),
+		SetArgsCount(1).
+		WithAmbiguityResolution("member_role_set"),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.RestoreRoles, "восстановить роли", "restore_roles").
 		WithGuards(groupGuard, creatorGuard),
