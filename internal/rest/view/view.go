@@ -114,7 +114,7 @@ func FormatRestRequests(requests []model.ApprovedRestRequest) string {
 }
 
 func isRestActiveMessage(rr model.ApprovedRestRequest) string {
-	if !rr.ChatMember.IsRestActive(time.Now()) || rr.ChatMember.RestUntil.Equal(rr.RestUntil) {
+	if !rr.ChatMember.IsRestActive(time.Now()) || !rr.ChatMember.RestUntil.Equal(rr.RestUntil) {
 		return fmt.Sprintf("%s Недействителен\n", helpers.DangerEmoji())
 	}
 	return fmt.Sprintf("%s Действителен\n", helpers.SuccessEmoji())
