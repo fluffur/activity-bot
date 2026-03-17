@@ -66,9 +66,10 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 			chatID = ctx.EffectiveChat.Id
 		}
 		cmdCtx := &Context{
-			Context:      ctx,
-			ctx:          ctxWithTimeout,
-			targetChatID: chatID,
+			Context:       ctx,
+			ctx:           ctxWithTimeout,
+			targetChatID:  chatID,
+			memberService: f.memberService,
 		}
 
 		if ctx.CallbackQuery != nil {
@@ -114,10 +115,11 @@ func (f *Factory) WrapEvent(r Response, guards ...Guard) func(b *gotgbot.Bot, ct
 		}
 
 		cmdCtx := &Context{
-			Context:      ctx,
-			ctx:          ctxWithTimeout,
-			users:        users,
-			targetChatID: ctx.EffectiveChat.Id,
+			Context:       ctx,
+			ctx:           ctxWithTimeout,
+			users:         users,
+			targetChatID:  ctx.EffectiveChat.Id,
+			memberService: f.memberService,
 		}
 
 		return r(b, cmdCtx)
@@ -317,7 +319,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 	chatID, err := c.getChatID(cctx, msg)
 	if err != nil {
 		logger.L.Error("getChatID error", "error", err)
-		return &Context{ctx, cctx, []string{}, "", users, 0, parsedDates}
+		return &Context{ctx, cctx, []string{}, "", users, 0, parsedDates, c.memberService}
 	}
 
 	allowPrefixless := true
@@ -332,7 +334,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 
 	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix, allowPrefixless && !c.forcePrefix)
 	if !matched {
-		return &Context{ctx, cctx, []string{}, "", users, chatID, parsedDates}
+		return &Context{ctx, cctx, []string{}, "", users, chatID, parsedDates, c.memberService}
 	}
 
 	rest = strings.TrimSpace(rest)
@@ -381,7 +383,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		args = append(args, rest)
 	}
 
-	return &Context{ctx, cctx, args, htmlRest, users, chatID, parsedDates}
+	return &Context{ctx, cctx, args, htmlRest, users, chatID, parsedDates, c.memberService}
 }
 
 func (c *Command) getChatID(ctx context.Context, msg *gotgbot.Message) (int64, error) {

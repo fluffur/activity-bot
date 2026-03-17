@@ -123,38 +123,17 @@ func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
+	resolved, err := ctx.ResolveUserAmbiguity(b, "whoareyou", "")
+	if err != nil {
+		return err
+	}
+	if resolved {
+		return nil
+	}
+
 	u := ctx.FirstUser()
-
-	if ctx.FirstArgument() != "" {
-		role := ctx.FirstArgument()
-		members, err := h.userService.GetByCustomTitle(ctx.StdContext(), ctx.TargetChatID(), role)
-		if err != nil || len(members) == 0 {
-			return fmt.Errorf("user with role %s not found", role)
-		}
-
-		if len(members) == 1 {
-			return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.TargetChatID(), members[0].User.ID)
-		}
-
-		var buttons [][]gotgbot.InlineKeyboardButton
-		for _, m := range members {
-			btn := gotgbot.InlineKeyboardButton{
-				Text:         fmt.Sprintf("%s (%s)", m.User.FirstName, m.CustomTitle),
-				CallbackData: fmt.Sprintf("whoareyou:%d", m.User.ID),
-			}
-			buttons = append(buttons, []gotgbot.InlineKeyboardButton{btn})
-		}
-
-		kb := gotgbot.InlineKeyboardMarkup{
-			InlineKeyboard: buttons,
-		}
-
-		return ctx.Reply(b, "Выберите пользователя:", &gotgbot.SendMessageOpts{
-			ReplyMarkup: kb,
-		})
-	} else if u == nil {
-		return ctx.Reply(b, "Пользователь не найден в чате", nil)
-
+	if u == nil {
+		return ctx.ReplyHTML(b, "📭 <b>Пользователь не найден.</b>")
 	}
 
 	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.TargetChatID(), u.ID)

@@ -4,8 +4,10 @@ import (
 	"activity-bot/internal/model"
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
+	"activity-bot/internal/member"
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
@@ -16,12 +18,13 @@ type Response func(b *gotgbot.Bot, ctx *Context) error
 
 type Context struct {
 	*ext.Context
-	ctx          context.Context
-	args         []string
-	html         string
-	users        []*model.User
-	targetChatID int64
-	parsedDates  []time.Time
+	ctx           context.Context
+	args          []string
+	html          string
+	users         []*model.User
+	targetChatID  int64
+	parsedDates   []time.Time
+	memberService *member.Service
 }
 
 func (c *Context) TargetChatID() int64 {
@@ -66,6 +69,10 @@ func (c *Context) HTML() string {
 	return c.html
 }
 
+func (c *Context) SetUsers(users []*model.User) {
+	c.users = users
+}
+
 func (c *Context) StdContext() context.Context {
 	return c.ctx
 }
@@ -83,4 +90,43 @@ func (c *Context) ReplyHTML(b *gotgbot.Bot, text string) error {
 		},
 	})
 	return err
+}
+
+func (c *Context) ResolveUserAmbiguity(b *gotgbot.Bot, callbackPrefix string, extraData string) (bool, error) {
+	if len(c.users) <= 1 {
+		return false, nil
+	}
+
+	var buttons [][]gotgbot.InlineKeyboardButton
+	for _, u := range c.users {
+		text := u.FirstName
+		if c.memberService != nil && c.EffectiveChat.Type != "private" {
+			m, err := c.memberService.GetChatMember(c.ctx, c.EffectiveChat.Id, u.ID)
+			if err == nil && m.CustomTitle != "" {
+				text = fmt.Sprintf("%s (%s)", u.FirstName, m.CustomTitle)
+			}
+		}
+
+		// If extraData is needed by the caller, it's appended to the callback data.
+		data := fmt.Sprintf("%s:%d", callbackPrefix, u.ID)
+		if extraData != "" {
+			data += ":" + extraData
+		}
+
+		btn := gotgbot.InlineKeyboardButton{
+			Text:         text,
+			CallbackData: data,
+		}
+		buttons = append(buttons, []gotgbot.InlineKeyboardButton{btn})
+	}
+
+	kb := gotgbot.InlineKeyboardMarkup{
+		InlineKeyboard: buttons,
+	}
+
+	_, err := c.EffectiveMessage.Reply(b, "<b>Обнаружено несколько участников.</b>\nВыберите нужного:", &gotgbot.SendMessageOpts{
+		ParseMode:   gotgbot.ParseModeHTML,
+		ReplyMarkup: kb,
+	})
+	return true, err
 }
