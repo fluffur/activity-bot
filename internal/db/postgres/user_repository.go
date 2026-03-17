@@ -81,7 +81,7 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []model.User) er
 	})
 }
 
-func (r *UserRepository) GetByCustomTitle(ctx context.Context, chatID int64, title string) ([]model.ChatMember, error) {
+func (r *UserRepository) GetByTag(ctx context.Context, chatID int64, title string) ([]model.ChatMember, error) {
 	u, err := r.queries.GetUsersByCustomTitle(ctx, db.GetUsersByCustomTitleParams{
 		CustomTitle: pgtype.Text{
 			String: title,

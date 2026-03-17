@@ -166,8 +166,8 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 			normBanDone = r.MessagesCount >= r.NormBan
 		}
 
-		userTitle := r.CustomTitle
-		if r.CustomTitle == "" {
+		userTitle := r.Tag
+		if r.Tag == "" {
 			userTitle = r.User.FirstName
 		}
 
@@ -213,8 +213,8 @@ func formatRestLine(r model.RestMember) string {
 	} else {
 		untilText = "неизвестно"
 	}
-	userTitle := r.CustomTitle
-	if r.CustomTitle == "" {
+	userTitle := r.Tag
+	if r.Tag == "" {
 		userTitle = r.User.FirstName
 	}
 	return fmt.Sprintf("%s до %s", helpers.LinkWithContent(r.User, userTitle), untilText)

@@ -1,5 +1,5 @@
 -- name: GetMemberCustomTitle :one
-SELECT custom_title
+SELECT tag
 FROM chat_members
 WHERE chat_id = $1
   AND user_id = $2;
@@ -48,7 +48,7 @@ WHERE cm.chat_id = @chat_id
 
 -- name: UpdateChatMemberTitle :exec
 UPDATE chat_members
-SET custom_title = @custom_title
+SET tag = @tag
 WHERE chat_id = @chat_id
   AND user_id = @user_id;
 
@@ -87,17 +87,17 @@ WITH chat_upsert AS (
                      last_name = EXCLUDED.last_name
              RETURNING id)
 INSERT
-INTO chat_members (chat_id, user_id, custom_title)
+INTO chat_members (chat_id, user_id, tag)
 SELECT chat_id_resolve.id,
        user_upsert.id,
-       @custom_title
+       @tag
 FROM chat_id_resolve,
      user_upsert
 ON CONFLICT (chat_id, user_id) DO UPDATE
     SET custom_title = CASE
-                           WHEN @custom_title IS NOT NULL AND @custom_title <> ''
-                               THEN @custom_title
-                           ELSE chat_members.custom_title
+                           WHEN @tag IS NOT NULL AND @tag <> ''
+                               THEN @tag
+                           ELSE chat_members.tag
         END,
         left_at      = NULL
 RETURNING *;

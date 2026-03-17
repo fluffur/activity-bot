@@ -40,7 +40,7 @@ func (s *Service) GetAnyMembersWithTitle(ctx context.Context, chatID int64) ([]m
 }
 
 func (s *Service) GetMemberTitle(ctx context.Context, chatID int64, userID int64) (string, error) {
-	return s.repo.GetCustomTitle(ctx, chatID, userID)
+	return s.repo.GetTag(ctx, chatID, userID)
 }
 
 func (s *Service) GetChatMember(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error) {

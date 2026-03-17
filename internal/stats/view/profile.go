@@ -10,8 +10,8 @@ import (
 
 func FormatProfile(m model.MemberStats) string {
 	var displayName string
-	if m.CustomTitle != "" {
-		displayName = m.CustomTitle
+	if m.Tag != "" {
+		displayName = m.Tag
 	} else {
 		fullName := strings.TrimSpace(m.User.FirstName + " " + m.User.LastName)
 		if fullName == "" {

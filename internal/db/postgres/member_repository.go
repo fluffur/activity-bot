@@ -82,7 +82,7 @@ func NewMemberRepository(queries *db.Queries) member.Repository {
 	return &MemberRepository{queries}
 }
 
-func (r *MemberRepository) GetCustomTitle(ctx context.Context, chatID int64, userID int64) (string, error) {
+func (r *MemberRepository) GetTag(ctx context.Context, chatID int64, userID int64) (string, error) {
 	title, err := r.queries.GetMemberCustomTitle(ctx, db.GetMemberCustomTitleParams{
 		ChatID: chatID,
 		UserID: userID,
@@ -104,7 +104,7 @@ func (r *MemberRepository) UpdateCustomTitle(ctx context.Context, chatID int64, 
 	return r.queries.UpdateChatMemberTitle(ctx, db.UpdateChatMemberTitleParams{
 		ChatID: chatID,
 		UserID: userID,
-		CustomTitle: pgtype.Text{
+		Tag: pgtype.Text{
 			String: title,
 			Valid:  title != "",
 		},
@@ -160,18 +160,18 @@ func (r *MemberRepository) GetAnyWithCustomTitles(ctx context.Context, chatID in
 
 func (r *MemberRepository) UpsertChatMembers(ctx context.Context, chatID int64, users []model.ChatMemberUpdate) error {
 	userIDs := make([]int64, len(users))
-	customTitles := make([]string, len(users))
+	tags := make([]string, len(users))
 	statuses := make([]string, len(users))
 	for i, u := range users {
 		userIDs[i] = u.User.ID
-		customTitles[i] = u.CustomTitle
+		tags[i] = u.Tag
 		statuses[i] = u.Status
 	}
 
 	return r.queries.UpsertChatMembers(ctx, db.UpsertChatMembersParams{
 		ChatID:       chatID,
 		UserIds:      userIDs,
-		CustomTitles: customTitles,
+		CustomTitles: tags,
 		Statuses:     statuses,
 	})
 }
@@ -210,7 +210,7 @@ func (r *MemberRepository) EnsureExists(ctx context.Context, chatID int64, userI
 
 func (r *MemberRepository) EnsureFull(ctx context.Context, chatID, userID int64, role, firstName, lastName, username string) (model.ChatMember, error) {
 	m, err := r.queries.EnsureMemberFull(ctx, db.EnsureMemberFullParams{
-		CustomTitle: pgtype.Text{
+		Tag: pgtype.Text{
 			String: role,
 			Valid:  true,
 		},

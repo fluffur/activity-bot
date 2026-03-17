@@ -33,8 +33,8 @@ func LinkWithContent(u model.User, content string) string {
 
 func RoleLink(cm model.ChatMember) string {
 	var displayName string
-	if cm.CustomTitle != "" {
-		displayName = cm.CustomTitle
+	if cm.Tag != "" {
+		displayName = cm.Tag
 	} else {
 		fullName := strings.TrimSpace(cm.User.FirstName + " " + cm.User.LastName)
 		if fullName == "" {

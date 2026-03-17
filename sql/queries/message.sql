@@ -93,7 +93,7 @@ ORDER BY day;
 
 -- name: InactiveChatMembers :many
 SELECT sqlc.embed(u),
-       cm.custom_title,
+       cm.tag,
        cm.status,
        cm.rest_until,
        MAX(m.created_at)::timestamptz AS last_message_at
@@ -104,7 +104,7 @@ FROM chat_members cm
 WHERE cm.left_at IS NULL
   AND cm.chat_id = $1
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
-GROUP BY cm.user_id, u.id, u.first_name, u.last_name, u.username, cm.custom_title, cm.status, cm.rest_until
+GROUP BY cm.user_id, u.id, u.first_name, u.last_name, u.username, cm.tag, cm.status, cm.rest_until
 HAVING MAX(m.created_at) IS NULL
     OR MAX(m.created_at) < NOW() - INTERVAL '1 days'
 ORDER BY MAX(m.created_at) NULLS FIRST;

@@ -12,19 +12,15 @@ func FormatAdminsList(admins []model.ChatMember) string {
 	var sb strings.Builder
 	sb.WriteString("👮 Администраторы бота:\n")
 	for i, a := range admins {
-		title := a.CustomTitle
-		if a.CustomTitle == "" {
-			title = a.User.FirstName
-		}
-		sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, helpers.LinkWithContent(a.User, title)))
+		sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, helpers.RoleLink(a)))
 	}
 	return sb.String()
 }
 
-func FormatAdminAdded(user model.User) string {
+func FormatAdminAdded(user model.ChatMember) string {
 	return fmt.Sprintf("Участник %s %s администратором бота",
-		helpers.UserLink(user),
-		helpers.Gendered(user.Gender, "назначен", "назначена"),
+		helpers.RoleLink(user),
+		helpers.Gendered(user.User.Gender, "назначен", "назначена"),
 	)
 }
 

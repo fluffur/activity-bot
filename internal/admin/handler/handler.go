@@ -51,13 +51,13 @@ func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
+	targetUser := ctx.FirstMember()
 
 	if targetUser == nil {
 		return ctx.Reply(b, "Вы забыли указать участника, которого хотите сделать админом, либо он был не найден в чате", nil)
 	}
 
-	if err := h.service.AddAdmin(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+	if err := h.service.AddAdmin(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID); err != nil {
 		if errors.Is(err, admin.ErrUserIsAlreadyAdmin) {
 			return ctx.Reply(b, "Пользователь уже является администратором", nil)
 		}
@@ -417,7 +417,7 @@ func (h *Handler) Unmute(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if m == nil {
 		return ctx.Reply(b, "Пользователь размучен, но не удалось вернуть роль", nil)
 	}
-	title := m.CustomTitle
+	title := m.Tag
 	if title != "" {
 		if ok, err := b.PromoteChatMember(ctx.TargetChatID(), targetUser.ID, &gotgbot.PromoteChatMemberOpts{
 			CanManageChat:   true,

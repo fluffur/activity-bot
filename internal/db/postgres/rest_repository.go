@@ -32,10 +32,10 @@ func (r *RestRepository) GetRestMembers(ctx context.Context, chatID int64) ([]mo
 	result := make([]model.RestMember, len(members))
 	for i, m := range members {
 		result[i] = model.RestMember{
-			User:        m.User,
-			RestUntil:   m.RestUntil,
-			Status:      m.Status,
-			CustomTitle: m.CustomTitle,
+			User:      m.User,
+			RestUntil: m.RestUntil,
+			Status:    m.Status,
+			Tag:       m.Tag,
 		}
 	}
 

@@ -24,12 +24,12 @@ type Chat struct {
 }
 
 type ChatMember struct {
-	User        User
-	ChatID      int64
-	RestUntil   time.Time
-	RestReason  string
-	CustomTitle string
-	Status      string
+	User       User
+	ChatID     int64
+	RestUntil  time.Time
+	RestReason string
+	Tag        string
+	Status     string
 }
 
 func (cm ChatMember) IsRestActive(now time.Time) bool {

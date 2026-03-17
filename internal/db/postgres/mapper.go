@@ -60,10 +60,10 @@ func mapChatMember(m db.ChatMember) model.ChatMember {
 		User: model.User{
 			ID: m.UserID,
 		},
-		RestUntil:   m.RestUntil.Time,
-		RestReason:  m.RestReason.String,
-		CustomTitle: m.CustomTitle.String,
-		Status:      m.Status,
+		RestUntil:  m.RestUntil.Time,
+		RestReason: m.RestReason.String,
+		Tag:        m.Tag.String,
+		Status:     m.Status,
 	}
 }
 
@@ -89,7 +89,7 @@ func mapMessageReportRow(m db.MessageReportRow) model.MessageReportMember {
 		NormBan:             int(m.NormBan.Int32),
 		NewbieThresholdDays: int(m.NewbieThresholdDays),
 		Status:              m.ChatMember.Status,
-		CustomTitle:         m.ChatMember.CustomTitle.String,
+		Tag:                 m.ChatMember.Tag.String,
 		JoinedAt:            m.ChatMember.JoinedAt.Time,
 	}
 }
@@ -110,7 +110,7 @@ func mapMessageReportOneRow(m db.MessageReportOneRow) model.MemberStats {
 		RestUntil:         m.ChatMember.RestUntil.Time,
 		NewbieThreshold:   int(m.NewbieThresholdDays),
 		Status:            m.ChatMember.Status,
-		CustomTitle:       m.ChatMember.CustomTitle.String,
+		Tag:               m.ChatMember.Tag.String,
 		LeftAt:            m.ChatMember.LeftAt.Time,
 	}
 }
@@ -118,10 +118,10 @@ func mapMessageReportOneRow(m db.MessageReportOneRow) model.MemberStats {
 func mapInactiveChatMembersRow(m db.InactiveChatMembersRow) model.ChatMember {
 	res := mapUser(m.User)
 	return model.ChatMember{
-		User:        res,
-		CustomTitle: m.CustomTitle.String,
-		Status:      m.Status,
-		RestUntil:   m.RestUntil.Time,
+		User:      res,
+		Tag:       m.Tag.String,
+		Status:    m.Status,
+		RestUntil: m.RestUntil.Time,
 	}
 }
 

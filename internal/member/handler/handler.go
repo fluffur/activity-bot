@@ -226,8 +226,8 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
-	title := m.CustomTitle
-	if m.CustomTitle == "" {
+	title := m.Tag
+	if m.Tag == "" {
 		title = ctx.EffectiveSender.FirstName()
 	}
 	var sb strings.Builder

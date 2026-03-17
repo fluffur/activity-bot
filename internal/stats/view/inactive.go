@@ -12,7 +12,7 @@ func FormatInactiveMembers(members []model.InactiveMember) string {
 	sb.WriteString("<b>😴 Неактивные участники (более 1 суток)</b>\n\n")
 
 	for i, m := range members {
-		userTitle := m.Member.CustomTitle
+		userTitle := m.Member.Tag
 		if userTitle == "" {
 			userTitle = m.Member.User.FirstName
 		}

@@ -92,8 +92,8 @@ func FormatCallChunk(message string, members []model.ChatMember, mentionTypes in
 		if mentionTypes&MentionTypeName > 0 {
 			parts = append(parts, m.User.FirstName)
 		}
-		if mentionTypes&MentionTypeRole > 0 && m.CustomTitle != "" {
-			parts = append(parts, m.CustomTitle)
+		if mentionTypes&MentionTypeRole > 0 && m.Tag != "" {
+			parts = append(parts, m.Tag)
 		}
 
 		if len(parts) == 0 && !(mentionTypes&MentionTypeEmoji > 0 && hasCustomEmoji(emoji)) {

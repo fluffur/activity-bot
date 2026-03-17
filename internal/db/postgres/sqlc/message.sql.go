@@ -44,7 +44,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 
 const inactiveChatMembers = `-- name: InactiveChatMembers :many
 SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
-       cm.custom_title,
+       cm.tag,
        cm.status,
        cm.rest_until,
        MAX(m.created_at)::timestamptz AS last_message_at
@@ -55,7 +55,7 @@ FROM chat_members cm
 WHERE cm.left_at IS NULL
   AND cm.chat_id = $1
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
-GROUP BY cm.user_id, u.id, u.first_name, u.last_name, u.username, cm.custom_title, cm.status, cm.rest_until
+GROUP BY cm.user_id, u.id, u.first_name, u.last_name, u.username, cm.tag, cm.status, cm.rest_until
 HAVING MAX(m.created_at) IS NULL
     OR MAX(m.created_at) < NOW() - INTERVAL '1 days'
 ORDER BY MAX(m.created_at) NULLS FIRST
@@ -63,7 +63,7 @@ ORDER BY MAX(m.created_at) NULLS FIRST
 
 type InactiveChatMembersRow struct {
 	User          User               `db:"user" json:"user"`
-	CustomTitle   pgtype.Text        `db:"custom_title" json:"customTitle"`
+	Tag           pgtype.Text        `db:"tag" json:"tag"`
 	Status        string             `db:"status" json:"status"`
 	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
 	LastMessageAt pgtype.Timestamptz `db:"last_message_at" json:"lastMessageAt"`
@@ -87,7 +87,7 @@ func (q *Queries) InactiveChatMembers(ctx context.Context, chatID int64) ([]Inac
 			&i.User.Gender,
 			&i.User.Emoji,
 			&i.User.CustomEmojiID,
-			&i.CustomTitle,
+			&i.Tag,
 			&i.Status,
 			&i.RestUntil,
 			&i.LastMessageAt,
@@ -190,7 +190,7 @@ func (q *Queries) MessageActivityByDayAll(ctx context.Context, arg MessageActivi
 }
 
 const messageReport = `-- name: MessageReport :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason,
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason,
        u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
        COUNT(m.chat_id) AS messages_count,
        c.norm_warn,
@@ -242,7 +242,7 @@ func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([
 			&i.ChatMember.UserID,
 			&i.ChatMember.JoinedAt,
 			&i.ChatMember.RestUntil,
-			&i.ChatMember.CustomTitle,
+			&i.ChatMember.Tag,
 			&i.ChatMember.Status,
 			&i.ChatMember.LeftAt,
 			&i.ChatMember.RestReason,
@@ -270,7 +270,7 @@ func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([
 }
 
 const messageReportOne = `-- name: MessageReportOne :one
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason,
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason,
        u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
 
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now())), 0)::bigint   AS day_count,
@@ -337,7 +337,7 @@ func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOnePara
 		&i.ChatMember.UserID,
 		&i.ChatMember.JoinedAt,
 		&i.ChatMember.RestUntil,
-		&i.ChatMember.CustomTitle,
+		&i.ChatMember.Tag,
 		&i.ChatMember.Status,
 		&i.ChatMember.LeftAt,
 		&i.ChatMember.RestReason,

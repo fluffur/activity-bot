@@ -11,15 +11,15 @@ type MessageReportMember struct {
 	NormBan             int
 	NewbieThresholdDays int
 	Status              string
-	CustomTitle         string
+	Tag                 string
 	JoinedAt            time.Time
 }
 
 type RestMember struct {
-	User        User
-	RestUntil   time.Time
-	Status      string
-	CustomTitle string
+	User      User
+	RestUntil time.Time
+	Status    string
+	Tag       string
 }
 
 type MemberStats struct {
@@ -39,6 +39,6 @@ type MemberStats struct {
 	RestUntil       time.Time
 	NewbieThreshold int
 	Status          string
-	CustomTitle     string
+	Tag             string
 	LeftAt          time.Time
 }

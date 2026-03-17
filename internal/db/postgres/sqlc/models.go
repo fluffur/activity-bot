@@ -126,14 +126,14 @@ type Chat struct {
 }
 
 type ChatMember struct {
-	ChatID      int64              `db:"chat_id" json:"chatId"`
-	UserID      int64              `db:"user_id" json:"userId"`
-	JoinedAt    pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
-	RestUntil   pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
-	CustomTitle pgtype.Text        `db:"custom_title" json:"customTitle"`
-	Status      string             `db:"status" json:"status"`
-	LeftAt      pgtype.Timestamptz `db:"left_at" json:"leftAt"`
-	RestReason  pgtype.Text        `db:"rest_reason" json:"restReason"`
+	ChatID     int64              `db:"chat_id" json:"chatId"`
+	UserID     int64              `db:"user_id" json:"userId"`
+	JoinedAt   pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	RestUntil  pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	Tag        pgtype.Text        `db:"tag" json:"tag"`
+	Status     string             `db:"status" json:"status"`
+	LeftAt     pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	RestReason pgtype.Text        `db:"rest_reason" json:"restReason"`
 }
 
 type Message struct {
