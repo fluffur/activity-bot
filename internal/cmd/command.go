@@ -3,6 +3,7 @@ package cmd
 import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/logger"
+	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"context"
@@ -21,6 +22,7 @@ var defaultTriggers = []string{"/"}
 type Factory struct {
 	userService    *user.Service
 	chatService    *chat.Service
+	memberService  *member.Service
 	sessionService interface {
 		GetActiveChat(ctx context.Context, userID int64) (int64, error)
 	}
@@ -28,7 +30,7 @@ type Factory struct {
 	triggers     []string
 }
 
-func NewFactory(userService *user.Service, chatService *chat.Service, sessionService interface {
+func NewFactory(userService *user.Service, chatService *chat.Service, memberService *member.Service, sessionService interface {
 	GetActiveChat(ctx context.Context, userID int64) (int64, error)
 }, uniquePrefix string, triggers ...string) *Factory {
 	if len(triggers) == 0 {
@@ -39,11 +41,11 @@ func NewFactory(userService *user.Service, chatService *chat.Service, sessionSer
 		triggers[i] = strings.ToLower(t)
 	}
 
-	return &Factory{userService, chatService, sessionService, strings.ToLower(uniquePrefix), triggers}
+	return &Factory{userService, chatService, memberService, sessionService, strings.ToLower(uniquePrefix), triggers}
 }
 
 func (f *Factory) New(r Response, c string, aliases ...string) *Command {
-	return New(append(aliases, c), f.triggers, r, f.userService, f.chatService, f.sessionService, f.uniquePrefix)
+	return New(append(aliases, c), f.triggers, r, f.userService, f.chatService, f.memberService, f.sessionService, f.uniquePrefix)
 }
 
 func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -134,13 +136,14 @@ type Command struct {
 	fallbackToSender bool
 	userService      *user.Service
 	chatService      *chat.Service
+	memberService    *member.Service
 	sessionService   SessionService
 	uniquePrefix     string
 	guards           []Guard
 	forcePrefix      bool
 }
 
-func New(commands []string, triggers []string, response Response, userService *user.Service, chatService *chat.Service, sessionService interface {
+func New(commands []string, triggers []string, response Response, userService *user.Service, chatService *chat.Service, memberService *member.Service, sessionService interface {
 	GetActiveChat(ctx context.Context, userID int64) (int64, error)
 }, uniquePrefix string) *Command {
 	for i, c := range commands {
@@ -155,6 +158,7 @@ func New(commands []string, triggers []string, response Response, userService *u
 		argsCount:        ArgsCountNone,
 		userService:      userService,
 		chatService:      chatService,
+		memberService:    memberService,
 		sessionService:   sessionService,
 		uniquePrefix:     uniquePrefix,
 		guards:           make([]Guard, 0),
@@ -310,11 +314,10 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 			logger.L.Error("Failed to ensure reply user", "error", err)
 		}
 	}
-	if c.fallbackToSender && len(users) == 0 {
-		u, err := c.userService.EnsureUserExists(cctx, ctx.EffectiveUser.Id, ctx.EffectiveUser.Username, ctx.EffectiveUser.FirstName, ctx.EffectiveUser.LastName)
-		if err == nil {
-			addUser(&u)
-		}
+	chatID, err := c.getChatID(cctx, msg)
+	if err != nil {
+		logger.L.Error("getChatID error", "error", err)
+		return &Context{ctx, cctx, []string{}, "", users, 0, parsedDates}
 	}
 
 	allowPrefixless := true
@@ -329,10 +332,28 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 
 	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix, allowPrefixless && !c.forcePrefix)
 	if !matched {
-		return &Context{ctx, cctx, []string{}, "", users, 0, parsedDates}
+		return &Context{ctx, cctx, []string{}, "", users, chatID, parsedDates}
 	}
 
 	rest = strings.TrimSpace(rest)
+
+	if len(users) == 0 && rest != "" {
+		strippedRest, foundUsers := c.findUsersByTitle(cctx, msg, rest)
+		if len(foundUsers) > 0 {
+			for _, u := range foundUsers {
+				addUser(u)
+			}
+			rest = strippedRest
+		}
+	}
+
+	if c.fallbackToSender && len(users) == 0 {
+		u, err := c.ensureUser(cctx, ctx.EffectiveUser)
+		if err == nil {
+			addUser(&u)
+		}
+	}
+
 	var htmlRest string
 
 	if fullHTML != "" && rest != "" {
@@ -360,12 +381,61 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		args = append(args, rest)
 	}
 
-	chatID, err := GetChatID(c.sessionService, ctx, cctx)
-	if err != nil {
-		logger.L.Error("GetChatID error", "error", err)
-		return &Context{ctx, cctx, []string{}, "", users, 0, parsedDates}
-	}
 	return &Context{ctx, cctx, args, htmlRest, users, chatID, parsedDates}
+}
+
+func (c *Command) getChatID(ctx context.Context, msg *gotgbot.Message) (int64, error) {
+	if msg.Chat.Type != "private" {
+		return msg.Chat.Id, nil
+	}
+	if msg.From == nil {
+		return 0, nil
+	}
+	return c.sessionService.GetActiveChat(ctx, msg.From.Id)
+}
+
+func (c *Command) findUsersByTitle(ctx context.Context, msg *gotgbot.Message, rest string) (string, []*model.User) {
+	if rest == "" {
+		return rest, nil
+	}
+
+	hasOtherUsers := msg.ReplyToMessage != nil
+	if !hasOtherUsers {
+		for _, e := range msg.GetEntities() {
+			if e.Type == "mention" || e.Type == "text_mention" {
+				hasOtherUsers = true
+				break
+			}
+		}
+	}
+	if hasOtherUsers {
+		return rest, nil
+	}
+
+	parts := strings.Fields(rest)
+	if len(parts) == 0 {
+		return rest, nil
+	}
+
+	title := parts[0]
+	chatID, err := c.getChatID(ctx, msg)
+	if err != nil {
+		return rest, nil
+	}
+
+	members, err := c.userService.GetByCustomTitle(ctx, chatID, title)
+	if err != nil || len(members) == 0 {
+		return rest, nil
+	}
+
+	users := make([]*model.User, 0, len(members))
+	for _, m := range members {
+		u := m.User
+		users = append(users, &u)
+	}
+
+	newRest := strings.TrimSpace(strings.TrimPrefix(rest, title))
+	return newRest, users
 }
 
 func (c *Command) Name() string {
@@ -408,6 +478,13 @@ func (c *Command) checkMessage(ctx context.Context, b *gotgbot.Bot, msg *gotgbot
 	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix, allowPrefixless && !c.forcePrefix)
 	if !matched {
 		return false
+	}
+
+	if len(rest) > 0 {
+		strippedRest, users := c.findUsersByTitle(ctx, msg, rest)
+		if len(users) > 0 {
+			rest = strippedRest
+		}
 	}
 
 	if c.argsCount == ArgsCountNone && len(rest) > 0 {

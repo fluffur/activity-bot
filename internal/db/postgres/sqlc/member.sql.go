@@ -65,11 +65,13 @@ WITH chat_upsert AS (
         VALUES ($2)
         ON CONFLICT (id) DO NOTHING
         RETURNING id),
-     chat_id_resolve AS (
-         SELECT id FROM chat_upsert
-         UNION ALL
-         SELECT id FROM chats WHERE id = $2
-         LIMIT 1),
+     chat_id_resolve AS (SELECT id
+                         FROM chat_upsert
+                         UNION ALL
+                         SELECT id
+                         FROM chats
+                         WHERE id = $2
+                         LIMIT 1),
      user_upsert AS (
          INSERT INTO users (id, username, first_name, last_name)
              VALUES ($3, $4, $5, $6)
@@ -123,6 +125,47 @@ func (q *Queries) EnsureMemberFull(ctx context.Context, arg EnsureMemberFullPara
 		&i.Status,
 		&i.LeftAt,
 		&i.RestReason,
+	)
+	return i, err
+}
+
+const findChatMemberByCustomTitle = `-- name: FindChatMemberByCustomTitle :one
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = $1 AND cm.custom_title ILIKE '%' || $2 || '%' LIMIT 1
+`
+
+type FindChatMemberByCustomTitleParams struct {
+	ChatID      int64       `db:"chat_id" json:"chatId"`
+	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
+}
+
+type FindChatMemberByCustomTitleRow struct {
+	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
+	User       User       `db:"user" json:"user"`
+}
+
+func (q *Queries) FindChatMemberByCustomTitle(ctx context.Context, arg FindChatMemberByCustomTitleParams) (FindChatMemberByCustomTitleRow, error) {
+	row := q.db.QueryRow(ctx, findChatMemberByCustomTitle, arg.ChatID, arg.CustomTitle)
+	var i FindChatMemberByCustomTitleRow
+	err := row.Scan(
+		&i.ChatMember.ChatID,
+		&i.ChatMember.UserID,
+		&i.ChatMember.JoinedAt,
+		&i.ChatMember.RestUntil,
+		&i.ChatMember.CustomTitle,
+		&i.ChatMember.Status,
+		&i.ChatMember.LeftAt,
+		&i.ChatMember.RestReason,
+		&i.User.ID,
+		&i.User.Username,
+		&i.User.FirstName,
+		&i.User.LastName,
+		&i.User.CreatedAt,
+		&i.User.Gender,
+		&i.User.Emoji,
+		&i.User.CustomEmojiID,
 	)
 	return i, err
 }
@@ -358,7 +401,8 @@ WHERE cm.chat_id = $3
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
   AND (
-    ($4 = 'warn' AND (c.norm_ban IS NULL OR COALESCE(m.msg_count, 0) > c.norm_ban) AND COALESCE(m.msg_count, 0) < c.norm_warn)
+    ($4 = 'warn' AND (c.norm_ban IS NULL OR COALESCE(m.msg_count, 0) > c.norm_ban) AND
+     COALESCE(m.msg_count, 0) < c.norm_warn)
         OR ($4 = 'ban' AND COALESCE(m.msg_count, 0) < c.norm_ban)
         OR ($4 = 'any' AND COALESCE(m.msg_count, 0) < GREATEST(c.norm_warn, c.norm_ban))
     )

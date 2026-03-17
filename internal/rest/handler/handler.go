@@ -12,6 +12,7 @@ import (
 	"activity-bot/internal/user"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -122,6 +123,7 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 func (h *Handler) AllUserRests(b *gotgbot.Bot, ctx *cmd.Context) error {
 	targetUser := ctx.FirstUser()
+	log.Println(ctx.Users())
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}

@@ -28,4 +28,5 @@ type Repository interface {
 	GetNoNormMembers(ctx context.Context, id int64, from, to *time.Time) ([]model.ChatMember, error)
 	GetNoNormBanMembers(ctx context.Context, id int64, from, to *time.Time) ([]model.ChatMember, error)
 	GetNoNormWarnMembers(ctx context.Context, id int64, from, to *time.Time) ([]model.ChatMember, error)
+	FindByCustomTitle(ctx context.Context, chatID int64, tag string) (model.ChatMember, error)
 }

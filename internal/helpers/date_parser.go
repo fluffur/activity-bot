@@ -37,11 +37,11 @@ func (p *DateParser) Parse(arg string) (time.Time, bool) {
 
 	switch arg {
 	case "сегодня":
-		return p.now().Truncate(24 * time.Hour), true
+		return p.now(), true
 	case "завтра":
-		return p.now().AddDate(0, 0, 1).Truncate(24 * time.Hour), true
+		return p.now().AddDate(0, 0, 1), true
 	case "вчера":
-		return p.now().AddDate(0, 0, -1).Truncate(24 * time.Hour), true
+		return p.now().AddDate(0, 0, -1), true
 	}
 
 	if t, ok := p.parseRussianDate(arg); ok {
@@ -53,15 +53,11 @@ func (p *DateParser) Parse(arg string) (time.Time, bool) {
 	}
 
 	if duration, ok := p.ParseDuration(arg); ok {
-		now := p.now()
-		if duration%(24*time.Hour) == 0 {
-			now = now.Truncate(24 * time.Hour)
-		}
-		return now.Add(duration), true
+		return p.now().Add(duration), true
 	}
 
 	if days, err := strconv.Atoi(arg); err == nil && days > 0 {
-		return p.now().Truncate(24*time.Hour).AddDate(0, 0, days), true
+		return p.now().AddDate(0, 0, days), true
 	}
 
 	return time.Time{}, false
@@ -81,7 +77,7 @@ func (p *DateParser) ParseRange(args []string) (*time.Time, *time.Time, bool) {
 
 	if len(args) == 1 {
 		if days, err := strconv.Atoi(args[0]); err == nil && days > 0 {
-			from := p.now().Truncate(24*time.Hour).AddDate(0, 0, -days)
+			from := p.now().AddDate(0, 0, -days)
 
 			return &from, nil, true
 		}
@@ -104,8 +100,8 @@ func (p *DateParser) ParseRange(args []string) (*time.Time, *time.Time, bool) {
 					startDay = d2
 					endDay = d1
 				}
-				from := time.Date(now.Year(), now.Month(), startDay, 0, 0, 0, 0, now.Location())
-				to := time.Date(now.Year(), now.Month(), endDay, 0, 0, 0, 0, now.Location()).AddDate(0, 0, 1).Add(-time.Second)
+				from := time.Date(now.Year(), now.Month(), startDay, now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location())
+				to := time.Date(now.Year(), now.Month(), endDay, now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location()).AddDate(0, 0, 1).Add(-time.Second)
 				return &from, &to, true
 			}
 
@@ -190,7 +186,8 @@ func (p *DateParser) parseRussianDate(arg string) (time.Time, bool) {
 		return time.Time{}, false
 	}
 
-	year := p.now().Year()
+	now := p.now()
+	year := now.Year()
 	if m[3] != "" {
 		y, err := strconv.Atoi(m[3])
 		if err != nil {
@@ -199,7 +196,7 @@ func (p *DateParser) parseRussianDate(arg string) (time.Time, bool) {
 		year = y
 	}
 
-	return time.Date(year, month, day, 0, 0, 0, 0, p.now().Location()), true
+	return time.Date(year, month, day, now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location()), true
 }
 
 func (p *DateParser) parseStandardDate(arg string) (time.Time, bool) {
@@ -211,10 +208,11 @@ func (p *DateParser) parseStandardDate(arg string) (time.Time, bool) {
 		if err != nil {
 			continue
 		}
+		year := t.Year()
 		if layout == "02.01" {
-			t = time.Date(now.Year(), t.Month(), t.Day(), 0, 0, 0, 0, now.Location())
+			year = now.Year()
 		}
-		return t, true
+		return time.Date(year, t.Month(), t.Day(), now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location()), true
 	}
 	return time.Time{}, false
 }

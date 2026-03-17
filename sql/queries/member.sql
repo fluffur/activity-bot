@@ -71,11 +71,13 @@ WITH chat_upsert AS (
         VALUES (@chat_id)
         ON CONFLICT (id) DO NOTHING
         RETURNING id),
-     chat_id_resolve AS (
-         SELECT id FROM chat_upsert
-         UNION ALL
-         SELECT id FROM chats WHERE id = @chat_id
-         LIMIT 1),
+     chat_id_resolve AS (SELECT id
+                         FROM chat_upsert
+                         UNION ALL
+                         SELECT id
+                         FROM chats
+                         WHERE id = @chat_id
+                         LIMIT 1),
      user_upsert AS (
          INSERT INTO users (id, username, first_name, last_name)
              VALUES (@user_id, @username, @first_name, @last_name)
@@ -156,7 +158,14 @@ WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
   AND (
-    (@mode = 'warn' AND (c.norm_ban IS NULL OR COALESCE(m.msg_count, 0) > c.norm_ban) AND COALESCE(m.msg_count, 0) < c.norm_warn)
+    (@mode = 'warn' AND (c.norm_ban IS NULL OR COALESCE(m.msg_count, 0) > c.norm_ban) AND
+     COALESCE(m.msg_count, 0) < c.norm_warn)
         OR (@mode = 'ban' AND COALESCE(m.msg_count, 0) < c.norm_ban)
         OR (@mode = 'any' AND COALESCE(m.msg_count, 0) < GREATEST(c.norm_warn, c.norm_ban))
     );
+
+-- name: FindChatMemberByCustomTitle :one
+SELECT sqlc.embed(cm), sqlc.embed(u)
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = $1 AND cm.custom_title ILIKE '%' || @custom_title || '%' LIMIT 1;

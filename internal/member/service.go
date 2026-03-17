@@ -122,3 +122,7 @@ func (s *Service) GetNoNormWarnMembers(ctx context.Context, chatID int64, from *
 func (s *Service) GetNoNormBanMembers(ctx context.Context, chatID int64, from *time.Time, to *time.Time) ([]model.ChatMember, error) {
 	return s.repo.GetNoNormBanMembers(ctx, chatID, from, to)
 }
+
+func (s *Service) FindByCustomTitle(ctx context.Context, chatID int64, customTitle string) (model.ChatMember, error) {
+	return s.repo.FindByCustomTitle(ctx, chatID, customTitle)
+}

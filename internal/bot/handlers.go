@@ -70,7 +70,7 @@ func (a *App) RegisterHandlers() {
 	groupGuard := guard.OnlyGroups(sessionService)
 	rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 2, 10*time.Second, sessionService)
 
-	cf := cmd.NewFactory(a.UserService, a.ChatService, sessionService, a.Config.UniquePrefix, "/", "!", ".")
+	cf := cmd.NewFactory(a.UserService, a.ChatService, a.MemberService, sessionService, a.Config.UniquePrefix, "/", "!", ".")
 
 	a.Dispatcher.AddHandler(cf.New(helpHandler.Start, "start"))
 	a.Dispatcher.AddHandler(cf.New(helpHandler.Help, "help"))

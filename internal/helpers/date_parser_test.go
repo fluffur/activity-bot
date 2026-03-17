@@ -18,55 +18,55 @@ func TestDateParser_Parse(t *testing.T) {
 		{
 			name:   "Today",
 			arg:    "сегодня",
-			want:   time.Date(2023, time.October, 15, 0, 0, 0, 0, time.UTC),
+			want:   time.Date(2023, time.October, 15, 12, 0, 0, 0, time.UTC),
 			wantOk: true,
 		},
 		{
 			name:   "Tomorrow",
 			arg:    "завтра",
-			want:   time.Date(2023, time.October, 16, 0, 0, 0, 0, time.UTC),
+			want:   time.Date(2023, time.October, 16, 12, 0, 0, 0, time.UTC),
 			wantOk: true,
 		},
 		{
 			name:   "Yesterday",
 			arg:    "вчера",
-			want:   time.Date(2023, time.October, 14, 0, 0, 0, 0, time.UTC),
+			want:   time.Date(2023, time.October, 14, 12, 0, 0, 0, time.UTC),
 			wantOk: true,
 		},
 		{
 			name:   "Russian Date with Year",
 			arg:    "1 января 2023",
-			want:   time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC),
+			want:   time.Date(2023, time.January, 1, 12, 0, 0, 0, time.UTC),
 			wantOk: true,
 		},
 		{
 			name:   "Russian Date without Year",
 			arg:    "1 января",
-			want:   time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC),
+			want:   time.Date(2023, time.January, 1, 12, 0, 0, 0, time.UTC),
 			wantOk: true,
 		},
 		{
 			name:   "Standard Date",
 			arg:    "01.01.2023",
-			want:   time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC),
+			want:   time.Date(2023, time.January, 1, 12, 0, 0, 0, time.UTC),
 			wantOk: true,
 		},
 		{
 			name:   "Standard Date Short",
 			arg:    "01.01",
-			want:   time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC),
+			want:   time.Date(2023, time.January, 1, 12, 0, 0, 0, time.UTC),
 			wantOk: true,
 		},
 		{
 			name:   "Days - Positive",
 			arg:    "10",
-			want:   time.Date(2023, time.October, 25, 0, 0, 0, 0, time.UTC),
+			want:   time.Date(2023, time.October, 25, 12, 0, 0, 0, time.UTC),
 			wantOk: true,
 		},
 		{
 			name:   "Days - Negative text",
 			arg:    "10 дней назад",
-			want:   time.Date(2023, time.October, 5, 0, 0, 0, 0, time.UTC),
+			want:   time.Date(2023, time.October, 5, 12, 0, 0, 0, time.UTC),
 			wantOk: true,
 		},
 		{
@@ -94,11 +94,8 @@ func TestDateParser_ParseRange(t *testing.T) {
 	fixedTime := time.Date(2023, time.October, 15, 12, 0, 0, 0, time.UTC)
 	parser := &DateParser{now: func() time.Time { return fixedTime }}
 
-	today := time.Date(2023, time.October, 15, 0, 0, 0, 0, time.UTC)
-	tenDaysAgo := today.AddDate(0, 0, -10)
-
-	firstJan := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
-	tenthJan := time.Date(2023, time.January, 10, 0, 0, 0, 0, time.UTC).AddDate(0, 0, 1).Add(-time.Second)
+	firstJan := time.Date(2023, time.January, 1, 12, 0, 0, 0, time.UTC)
+	tenthJan := time.Date(2023, time.January, 10, 12, 0, 0, 0, time.UTC).AddDate(0, 0, 1).Add(-time.Second)
 
 	tests := []struct {
 		name     string
@@ -110,16 +107,16 @@ func TestDateParser_ParseRange(t *testing.T) {
 		{
 			name:     "Last N days",
 			args:     []string{"10"},
-			wantFrom: &tenDaysAgo,
+			wantFrom: func() *time.Time { t := fixedTime.AddDate(0, 0, -10); return &t }(),
 			wantTo:   nil,
 			wantOk:   true,
 		},
 		{
 			name:     "Simple Range - Days of Month",
 			args:     []string{"1-10"},
-			wantFrom: func() *time.Time { t := time.Date(2023, time.October, 1, 0, 0, 0, 0, time.UTC); return &t }(),
+			wantFrom: func() *time.Time { t := time.Date(2023, time.October, 1, 12, 0, 0, 0, time.UTC); return &t }(),
 			wantTo: func() *time.Time {
-				t := time.Date(2023, time.October, 10, 0, 0, 0, 0, time.UTC).AddDate(0, 0, 1).Add(-time.Second)
+				t := time.Date(2023, time.October, 10, 12, 0, 0, 0, time.UTC).AddDate(0, 0, 1).Add(-time.Second)
 				return &t
 			}(),
 			wantOk: true,

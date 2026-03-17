@@ -264,3 +264,18 @@ func (r *MemberRepository) SetNewbies(ctx context.Context, chatID int64, users [
 		UserIds: userIDs,
 	})
 }
+
+func (r *MemberRepository) FindByCustomTitle(ctx context.Context, chatID int64, customTitle string) (model.ChatMember, error) {
+	m, err := r.queries.FindChatMemberByCustomTitle(ctx, db.FindChatMemberByCustomTitleParams{
+		ChatID: chatID,
+		CustomTitle: pgtype.Text{
+			String: customTitle,
+			Valid:  customTitle != "",
+		},
+	})
+	if err != nil {
+		return model.ChatMember{}, err
+	}
+
+	return mapChatMemberFull(m.ChatMember, m.User), nil
+}
