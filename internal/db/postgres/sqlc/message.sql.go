@@ -43,7 +43,11 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 }
 
 const inactiveChatMembers = `-- name: InactiveChatMembers :many
-SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, cm.custom_title, cm.status, cm.rest_until, MAX(m.created_at)::timestamptz AS last_message_at
+SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
+       cm.custom_title,
+       cm.status,
+       cm.rest_until,
+       MAX(m.created_at)::timestamptz AS last_message_at
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
          LEFT JOIN messages m
@@ -302,6 +306,7 @@ FROM chat_members cm
 
 WHERE cm.chat_id = $1
   AND cm.user_id = $2
+  AND cm.left_at IS NULL
 GROUP BY cm.chat_id, cm.user_id, u.id, c.id
 `
 

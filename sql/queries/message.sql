@@ -64,6 +64,7 @@ FROM chat_members cm
 
 WHERE cm.chat_id = @chat_id
   AND cm.user_id = @user_id
+  AND cm.left_at IS NULL
 GROUP BY cm.chat_id, cm.user_id, u.id, c.id;
 
 -- name: MessageActivityByDay :many
@@ -92,7 +93,11 @@ ORDER BY day;
 
 
 -- name: InactiveChatMembers :many
-SELECT sqlc.embed(u), cm.custom_title, cm.status, cm.rest_until, MAX(m.created_at)::timestamptz AS last_message_at
+SELECT sqlc.embed(u),
+       cm.custom_title,
+       cm.status,
+       cm.rest_until,
+       MAX(m.created_at)::timestamptz AS last_message_at
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
          LEFT JOIN messages m
