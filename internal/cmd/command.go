@@ -81,23 +81,31 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 			if len(parts) > 1 {
 				// Format: prefix:userID:extraData...
 				if userID, err := strconv.ParseInt(parts[1], 10, 64); err == nil {
-					u, err := f.userService.GetUser(ctxWithTimeout, userID)
+					m, err := f.memberService.GetChatMember(ctxWithTimeout, chatID, userID)
 					if err == nil {
-						cmdCtx.users = []*model.User{&u}
+						cmdCtx.members = []*model.ChatMember{&m}
 
 						// Remaining parts are arguments
 						if len(parts) > 2 {
-							// We join remaining parts back with spaces to simulate arguments
-							// especially since extraData was cmdCtx.ArgsString() which joined args with spaces.
-							// However, parts[2:] might contain multiple arguments if they were split by ':' originally.
-							// But the ResolveUserAmbiguity joins them.
 							joinedArgs := strings.Join(parts[2:], ":")
 							cmdCtx.args = strings.Fields(joinedArgs)
 						} else {
 							cmdCtx.args = []string{}
 						}
 					} else {
-						cmdCtx.args = parts[1:]
+						// Fallback to user if member not found (might happen in private or if left)
+						u, err := f.userService.GetUser(ctxWithTimeout, userID)
+						if err == nil {
+							cmdCtx.members = []*model.ChatMember{{User: u}}
+							if len(parts) > 2 {
+								joinedArgs := strings.Join(parts[2:], ":")
+								cmdCtx.args = strings.Fields(joinedArgs)
+							} else {
+								cmdCtx.args = []string{}
+							}
+						} else {
+							cmdCtx.args = parts[1:]
+						}
 					}
 				} else {
 					cmdCtx.args = parts[1:]
@@ -158,20 +166,31 @@ func (f *Factory) WrapEvent(r Response, guards ...Guard) func(b *gotgbot.Bot, ct
 			}
 		}
 
-		users := make([]*model.User, 0)
+		members := make([]*model.ChatMember, 0)
 		if ctx.Message != nil {
 			if ctx.Message.NewChatMembers != nil {
 				for _, u := range ctx.Message.NewChatMembers {
-					mu, err := f.userService.EnsureUserExists(ctxWithTimeout, u.Id, u.Username, u.FirstName, u.LastName)
+					m, err := f.memberService.GetChatMember(ctxWithTimeout, ctx.EffectiveChat.Id, u.Id)
 					if err == nil {
-						users = append(users, &mu)
+						members = append(members, &m)
+					} else {
+						// Fallback to ensuring user exists if member fetch fails
+						mu, err := f.userService.EnsureUserExists(ctxWithTimeout, u.Id, u.Username, u.FirstName, u.LastName)
+						if err == nil {
+							members = append(members, &model.ChatMember{User: mu})
+						}
 					}
 				}
 			} else if ctx.Message.LeftChatMember != nil {
 				u := ctx.Message.LeftChatMember
-				mu, err := f.userService.EnsureUserExists(ctxWithTimeout, u.Id, u.Username, u.FirstName, u.LastName)
+				m, err := f.memberService.GetChatMember(ctxWithTimeout, ctx.EffectiveChat.Id, u.Id)
 				if err == nil {
-					users = append(users, &mu)
+					members = append(members, &m)
+				} else {
+					mu, err := f.userService.EnsureUserExists(ctxWithTimeout, u.Id, u.Username, u.FirstName, u.LastName)
+					if err == nil {
+						members = append(members, &model.ChatMember{User: mu})
+					}
 				}
 			}
 		}
@@ -179,7 +198,7 @@ func (f *Factory) WrapEvent(r Response, guards ...Guard) func(b *gotgbot.Bot, ct
 		cmdCtx := &Context{
 			Context:       ctx,
 			ctx:           ctxWithTimeout,
-			users:         users,
+			members:       members,
 			targetChatID:  ctx.EffectiveChat.Id,
 			memberService: f.memberService,
 		}
@@ -301,7 +320,7 @@ func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 	}
 
 	cmdCtx := c.parseArgs(b, ctx, ctxWithTimeout)
-	if c.ambiguityPrefix != "" && len(cmdCtx.users) > 1 {
+	if c.ambiguityPrefix != "" && len(cmdCtx.members) > 1 {
 		resolved, err := cmdCtx.ResolveUserAmbiguity(b, c.ambiguityPrefix, cmdCtx.ArgsString())
 		if err != nil {
 			return err
@@ -314,12 +333,17 @@ func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 	return c.response(b, cmdCtx)
 }
 
-func (c *Command) ensureUser(ctx context.Context, u *gotgbot.User) (model.User, error) {
-	return c.userService.EnsureUserExists(ctx, u.Id, u.Username, u.FirstName, u.LastName)
+func (c *Command) ensureMember(ctx context.Context, chatID int64, u *gotgbot.User) (model.ChatMember, error) {
+	_, err := c.userService.EnsureUserExists(ctx, u.Id, u.Username, u.FirstName, u.LastName)
+	if err != nil {
+		return model.ChatMember{}, err
+	}
+	return c.memberService.GetChatMember(ctx, chatID, u.Id)
 }
+
 func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Context) *Context {
 	msg := ctx.Message
-	users := make([]*model.User, 0)
+	members := make([]*model.ChatMember, 0)
 	parsedDates := make([]time.Time, 0)
 	takenUsers := make(map[int64]struct{})
 
@@ -330,23 +354,29 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		fullHTML = msg.OriginalHTML()
 	}
 
-	addUser := func(user *model.User) {
-		if _, ok := takenUsers[user.ID]; ok {
+	addMember := func(m *model.ChatMember) {
+		if _, ok := takenUsers[m.User.ID]; ok {
 			return
 		}
-		users = append(users, user)
-		takenUsers[user.ID] = struct{}{}
+		members = append(members, m)
+		takenUsers[m.User.ID] = struct{}{}
 	}
 
 	text, entities := cleanMessage(msg)
 	textRunes := []rune(msg.GetText())
+	chatID, err := c.getChatID(cctx, msg)
+	if err != nil {
+		logger.L.Error("getChatID error", "error", err)
+		return &Context{ctx, cctx, []string{}, "", members, 0, parsedDates, c.memberService, false}
+	}
+
 	for _, e := range entities {
 		switch e.Type {
 		case "text_mention":
 			if e.User != nil {
-				u, err := c.ensureUser(cctx, e.User)
+				m, err := c.ensureMember(cctx, chatID, e.User)
 				if err == nil {
-					addUser(&u)
+					addMember(&m)
 				}
 			}
 		case "mention":
@@ -354,9 +384,9 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 			end := start + int(e.Length)
 			if start >= 0 && end <= len(textRunes) {
 				username := string(textRunes[start+1 : end])
-				u, err := c.userService.GetUserByUsername(cctx, username)
+				m, err := c.memberService.GetChatMemberByUsername(cctx, chatID, username)
 				if err == nil {
-					addUser(&u)
+					addMember(&m)
 				}
 			}
 		case "url":
@@ -364,9 +394,9 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 			end := start + int(e.Length)
 			if start >= 0 && end <= len(textRunes) {
 				username := strings.TrimPrefix(strings.TrimPrefix(string(textRunes[start:end]), "https://"), "t.me/")
-				u, err := c.userService.GetUserByUsername(cctx, username)
+				m, err := c.memberService.GetChatMemberByUsername(cctx, chatID, username)
 				if err == nil {
-					addUser(&u)
+					addMember(&m)
 				}
 			}
 		}
@@ -388,19 +418,13 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		msg.ReplyToMessage.From != nil &&
 		!msg.ReplyToMessage.From.IsBot &&
 		!msg.ReplyToMessage.IsAutomaticForward {
-		u, err := c.ensureUser(cctx, msg.ReplyToMessage.From)
+		m, err := c.ensureMember(cctx, chatID, msg.ReplyToMessage.From)
 		if err == nil {
-			addUser(&u)
+			addMember(&m)
 		} else {
-			logger.L.Error("Failed to ensure reply user", "error", err)
+			logger.L.Error("Failed to ensure reply member", "error", err)
 		}
 	}
-	chatID, err := c.getChatID(cctx, msg)
-	if err != nil {
-		logger.L.Error("getChatID error", "error", err)
-		return &Context{ctx, cctx, []string{}, "", users, 0, parsedDates, c.memberService, false}
-	}
-
 	allowPrefixless := true
 	chatPrefix := ""
 	if c.chatService != nil {
@@ -413,25 +437,25 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 
 	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix, allowPrefixless && !c.forcePrefix)
 	if !matched {
-		return &Context{ctx, cctx, []string{}, "", users, chatID, parsedDates, c.memberService, false}
+		return &Context{ctx, cctx, []string{}, "", members, chatID, parsedDates, c.memberService, false}
 	}
 
 	rest = strings.TrimSpace(rest)
 
-	if len(users) == 0 && rest != "" {
-		strippedRest, foundUsers := c.findUsersByTitle(cctx, msg, rest)
-		if len(foundUsers) > 0 {
-			for _, u := range foundUsers {
-				addUser(u)
+	if len(members) == 0 && rest != "" {
+		strippedRest, foundMembers := c.findMembersByTitle(cctx, msg, rest)
+		if len(foundMembers) > 0 {
+			for _, m := range foundMembers {
+				addMember(m)
 			}
 			rest = strippedRest
 		}
 	}
 
-	if c.fallbackToSender && len(users) == 0 {
-		u, err := c.ensureUser(cctx, ctx.EffectiveUser)
+	if c.fallbackToSender && len(members) == 0 {
+		m, err := c.ensureMember(cctx, chatID, ctx.EffectiveUser)
 		if err == nil {
-			addUser(&u)
+			addMember(&m)
 		}
 	}
 
@@ -462,7 +486,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		args = append(args, rest)
 	}
 
-	return &Context{ctx, cctx, args, htmlRest, users, chatID, parsedDates, c.memberService, false}
+	return &Context{ctx, cctx, args, htmlRest, members, chatID, parsedDates, c.memberService, false}
 }
 
 func (c *Command) getChatID(ctx context.Context, msg *gotgbot.Message) (int64, error) {
@@ -475,7 +499,7 @@ func (c *Command) getChatID(ctx context.Context, msg *gotgbot.Message) (int64, e
 	return c.sessionService.GetActiveChat(ctx, msg.From.Id)
 }
 
-func (c *Command) findUsersByTitle(ctx context.Context, msg *gotgbot.Message, rest string) (string, []*model.User) {
+func (c *Command) findMembersByTitle(ctx context.Context, msg *gotgbot.Message, rest string) (string, []*model.ChatMember) {
 	if rest == "" {
 		return rest, nil
 	}
@@ -509,14 +533,14 @@ func (c *Command) findUsersByTitle(ctx context.Context, msg *gotgbot.Message, re
 		return rest, nil
 	}
 
-	users := make([]*model.User, 0, len(members))
+	res := make([]*model.ChatMember, 0, len(members))
 	for _, m := range members {
-		u := m.User
-		users = append(users, &u)
+		mm := m
+		res = append(res, &mm)
 	}
 
 	newRest := strings.TrimSpace(strings.TrimPrefix(rest, title))
-	return newRest, users
+	return newRest, res
 }
 
 func (c *Command) Name() string {
@@ -562,8 +586,8 @@ func (c *Command) checkMessage(ctx context.Context, b *gotgbot.Bot, msg *gotgbot
 	}
 
 	if len(rest) > 0 {
-		strippedRest, users := c.findUsersByTitle(ctx, msg, rest)
-		if len(users) > 0 {
+		strippedRest, members := c.findMembersByTitle(ctx, msg, rest)
+		if len(members) > 0 {
 			rest = strippedRest
 		}
 	}

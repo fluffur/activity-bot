@@ -169,3 +169,9 @@ SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1 AND cm.custom_title ILIKE '%' || @custom_title || '%' LIMIT 1;
+
+-- name: FindChatMemberByUsername :one
+SELECT sqlc.embed(cm), sqlc.embed(u)
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = $1 AND u.username = $2 AND cm.left_at IS NULL LIMIT 1;

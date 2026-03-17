@@ -126,3 +126,7 @@ func (s *Service) GetNoNormBanMembers(ctx context.Context, chatID int64, from *t
 func (s *Service) FindByCustomTitle(ctx context.Context, chatID int64, customTitle string) (model.ChatMember, error) {
 	return s.repo.FindByCustomTitle(ctx, chatID, customTitle)
 }
+
+func (s *Service) GetChatMemberByUsername(ctx context.Context, chatID int64, username string) (model.ChatMember, error) {
+	return s.repo.GetByUsername(ctx, chatID, username)
+}

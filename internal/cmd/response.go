@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"activity-bot/internal/member"
+
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
@@ -22,7 +23,7 @@ type Context struct {
 	ctx           context.Context
 	args          []string
 	html          string
-	users         []*model.User
+	members       []*model.ChatMember
 	targetChatID  int64
 	parsedDates   []time.Time
 	memberService *member.Service
@@ -47,16 +48,31 @@ func (c *Context) SecondArgument() string {
 	return ""
 }
 
-func (c *Context) FirstUser() *model.User {
-	if len(c.users) > 0 && c.users[0] != nil {
-		return c.users[0]
+func (c *Context) FirstMember() *model.ChatMember {
+	if len(c.members) > 0 && c.members[0] != nil {
+		return c.members[0]
 	}
-
 	return nil
 }
 
+func (c *Context) FirstUser() *model.User {
+	m := c.FirstMember()
+	if m != nil {
+		return &m.User
+	}
+	return nil
+}
+
+func (c *Context) Members() []*model.ChatMember {
+	return c.members
+}
+
 func (c *Context) Users() []*model.User {
-	return c.users
+	users := make([]*model.User, len(c.members))
+	for i, m := range c.members {
+		users[i] = &m.User
+	}
+	return users
 }
 
 func (c *Context) Args() []string {
@@ -75,8 +91,16 @@ func (c *Context) HTML() string {
 	return c.html
 }
 
+func (c *Context) SetMembers(members []*model.ChatMember) {
+	c.members = members
+}
+
 func (c *Context) SetUsers(users []*model.User) {
-	c.users = users
+	members := make([]*model.ChatMember, len(users))
+	for i, u := range users {
+		members[i] = &model.ChatMember{User: *u}
+	}
+	c.members = members
 }
 
 func (c *Context) StdContext() context.Context {
@@ -107,18 +131,16 @@ func (c *Context) ReplyHTML(b *gotgbot.Bot, text string) error {
 }
 
 func (c *Context) ResolveUserAmbiguity(b *gotgbot.Bot, callbackPrefix string, extraData string) (bool, error) {
-	if len(c.users) <= 1 {
+	if len(c.members) <= 1 {
 		return false, nil
 	}
 
 	var buttons [][]gotgbot.InlineKeyboardButton
-	for _, u := range c.users {
+	for _, m := range c.members {
+		u := m.User
 		text := u.FirstName
-		if c.memberService != nil && c.EffectiveChat.Type != "private" {
-			m, err := c.memberService.GetChatMember(c.ctx, c.EffectiveChat.Id, u.ID)
-			if err == nil && m.CustomTitle != "" {
-				text = fmt.Sprintf("%s (%s)", u.FirstName, m.CustomTitle)
-			}
+		if m.CustomTitle != "" {
+			text = fmt.Sprintf("%s (%s)", u.FirstName, m.CustomTitle)
 		}
 
 		// If extraData is needed by the caller, it's appended to the callback data.

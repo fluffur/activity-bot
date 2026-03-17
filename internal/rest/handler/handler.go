@@ -106,18 +106,12 @@ func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *mo
 }
 
 func (h *Handler) Show(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
-
-	if targetUser == nil {
+	m := ctx.FirstMember()
+	if m == nil {
 		return cmd.ErrNoUser
 	}
 
-	m, err := h.memberService.GetChatMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
-	if err != nil {
-		return err
-	}
-
-	return ctx.ReplyHTML(b, view.FormatRestShow(m))
+	return ctx.ReplyHTML(b, view.FormatRestShow(*m))
 
 }
 
@@ -139,32 +133,27 @@ func (h *Handler) AllUserRests(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
-
-	if targetUser == nil {
+	m := ctx.FirstMember()
+	if m == nil {
 		return cmd.ErrNoUser
 	}
 
-	if targetUser.ID != ctx.EffectiveUser.Id && !h.adminService.CheckIsAdmin(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id()) {
+	if m.User.ID != ctx.EffectiveUser.Id && !h.adminService.CheckIsAdmin(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id()) {
 		return ctx.Reply(b, "Вы можете удалить из реста только себя", nil)
 	}
 
-	m, err := h.memberService.GetChatMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
-	if err != nil {
-		return ctx.Reply(b, "Не удалось проверить рест пользователя", nil)
-	}
 	if !m.IsRestActive(time.Now()) {
-		isSelf := targetUser.ID == ctx.EffectiveUser.Id
-		return ctx.ReplyHTML(b, view.FormatRestNotInRest(*targetUser, isSelf))
+		isSelf := m.User.ID == ctx.EffectiveUser.Id
+		return ctx.ReplyHTML(b, view.FormatRestNotInRest(m.User, isSelf))
 	}
 
-	if err := h.service.EndMemberRest(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+	if err := h.service.EndMemberRest(ctx.StdContext(), ctx.TargetChatID(), m.User.ID); err != nil {
 		_ = ctx.Reply(b, "Не удалось удалить пользователя из реста", nil)
 		return err
 	}
 
-	isSelf := targetUser.ID == ctx.EffectiveUser.Id
-	return ctx.ReplyHTML(b, view.FormatRestEnded(*targetUser, isSelf))
+	isSelf := m.User.ID == ctx.EffectiveUser.Id
+	return ctx.ReplyHTML(b, view.FormatRestEnded(m.User, isSelf))
 }
 
 func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {

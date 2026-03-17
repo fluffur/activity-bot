@@ -170,6 +170,47 @@ func (q *Queries) FindChatMemberByCustomTitle(ctx context.Context, arg FindChatM
 	return i, err
 }
 
+const findChatMemberByUsername = `-- name: FindChatMemberByUsername :one
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = $1 AND u.username = $2 AND cm.left_at IS NULL LIMIT 1
+`
+
+type FindChatMemberByUsernameParams struct {
+	ChatID   int64       `db:"chat_id" json:"chatId"`
+	Username pgtype.Text `db:"username" json:"username"`
+}
+
+type FindChatMemberByUsernameRow struct {
+	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
+	User       User       `db:"user" json:"user"`
+}
+
+func (q *Queries) FindChatMemberByUsername(ctx context.Context, arg FindChatMemberByUsernameParams) (FindChatMemberByUsernameRow, error) {
+	row := q.db.QueryRow(ctx, findChatMemberByUsername, arg.ChatID, arg.Username)
+	var i FindChatMemberByUsernameRow
+	err := row.Scan(
+		&i.ChatMember.ChatID,
+		&i.ChatMember.UserID,
+		&i.ChatMember.JoinedAt,
+		&i.ChatMember.RestUntil,
+		&i.ChatMember.CustomTitle,
+		&i.ChatMember.Status,
+		&i.ChatMember.LeftAt,
+		&i.ChatMember.RestReason,
+		&i.User.ID,
+		&i.User.Username,
+		&i.User.FirstName,
+		&i.User.LastName,
+		&i.User.CreatedAt,
+		&i.User.Gender,
+		&i.User.Emoji,
+		&i.User.CustomEmojiID,
+	)
+	return i, err
+}
+
 const getAnyChatMembersWithTitles = `-- name: GetAnyChatMembersWithTitles :many
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM chat_members cm

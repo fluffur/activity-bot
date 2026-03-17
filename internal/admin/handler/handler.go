@@ -413,10 +413,11 @@ func (h *Handler) Unmute(b *gotgbot.Bot, ctx *cmd.Context) error {
 		_ = ctx.Reply(b, "Не удалось размутить пользователя", nil)
 		return err
 	}
-	title, err := h.memberService.GetMemberTitle(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
-	if err != nil {
-		return err
+	m := ctx.FirstMember()
+	if m == nil {
+		return ctx.Reply(b, "Пользователь размучен, но не удалось вернуть роль", nil)
 	}
+	title := m.CustomTitle
 	if title != "" {
 		if ok, err := b.PromoteChatMember(ctx.TargetChatID(), targetUser.ID, &gotgbot.PromoteChatMemberOpts{
 			CanManageChat:   true,
@@ -577,19 +578,13 @@ func (h *Handler) ClearWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) FakeLeave(b *gotgbot.Bot, ctx *cmd.Context) error {
-	u := ctx.FirstUser()
-	if u == nil {
+	m := ctx.FirstMember()
+	if m == nil {
 		return cmd.ErrNoUser
 	}
-	title, err := h.memberService.GetMemberTitle(ctx.StdContext(), ctx.TargetChatID(), u.ID)
-	if title == "" {
-		title = u.FirstName
-	}
-	if err != nil {
-		return err
-	}
-	_, err = b.SendMessage(ctx.TargetChatID(), fmt.Sprintf("🕊 %s %s нас...",
-		helpers.LinkWithContent(*u, title),
+	u := m.User
+	_, err := b.SendMessage(ctx.TargetChatID(), fmt.Sprintf("🕊 %s %s нас...",
+		helpers.RoleLink(*m),
 		helpers.Gendered(u.Gender, "покинул", "покинула"),
 	), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,

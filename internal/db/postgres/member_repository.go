@@ -279,3 +279,15 @@ func (r *MemberRepository) FindByCustomTitle(ctx context.Context, chatID int64, 
 
 	return mapChatMemberFull(m.ChatMember, m.User), nil
 }
+
+func (r *MemberRepository) GetByUsername(ctx context.Context, chatID int64, username string) (model.ChatMember, error) {
+	m, err := r.queries.FindChatMemberByUsername(ctx, db.FindChatMemberByUsernameParams{
+		ChatID:   chatID,
+		Username: pgtype.Text{String: username, Valid: true},
+	})
+	if err != nil {
+		return model.ChatMember{}, err
+	}
+
+	return mapChatMemberFull(m.ChatMember, m.User), nil
+}
