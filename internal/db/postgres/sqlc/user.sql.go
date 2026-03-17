@@ -96,14 +96,14 @@ const getUsersByCustomTitle = `-- name: GetUsersByCustomTitle :many
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
-WHERE cm.custom_title ILIKE '%' || $1 || '%'
+WHERE cm.tag ILIKE '%' || $1 || '%'
   AND cm.chat_id = $2
 LIMIT 10
 `
 
 type GetUsersByCustomTitleParams struct {
-	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
-	ChatID      int64       `db:"chat_id" json:"chatId"`
+	Tag    pgtype.Text `db:"tag" json:"tag"`
+	ChatID int64       `db:"chat_id" json:"chatId"`
 }
 
 type GetUsersByCustomTitleRow struct {
@@ -112,7 +112,7 @@ type GetUsersByCustomTitleRow struct {
 }
 
 func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCustomTitleParams) ([]GetUsersByCustomTitleRow, error) {
-	rows, err := q.db.Query(ctx, getUsersByCustomTitle, arg.CustomTitle, arg.ChatID)
+	rows, err := q.db.Query(ctx, getUsersByCustomTitle, arg.Tag, arg.ChatID)
 	if err != nil {
 		return nil, err
 	}

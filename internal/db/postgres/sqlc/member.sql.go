@@ -88,7 +88,7 @@ SELECT chat_id_resolve.id,
 FROM chat_id_resolve,
      user_upsert
 ON CONFLICT (chat_id, user_id) DO UPDATE
-    SET custom_title = CASE
+    SET tag = CASE
                            WHEN $1 IS NOT NULL AND $1 <> ''
                                THEN $1
                            ELSE chat_members.tag
@@ -133,12 +133,12 @@ const findChatMemberByCustomTitle = `-- name: FindChatMemberByCustomTitle :one
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
-WHERE cm.chat_id = $1 AND cm.custom_title ILIKE '%' || $2 || '%' LIMIT 1
+WHERE cm.chat_id = $1 AND cm.tag ILIKE '%' || $2 || '%' LIMIT 1
 `
 
 type FindChatMemberByCustomTitleParams struct {
-	ChatID      int64       `db:"chat_id" json:"chatId"`
-	CustomTitle pgtype.Text `db:"custom_title" json:"customTitle"`
+	ChatID int64       `db:"chat_id" json:"chatId"`
+	Tag    pgtype.Text `db:"tag" json:"tag"`
 }
 
 type FindChatMemberByCustomTitleRow struct {
@@ -147,7 +147,7 @@ type FindChatMemberByCustomTitleRow struct {
 }
 
 func (q *Queries) FindChatMemberByCustomTitle(ctx context.Context, arg FindChatMemberByCustomTitleParams) (FindChatMemberByCustomTitleRow, error) {
-	row := q.db.QueryRow(ctx, findChatMemberByCustomTitle, arg.ChatID, arg.CustomTitle)
+	row := q.db.QueryRow(ctx, findChatMemberByCustomTitle, arg.ChatID, arg.Tag)
 	var i FindChatMemberByCustomTitleRow
 	err := row.Scan(
 		&i.ChatMember.ChatID,
@@ -216,8 +216,8 @@ SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, c
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = $1
-  AND cm.custom_title IS NOT NULL
-  AND cm.custom_title <> ''
+  AND cm.tag IS NOT NULL
+  AND cm.tag <> ''
   AND cm.left_at IS NULL
 `
 
@@ -362,8 +362,8 @@ FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = $1
   AND cm.left_at IS NULL
-  AND cm.custom_title IS NOT NULL
-  AND cm.custom_title <> ''
+  AND cm.tag IS NOT NULL
+  AND cm.tag <> ''
 `
 
 type GetChatMembersWithTitlesRow struct {
@@ -596,12 +596,12 @@ func (q *Queries) UpdateMemberStatus(ctx context.Context, arg UpdateMemberStatus
 }
 
 const upsertChatMembers = `-- name: UpsertChatMembers :exec
-INSERT INTO chat_members(chat_id, user_id, custom_title, status)
+INSERT INTO chat_members(chat_id, user_id, tag, status)
 SELECT $1, UNNEST($2::BIGINT[]), UNNEST($3::TEXT[]), UNNEST($4::TEXT[])
-ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = CASE
-                                                                WHEN EXCLUDED.custom_title <> ''
-                                                                    THEN EXCLUDED.custom_title
-                                                                ELSE chat_members.custom_title
+ON CONFLICT (chat_id, user_id) DO UPDATE SET tag = CASE
+                                                                WHEN EXCLUDED.tag <> ''
+                                                                    THEN EXCLUDED.tag
+                                                                ELSE chat_members.tag
     END,
                                              status       = CASE
                                                                 WHEN EXCLUDED.status = 'creator' THEN 'creator'
@@ -613,17 +613,17 @@ ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = CASE
 `
 
 type UpsertChatMembersParams struct {
-	ChatID       int64    `db:"chat_id" json:"chatId"`
-	UserIds      []int64  `db:"user_ids" json:"userIds"`
-	CustomTitles []string `db:"custom_titles" json:"customTitles"`
-	Statuses     []string `db:"statuses" json:"statuses"`
+	ChatID   int64    `db:"chat_id" json:"chatId"`
+	UserIds  []int64  `db:"user_ids" json:"userIds"`
+	Tags     []string `db:"tags" json:"tags"`
+	Statuses []string `db:"statuses" json:"statuses"`
 }
 
 func (q *Queries) UpsertChatMembers(ctx context.Context, arg UpsertChatMembersParams) error {
 	_, err := q.db.Exec(ctx, upsertChatMembers,
 		arg.ChatID,
 		arg.UserIds,
-		arg.CustomTitles,
+		arg.Tags,
 		arg.Statuses,
 	)
 	return err

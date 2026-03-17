@@ -81,11 +81,11 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []model.User) er
 	})
 }
 
-func (r *UserRepository) GetByTag(ctx context.Context, chatID int64, title string) ([]model.ChatMember, error) {
+func (r *UserRepository) GetByTag(ctx context.Context, chatID int64, tag string) ([]model.ChatMember, error) {
 	u, err := r.queries.GetUsersByCustomTitle(ctx, db.GetUsersByCustomTitleParams{
-		CustomTitle: pgtype.Text{
-			String: title,
-			Valid:  true,
+		Tag: pgtype.Text{
+			String: tag,
+			Valid:  tag != "",
 		},
 		ChatID: chatID,
 	})

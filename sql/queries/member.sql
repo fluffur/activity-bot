@@ -34,16 +34,16 @@ FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL
-  AND cm.custom_title IS NOT NULL
-  AND cm.custom_title <> '';
+  AND cm.tag IS NOT NULL
+  AND cm.tag <> '';
 
 -- name: GetAnyChatMembersWithTitles :many
 SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = @chat_id
-  AND cm.custom_title IS NOT NULL
-  AND cm.custom_title <> ''
+  AND cm.tag IS NOT NULL
+  AND cm.tag <> ''
   AND cm.left_at IS NULL;
 
 -- name: UpdateChatMemberTitle :exec
@@ -94,7 +94,7 @@ SELECT chat_id_resolve.id,
 FROM chat_id_resolve,
      user_upsert
 ON CONFLICT (chat_id, user_id) DO UPDATE
-    SET custom_title = CASE
+    SET tag = CASE
                            WHEN @tag IS NOT NULL AND @tag <> ''
                                THEN @tag
                            ELSE chat_members.tag
@@ -103,12 +103,12 @@ ON CONFLICT (chat_id, user_id) DO UPDATE
 RETURNING *;
 
 -- name: UpsertChatMembers :exec
-INSERT INTO chat_members(chat_id, user_id, custom_title, status)
-SELECT @chat_id, UNNEST(@user_ids::BIGINT[]), UNNEST(@custom_titles::TEXT[]), UNNEST(@statuses::TEXT[])
-ON CONFLICT (chat_id, user_id) DO UPDATE SET custom_title = CASE
-                                                                WHEN EXCLUDED.custom_title <> ''
-                                                                    THEN EXCLUDED.custom_title
-                                                                ELSE chat_members.custom_title
+INSERT INTO chat_members(chat_id, user_id, tag, status)
+SELECT @chat_id, UNNEST(@user_ids::BIGINT[]), UNNEST(@tags::TEXT[]), UNNEST(@statuses::TEXT[])
+ON CONFLICT (chat_id, user_id) DO UPDATE SET tag = CASE
+                                                                WHEN EXCLUDED.tag <> ''
+                                                                    THEN EXCLUDED.tag
+                                                                ELSE chat_members.tag
     END,
                                              status       = CASE
                                                                 WHEN EXCLUDED.status = 'creator' THEN 'creator'
@@ -168,7 +168,7 @@ WHERE cm.chat_id = @chat_id
 SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
-WHERE cm.chat_id = $1 AND cm.custom_title ILIKE '%' || @custom_title || '%' LIMIT 1;
+WHERE cm.chat_id = $1 AND cm.tag ILIKE '%' || @tag || '%' LIMIT 1;
 
 -- name: FindChatMemberByUsername :one
 SELECT sqlc.embed(cm), sqlc.embed(u)

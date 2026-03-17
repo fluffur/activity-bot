@@ -169,10 +169,10 @@ func (r *MemberRepository) UpsertChatMembers(ctx context.Context, chatID int64, 
 	}
 
 	return r.queries.UpsertChatMembers(ctx, db.UpsertChatMembersParams{
-		ChatID:       chatID,
-		UserIds:      userIDs,
-		CustomTitles: tags,
-		Statuses:     statuses,
+		ChatID:   chatID,
+		UserIds:  userIDs,
+		Tags:     tags,
+		Statuses: statuses,
 	})
 }
 
@@ -265,12 +265,12 @@ func (r *MemberRepository) SetNewbies(ctx context.Context, chatID int64, users [
 	})
 }
 
-func (r *MemberRepository) FindByCustomTitle(ctx context.Context, chatID int64, customTitle string) (model.ChatMember, error) {
+func (r *MemberRepository) FindByCustomTitle(ctx context.Context, chatID int64, tag string) (model.ChatMember, error) {
 	m, err := r.queries.FindChatMemberByCustomTitle(ctx, db.FindChatMemberByCustomTitleParams{
 		ChatID: chatID,
-		CustomTitle: pgtype.Text{
-			String: customTitle,
-			Valid:  customTitle != "",
+		Tag: pgtype.Text{
+			String: tag,
+			Valid:  tag != "",
 		},
 	})
 	if err != nil {

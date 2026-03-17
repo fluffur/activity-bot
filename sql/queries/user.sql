@@ -31,7 +31,7 @@ ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
 SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
-WHERE cm.custom_title ILIKE '%' || @custom_title || '%'
+WHERE cm.tag ILIKE '%' || @tag || '%'
   AND cm.chat_id = @chat_id
 LIMIT 10;
 
