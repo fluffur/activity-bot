@@ -88,7 +88,7 @@ func FormatProfile(m model.MemberStats) string {
 
 	daysSinceRestEnd := int(now.Sub(m.RestUntil).Hours() / 24)
 
-	if isRestActive {
+	if isRestActive && m.LeftAt.IsZero() {
 		text += fmt.Sprintf(
 			"<blockquote>%s Рест до %s</blockquote>",
 			helpers.RestEmoji(),
