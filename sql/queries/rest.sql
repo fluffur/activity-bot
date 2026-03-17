@@ -59,7 +59,7 @@ WHERE rest_until IS NOT NULL
 SELECT sqlc.embed(rr), sqlc.embed(u), sqlc.embed(cm)
 FROM rest_requests rr
          JOIN users u ON u.id = rr.user_id
-         JOIN chat_members cm ON cm.user_id = u.id
+         JOIN chat_members cm ON cm.user_id = u.id AND cm.chat_id = rr.chat_id
 WHERE rr.user_id = $1
   AND rr.chat_id = $2
 ORDER BY rr.requested_at DESC;

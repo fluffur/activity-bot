@@ -200,7 +200,7 @@ const getUserRestRequests = `-- name: GetUserRestRequests :many
 SELECT rr.chat_id, rr.user_id, rr.requested_at, rr.rest_until, rr.status, rr.message_id, rr.reason, rr.id, rr.updated_at, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.custom_title, cm.status, cm.left_at, cm.rest_reason
 FROM rest_requests rr
          JOIN users u ON u.id = rr.user_id
-         JOIN chat_members cm ON cm.user_id = u.id
+         JOIN chat_members cm ON cm.user_id = u.id AND cm.chat_id = rr.chat_id
 WHERE rr.user_id = $1
   AND rr.chat_id = $2
 ORDER BY rr.requested_at DESC
