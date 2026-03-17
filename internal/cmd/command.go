@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"context"
+	"strconv"
 	"strings"
 	"time"
 
@@ -73,9 +74,32 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 		}
 
 		if ctx.CallbackQuery != nil {
+			cmdCtx.isCallback = true
 			parts := strings.Split(ctx.CallbackQuery.Data, ":")
 			if len(parts) > 1 {
-				cmdCtx.args = parts[1:]
+				// Format: prefix:userID:extraData...
+				if userID, err := strconv.ParseInt(parts[1], 10, 64); err == nil {
+					u, err := f.userService.GetUser(ctxWithTimeout, userID)
+					if err == nil {
+						cmdCtx.users = []*model.User{&u}
+
+						// Remaining parts are arguments
+						if len(parts) > 2 {
+							// We join remaining parts back with spaces to simulate arguments
+							// especially since extraData was cmdCtx.ArgsString() which joined args with spaces.
+							// However, parts[2:] might contain multiple arguments if they were split by ':' originally.
+							// But the ResolveUserAmbiguity joins them.
+							joinedArgs := strings.Join(parts[2:], ":")
+							cmdCtx.args = strings.Fields(joinedArgs)
+						} else {
+							cmdCtx.args = []string{}
+						}
+					} else {
+						cmdCtx.args = parts[1:]
+					}
+				} else {
+					cmdCtx.args = parts[1:]
+				}
 			}
 		}
 
@@ -143,6 +167,7 @@ type Command struct {
 	uniquePrefix     string
 	guards           []Guard
 	forcePrefix      bool
+	ambiguityPrefix  string
 }
 
 func New(commands []string, triggers []string, response Response, userService *user.Service, chatService *chat.Service, memberService *member.Service, sessionService interface {
@@ -180,6 +205,11 @@ func (c *Command) FallbackToSender() *Command {
 
 func (c *Command) ForcePrefix() *Command {
 	c.forcePrefix = true
+	return c
+}
+
+func (c *Command) WithAmbiguityResolution(prefix string) *Command {
+	c.ambiguityPrefix = prefix
 	return c
 }
 
@@ -232,7 +262,18 @@ func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 		}
 	}
 
-	return c.response(b, c.parseArgs(b, ctx, ctxWithTimeout))
+	cmdCtx := c.parseArgs(b, ctx, ctxWithTimeout)
+	if c.ambiguityPrefix != "" && len(cmdCtx.users) > 1 {
+		resolved, err := cmdCtx.ResolveUserAmbiguity(b, c.ambiguityPrefix, cmdCtx.ArgsString())
+		if err != nil {
+			return err
+		}
+		if resolved {
+			return nil
+		}
+	}
+
+	return c.response(b, cmdCtx)
 }
 
 func (c *Command) ensureUser(ctx context.Context, u *gotgbot.User) (model.User, error) {
@@ -319,7 +360,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 	chatID, err := c.getChatID(cctx, msg)
 	if err != nil {
 		logger.L.Error("getChatID error", "error", err)
-		return &Context{ctx, cctx, []string{}, "", users, 0, parsedDates, c.memberService}
+		return &Context{ctx, cctx, []string{}, "", users, 0, parsedDates, c.memberService, false}
 	}
 
 	allowPrefixless := true
@@ -334,7 +375,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 
 	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix, allowPrefixless && !c.forcePrefix)
 	if !matched {
-		return &Context{ctx, cctx, []string{}, "", users, chatID, parsedDates, c.memberService}
+		return &Context{ctx, cctx, []string{}, "", users, chatID, parsedDates, c.memberService, false}
 	}
 
 	rest = strings.TrimSpace(rest)
@@ -383,7 +424,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		args = append(args, rest)
 	}
 
-	return &Context{ctx, cctx, args, htmlRest, users, chatID, parsedDates, c.memberService}
+	return &Context{ctx, cctx, args, htmlRest, users, chatID, parsedDates, c.memberService, false}
 }
 
 func (c *Command) getChatID(ctx context.Context, msg *gotgbot.Message) (int64, error) {

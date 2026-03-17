@@ -106,7 +106,8 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "whoareu", "ктоты", "кто ты", "профиль", "ты кто", "тыкто").
 		SetArgsCount(1).
-		WithGuards(groupGuard),
+		WithGuards(groupGuard).
+		WithAmbiguityResolution("whoareyou"),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "whoami", "кто я", "профиль", "ктоя", "я кто").
 		WithGuards(groupGuard),
@@ -114,10 +115,14 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAmI, "я", "me").ForcePrefix().
 		WithGuards(groupGuard),
 	)
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("whoareyou:"), cf.WrapCallback(statsHandler.CallbackWhoAreYou)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("whoareyou:"), cf.WrapCallback(statsHandler.WhoAreYou)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("rest_show:"), cf.WrapCallback(restHandler.Show)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("rest_set:"), cf.WrapCallback(restHandler.Set)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("rest_end:"), cf.WrapCallback(restHandler.End)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("profile_graph:"), cf.WrapCallback(statsHandler.CallbackProfileGraph)))
 	a.Dispatcher.AddHandler(cf.New(statsHandler.WhoAreYou, "ты", "you").SetArgsCount(1).ForcePrefix().
-		WithGuards(groupGuard),
+		WithGuards(groupGuard).
+		WithAmbiguityResolution("whoareyou"),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ListInactive, "inactive", "неактив", "инактив").
 		WithGuards(groupGuard),
@@ -160,17 +165,20 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(restHandler.Show, "рест", "rest", "мой рест").
 		FallbackToSender().
 		WithGuards(groupGuard).
-		AddTriggers("+"),
+		AddTriggers("+").
+		WithAmbiguityResolution("rest_show"),
 	)
 	a.Dispatcher.AddHandler(cf.New(restHandler.Set, "рест", "rest", "установить рест").
 		FallbackToSender().
 		AddTriggers("+").
 		WithGuards(groupGuard).
-		SetArgsCount(2),
+		SetArgsCount(2).
+		WithAmbiguityResolution("rest_set"),
 	)
 	a.Dispatcher.AddHandler(cf.New(restHandler.End, "-рест", "-rest", "снять рест").
 		FallbackToSender().
-		WithGuards(groupGuard),
+		WithGuards(groupGuard).
+		WithAmbiguityResolution("rest_end"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ListAdmins, "admins", "админы", "админчики", "администраторы", "адмы", "модеры", "mods").
 		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 10*time.Second, sessionService)),

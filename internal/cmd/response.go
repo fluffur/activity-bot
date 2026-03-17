@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"activity-bot/internal/member"
@@ -25,6 +26,7 @@ type Context struct {
 	targetChatID  int64
 	parsedDates   []time.Time
 	memberService *member.Service
+	isCallback    bool
 }
 
 func (c *Context) TargetChatID() int64 {
@@ -61,6 +63,10 @@ func (c *Context) Args() []string {
 	return c.args
 }
 
+func (c *Context) ArgsString() string {
+	return strings.Join(c.args, " ")
+}
+
 func (c *Context) ParsedDates() []time.Time {
 	return c.parsedDates
 }
@@ -75,6 +81,14 @@ func (c *Context) SetUsers(users []*model.User) {
 
 func (c *Context) StdContext() context.Context {
 	return c.ctx
+}
+
+func (c *Context) IsCallback() bool {
+	return c.isCallback
+}
+
+func (c *Context) SetIsCallback(v bool) {
+	c.isCallback = v
 }
 
 func (c *Context) Reply(b *gotgbot.Bot, text string, opts *gotgbot.SendMessageOpts) error {
