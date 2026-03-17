@@ -33,7 +33,7 @@ type ChatMember struct {
 }
 
 func (cm ChatMember) IsRestActive(now time.Time) bool {
-	return cm.RestUntil.IsZero() || cm.RestUntil.After(now)
+	return !cm.RestUntil.IsZero() && cm.RestUntil.After(now)
 }
 
 type ChatWithoutNorm struct {
