@@ -358,7 +358,7 @@ WHERE cm.chat_id = $3
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
   AND (
-    ($4 = 'warn' AND COALESCE(m.msg_count, 0) > c.norm_ban AND COALESCE(m.msg_count, 0) < c.norm_warn)
+    ($4 = 'warn' AND (c.norm_ban IS NULL OR COALESCE(m.msg_count, 0) > c.norm_ban) AND COALESCE(m.msg_count, 0) < c.norm_warn)
         OR ($4 = 'ban' AND COALESCE(m.msg_count, 0) < c.norm_ban)
         OR ($4 = 'any' AND COALESCE(m.msg_count, 0) < GREATEST(c.norm_warn, c.norm_ban))
     )

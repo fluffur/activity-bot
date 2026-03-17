@@ -10,7 +10,8 @@ ORDER BY cm.rest_until;
 
 -- name: SetMemberRest :exec
 UPDATE chat_members
-SET rest_until = $1, rest_reason = $2
+SET rest_until  = $1,
+    rest_reason = $2
 WHERE chat_id = $3
   AND user_id = $4;
 
@@ -53,24 +54,11 @@ FROM chat_members
 WHERE rest_until IS NOT NULL
   AND rest_until >= now();
 
--- name: GetApprovedRestRequests :many
-SELECT sqlc.embed(rr), sqlc.embed(u)
-FROM rest_requests rr
-         JOIN users u ON u.id = rr.user_id
-WHERE rr.status = 'approved'
-ORDER BY rr.requested_at DESC;
-
--- name: GetUserApprovedRestRequests :many
-SELECT sqlc.embed(rr), sqlc.embed(u)
-FROM rest_requests rr
-         JOIN users u ON u.id = rr.user_id
-WHERE rr.status = 'approved'
-  AND rr.user_id = $1
-ORDER BY rr.requested_at DESC;
-
 -- name: GetUserRestRequests :many
-SELECT sqlc.embed(rr), sqlc.embed(u)
+SELECT sqlc.embed(rr), sqlc.embed(u), sqlc.embed(cm)
 FROM rest_requests rr
          JOIN users u ON u.id = rr.user_id
-WHERE user_id = $1 AND chat_id = $2
-ORDER BY requested_at DESC;
+         JOIN chat_members cm ON cm.user_id = u.id
+WHERE rr.user_id = $1
+  AND rr.chat_id = $2
+ORDER BY rr.requested_at DESC;

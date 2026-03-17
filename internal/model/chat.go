@@ -32,6 +32,10 @@ type ChatMember struct {
 	Status      string
 }
 
+func (cm ChatMember) IsRestActive(now time.Time) bool {
+	return cm.RestUntil.IsZero() || cm.RestUntil.After(now)
+}
+
 type ChatWithoutNorm struct {
 	ID        int64
 	Title     string

@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/model"
 	"fmt"
 	"html"
+	"strings"
 )
 
 func UserLink(u model.User) string {
@@ -28,6 +29,21 @@ func LinkWithContent(u model.User, content string) string {
 	}
 
 	return fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a>`, u.ID, html.EscapeString(content))
+}
+
+func RoleLink(cm model.ChatMember) string {
+	var displayName string
+	if cm.CustomTitle != "" {
+		displayName = cm.CustomTitle
+	} else {
+		fullName := strings.TrimSpace(cm.User.FirstName + " " + cm.User.LastName)
+		if fullName == "" {
+			fullName = "—"
+		}
+		displayName = fullName
+	}
+	return LinkWithContent(cm.User, displayName)
+
 }
 
 func Mention(id int64, value string) string {

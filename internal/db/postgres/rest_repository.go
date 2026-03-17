@@ -158,47 +158,6 @@ func (r *RestRepository) GetRequest(ctx context.Context, chatID, userID, message
 
 }
 
-func (r *RestRepository) GetAllActiveRests(ctx context.Context) ([]model.RestExpirePayload, error) {
-	rows, err := r.queries.GetAllActiveRests(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]model.RestExpirePayload, len(rows))
-	for i, row := range rows {
-		result[i] = model.RestExpirePayload{
-			ChatID:     row.ChatID,
-			UserID:     row.UserID,
-			RestUntil:  row.RestUntil.Time,
-			RestReason: row.RestReason.String,
-		}
-	}
-
-	return result, nil
-}
-
-func (r *RestRepository) GetApprovedRequests(ctx context.Context) ([]model.ApprovedRestRequest, error) {
-	rows, err := r.queries.GetApprovedRestRequests(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return mapApprovedRestRequests(rows, func(row db.GetApprovedRestRequestsRow) model.ApprovedRestRequest {
-		return mapApprovedRestRequest(row.RestRequest, row.User)
-	}), nil
-}
-
-func (r *RestRepository) GetUserApprovedRequests(ctx context.Context, userID int64) ([]model.ApprovedRestRequest, error) {
-	rows, err := r.queries.GetUserApprovedRestRequests(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	return mapApprovedRestRequests(rows, func(row db.GetUserApprovedRestRequestsRow) model.ApprovedRestRequest {
-		return mapApprovedRestRequest(row.RestRequest, row.User)
-	}), nil
-}
-
 func (r *RestRepository) SetRestWithHistory(ctx context.Context, chatID int64, userID int64, messageID int64, until time.Time, reason string) error {
 	return r.withTx(ctx, func(q *db.Queries) error {
 		if err := q.SetMemberRest(ctx, db.SetMemberRestParams{
@@ -251,7 +210,7 @@ func (r *RestRepository) GetUserRestRequests(ctx context.Context, chatID, userID
 
 	result := make([]model.ApprovedRestRequest, len(rows))
 	for i, row := range rows {
-		result[i] = mapApprovedRestRequest(row.RestRequest, row.User)
+		result[i] = mapApprovedRestRequest(row.RestRequest, row.ChatMember, row.User)
 	}
 
 	return result, nil

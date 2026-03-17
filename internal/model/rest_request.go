@@ -17,5 +17,5 @@ type RestRequest struct {
 
 type ApprovedRestRequest struct {
 	RestRequest
-	User User
+	ChatMember ChatMember
 }

@@ -73,51 +73,52 @@ func FormatRestRequestRejected(user *model.User) string {
 	}
 	return fmt.Sprintf("Запрос на рест для %s отклонён", helpers.UserLink(*user))
 }
+
 func FormatRestRequests(requests []model.ApprovedRestRequest) string {
 	if len(requests) == 0 {
 		return "Список рестов пуст"
 	}
 
-	var approvedText, pendingText, rejectedText string
-
-	for i, r := range requests {
+	var approvedText, rejectedText string
+	var cm model.ChatMember
+	var isActive = false
+	for _, r := range requests {
+		cm = r.ChatMember
 		reasonPart := ""
 		if r.Reason != "" {
 			reasonPart = fmt.Sprintf(" (%s)", r.Reason)
 		}
-
-		timePart := ""
+		timePart := fmt.Sprintf("• Запрошено %s", helpers.FormatToHumanDateTime(r.RequestedAt))
 		if !r.UpdatedAt.IsZero() {
-			timePart = fmt.Sprintf(" [обновлено: %s]", helpers.FormatToHumanDateTime(r.UpdatedAt))
-		} else {
-			timePart = fmt.Sprintf(" [запрошено: %s]", helpers.FormatToHumanDateTime(r.RequestedAt))
+			timePart += fmt.Sprintf("\n• Одобрено %s", helpers.FormatToHumanDateTime(r.RequestedAt))
 		}
-
-		line := fmt.Sprintf("%d. до %s%s%s\n", i+1, helpers.FormatToHumanDateTime(r.RestUntil), reasonPart, timePart)
+		line := fmt.Sprintf("%s• Срок окончания %s%s\n%s\n\n", isRestActiveMessage(r.ChatMember, &isActive), helpers.FormatToHumanDateTime(r.RestUntil), reasonPart, timePart)
 
 		switch r.Status {
 		case "approved":
 			approvedText += line
-		case "pending":
-			pendingText += line
 		case "rejected":
 			rejectedText += line
-		default:
-			pendingText += line
 		}
 	}
 
-	text := "<b>Список рестов:</b>\n"
+	text := fmt.Sprintf("Список рестов %s:\n", helpers.RoleLink(cm))
 
 	if approvedText != "" {
-		text += "\n<b>Одобренные:</b>\n" + approvedText
-	}
-	if pendingText != "" {
-		text += "\n<b>В ожидании:</b>\n" + pendingText
+		text += "\nОдобренные:\n" + approvedText
 	}
 	if rejectedText != "" {
 		text += "\n<b>Отклонённые:</b>\n" + rejectedText
 	}
 
 	return text
+}
+
+func isRestActiveMessage(cm model.ChatMember, hasOneActive *bool) string {
+	if *hasOneActive || !cm.IsRestActive(time.Now()) {
+		return fmt.Sprintf("%s Недействителен\n", helpers.DangerEmoji())
+	}
+	*hasOneActive = true
+	return fmt.Sprintf("%s Действителен\n", helpers.SuccessEmoji())
+
 }

@@ -145,10 +145,10 @@ func mapRestRequest(er db.RestRequest) model.RestRequest {
 	}
 }
 
-func mapApprovedRestRequest(rr db.RestRequest, u db.User) model.ApprovedRestRequest {
+func mapApprovedRestRequest(rr db.RestRequest, cm db.ChatMember, u db.User) model.ApprovedRestRequest {
 	return model.ApprovedRestRequest{
 		RestRequest: mapRestRequest(rr),
-		User:        mapUser(u),
+		ChatMember:  mapChatMemberFull(cm, u),
 	}
 }
 
