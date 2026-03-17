@@ -105,10 +105,10 @@ func FormatRestRequests(requests []model.ApprovedRestRequest) string {
 	text := fmt.Sprintf("Список рестов %s:\n", helpers.RoleLink(cm))
 
 	if approvedText != "" {
-		text += "\nОдобренные:\n" + approvedText
+		text += "\nОдобренные:<blockquote expandable>" + approvedText + "</blockquote>"
 	}
 	if rejectedText != "" {
-		text += "\n<b>Отклонённые:</b>\n" + rejectedText
+		text += "\nОтклонённые:<blockquote expandable>" + rejectedText + "</blockquote>"
 	}
 
 	return text
