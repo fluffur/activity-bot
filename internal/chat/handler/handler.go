@@ -404,7 +404,7 @@ func (h *Handler) CallbackManagePage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return err
 }
 
-func (h *Handler) OnNewChatTitle(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) OnNewChatTitle(_ *gotgbot.Bot, ctx *cmd.Context) error {
 	newTitle := ctx.EffectiveMessage.NewChatTitle
 	if newTitle == "" {
 		return nil
@@ -574,10 +574,9 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if ctx.EffectiveChat.Type != "private" {
-		return ctx.Reply(
+		return ctx.ReplyHTML(
 			b,
 			fmt.Sprintf("Список невыполненных норм отправлен вам в личные сообщения %s", helpers.SuccessEmoji()),
-			nil,
 		)
 	}
 

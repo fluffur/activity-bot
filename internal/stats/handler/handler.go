@@ -125,7 +125,7 @@ func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *cmd.Context) error {
 func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
 	u := ctx.FirstUser()
 	if u == nil {
-		return ctx.ReplyHTML(b, "📭 <b>Пользователь не найден.</b>")
+		return ctx.ReplyHTML(b, fmt.Sprintf("%s Участник не найден", helpers.DangerEmoji()))
 	}
 
 	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.TargetChatID(), u.ID)
