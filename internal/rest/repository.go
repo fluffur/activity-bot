@@ -7,7 +7,7 @@ import (
 )
 
 type Repository interface {
-	GetFromChat(ctx context.Context, chatID int64) ([]model.RestMember, error)
+	GetRestMembers(ctx context.Context, chatID int64) ([]model.RestMember, error)
 	SetRest(ctx context.Context, chatID int64, userID int64, until time.Time, reason string) error
 	EndMemberRest(ctx context.Context, chatID int64, userID int64) error
 	AddRequest(ctx context.Context, request model.RestRequest) error

@@ -20,7 +20,7 @@ func NewRestRepository(queries *db.Queries, pool *pgxpool.Pool) rest.Repository 
 	return &RestRepository{queries, pool}
 }
 
-func (r *RestRepository) GetFromChat(ctx context.Context, chatID int64) ([]model.RestMember, error) {
+func (r *RestRepository) GetRestMembers(ctx context.Context, chatID int64) ([]model.RestMember, error) {
 	rows, err := r.queries.GetRestMembers(ctx, chatID)
 	if err != nil {
 		return nil, err

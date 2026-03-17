@@ -3,6 +3,7 @@ SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
+  AND cm.left_at IS NULL
   AND cm.rest_until IS NOT NULL
   AND cm.rest_until >= now()
 ORDER BY cm.rest_until;

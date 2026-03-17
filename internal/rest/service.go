@@ -15,7 +15,7 @@ func NewService(repo Repository) *Service {
 }
 
 func (s *Service) GetRestMembers(ctx context.Context, chatID int64) ([]model.RestMember, error) {
-	return s.repo.GetFromChat(ctx, chatID)
+	return s.repo.GetRestMembers(ctx, chatID)
 }
 
 func (s *Service) SetMemberRest(ctx context.Context, chatID int64, userID int64, until time.Time, reason string) error {
