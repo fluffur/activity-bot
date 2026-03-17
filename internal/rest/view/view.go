@@ -86,12 +86,10 @@ func FormatRestRequests(requests []model.ApprovedRestRequest) string {
 			reasonPart = fmt.Sprintf(" (%s)", r.Reason)
 		}
 
-		// Показываем дату обновления, если есть
 		timePart := ""
 		if !r.UpdatedAt.IsZero() {
 			timePart = fmt.Sprintf(" [обновлено: %s]", helpers.FormatToHumanDateTime(r.UpdatedAt))
 		} else {
-			// иначе показываем дату запроса
 			timePart = fmt.Sprintf(" [запрошено: %s]", helpers.FormatToHumanDateTime(r.RequestedAt))
 		}
 
