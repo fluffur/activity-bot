@@ -64,7 +64,6 @@ FROM chat_members cm
 
 WHERE cm.chat_id = @chat_id
   AND cm.user_id = @user_id
-  AND cm.left_at IS NULL
 GROUP BY cm.chat_id, cm.user_id, u.id, c.id;
 
 -- name: MessageActivityByDay :many
