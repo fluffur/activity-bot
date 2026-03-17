@@ -81,7 +81,6 @@ func FormatRestRequests(requests []model.ApprovedRestRequest) string {
 
 	var approvedText, rejectedText string
 	var cm model.ChatMember
-	var isActive = false
 	for _, r := range requests {
 		cm = r.ChatMember
 		reasonPart := ""
@@ -92,7 +91,7 @@ func FormatRestRequests(requests []model.ApprovedRestRequest) string {
 		if !r.UpdatedAt.IsZero() {
 			timePart += fmt.Sprintf("\n• Одобрено %s", helpers.FormatToHumanDateTime(r.RequestedAt))
 		}
-		line := fmt.Sprintf("%s• Срок окончания %s%s\n%s\n\n", isRestActiveMessage(r.ChatMember, &isActive), helpers.FormatToHumanDateTime(r.RestUntil), reasonPart, timePart)
+		line := fmt.Sprintf("%s• Срок окончания %s%s\n%s\n\n", isRestActiveMessage(r), helpers.FormatToHumanDateTime(r.RestUntil), reasonPart, timePart)
 
 		switch r.Status {
 		case "approved":
@@ -114,11 +113,10 @@ func FormatRestRequests(requests []model.ApprovedRestRequest) string {
 	return text
 }
 
-func isRestActiveMessage(cm model.ChatMember, hasOneActive *bool) string {
-	if *hasOneActive || !cm.IsRestActive(time.Now()) {
+func isRestActiveMessage(rr model.ApprovedRestRequest) string {
+	if !rr.ChatMember.IsRestActive(time.Now()) || rr.ChatMember.RestUntil.Equal(rr.RestUntil) {
 		return fmt.Sprintf("%s Недействителен\n", helpers.DangerEmoji())
 	}
-	*hasOneActive = true
 	return fmt.Sprintf("%s Действителен\n", helpers.SuccessEmoji())
 
 }
