@@ -50,6 +50,25 @@ func RoleLink(cm model.ChatMember) string {
 
 }
 
+func RoleMention(cm model.ChatMember) string {
+	var displayName string
+	if cm.Tag != "" {
+		displayName = cm.Tag
+	} else {
+		fullName := strings.TrimSpace(cm.User.FirstName + " " + cm.User.LastName)
+		if fullName == "" {
+			fullName = "—"
+		}
+		displayName = fullName
+	}
+	var emoji string
+	if cm.User.Emoji != "" {
+		emoji = cm.User.Emoji + " "
+	}
+	return emoji + Mention(cm.User.ID, displayName)
+
+}
+
 func Mention(id int64, value string) string {
 	if value == "" {
 		value = "?"
