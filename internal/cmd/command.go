@@ -128,9 +128,9 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 			for _, row := range ctx.EffectiveMessage.ReplyMarkup.InlineKeyboard {
 				var newRow []gotgbot.InlineKeyboardButton
 				for _, button := range row {
-					if button.CallbackData == ctx.CallbackQuery.Data {
-						continue
-					}
+					//if button.CallbackData == ctx.CallbackQuery.Data {
+					//	continue
+					//}
 					newRow = append(newRow, button)
 				}
 				if len(newRow) > 0 {
