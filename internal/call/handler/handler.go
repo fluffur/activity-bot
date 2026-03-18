@@ -383,7 +383,7 @@ func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	_, _, err = ctx.EffectiveMessage.EditReplyMarkup(
+	_, _, err = ctx.CallbackQuery.Message.EditReplyMarkup(
 		b,
 		&gotgbot.EditMessageReplyMarkupOpts{
 			ReplyMarkup: h.getCallTypesKeyboard(newTypes),
