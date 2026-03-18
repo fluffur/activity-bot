@@ -23,8 +23,7 @@ type RestMember struct {
 }
 
 type MemberStats struct {
-	User User
-
+	ChatMember        ChatMember
 	DayCount          int
 	DayRollingCount   int
 	WeekCount         int

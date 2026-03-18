@@ -231,12 +231,12 @@ func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
-	if targetUser == nil {
+	m := ctx.FirstMember()
+	if m == nil {
 		return cmd.ErrNoUser
 	}
 
-	warns, err := h.service.GetWarns(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
+	warns, err := h.service.GetWarns(ctx.StdContext(), ctx.TargetChatID(), m.User.ID)
 	if err != nil {
 		return err
 	}
@@ -255,12 +255,12 @@ func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if len(activeWarns) == 0 {
-		return ctx.ReplyHTML(b, fmt.Sprintf("%s У пользователя %s нет активных варнов", helpers.SuccessEmoji(), helpers.UserLink(*targetUser)))
+		return ctx.ReplyHTML(b, fmt.Sprintf("%s У %s нет активных варнов", helpers.SuccessEmoji(), helpers.RoleLink(*m)))
 	}
 
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("⚠️ Варны пользователя %s (активные: %d/%d):\n\n",
-		helpers.UserLink(*targetUser), len(activeWarns), maxWarns))
+		helpers.RoleLink(*m), len(activeWarns), maxWarns))
 
 	for i, w := range activeWarns {
 		createdStr := helpers.FormatToHumanDateTime(w.CreatedAt)

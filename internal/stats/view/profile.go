@@ -4,26 +4,10 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"fmt"
-	"strings"
 	"time"
 )
 
 func FormatProfile(m model.MemberStats) string {
-	var displayName string
-	if m.Tag != "" {
-		displayName = m.Tag
-	} else {
-		fullName := strings.TrimSpace(m.User.FirstName + " " + m.User.LastName)
-		if fullName == "" {
-			fullName = "—"
-		}
-		displayName = fullName
-	}
-
-	name := helpers.LinkWithContent(
-		m.User,
-		displayName,
-	)
 	now := time.Now().UTC()
 
 	isNewbie := false
@@ -59,10 +43,10 @@ func FormatProfile(m model.MemberStats) string {
 ▸ 30 дней: <code>%d</code></blockquote>
 %s`,
 		helpers.CustomEmoji(5316727448644103237, "👤"),
-		name,
+		helpers.RoleLink(m.ChatMember),
 		status,
 		getStatusEmoji(m.Status),
-		helpers.Gendered(m.User.Gender, "зашел", "зашла"),
+		helpers.Gendered(m.ChatMember.User.Gender, "зашел", "зашла"),
 		helpers.FormatLastSeen(m.JoinedAt),
 		newbieEmoji,
 		leftAtInfo,

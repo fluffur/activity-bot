@@ -96,7 +96,7 @@ func mapMessageReportRow(m db.MessageReportRow) model.MessageReportMember {
 
 func mapMessageReportOneRow(m db.MessageReportOneRow) model.MemberStats {
 	return model.MemberStats{
-		User:              mapUser(m.User),
+		ChatMember:        mapChatMemberFull(m.ChatMember, m.User),
 		DayCount:          int(m.DayCount),
 		DayRollingCount:   int(m.DayRollingCount),
 		WeekCount:         int(m.WeekCount),
