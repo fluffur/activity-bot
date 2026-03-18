@@ -241,9 +241,10 @@ func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	_, _, err = b.EditMessageText(view.FormatRestRequestRejected(&u),
 		&gotgbot.EditMessageTextOpts{
-			ChatId:    ctx.EffectiveChat.Id,
-			MessageId: ctx.EffectiveMessage.MessageId,
-			ParseMode: gotgbot.ParseModeHTML,
+			ChatId:      ctx.EffectiveChat.Id,
+			MessageId:   ctx.EffectiveMessage.MessageId,
+			ParseMode:   gotgbot.ParseModeHTML,
+			ReplyMarkup: gotgbot.InlineKeyboardMarkup{},
 		},
 	)
 	return err
