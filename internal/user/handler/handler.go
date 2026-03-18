@@ -82,6 +82,13 @@ func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.Reply(b, "Emoji установлено", nil)
 }
 
+func (h *Handler) RemoveEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
+	if err := h.service.SetEmoji(ctx.StdContext(), ctx.EffectiveSender.Id(), ""); err != nil {
+		return fmt.Errorf("failed to set emoji: %w", err)
+	}
+	return ctx.Reply(b, "Emoji удалено", nil)
+}
+
 func (h *Handler) ShowEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 	u := ctx.FirstUser()
 	if u == nil {
