@@ -169,11 +169,10 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if !h.adminService.CheckIsAdmin(ctx.StdContext(), chatID, ctx.EffectiveSender.Id()) {
-		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Подтвердить запрос может только администратор",
 		})
-		return err
-
+		return cmd.ErrSkipKeyboardUpdate
 	}
 
 	if err := h.service.ApproveRestRequest(ctx.StdContext(), chatID, fromID, ctx.EffectiveMessage.MessageId, restRequest.RestUntil); err != nil {
@@ -214,11 +213,10 @@ func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if restRequest.UserID != ctx.EffectiveSender.Id() && !h.adminService.CheckIsAdmin(cctx, chatID, ctx.EffectiveSender.Id()) {
-		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Отклонить запрос может только администратор или заявитель реста",
 		})
-		return err
-
+		return cmd.ErrSkipKeyboardUpdate
 	}
 	slog.Info("rejecting rest request", "message_id", ctx.EffectiveMessage.MessageId)
 	if err := h.service.RejectRestRequest(cctx, chatID, ctx.EffectiveSender.Id(), ctx.EffectiveMessage.MessageId); err != nil {

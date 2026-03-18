@@ -16,6 +16,12 @@ import (
 
 var ErrNoUser = errors.New("failed to get user info from context")
 
+// ErrSkipKeyboardUpdate instructs WrapCallback to skip the automatic keyboard
+// update logic (removing the pressed button). Return this when the handler
+// intentionally does nothing (e.g. permission denied) and the keyboard must
+// stay intact.
+var ErrSkipKeyboardUpdate = errors.New("skip keyboard update")
+
 type Response func(b *gotgbot.Bot, ctx *Context) error
 
 type Context struct {

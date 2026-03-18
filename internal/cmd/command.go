@@ -8,6 +8,7 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -115,6 +116,9 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 
 		err = r(b, cmdCtx)
 		if err != nil {
+			if errors.Is(err, ErrSkipKeyboardUpdate) {
+				return nil
+			}
 			return err
 		}
 
