@@ -296,7 +296,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.ShowCallTypes, "call_type", "калл тип", "калл стиль").
 		AddTriggers("+", "!").
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.SetMentionsPerMessage, "call_limit", "калл лимит", "калл лим").
 		AddTriggers("+", "!").
