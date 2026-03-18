@@ -166,12 +166,7 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 			normBanDone = r.MessagesCount >= r.NormBan
 		}
 
-		userTitle := r.Tag
-		if r.Tag == "" {
-			userTitle = r.User.FirstName
-		}
-
-		line := fmt.Sprintf("%s — <code>%d</code>", helpers.LinkWithContent(r.User, userTitle), r.MessagesCount)
+		line := fmt.Sprintf("%s — <code>%d</code>", helpers.RoleLink(r.ChatMember), r.MessagesCount)
 
 		isNewbie := false
 		if r.NewbieThresholdDays > 0 {
@@ -183,7 +178,7 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 
 		if isNewbie {
 			if normWarnDone {
-				s.Passed = append(s.Passed, fmt.Sprintf("%s %s — <code>%d</code>", helpers.NewbieEmoji(), helpers.LinkWithContent(r.User, userTitle), r.MessagesCount))
+				s.Passed = append(s.Passed, fmt.Sprintf("%s %s — <code>%d</code>", helpers.NewbieEmoji(), helpers.RoleLink(r.ChatMember), r.MessagesCount))
 			} else {
 				s.Newbies = append(s.Newbies, line)
 			}
@@ -222,13 +217,13 @@ func formatRestLine(r model.RestMember) string {
 
 func formatPeriodHeader(from, to *time.Time) string {
 	if from != nil && to != nil {
-		return fmt.Sprintf("%s Отчёт за период: %s — %s", helpers.StatsEmoji(), helpers.FormatToHumanDateTime(*from), helpers.FormatToHumanDateTime(*to))
+		return fmt.Sprintf("%s Отчет за период: %s — %s", helpers.StatsEmoji(), helpers.FormatToHumanDateTime(*from), helpers.FormatToHumanDateTime(*to))
 	} else if from != nil {
-		return fmt.Sprintf("%s Отчёт с %s", helpers.StatsEmoji(), helpers.FormatToHumanDateTime(*from))
+		return fmt.Sprintf("%s Отчет с %s", helpers.StatsEmoji(), helpers.FormatToHumanDateTime(*from))
 	} else if to != nil {
-		return fmt.Sprintf("%s Отчёт до %s", helpers.StatsEmoji(), helpers.FormatToHumanDateTime(*to))
+		return fmt.Sprintf("%s Отчет до %s", helpers.StatsEmoji(), helpers.FormatToHumanDateTime(*to))
 	}
-	return "📊 Отчёт за всё время"
+	return "📊 Отчет за всё время"
 }
 
 func writeNumberedList(sb *strings.Builder, items []string) {

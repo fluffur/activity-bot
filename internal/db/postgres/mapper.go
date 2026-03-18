@@ -83,7 +83,7 @@ func mapMembers[T any](members []T, mapper func(T) model.ChatMember) []model.Cha
 
 func mapMessageReportRow(m db.MessageReportRow) model.MessageReportMember {
 	return model.MessageReportMember{
-		User:                mapUser(m.User),
+		ChatMember:          mapChatMemberFull(m.ChatMember, m.User),
 		MessagesCount:       int(m.MessagesCount),
 		NormWarn:            int(m.NormWarn.Int32),
 		NormBan:             int(m.NormBan.Int32),

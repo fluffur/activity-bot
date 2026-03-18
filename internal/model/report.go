@@ -5,7 +5,7 @@ import (
 )
 
 type MessageReportMember struct {
-	User                User
+	ChatMember          ChatMember
 	MessagesCount       int
 	NormWarn            int
 	NormBan             int
