@@ -230,9 +230,10 @@ func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		_, _, err = b.EditMessageText(view.FormatRestRequestRejected(nil),
 			&gotgbot.EditMessageTextOpts{
-				ChatId:    ctx.EffectiveChat.Id,
-				MessageId: ctx.EffectiveMessage.MessageId,
-				ParseMode: gotgbot.ParseModeHTML,
+				ChatId:      ctx.EffectiveChat.Id,
+				MessageId:   ctx.EffectiveMessage.MessageId,
+				ParseMode:   gotgbot.ParseModeHTML,
+				ReplyMarkup: gotgbot.InlineKeyboardMarkup{},
 			},
 		)
 		return err
