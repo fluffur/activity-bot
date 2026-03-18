@@ -227,16 +227,12 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
-	title := m.Tag
-	if m.Tag == "" {
-		title = ctx.EffectiveSender.FirstName()
-	}
 	var sb strings.Builder
 	for _, a := range admins {
 		sb.WriteString(helpers.Mention(a.User.ID, "​"))
 	}
 	_, err = ctx.EffectiveChat.SendMessage(b, fmt.Sprintf("🕊 %s %s нас..."+sb.String(),
-		helpers.LinkWithContent(m.User, title),
+		helpers.RoleLink(m),
 		helpers.Gendered(m.User.Gender, "покинул", "покинула"),
 	), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
