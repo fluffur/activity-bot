@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func FormatStats(report []model.MessageReportMember, restMembers []model.RestMember, newbieThresholdDays int32, from, to *time.Time) string {
+func FormatStats(report []model.MessageReportMember, restMembers []model.ChatMember, newbieThresholdDays int32, from, to *time.Time) string {
 	header := formatPeriodHeader(from, to)
 	sections := prepareReportSections(report, restMembers)
 	topOnly := sections.NormWarn == 0 && sections.NormBan == 0
@@ -86,7 +86,7 @@ func FormatStats(report []model.MessageReportMember, restMembers []model.RestMem
 	return sb.String()
 }
 
-func FormatRestList(restMembers []model.RestMember) string {
+func FormatRestList(restMembers []model.ChatMember) string {
 	if len(restMembers) == 0 {
 		return fmt.Sprintf("%s <b>В ресте никого нет.</b>", helpers.RestEmoji())
 	}
@@ -151,7 +151,7 @@ type reportSections struct {
 	TotalMessages int
 }
 
-func prepareReportSections(report []model.MessageReportMember, restMembers []model.RestMember) reportSections {
+func prepareReportSections(report []model.MessageReportMember, restMembers []model.ChatMember) reportSections {
 	now := time.Now().UTC()
 	s := reportSections{}
 
@@ -201,18 +201,14 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 	return s
 }
 
-func formatRestLine(r model.RestMember) string {
+func formatRestLine(r model.ChatMember) string {
 	var untilText string
 	if !r.RestUntil.IsZero() {
 		untilText = helpers.FormatToHumanDateTime(r.RestUntil)
 	} else {
 		untilText = "неизвестно"
 	}
-	userTitle := r.Tag
-	if r.Tag == "" {
-		userTitle = r.User.FirstName
-	}
-	return fmt.Sprintf("%s до %s", helpers.LinkWithContent(r.User, userTitle), untilText)
+	return fmt.Sprintf("%s до %s", helpers.RoleLink(r), untilText)
 }
 
 func formatPeriodHeader(from, to *time.Time) string {

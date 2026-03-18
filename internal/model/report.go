@@ -16,10 +16,10 @@ type MessageReportMember struct {
 }
 
 type RestMember struct {
-	User      User
-	RestUntil time.Time
-	Status    string
-	Tag       string
+	ChatMember ChatMember
+	RestUntil  time.Time
+	Status     string
+	Tag        string
 }
 
 type MemberStats struct {

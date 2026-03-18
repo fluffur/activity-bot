@@ -14,7 +14,7 @@ func NewService(repo Repository) *Service {
 	return &Service{repo}
 }
 
-func (s *Service) GetRestMembers(ctx context.Context, chatID int64) ([]model.RestMember, error) {
+func (s *Service) GetRestMembers(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
 	return s.repo.GetRestMembers(ctx, chatID)
 }
 

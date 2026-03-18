@@ -20,26 +20,18 @@ func NewRestRepository(queries *db.Queries, pool *pgxpool.Pool) rest.Repository 
 	return &RestRepository{queries, pool}
 }
 
-func (r *RestRepository) GetRestMembers(ctx context.Context, chatID int64) ([]model.RestMember, error) {
+func (r *RestRepository) GetRestMembers(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
 	rows, err := r.queries.GetRestMembers(ctx, chatID)
 	if err != nil {
 		return nil, err
 	}
 
-	members := mapMembers(rows, func(row db.GetRestMembersRow) model.ChatMember {
-		return mapChatMemberFull(row.ChatMember, row.User)
-	})
-	result := make([]model.RestMember, len(members))
-	for i, m := range members {
-		result[i] = model.RestMember{
-			User:      m.User,
-			RestUntil: m.RestUntil,
-			Status:    m.Status,
-			Tag:       m.Tag,
-		}
+	members := make([]model.ChatMember, len(rows))
+	for i, row := range rows {
+		members[i] = mapChatMemberFull(row.ChatMember, row.User)
 	}
 
-	return result, nil
+	return members, nil
 }
 
 func (r *RestRepository) SetRest(ctx context.Context, chatID int64, userID int64, restUntil time.Time, reason string) error {
