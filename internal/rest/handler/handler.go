@@ -261,3 +261,38 @@ func parseRequestCallbackData(callbackData string) (int64, error) {
 	}
 	return int64(fromID), nil
 }
+
+func (h *Handler) RemoveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
+	m := ctx.FirstMember()
+	if m == nil {
+		return cmd.ErrNoUser
+	}
+	number, err := strconv.Atoi(ctx.FirstArgument())
+	if err != nil || number < 1 {
+		return ctx.Reply(b, "Укажите корректный номер рест запроса", nil)
+	}
+
+	requests, err := h.service.GetRequests(ctx.StdContext(), m.ChatID, m.User.ID)
+	if err != nil {
+		return err
+	}
+	if number > len(requests) {
+		return ctx.Reply(b, "Не найден запрос с этим номером", nil)
+	}
+
+	request := requests[number-1]
+
+	if request.RestUntil.Equal(m.RestUntil) {
+
+		if err := h.service.DeleteRestRequestAndEndRest(ctx.StdContext(), request.ChatID, request.UserID, request.ID); err != nil {
+			return err
+		}
+		return ctx.Reply(b, "Удалён действительный запрос на рест, вместе с этим удалён и статус реста у участника", nil)
+	}
+
+	if err := h.service.DeleteRestRequest(ctx.StdContext(), request.ID); err != nil {
+		return err
+	}
+	return ctx.Reply(b, "Запрос на рест успешно удален", nil)
+
+}

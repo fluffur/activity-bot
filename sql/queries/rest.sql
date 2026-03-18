@@ -63,3 +63,8 @@ FROM rest_requests rr
 WHERE rr.user_id = $1
   AND rr.chat_id = $2
 ORDER BY rr.requested_at DESC;
+
+-- name: DeleteRestRequest :exec
+DELETE
+FROM rest_requests
+WHERE id = $1;

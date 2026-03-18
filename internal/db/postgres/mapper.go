@@ -134,6 +134,7 @@ func mapMessageActivity(row db.MessageActivityByDayRow) model.MessageActivity {
 
 func mapRestRequest(er db.RestRequest) model.RestRequest {
 	return model.RestRequest{
+		ID:          er.ID.Int64,
 		ChatID:      er.ChatID,
 		UserID:      er.UserID,
 		RequestedAt: er.RequestedAt.Time,

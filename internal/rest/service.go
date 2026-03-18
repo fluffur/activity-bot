@@ -61,3 +61,11 @@ func (s *Service) RejectRestRequest(ctx context.Context, chatID, userID, message
 func (s *Service) GetRequests(ctx context.Context, chatID, userID int64) ([]model.ApprovedRestRequest, error) {
 	return s.repo.GetUserRestRequests(ctx, chatID, userID)
 }
+
+func (s *Service) DeleteRestRequestAndEndRest(ctx context.Context, chatID, userID, requestID int64) error {
+	return s.repo.DeleteRestRequestAndEndRest(ctx, chatID, userID, requestID)
+}
+
+func (s *Service) DeleteRestRequest(ctx context.Context, requestID int64) error {
+	return s.repo.DeleteRestRequest(ctx, requestID)
+}

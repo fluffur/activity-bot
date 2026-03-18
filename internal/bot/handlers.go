@@ -118,6 +118,8 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("whoareyou:"), cf.WrapCallback(statsHandler.WhoAreYou)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("rest_show:"), cf.WrapCallback(restHandler.Show)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("rest_set:"), cf.WrapCallback(restHandler.Set)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("rest_remove:"), cf.WrapCallback(restHandler.RemoveRestRequest)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("all_rests:"), cf.WrapCallback(restHandler.AllUserRests)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("rest_end:"), cf.WrapCallback(restHandler.End)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_is:"), cf.WrapCallback(adminHandler.IsAdmin)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_add:"), cf.WrapCallback(adminHandler.AddAdmin)))
@@ -145,7 +147,7 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(restHandler.AllUserRests, "all_rests", "все ресты", "история рестов").
-		WithGuards(groupGuard).FallbackToSender(),
+		WithGuards(groupGuard).FallbackToSender().WithAmbiguityResolution("all_rests"),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowFailedNorm, "nonorm", "без нормы").
 		SetArgsCount(1).
@@ -188,6 +190,12 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard).
 		SetArgsCount(2).
 		WithAmbiguityResolution("rest_set"),
+	)
+	a.Dispatcher.AddHandler(cf.New(restHandler.RemoveRestRequest, "удалить рест").
+		FallbackToSender().
+		WithGuards(groupGuard, adminGuard).
+		SetArgsCount(1).
+		WithAmbiguityResolution("rest_remove"),
 	)
 	a.Dispatcher.AddHandler(cf.New(restHandler.End, "-рест", "-rest", "снять рест").
 		FallbackToSender().

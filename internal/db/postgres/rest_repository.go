@@ -239,3 +239,25 @@ func (r *RestRepository) withTx(
 
 	return tx.Commit(ctx)
 }
+
+func (r *RestRepository) DeleteRestRequest(ctx context.Context, requestID int64) error {
+	return r.queries.DeleteRestRequest(ctx, pgtype.Int8{Int64: requestID, Valid: requestID != 0})
+}
+
+func (r *RestRepository) DeleteRestRequestAndEndRest(ctx context.Context, chatID, userID, requestID int64) error {
+	return r.withTx(ctx, func(q *db.Queries) error {
+
+		if err := q.EndMemberRest(ctx, db.EndMemberRestParams{
+			ChatID: chatID,
+			UserID: userID,
+		}); err != nil {
+			return err
+		}
+
+		if err := q.DeleteRestRequest(ctx, pgtype.Int8{Int64: requestID, Valid: requestID != 0}); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}

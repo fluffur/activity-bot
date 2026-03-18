@@ -81,7 +81,7 @@ func FormatRestRequests(requests []model.ApprovedRestRequest) string {
 
 	var approvedText, rejectedText string
 	var cm model.ChatMember
-	for _, r := range requests {
+	for i, r := range requests {
 		cm = r.ChatMember
 		reasonPart := ""
 		if r.Reason != "" {
@@ -91,7 +91,7 @@ func FormatRestRequests(requests []model.ApprovedRestRequest) string {
 		if !r.UpdatedAt.IsZero() {
 			timePart += fmt.Sprintf("\n• Одобрено %s", helpers.FormatToHumanDateTime(r.RequestedAt))
 		}
-		line := fmt.Sprintf("%s• Срок окончания %s%s\n%s\n\n", isRestActiveMessage(r), helpers.FormatToHumanDateTime(r.RestUntil), reasonPart, timePart)
+		line := fmt.Sprintf("<code>%d</code> %s Срок окончания %s%s\n%s\n\n", i+1, isRestActiveMessage(r), helpers.FormatToHumanDateTime(r.RestUntil), reasonPart, timePart)
 
 		switch r.Status {
 		case "approved":
@@ -110,7 +110,7 @@ func FormatRestRequests(requests []model.ApprovedRestRequest) string {
 		text += "\nОтклонённые:<blockquote expandable>" + rejectedText + "</blockquote>"
 	}
 
-	return text
+	return text + "\nЧтобы удалить определенный рест введите команду <code>удалить рест @участник номер</code>"
 }
 
 func isRestActiveMessage(rr model.ApprovedRestRequest) string {

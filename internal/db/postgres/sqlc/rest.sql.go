@@ -56,6 +56,17 @@ func (q *Queries) ApproveRestRequest(ctx context.Context, arg ApproveRestRequest
 	return err
 }
 
+const deleteRestRequest = `-- name: DeleteRestRequest :exec
+DELETE
+FROM rest_requests
+WHERE id = $1
+`
+
+func (q *Queries) DeleteRestRequest(ctx context.Context, id pgtype.Int8) error {
+	_, err := q.db.Exec(ctx, deleteRestRequest, id)
+	return err
+}
+
 const endMemberRest = `-- name: EndMemberRest :exec
 UPDATE chat_members
 SET rest_until = null
