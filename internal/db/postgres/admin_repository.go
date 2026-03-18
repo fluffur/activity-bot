@@ -101,16 +101,12 @@ func (r *AdminRepository) GetActiveWarns(ctx context.Context, chatID, userID int
 	results := make([]model.Warn, len(warns))
 	for i, warn := range warns {
 		results[i] = model.Warn{
-			ID: warn.ID,
-			Moderator: model.User{
-				ID:        warn.ModeratorID,
-				FirstName: warn.FirstName.String,
-				LastName:  warn.LastName.String,
-				Username:  warn.Username.String,
-			},
-			Reason:    warn.Reason.String,
-			CreatedAt: warn.CreatedAt.Time,
-			ExpiresAt: warn.ExpiresAt.Time,
+			ID:         warn.ID,
+			Moderator:  mapChatMemberFull(warn.ChatMember, warn.User),
+			ChatMember: mapChatMemberFull(warn.ChatMember_2, warn.User_2),
+			Reason:     warn.Reason.String,
+			CreatedAt:  warn.CreatedAt.Time,
+			ExpiresAt:  warn.ExpiresAt.Time,
 		}
 	}
 	return results, nil
@@ -218,24 +214,12 @@ func (r *AdminRepository) GetActiveWarnsByChat(ctx context.Context, chatID int64
 	results := make([]model.Warn, len(warns))
 	for i, warn := range warns {
 		results[i] = model.Warn{
-			ID: warn.ID,
-			User: model.User{
-				ID:        warn.UserID,
-				FirstName: warn.UserFirstName.String,
-				LastName:  warn.UserLastName.String,
-				Username:  warn.UserUsername.String,
-				Gender:    warn.UserGender,
-			},
-			Moderator: model.User{
-				ID:        warn.ModeratorID,
-				FirstName: warn.ModFirstName.String,
-				LastName:  warn.ModLastName.String,
-				Username:  warn.ModUsername.String,
-				Gender:    warn.ModGender,
-			},
-			Reason:    warn.Reason.String,
-			CreatedAt: warn.CreatedAt.Time,
-			ExpiresAt: warn.ExpiresAt.Time,
+			ID:         warn.ID,
+			Moderator:  mapChatMemberFull(warn.ChatMember, warn.User),
+			ChatMember: mapChatMemberFull(warn.ChatMember_2, warn.User_2),
+			Reason:     warn.Reason.String,
+			CreatedAt:  warn.CreatedAt.Time,
+			ExpiresAt:  warn.ExpiresAt.Time,
 		}
 	}
 	return results, nil

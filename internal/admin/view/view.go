@@ -24,10 +24,10 @@ func FormatAdminAdded(user model.ChatMember) string {
 	)
 }
 
-func FormatAdminRemoved(user model.User) string {
-	return fmt.Sprintf("Участник %s %s из администраторов бота",
-		helpers.UserLink(user),
-		helpers.Gendered(user.Gender, "удален", "удалена"),
+func FormatAdminRemoved(user model.ChatMember) string {
+	return fmt.Sprintf("%s %s из администраторов бота",
+		helpers.RoleLink(user),
+		helpers.Gendered(user.User.Gender, "удален", "удалена"),
 	)
 }
 
@@ -55,20 +55,20 @@ func FormatDeveloperRemoved(user model.User) string {
 	)
 }
 
-func FormatModerationAction(user model.User, action string, until *time.Time, reason string) string {
+func FormatModerationAction(user model.ChatMember, action string, until *time.Time, reason string) string {
 	var actionText string
 	switch action {
 	case "ban":
-		actionText = helpers.Gendered(user.Gender, "забанен", "забанена")
+		actionText = helpers.Gendered(user.User.Gender, "забанен", "забанена")
 	case "mute":
-		actionText = helpers.Gendered(user.Gender, "замучен", "замучена")
+		actionText = helpers.Gendered(user.User.Gender, "замучен", "замучена")
 	case "kick":
-		actionText = helpers.Gendered(user.Gender, "был кикнут из чата", "была кикнута из чата")
+		actionText = helpers.Gendered(user.User.Gender, "был кикнут из чата", "была кикнута из чата")
 	default:
 		actionText = action
 	}
 
-	text := fmt.Sprintf("Пользователь %s %s", helpers.UserLink(user), actionText)
+	text := fmt.Sprintf("%s %s", helpers.RoleLink(user), actionText)
 
 	if action != "kick" {
 		if until != nil {
@@ -85,8 +85,8 @@ func FormatModerationAction(user model.User, action string, until *time.Time, re
 	return text
 }
 
-func FormatWarnInfo(user model.User, count, maxWarns int, until *time.Time, reason string, banned bool) string {
-	text := fmt.Sprintf("Пользователю %s выдано предупреждение (%d/%d)", helpers.UserLink(user), count, maxWarns)
+func FormatWarnInfo(user model.ChatMember, count, maxWarns int, until *time.Time, reason string, banned bool) string {
+	text := fmt.Sprintf("Участнику %s выдано предупреждение (%d/%d)", helpers.RoleLink(user), count, maxWarns)
 
 	if until != nil {
 		text += fmt.Sprintf(" до %s", helpers.FormatToHumanDateTime(*until))
@@ -97,20 +97,20 @@ func FormatWarnInfo(user model.User, count, maxWarns int, until *time.Time, reas
 	}
 
 	if banned {
-		text += fmt.Sprintf("\n\nПользователь %s за превышение лимита предупреждений.",
-			helpers.Gendered(user.Gender, "забанен", "забанена"),
+		text += fmt.Sprintf("\n\nУчастник %s за превышение лимита предупреждений.",
+			helpers.Gendered(user.User.Gender, "забанен", "забанена"),
 		)
 	}
 
 	return text
 }
 
-func FormatUnwarnInfo(user model.User, count, maxWarns int) string {
-	return fmt.Sprintf("С пользователя %s снято предупреждение (%d/%d)", helpers.UserLink(user), count, maxWarns)
+func FormatUnwarnInfo(user model.ChatMember, count, maxWarns int) string {
+	return fmt.Sprintf("С участника %s снято предупреждение (%d/%d)", helpers.RoleLink(user), count, maxWarns)
 }
 
-func FormatWarnsCleared(user model.User) string {
-	return fmt.Sprintf("Все предупреждения пользователя %s были аннулированы", helpers.UserLink(user))
+func FormatWarnsCleared(user model.ChatMember) string {
+	return fmt.Sprintf("Все предупреждения участника %s были аннулированы", helpers.RoleLink(user))
 }
 
 func FormatWarnlist(warns []model.Warn, maxWarns int) string {
@@ -124,23 +124,22 @@ func FormatWarnlist(warns []model.Warn, maxWarns int) string {
 	userWarns := make(map[int64][]model.Warn)
 	userOrder := make([]int64, 0)
 	for _, w := range warns {
-		if _, ok := userWarns[w.User.ID]; !ok {
-			userOrder = append(userOrder, w.User.ID)
+		if _, ok := userWarns[w.ChatMember.User.ID]; !ok {
+			userOrder = append(userOrder, w.ChatMember.User.ID)
 		}
-		userWarns[w.User.ID] = append(userWarns[w.User.ID], w)
+		userWarns[w.ChatMember.User.ID] = append(userWarns[w.ChatMember.User.ID], w)
 	}
 
 	for _, userID := range userOrder {
 		ws := userWarns[userID]
-		u := ws[0].User
-		sb.WriteString(fmt.Sprintf("\n👤 %s (активные: %d/%d):\n", helpers.UserLink(u), len(ws), maxWarns))
+		sb.WriteString(fmt.Sprintf("\n👤 %s (активные: %d/%d):\n", helpers.RoleLink(ws[0].ChatMember), len(ws), maxWarns))
 		for i, w := range ws {
 			createdStr := helpers.FormatToHumanDateTime(w.CreatedAt)
 			expireStr := ""
 			if !w.ExpiresAt.IsZero() {
 				expireStr = fmt.Sprintf(", истекает %s", helpers.FormatToHumanDateTime(w.ExpiresAt))
 			}
-			modName := helpers.UserLink(w.Moderator)
+			modName := helpers.RoleLink(w.Moderator)
 			reasonStr := ""
 			if w.Reason != "" {
 				reasonStr = fmt.Sprintf(", причина: %s", w.Reason)
@@ -153,20 +152,20 @@ func FormatWarnlist(warns []model.Warn, maxWarns int) string {
 	return sb.String()
 }
 
-func FormatUnmuteInfo(user model.User) string {
-	return fmt.Sprintf("Пользователь %s %s",
-		helpers.UserLink(user),
-		helpers.Gendered(user.Gender, "размучен", "размучена"),
+func FormatUnmuteInfo(user model.ChatMember) string {
+	return fmt.Sprintf("Участник %s %s",
+		helpers.RoleLink(user),
+		helpers.Gendered(user.User.Gender, "размучен", "размучена"),
 	)
 }
 
-func FormatDirectModerationAction(user model.User, chatTitle string, action string, until *time.Time, reason string) string {
+func FormatDirectModerationAction(user model.ChatMember, chatTitle string, action string, until *time.Time, reason string) string {
 	var actionText string
 	switch action {
 	case "ban":
-		actionText = helpers.Gendered(user.Gender, "забанены", "забанены")
+		actionText = helpers.Gendered(user.User.Gender, "забанены", "забанены")
 	case "kick":
-		actionText = helpers.Gendered(user.Gender, "кикнуты", "кикнуты")
+		actionText = helpers.Gendered(user.User.Gender, "кикнуты", "кикнуты")
 	default:
 		actionText = action
 	}

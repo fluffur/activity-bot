@@ -73,9 +73,13 @@ func (q *Queries) DeleteModerationActionsForUser(ctx context.Context, arg Delete
 }
 
 const getActiveWarns = `-- name: GetActiveWarns :many
-SELECT ma.id, type, chat_id, user_id, moderator_id, reason, ma.created_at, revoked_at, expires_at, u.id, username, first_name, last_name, u.created_at, gender, emoji, custom_emoji_id
+SELECT um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user AS moderator_user, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member AS moderator_chat_member, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason, ma.id, ma.type, ma.chat_id, ma.user_id, ma.moderator_id, ma.reason, ma.created_at, ma.revoked_at, ma.expires_at
 FROM moderation_actions ma
-         JOIN users u ON ma.moderator_id = u.id
+         JOIN chat_members cmm ON cmm.user_id = ma.moderator_id AND cmm.chat_id = ma.chat_id
+         JOIN users um ON um.id = ma.moderator_id
+
+         JOIN chat_members cm ON cm.user_id = ma.user_id AND cm.chat_id = ma.chat_id
+         JOIN users u ON u.id = ma.user_id
 WHERE ma.chat_id = $1
   AND ma.user_id = $2
   AND ma.type = 'warn'
@@ -88,23 +92,19 @@ type GetActiveWarnsParams struct {
 }
 
 type GetActiveWarnsRow struct {
-	ID            int64              `db:"id" json:"id"`
-	Type          ModerationType     `db:"type" json:"type"`
-	ChatID        int64              `db:"chat_id" json:"chatId"`
-	UserID        int64              `db:"user_id" json:"userId"`
-	ModeratorID   int64              `db:"moderator_id" json:"moderatorId"`
-	Reason        pgtype.Text        `db:"reason" json:"reason"`
-	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	RevokedAt     pgtype.Timestamptz `db:"revoked_at" json:"revokedAt"`
-	ExpiresAt     pgtype.Timestamptz `db:"expires_at" json:"expiresAt"`
-	ID_2          int64              `db:"id_2" json:"id2"`
-	Username      pgtype.Text        `db:"username" json:"username"`
-	FirstName     pgtype.Text        `db:"first_name" json:"firstName"`
-	LastName      pgtype.Text        `db:"last_name" json:"lastName"`
-	CreatedAt_2   pgtype.Timestamptz `db:"created_at_2" json:"createdAt2"`
-	Gender        string             `db:"gender" json:"gender"`
-	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
-	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
+	User         User               `db:"user" json:"user"`
+	ChatMember   ChatMember         `db:"chat_member" json:"chatMember"`
+	User_2       User               `db:"user_2" json:"user2"`
+	ChatMember_2 ChatMember         `db:"chat_member_2" json:"chatMember2"`
+	ID           int64              `db:"id" json:"id"`
+	Type         ModerationType     `db:"type" json:"type"`
+	ChatID       int64              `db:"chat_id" json:"chatId"`
+	UserID       int64              `db:"user_id" json:"userId"`
+	ModeratorID  int64              `db:"moderator_id" json:"moderatorId"`
+	Reason       pgtype.Text        `db:"reason" json:"reason"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	RevokedAt    pgtype.Timestamptz `db:"revoked_at" json:"revokedAt"`
+	ExpiresAt    pgtype.Timestamptz `db:"expires_at" json:"expiresAt"`
 }
 
 func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) ([]GetActiveWarnsRow, error) {
@@ -117,6 +117,38 @@ func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) 
 	for rows.Next() {
 		var i GetActiveWarnsRow
 		if err := rows.Scan(
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
+			&i.ChatMember.ChatID,
+			&i.ChatMember.UserID,
+			&i.ChatMember.JoinedAt,
+			&i.ChatMember.RestUntil,
+			&i.ChatMember.Tag,
+			&i.ChatMember.Status,
+			&i.ChatMember.LeftAt,
+			&i.ChatMember.RestReason,
+			&i.User_2.ID,
+			&i.User_2.Username,
+			&i.User_2.FirstName,
+			&i.User_2.LastName,
+			&i.User_2.CreatedAt,
+			&i.User_2.Gender,
+			&i.User_2.Emoji,
+			&i.User_2.CustomEmojiID,
+			&i.ChatMember_2.ChatID,
+			&i.ChatMember_2.UserID,
+			&i.ChatMember_2.JoinedAt,
+			&i.ChatMember_2.RestUntil,
+			&i.ChatMember_2.Tag,
+			&i.ChatMember_2.Status,
+			&i.ChatMember_2.LeftAt,
+			&i.ChatMember_2.RestReason,
 			&i.ID,
 			&i.Type,
 			&i.ChatID,
@@ -126,14 +158,6 @@ func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) 
 			&i.CreatedAt,
 			&i.RevokedAt,
 			&i.ExpiresAt,
-			&i.ID_2,
-			&i.Username,
-			&i.FirstName,
-			&i.LastName,
-			&i.CreatedAt_2,
-			&i.Gender,
-			&i.Emoji,
-			&i.CustomEmojiID,
 		); err != nil {
 			return nil, err
 		}
@@ -146,35 +170,32 @@ func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) 
 }
 
 const getActiveWarnsByChat = `-- name: GetActiveWarnsByChat :many
-SELECT ma.id, ma.type, ma.chat_id, ma.user_id, ma.moderator_id, ma.reason, ma.created_at, ma.revoked_at, ma.expires_at,
-       u.username AS user_username, u.first_name AS user_first_name, u.last_name AS user_last_name, u.gender AS user_gender,
-       m.username AS mod_username, m.first_name AS mod_first_name, m.last_name AS mod_last_name, m.gender AS mod_gender
+SELECT um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user AS moderator_user, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member AS moderator_chat_member, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason, ma.id, ma.type, ma.chat_id, ma.user_id, ma.moderator_id, ma.reason, ma.created_at, ma.revoked_at, ma.expires_at
 FROM moderation_actions ma
-         JOIN users u ON ma.user_id = u.id
-         JOIN users m ON ma.moderator_id = m.id
+         JOIN chat_members cmm ON cmm.user_id = ma.moderator_id AND cmm.chat_id = ma.chat_id
+         JOIN users um ON um.id = ma.moderator_id
+
+         JOIN chat_members cm ON cm.user_id = ma.user_id AND cm.chat_id = ma.chat_id
+         JOIN users u ON u.id = ma.user_id
 WHERE ma.chat_id = $1
   AND ma.type = 'warn'
 ORDER BY ma.created_at
 `
 
 type GetActiveWarnsByChatRow struct {
-	ID            int64              `db:"id" json:"id"`
-	Type          ModerationType     `db:"type" json:"type"`
-	ChatID        int64              `db:"chat_id" json:"chatId"`
-	UserID        int64              `db:"user_id" json:"userId"`
-	ModeratorID   int64              `db:"moderator_id" json:"moderatorId"`
-	Reason        pgtype.Text        `db:"reason" json:"reason"`
-	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	RevokedAt     pgtype.Timestamptz `db:"revoked_at" json:"revokedAt"`
-	ExpiresAt     pgtype.Timestamptz `db:"expires_at" json:"expiresAt"`
-	UserUsername  pgtype.Text        `db:"user_username" json:"userUsername"`
-	UserFirstName pgtype.Text        `db:"user_first_name" json:"userFirstName"`
-	UserLastName  pgtype.Text        `db:"user_last_name" json:"userLastName"`
-	UserGender    string             `db:"user_gender" json:"userGender"`
-	ModUsername   pgtype.Text        `db:"mod_username" json:"modUsername"`
-	ModFirstName  pgtype.Text        `db:"mod_first_name" json:"modFirstName"`
-	ModLastName   pgtype.Text        `db:"mod_last_name" json:"modLastName"`
-	ModGender     string             `db:"mod_gender" json:"modGender"`
+	User         User               `db:"user" json:"user"`
+	ChatMember   ChatMember         `db:"chat_member" json:"chatMember"`
+	User_2       User               `db:"user_2" json:"user2"`
+	ChatMember_2 ChatMember         `db:"chat_member_2" json:"chatMember2"`
+	ID           int64              `db:"id" json:"id"`
+	Type         ModerationType     `db:"type" json:"type"`
+	ChatID       int64              `db:"chat_id" json:"chatId"`
+	UserID       int64              `db:"user_id" json:"userId"`
+	ModeratorID  int64              `db:"moderator_id" json:"moderatorId"`
+	Reason       pgtype.Text        `db:"reason" json:"reason"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	RevokedAt    pgtype.Timestamptz `db:"revoked_at" json:"revokedAt"`
+	ExpiresAt    pgtype.Timestamptz `db:"expires_at" json:"expiresAt"`
 }
 
 func (q *Queries) GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]GetActiveWarnsByChatRow, error) {
@@ -187,6 +208,38 @@ func (q *Queries) GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]Get
 	for rows.Next() {
 		var i GetActiveWarnsByChatRow
 		if err := rows.Scan(
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
+			&i.ChatMember.ChatID,
+			&i.ChatMember.UserID,
+			&i.ChatMember.JoinedAt,
+			&i.ChatMember.RestUntil,
+			&i.ChatMember.Tag,
+			&i.ChatMember.Status,
+			&i.ChatMember.LeftAt,
+			&i.ChatMember.RestReason,
+			&i.User_2.ID,
+			&i.User_2.Username,
+			&i.User_2.FirstName,
+			&i.User_2.LastName,
+			&i.User_2.CreatedAt,
+			&i.User_2.Gender,
+			&i.User_2.Emoji,
+			&i.User_2.CustomEmojiID,
+			&i.ChatMember_2.ChatID,
+			&i.ChatMember_2.UserID,
+			&i.ChatMember_2.JoinedAt,
+			&i.ChatMember_2.RestUntil,
+			&i.ChatMember_2.Tag,
+			&i.ChatMember_2.Status,
+			&i.ChatMember_2.LeftAt,
+			&i.ChatMember_2.RestReason,
 			&i.ID,
 			&i.Type,
 			&i.ChatID,
@@ -196,14 +249,6 @@ func (q *Queries) GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]Get
 			&i.CreatedAt,
 			&i.RevokedAt,
 			&i.ExpiresAt,
-			&i.UserUsername,
-			&i.UserFirstName,
-			&i.UserLastName,
-			&i.UserGender,
-			&i.ModUsername,
-			&i.ModFirstName,
-			&i.ModLastName,
-			&i.ModGender,
 		); err != nil {
 			return nil, err
 		}

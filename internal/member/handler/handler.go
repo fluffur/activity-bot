@@ -61,7 +61,7 @@ func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.ReplyHTML(b, memberview.FormatRolesList(members))
 }
 func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
+	targetUser := ctx.FirstMember()
 	tag := ctx.FirstArgument()
 
 	if targetUser == nil {
@@ -76,7 +76,7 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "Слишком длинная роль (максимум 16 символа)", nil)
 	}
 
-	if err := h.service.SetMemberTitle(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, tag); err != nil {
+	if err := h.service.SetMemberTitle(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID, tag); err != nil {
 		if errors.Is(err, adapter.ErrChatMemberNotFound) {
 			return ctx.Reply(b, fmt.Sprintf("Участник не найден\n\nTelegram: %s", err.Error()), nil)
 		} else if errors.Is(err, adapter.ErrChatMemberCantBeEdited) {
@@ -149,7 +149,7 @@ func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if mTitle == "" {
-		return ctx.ReplyHTML(b, fmt.Sprintf("У пользователя %s нет роли", helpers.UserLink(*targetUser)))
+		return ctx.ReplyHTML(b, fmt.Sprintf("У участника %s нет роли", helpers.UserLink(*targetUser)))
 	}
 
 	return ctx.ReplyHTML(b, memberview.FormatMemberRole(*targetUser, mTitle))

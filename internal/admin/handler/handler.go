@@ -71,13 +71,13 @@ func (h *Handler) AddAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
+	m := ctx.FirstMember()
 
-	if targetUser == nil {
+	if m == nil {
 		return cmd.ErrNoUser
 	}
 
-	if err := h.service.RemoveAdmin(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+	if err := h.service.RemoveAdmin(ctx.StdContext(), ctx.TargetChatID(), m.User.ID); err != nil {
 		if errors.Is(err, admin.ErrUserIsNotAdmin) {
 			return ctx.Reply(b, "Пользователь не является администратором", nil)
 		}
@@ -91,7 +91,7 @@ func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatAdminRemoved(*targetUser))
+	return ctx.ReplyHTML(b, view.FormatAdminRemoved(*m))
 }
 
 func (h *Handler) ListAdmins(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -109,7 +109,7 @@ func (h *Handler) ListAdmins(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) Kick(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
+	targetUser := ctx.FirstMember()
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
@@ -124,21 +124,21 @@ func (h *Handler) Kick(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 	}
 	dmText := view.FormatDirectModerationAction(*targetUser, title, "kick", nil, reason)
-	if _, err := b.SendMessage(targetUser.ID, dmText, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML}); err != nil {
-		slog.Warn("Failed to send kick DM notification", "user_id", targetUser.ID, "error", err)
+	if _, err := b.SendMessage(targetUser.User.ID, dmText, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML}); err != nil {
+		slog.Warn("Failed to send kick DM notification", "user_id", targetUser.User.ID, "error", err)
 	}
 
-	if err := h.service.Kick(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, ctx.EffectiveSender.Id(), reason); err != nil {
+	if err := h.service.Kick(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID, ctx.EffectiveSender.Id(), reason); err != nil {
 		if errors.Is(err, admin.ErrUserIsProtected) {
 			return ctx.Reply(b, "Нельзя кикнуть администратора или создателя", nil)
 		}
-		if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+		if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID); err != nil {
 			return err
 		}
 		return fmt.Errorf("failed to kick: %w", err)
 	}
 
-	if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+	if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID); err != nil {
 		return err
 	}
 
@@ -146,7 +146,7 @@ func (h *Handler) Kick(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) Ban(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
+	targetUser := ctx.FirstMember()
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
@@ -168,20 +168,20 @@ func (h *Handler) Ban(b *gotgbot.Bot, ctx *cmd.Context) error {
 		}
 	}
 
-	if err := h.service.Ban(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, ctx.EffectiveSender.Id(), until, reason); err != nil {
+	if err := h.service.Ban(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID, ctx.EffectiveSender.Id(), until, reason); err != nil {
 		if errors.Is(err, admin.ErrUserIsProtected) {
 			return ctx.Reply(b, "Нельзя забанить администратора или создателя", nil)
 		}
-		if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+		if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID); err != nil {
 			return err
 		}
 		return fmt.Errorf("failed to ban: %w", err)
 	}
 	dmText := view.FormatDirectModerationAction(*targetUser, title, "ban", until, reason)
-	if _, err := b.SendMessage(targetUser.ID, dmText, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML}); err != nil {
-		slog.Warn("Failed to send ban DM notification", "user_id", targetUser.ID, "error", err)
+	if _, err := b.SendMessage(targetUser.User.ID, dmText, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML}); err != nil {
+		slog.Warn("Failed to send ban DM notification", "user_id", targetUser.User.ID, "error", err)
 	}
-	if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+	if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID); err != nil {
 		return err
 	}
 
@@ -189,7 +189,7 @@ func (h *Handler) Ban(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
+	targetUser := ctx.FirstMember()
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
@@ -203,7 +203,7 @@ func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	reason := getReason(ctx.FirstArgument(), ctx.SecondArgument(), until)
 
-	if err := h.service.Mute(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, ctx.EffectiveSender.Id(), until, reason); err != nil {
+	if err := h.service.Mute(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID, ctx.EffectiveSender.Id(), until, reason); err != nil {
 		if errors.Is(err, admin.ErrUserIsProtected) {
 			return ctx.Reply(b, "Нельзя замутить администратора или создателя", nil)
 		}
@@ -217,10 +217,10 @@ func (h *Handler) Mute(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if until != nil {
 		payload, _ := json.Marshal(model.RestoreRolePayload{
 			ChatID: ctx.TargetChatID(),
-			UserID: targetUser.ID,
+			UserID: targetUser.User.ID,
 		})
 		task := asynq.NewTask("role:restore", payload)
-		taskID := fmt.Sprintf("role:restore:%d:%d", ctx.TargetChatID(), targetUser.ID)
+		taskID := fmt.Sprintf("role:restore:%d:%d", ctx.TargetChatID(), targetUser.User.ID)
 		_, err := h.asyncClient.Enqueue(task, asynq.ProcessAt(*until), asynq.TaskID(taskID))
 		if err != nil {
 			slog.Error("Failed to enqueue restore task", "error", err)
@@ -269,7 +269,7 @@ func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 			expireStr = fmt.Sprintf(", истекает %s", helpers.FormatToHumanDateTime(w.ExpiresAt))
 		}
 
-		modName := helpers.UserLink(w.Moderator)
+		modName := helpers.RoleLink(w.Moderator)
 
 		reasonStr := ""
 		if w.Reason != "" {
@@ -312,7 +312,7 @@ func (h *Handler) Warnlist(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
+	targetUser := ctx.FirstMember()
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
@@ -340,13 +340,13 @@ func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
 		reason = arg
 	}
 
-	count, banned, err := h.service.Warn(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, ctx.EffectiveSender.Id(), reason, until)
+	count, banned, err := h.service.Warn(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID, ctx.EffectiveSender.Id(), reason, until)
 	if err != nil {
 		if errors.Is(err, admin.ErrUserIsProtected) {
 			return ctx.Reply(b, "Нельзя выдать предупреждение администратору или создателю", nil)
 		}
 		if banned {
-			if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+			if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID); err != nil {
 				return err
 			}
 		} else {
@@ -355,7 +355,7 @@ func (h *Handler) Warn(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return fmt.Errorf("failed to give warn: %w", err)
 	}
 	if banned {
-		if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+		if _, err := h.memberService.ProcessLeftMember(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID); err != nil {
 			return err
 		}
 	}
@@ -387,29 +387,29 @@ func (h *Handler) SetMaxWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) Unban(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
-	if targetUser == nil {
+	m := ctx.FirstMember()
+	if m == nil {
 		return cmd.ErrNoUser
 	}
 
-	if err := h.service.Unban(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+	if err := h.service.Unban(ctx.StdContext(), ctx.TargetChatID(), m.User.ID); err != nil {
 		_ = ctx.Reply(b, "Не удалось разбанить пользователя", nil)
 		return err
 	}
 
 	return ctx.ReplyHTML(b, fmt.Sprintf("Пользователь %s %s",
-		helpers.UserLink(*targetUser),
-		helpers.Gendered(targetUser.Gender, "разбанен", "разбанена"),
+		helpers.RoleLink(*m),
+		helpers.Gendered(m.User.Gender, "разбанен", "разбанена"),
 	))
 }
 
 func (h *Handler) Unmute(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
+	targetUser := ctx.FirstMember()
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
 
-	if err := h.service.Unmute(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+	if err := h.service.Unmute(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID); err != nil {
 		_ = ctx.Reply(b, "Не удалось размутить пользователя", nil)
 		return err
 	}
@@ -419,7 +419,7 @@ func (h *Handler) Unmute(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 	title := m.Tag
 	if title != "" {
-		if ok, err := b.PromoteChatMember(ctx.TargetChatID(), targetUser.ID, &gotgbot.PromoteChatMemberOpts{
+		if ok, err := b.PromoteChatMember(ctx.TargetChatID(), targetUser.User.ID, &gotgbot.PromoteChatMemberOpts{
 			CanManageChat:   true,
 			CanPostMessages: true,
 			CanEditMessages: true,
@@ -434,12 +434,12 @@ func (h *Handler) Unmute(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) Unwarn(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
+	targetUser := ctx.FirstMember()
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
 
-	count, err := h.service.Unwarn(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
+	count, err := h.service.Unwarn(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID)
 	if err != nil {
 		_ = ctx.Reply(b, "Не удалось снять предупреждение", nil)
 		return err
@@ -564,12 +564,12 @@ func (h *Handler) UpdateChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.Reply(b, "Чаты обновлены", nil)
 }
 func (h *Handler) ClearWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
+	targetUser := ctx.FirstMember()
 	if targetUser == nil {
 		return cmd.ErrNoUser
 	}
 
-	if err := h.service.ClearWarns(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID); err != nil {
+	if err := h.service.ClearWarns(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID); err != nil {
 		_ = ctx.Reply(b, "Не удалось очистить предупреждения", nil)
 		return err
 	}

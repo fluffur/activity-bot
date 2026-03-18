@@ -10,9 +10,13 @@ WHERE chat_id = $1
   AND type = 'warn';
 
 -- name: GetActiveWarns :many
-SELECT *
+SELECT sqlc.embed(um) AS moderator_user, sqlc.embed(cmm) AS moderator_chat_member, sqlc.embed(u), sqlc.embed(cm), ma.*
 FROM moderation_actions ma
-         JOIN users u ON ma.moderator_id = u.id
+         JOIN chat_members cmm ON cmm.user_id = ma.moderator_id AND cmm.chat_id = ma.chat_id
+         JOIN users um ON um.id = ma.moderator_id
+
+         JOIN chat_members cm ON cm.user_id = ma.user_id AND cm.chat_id = ma.chat_id
+         JOIN users u ON u.id = ma.user_id
 WHERE ma.chat_id = $1
   AND ma.user_id = $2
   AND ma.type = 'warn'
@@ -53,12 +57,13 @@ WHERE chat_id = $1
   AND user_id = $2;
 
 -- name: GetActiveWarnsByChat :many
-SELECT ma.*,
-       u.username AS user_username, u.first_name AS user_first_name, u.last_name AS user_last_name, u.gender AS user_gender,
-       m.username AS mod_username, m.first_name AS mod_first_name, m.last_name AS mod_last_name, m.gender AS mod_gender
+SELECT sqlc.embed(um) AS moderator_user, sqlc.embed(cmm) AS moderator_chat_member, sqlc.embed(u), sqlc.embed(cm), ma.*
 FROM moderation_actions ma
-         JOIN users u ON ma.user_id = u.id
-         JOIN users m ON ma.moderator_id = m.id
+         JOIN chat_members cmm ON cmm.user_id = ma.moderator_id AND cmm.chat_id = ma.chat_id
+         JOIN users um ON um.id = ma.moderator_id
+
+         JOIN chat_members cm ON cm.user_id = ma.user_id AND cm.chat_id = ma.chat_id
+         JOIN users u ON u.id = ma.user_id
 WHERE ma.chat_id = $1
   AND ma.type = 'warn'
 ORDER BY ma.created_at;

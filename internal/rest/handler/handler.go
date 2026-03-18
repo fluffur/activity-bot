@@ -37,8 +37,8 @@ func New(service *rest.Service, userService *user.Service, memberService *member
 }
 
 func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
-	if targetUser == nil {
+	m := ctx.FirstMember()
+	if m == nil {
 		return cmd.ErrNoUser
 	}
 
@@ -61,25 +61,25 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if !h.adminService.CheckIsAdmin(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id()) {
-		return h.createRequest(b, ctx, targetUser, date)
+		return h.createRequest(b, ctx, m, date)
 	}
 
-	if err := h.service.SetMemberRestWithHistory(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, ctx.EffectiveMessage.MessageId, date, ctx.SecondArgument()); err != nil {
+	if err := h.service.SetMemberRestWithHistory(ctx.StdContext(), ctx.TargetChatID(), m.User.ID, ctx.EffectiveMessage.MessageId, date, ctx.SecondArgument()); err != nil {
 		_ = ctx.Reply(b, "Не удалось создать рест", nil)
 		return err
 	}
 
-	text := view.FormatRestSet(*targetUser, date, ctx.SecondArgument())
+	text := view.FormatRestSet(*m, date, ctx.SecondArgument())
 	return ctx.ReplyHTML(b, text)
 }
 
-func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *model.User, date time.Time) error {
+func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *model.ChatMember, date time.Time) error {
 
 	kb := gotgbot.InlineKeyboardMarkup{
 		InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
 			{
-				{Text: "Одобрить", CallbackData: fmt.Sprintf("approve:%d", targetUser.ID), Style: "success", IconCustomEmojiId: helpers.SuccessEmojiGray},
-				{Text: "Отклонить", CallbackData: fmt.Sprintf("reject:%d", targetUser.ID), Style: "danger", IconCustomEmojiId: helpers.DangerEmojiGray},
+				{Text: "Одобрить", CallbackData: fmt.Sprintf("approve:%d", targetUser.User.ID), Style: "success", IconCustomEmojiId: helpers.SuccessEmojiGray},
+				{Text: "Отклонить", CallbackData: fmt.Sprintf("reject:%d", targetUser.User.ID), Style: "danger", IconCustomEmojiId: helpers.DangerEmojiGray},
 			},
 		},
 	}
@@ -96,7 +96,7 @@ func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *mo
 	}
 
 	slog.Info("rest requested", "message_id", msg.MessageId)
-	if err := h.service.CreateRestRequest(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID, msg.MessageId, date); err != nil {
+	if err := h.service.CreateRestRequest(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID, msg.MessageId, date); err != nil {
 		_ = ctx.Reply(b, "Не удалось создать заявку", nil)
 
 		return err
@@ -144,7 +144,7 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	if !m.IsRestActive(time.Now()) {
 		isSelf := m.User.ID == ctx.EffectiveUser.Id
-		return ctx.ReplyHTML(b, view.FormatRestNotInRest(m.User, isSelf))
+		return ctx.ReplyHTML(b, view.FormatRestNotInRest(*m, isSelf))
 	}
 
 	if err := h.service.EndMemberRest(ctx.StdContext(), ctx.TargetChatID(), m.User.ID); err != nil {
@@ -153,7 +153,7 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	isSelf := m.User.ID == ctx.EffectiveUser.Id
-	return ctx.ReplyHTML(b, view.FormatRestEnded(m.User, isSelf))
+	return ctx.ReplyHTML(b, view.FormatRestEnded(*m, isSelf))
 }
 
 func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -183,7 +183,7 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	u, err := h.userService.GetUser(ctx.StdContext(), fromID)
+	u, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, fromID)
 	if err != nil {
 		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Не удалось найти пользователя",
@@ -228,7 +228,7 @@ func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	u, err := h.userService.GetUser(cctx, fromID)
+	u, err := h.memberService.GetChatMember(cctx, chatID, fromID)
 	if err != nil {
 		_, _, err = b.EditMessageText(view.FormatRestRequestRejected(nil),
 			&gotgbot.EditMessageTextOpts{
