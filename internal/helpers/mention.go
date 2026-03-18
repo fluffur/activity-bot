@@ -42,7 +42,11 @@ func RoleLink(cm model.ChatMember) string {
 		}
 		displayName = fullName
 	}
-	return LinkWithContent(cm.User, displayName)
+	var emoji string
+	if cm.User.Emoji != "" {
+		emoji = cm.User.Emoji + " "
+	}
+	return emoji + LinkWithContent(cm.User, displayName)
 
 }
 

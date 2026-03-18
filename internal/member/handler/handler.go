@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"math/rand"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -281,4 +282,29 @@ func (h *Handler) SetNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	return ctx.Reply(b, "Новички установлены", nil)
+}
+
+func (h *Handler) ShipRandom(b *gotgbot.Bot, ctx *cmd.Context) error {
+	members, err := h.service.GetChatMembers(ctx.StdContext(), ctx.TargetChatID())
+	if err != nil {
+		return err
+	}
+
+	rand.Shuffle(len(members), func(i, j int) {
+		members[i], members[j] = members[j], members[i]
+	})
+
+	phrases := []string{
+		"Любите друг друга и берегите",
+		"Кажется, это судьба",
+	}
+
+	phrase := phrases[rand.Intn(len(phrases))]
+
+	first := members[0]
+	second := members[1]
+
+	text := fmt.Sprintf("%s <b>Шипперим рандом</b>: %s + %s\n%s", helpers.CustomEmoji(5258276353949575281, "❤️"), helpers.RoleLink(first), helpers.RoleLink(second), phrase)
+
+	return ctx.ReplyHTML(b, text)
 }
