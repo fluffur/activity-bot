@@ -176,7 +176,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.ShipRandom, "шипперим", "рандом шипперим").
 		AddTriggers("+").
-		WithGuards(groupGuard, adminGuard),
+		WithGuards(groupGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.SetOnlyNewbies, "олды кроме").
 		AddTriggers("+").
