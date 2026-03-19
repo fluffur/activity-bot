@@ -3,6 +3,7 @@ package handler
 import (
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
+	"activity-bot/internal/logger"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"fmt"
@@ -79,6 +80,7 @@ func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err := h.service.SetEmoji(ctx.StdContext(), ctx.EffectiveSender.Id(), strings.Join(graphemes, "")); err != nil {
 		return fmt.Errorf("failed to set emoji: %w", err)
 	}
+	logger.L.Info("set emoji", "emoji", emojis)
 	return ctx.Reply(b, "Emoji установлено", nil)
 }
 
