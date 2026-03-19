@@ -427,8 +427,12 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		for _, t := range []string{c.uniquePrefix, chatPrefix} {
 			fullHTML = strings.TrimSpace(strings.TrimPrefix(fullHTML, t))
 		}
-		parts := strings.Fields(fullHTML)
-		fullHTML = strings.Join(parts[1:], "")
+		i := strings.IndexAny(fullHTML, " \n\t")
+		if i != -1 {
+			fullHTML = fullHTML[i+1:]
+		} else {
+			fullHTML = ""
+		}
 	}
 
 	var args []string
