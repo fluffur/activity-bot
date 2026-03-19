@@ -8,32 +8,22 @@ import (
 	"strings"
 	"time"
 
-	"activity-bot/internal/member"
-
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
 var ErrNoUser = errors.New("failed to get user info from context")
 
-// ErrSkipKeyboardUpdate instructs WrapCallback to skip the automatic keyboard
-// update logic (removing the pressed button). Return this when the handler
-// intentionally does nothing (e.g. permission denied) and the keyboard must
-// stay intact.
-var ErrSkipKeyboardUpdate = errors.New("skip keyboard update")
-
 type Response func(b *gotgbot.Bot, ctx *Context) error
 
 type Context struct {
 	*ext.Context
-	ctx           context.Context
-	args          []string
-	html          string
-	members       []*model.ChatMember
-	targetChatID  int64
-	parsedDates   []time.Time
-	memberService *member.Service
-	isCallback    bool
+	ctx          context.Context
+	args         []string
+	html         string
+	members      []*model.ChatMember
+	targetChatID int64
+	parsedDates  []time.Time
 }
 
 func (c *Context) TargetChatID() int64 {
@@ -111,14 +101,6 @@ func (c *Context) SetUsers(users []*model.User) {
 
 func (c *Context) StdContext() context.Context {
 	return c.ctx
-}
-
-func (c *Context) IsCallback() bool {
-	return c.isCallback
-}
-
-func (c *Context) SetIsCallback(v bool) {
-	c.isCallback = v
 }
 
 func (c *Context) Reply(b *gotgbot.Bot, text string, opts *gotgbot.SendMessageOpts) error {

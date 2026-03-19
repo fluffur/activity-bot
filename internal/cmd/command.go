@@ -7,7 +7,6 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"context"
-	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -68,23 +67,19 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 			chatID = ctx.EffectiveChat.Id
 		}
 		cmdCtx := &Context{
-			Context:       ctx,
-			ctx:           ctxWithTimeout,
-			targetChatID:  chatID,
-			memberService: f.memberService,
+			Context:      ctx,
+			ctx:          ctxWithTimeout,
+			targetChatID: chatID,
 		}
 
 		if ctx.CallbackQuery != nil {
-			cmdCtx.isCallback = true
 			parts := strings.Split(ctx.CallbackQuery.Data, ":")
 			if len(parts) > 1 {
-				// Format: prefix:userID:extraData...
 				if userID, err := strconv.ParseInt(parts[1], 10, 64); err == nil {
 					m, err := f.memberService.GetChatMember(ctxWithTimeout, chatID, userID)
 					if err == nil {
 						cmdCtx.members = []*model.ChatMember{&m}
 
-						// Remaining parts are arguments
 						if len(parts) > 2 {
 							joinedArgs := strings.Join(parts[2:], ":")
 							cmdCtx.args = strings.Fields(joinedArgs)
@@ -92,7 +87,6 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 							cmdCtx.args = []string{}
 						}
 					} else {
-						// Fallback to user if member not found (might happen in private or if left)
 						u, err := f.userService.GetUser(ctxWithTimeout, userID)
 						if err == nil {
 							cmdCtx.members = []*model.ChatMember{{User: u}}
@@ -114,13 +108,8 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 
 		err = r(b, cmdCtx)
 		if err != nil {
-			if errors.Is(err, ErrSkipKeyboardUpdate) {
-				return nil
-			}
 			return err
 		}
-
-		// UI Enhancement: Remove the clicked user from the menu
 
 		return nil
 	}
@@ -169,11 +158,10 @@ func (f *Factory) WrapEvent(r Response, guards ...Guard) func(b *gotgbot.Bot, ct
 		}
 
 		cmdCtx := &Context{
-			Context:       ctx,
-			ctx:           ctxWithTimeout,
-			members:       members,
-			targetChatID:  ctx.EffectiveChat.Id,
-			memberService: f.memberService,
+			Context:      ctx,
+			ctx:          ctxWithTimeout,
+			members:      members,
+			targetChatID: ctx.EffectiveChat.Id,
 		}
 
 		return r(b, cmdCtx)
@@ -340,7 +328,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 	chatID, err := c.getChatID(cctx, msg)
 	if err != nil {
 		logger.L.Error("getChatID error", "error", err)
-		return &Context{ctx, cctx, []string{}, "", members, 0, parsedDates, c.memberService, false}
+		return &Context{ctx, cctx, []string{}, "", members, 0, parsedDates}
 	}
 
 	for _, e := range entities {
@@ -410,7 +398,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 
 	rest, matched := c.matchCommand(text, b.User.Username, chatPrefix, allowPrefixless && !c.forcePrefix)
 	if !matched {
-		return &Context{ctx, cctx, []string{}, "", members, chatID, parsedDates, c.memberService, false}
+		return &Context{ctx, cctx, []string{}, "", members, chatID, parsedDates}
 	}
 
 	rest = strings.TrimSpace(rest)
@@ -459,7 +447,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		args = append(args, rest)
 	}
 
-	return &Context{ctx, cctx, args, htmlRest, members, chatID, parsedDates, c.memberService, false}
+	return &Context{ctx, cctx, args, htmlRest, members, chatID, parsedDates}
 }
 
 func (c *Command) getChatID(ctx context.Context, msg *gotgbot.Message) (int64, error) {
