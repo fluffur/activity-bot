@@ -420,19 +420,17 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		}
 	}
 
-	var htmlRest string
-
-	if fullHTML != "" && rest != "" {
-		prefixInClean := strings.Index(text, rest)
-		if prefixInClean < 0 {
-			prefixInClean = 0
+	if fullHTML != "" {
+		for _, t := range c.triggers {
+			fullHTML = strings.TrimSpace(strings.TrimPrefix(fullHTML, t))
 		}
-		cleanPrefixRunes := len([]rune(text[:prefixInClean]))
-
-		origOffset := origRuneOffset(msg.GetText(), entities, cleanPrefixRunes)
-
-		htmlRest = strings.TrimSpace(htmlAfterPlainRunes(fullHTML, origOffset))
+		for _, t := range []string{c.uniquePrefix, chatPrefix} {
+			fullHTML = strings.TrimSpace(strings.TrimPrefix(fullHTML, t))
+		}
+		parts := strings.Fields(fullHTML)
+		fullHTML = strings.Join(parts[1:], "")
 	}
+
 	var args []string
 
 	if c.argsCount == 2 {
@@ -447,7 +445,7 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		args = append(args, rest)
 	}
 
-	return &Context{ctx, cctx, args, htmlRest, members, chatID, parsedDates}
+	return &Context{ctx, cctx, args, fullHTML, members, chatID, parsedDates}
 }
 
 func (c *Command) getChatID(ctx context.Context, msg *gotgbot.Message) (int64, error) {
@@ -669,73 +667,6 @@ func cleanMessage(msg *gotgbot.Message) (string, []gotgbot.MessageEntity) {
 	}
 
 	return strings.TrimSpace(string(textRunes)), removedEntities
-}
-
-func origRuneOffset(originalText string, removedEntities []gotgbot.MessageEntity, cleanPrefixRunes int) int {
-	runes := []rune(originalText)
-
-	type runeRange struct{ start, end int }
-	removed := make([]runeRange, 0, len(removedEntities))
-	for _, e := range removedEntities {
-		s, end := runeIndex(originalText, int(e.Offset), int(e.Length))
-		removed = append(removed, runeRange{s, end})
-	}
-
-	isRemoved := func(i int) bool {
-		for _, r := range removed {
-			if i >= r.start && i < r.end {
-				return true
-			}
-		}
-		return false
-	}
-
-	cleanCount := 0
-	for i := 0; i < len(runes); i++ {
-		if isRemoved(i) {
-			continue
-		}
-		if cleanCount == cleanPrefixRunes {
-			return i
-		}
-		cleanCount++
-	}
-	return len(runes)
-}
-
-func htmlAfterPlainRunes(html string, n int) string {
-	if n <= 0 {
-		return html
-	}
-	runes := []rune(html)
-	count := 0
-	i := 0
-	for i < len(runes) && count < n {
-		switch runes[i] {
-		case '<':
-			for i < len(runes) && runes[i] != '>' {
-				i++
-			}
-			if i < len(runes) {
-				i++
-			}
-		case '&':
-			for i < len(runes) && runes[i] != ';' {
-				i++
-			}
-			if i < len(runes) {
-				i++ // skip ';'
-			}
-			count++
-		default:
-			i++
-			count++
-		}
-	}
-	if i >= len(runes) {
-		return ""
-	}
-	return string(runes[i:])
 }
 
 func runeIndex(text string, offset, length int) (start, end int) {
