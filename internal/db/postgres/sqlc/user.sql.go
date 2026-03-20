@@ -93,7 +93,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, lower string) (User, er
 }
 
 const getUsersByCustomTitle = `-- name: GetUsersByCustomTitle :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason, cm.emoji, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.tag ILIKE '%' || $1 || '%'
@@ -129,6 +129,7 @@ func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCusto
 			&i.ChatMember.Status,
 			&i.ChatMember.LeftAt,
 			&i.ChatMember.RestReason,
+			&i.ChatMember.Emoji,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,

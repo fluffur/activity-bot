@@ -1,6 +1,13 @@
 package helpers
 
-import "fmt"
+import (
+	"fmt"
+	"regexp"
+	"strings"
+
+	"github.com/makeworld-the-better-one/go-isemoji"
+	"github.com/rivo/uniseg"
+)
 
 func CustomEmoji(id int64, originalEmoji string) string {
 	return fmt.Sprintf(`<tg-emoji emoji-id="%d">%s</tg-emoji>`, id, originalEmoji)
@@ -8,6 +15,40 @@ func CustomEmoji(id int64, originalEmoji string) string {
 
 func CustomEmojiStr(id string, originalEmoji string) string {
 	return fmt.Sprintf(`<tg-emoji emoji-id="%s">%s</tg-emoji>`, id, originalEmoji)
+}
+
+var tgEmojiRegex = regexp.MustCompile(`<tg-emoji[^>]*>.*?</tg-emoji>`)
+
+func ParseEmojis(input string) []string {
+	var result []string
+
+	for len(input) > 0 {
+
+		if strings.HasPrefix(input, "<tg-emoji") {
+			loc := tgEmojiRegex.FindStringIndex(input)
+			if loc != nil {
+				result = append(result, input[loc[0]:loc[1]])
+				input = input[loc[1]:]
+				continue
+			}
+		}
+
+		g := uniseg.NewGraphemes(input)
+		if g.Next() {
+			part := g.Str()
+
+			if isemoji.IsEmoji(part) {
+				result = append(result, part)
+			}
+
+			input = input[len(part):]
+			continue
+		}
+
+		break
+	}
+
+	return result
 }
 
 func NewbieEmoji() string {

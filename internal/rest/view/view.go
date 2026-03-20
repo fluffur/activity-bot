@@ -9,7 +9,7 @@ import (
 
 func FormatRestSet(member model.ChatMember, date time.Time, reason string) string {
 	text := fmt.Sprintf("Участник %s %s в рест до %s",
-		helpers.RoleLink(member),
+		helpers.RoleEmojiLink(member),
 		helpers.Gendered(member.User.Gender, "добавлен", "добавлена"),
 		helpers.FormatToHumanDateTime(date),
 	)
@@ -22,7 +22,7 @@ func FormatRestSet(member model.ChatMember, date time.Time, reason string) strin
 func FormatRestRequest(user model.ChatMember, date time.Time, reason string) string {
 	text := fmt.Sprintf(
 		"Для участника %s запрошен рест до %s",
-		helpers.RoleLink(user),
+		helpers.RoleEmojiLink(user),
 		helpers.FormatToHumanDateTime(date),
 	)
 	if reason != "" {
@@ -33,13 +33,13 @@ func FormatRestRequest(user model.ChatMember, date time.Time, reason string) str
 
 func FormatRestShow(m model.ChatMember) string {
 	if m.RestUntil.IsZero() {
-		return fmt.Sprintf("%s не находится в ресте", helpers.RoleLink(m))
+		return fmt.Sprintf("%s не находится в ресте", helpers.RoleEmojiLink(m))
 	}
 	message := "%s находится в ресте до %s"
 	if m.RestUntil.Before(time.Now()) {
 		message = "Рест %s был завершен %s"
 	}
-	text := fmt.Sprintf(message, helpers.RoleLink(m), helpers.FormatToHumanDateTime(m.RestUntil))
+	text := fmt.Sprintf(message, helpers.RoleEmojiLink(m), helpers.FormatToHumanDateTime(m.RestUntil))
 	if m.RestReason != "" {
 		text += fmt.Sprintf("\n\nПричина: %s", m.RestReason)
 	}
@@ -51,7 +51,7 @@ func FormatRestEnded(user model.ChatMember, isSelf bool) string {
 		return "Вы успешно удалены из реста"
 	}
 	return fmt.Sprintf("Участник %s успешно %s из реста",
-		helpers.RoleLink(user),
+		helpers.RoleEmojiLink(user),
 		helpers.Gendered(user.User.Gender, "удалён", "удалена"),
 	)
 }
@@ -60,18 +60,18 @@ func FormatRestNotInRest(user model.ChatMember, isSelf bool) string {
 	if isSelf {
 		return "Вы не находитесь в ресте"
 	}
-	return fmt.Sprintf("Пользователь %s не находится в ресте", helpers.RoleLink(user))
+	return fmt.Sprintf("Пользователь %s не находится в ресте", helpers.RoleEmojiLink(user))
 }
 
 func FormatRestRequestApproved(user model.ChatMember, restUntil time.Time) string {
-	return fmt.Sprintf("Запрос одобрен. У %s рест до %s", helpers.RoleLink(user), helpers.FormatToHumanDateTime(restUntil))
+	return fmt.Sprintf("Запрос одобрен. У %s рест до %s", helpers.RoleEmojiLink(user), helpers.FormatToHumanDateTime(restUntil))
 }
 
 func FormatRestRequestRejected(user *model.ChatMember) string {
 	if user == nil {
 		return "Запрос на рест отклонён"
 	}
-	return fmt.Sprintf("Запрос на рест для %s отклонён", helpers.RoleLink(*user))
+	return fmt.Sprintf("Запрос на рест для %s отклонён", helpers.RoleEmojiLink(*user))
 }
 
 func FormatRestRequests(requests []model.ApprovedRestRequest) string {
@@ -101,7 +101,7 @@ func FormatRestRequests(requests []model.ApprovedRestRequest) string {
 		}
 	}
 
-	text := fmt.Sprintf("Список рестов %s:\n", helpers.RoleLink(cm))
+	text := fmt.Sprintf("Список рестов %s:\n", helpers.RoleEmojiLink(cm))
 
 	if approvedText != "" {
 		text += "\nОдобренные:<blockquote expandable>" + approvedText + "</blockquote>"

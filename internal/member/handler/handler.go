@@ -232,7 +232,7 @@ func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *cmd.Context) error {
 		sb.WriteString(helpers.Mention(a.User.ID, "​"))
 	}
 	_, err = ctx.EffectiveChat.SendMessage(b, fmt.Sprintf("🕊 %s %s нас..."+sb.String(),
-		helpers.RoleLink(m),
+		helpers.RoleEmojiLink(m),
 		helpers.Gendered(m.User.Gender, "покинул", "покинула"),
 	), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
@@ -300,7 +300,55 @@ func (h *Handler) ShipRandom(b *gotgbot.Bot, ctx *cmd.Context) error {
 	first := members[0]
 	second := members[1]
 
-	text := fmt.Sprintf("%s <b>Шипперим рандом</b>: %s + %s\n%s", helpers.CustomEmoji(5258276353949575281, "❤️"), helpers.RoleMention(first), helpers.RoleMention(second), phrase)
+	text := fmt.Sprintf("%s <b>Шипперим рандом</b>: %s + %s\n%s", helpers.CustomEmoji(5258276353949575281, "❤️"), helpers.RoleMentionEmoji(first), helpers.RoleMentionEmoji(second), phrase)
 
 	return ctx.ReplyHTML(b, text)
+}
+
+func (h *Handler) ShowEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
+	m := ctx.FirstMember()
+	if m == nil {
+		return cmd.ErrNoUser
+	}
+	if m.Emoji == "" {
+		return ctx.ReplyHTML(b, fmt.Sprintf("У %s еще нет значка чата\n\nДобавить значок: <code>!значок @участник 😘</code>", helpers.RoleEmojiLink(*m)))
+
+	}
+	return ctx.ReplyHTML(b, fmt.Sprintf("Значок %s: %s", helpers.RoleLink(*m), m.Emoji))
+}
+
+func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
+	m := ctx.FirstMember()
+	if m == nil {
+		return cmd.ErrNoUser
+	}
+	if m.Status == "creator" && m.User.ID != ctx.EffectiveSender.Id() {
+		return ctx.ReplyHTML(b, "Нельзя поменять значок владельцу")
+	}
+	emojis := ctx.HTML()
+	graphemes := helpers.ParseEmojis(emojis)
+	if len(graphemes) != 1 {
+		return ctx.ReplyHTML(b, "Нужно отправить ровно одно эмоджи")
+	}
+	emoji := graphemes[0]
+	if err := h.service.SetChatMemberEmoji(ctx.StdContext(), ctx.TargetChatID(), m.User.ID, emoji); err != nil {
+		return fmt.Errorf("failed to set chat member emoji: %w", err)
+	}
+
+	return ctx.ReplyHTML(b, fmt.Sprintf("Значок %s для %s успешно установлен", emoji, helpers.RoleLink(*m)))
+}
+
+func (h *Handler) RemoveEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
+	m := ctx.FirstMember()
+	if m == nil {
+		return cmd.ErrNoUser
+	}
+	if m.Status == "creator" && m.User.ID != ctx.EffectiveSender.Id() {
+		return ctx.ReplyHTML(b, "Нельзя поменять значок владельцу")
+	}
+	if err := h.service.SetChatMemberEmoji(ctx.StdContext(), ctx.TargetChatID(), m.User.ID, ""); err != nil {
+		return fmt.Errorf("failed to set remove member emoji: %w", err)
+	}
+
+	return ctx.ReplyHTML(b, fmt.Sprintf("Значок %s для %s успешно удалён", "", helpers.RoleLink(*m)))
 }

@@ -130,3 +130,7 @@ func (s *Service) FindByCustomTitle(ctx context.Context, chatID int64, customTit
 func (s *Service) GetChatMemberByUsername(ctx context.Context, chatID int64, username string) (model.ChatMember, error) {
 	return s.repo.GetByUsername(ctx, chatID, username)
 }
+
+func (s *Service) SetChatMemberEmoji(ctx context.Context, chatID int64, userID int64, emoji string) error {
+	return s.repo.SetEmoji(ctx, chatID, userID, emoji)
+}

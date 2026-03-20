@@ -110,7 +110,10 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 		if err != nil {
 			return err
 		}
-
+		if ctx.CallbackQuery != nil {
+			_, err := ctx.CallbackQuery.Answer(b, nil)
+			return err
+		}
 		return nil
 	}
 }

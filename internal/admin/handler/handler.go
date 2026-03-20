@@ -255,12 +255,12 @@ func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if len(activeWarns) == 0 {
-		return ctx.ReplyHTML(b, fmt.Sprintf("%s У %s нет активных варнов", helpers.SuccessEmoji(), helpers.RoleLink(*m)))
+		return ctx.ReplyHTML(b, fmt.Sprintf("%s У %s нет активных варнов", helpers.SuccessEmoji(), helpers.RoleEmojiLink(*m)))
 	}
 
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("⚠️ Варны пользователя %s (активные: %d/%d):\n\n",
-		helpers.RoleLink(*m), len(activeWarns), maxWarns))
+		helpers.RoleEmojiLink(*m), len(activeWarns), maxWarns))
 
 	for i, w := range activeWarns {
 		createdStr := helpers.FormatToHumanDateTime(w.CreatedAt)
@@ -269,7 +269,7 @@ func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
 			expireStr = fmt.Sprintf(", истекает %s", helpers.FormatToHumanDateTime(w.ExpiresAt))
 		}
 
-		modName := helpers.RoleLink(w.Moderator)
+		modName := helpers.RoleEmojiLink(w.Moderator)
 
 		reasonStr := ""
 		if w.Reason != "" {
@@ -398,7 +398,7 @@ func (h *Handler) Unban(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	return ctx.ReplyHTML(b, fmt.Sprintf("Пользователь %s %s",
-		helpers.RoleLink(*m),
+		helpers.RoleEmojiLink(*m),
 		helpers.Gendered(m.User.Gender, "разбанен", "разбанена"),
 	))
 }
@@ -584,7 +584,7 @@ func (h *Handler) FakeLeave(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 	u := m.User
 	_, err := b.SendMessage(ctx.TargetChatID(), fmt.Sprintf("🕊 %s %s нас...",
-		helpers.RoleLink(*m),
+		helpers.RoleEmojiLink(*m),
 		helpers.Gendered(u.Gender, "покинул", "покинула"),
 	), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,

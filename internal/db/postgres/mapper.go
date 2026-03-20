@@ -53,7 +53,6 @@ func mapChats(chats []db.Chat) []model.Chat {
 	return result
 }
 
-// ChatMember mapping helpers
 func mapChatMember(m db.ChatMember) model.ChatMember {
 	return model.ChatMember{
 		ChatID: m.ChatID,
@@ -64,6 +63,7 @@ func mapChatMember(m db.ChatMember) model.ChatMember {
 		RestReason: m.RestReason.String,
 		Tag:        m.Tag.String,
 		Status:     m.Status,
+		Emoji:      m.Emoji.String,
 	}
 }
 

@@ -31,26 +31,22 @@ func LinkWithContent(u model.User, content string) string {
 	return fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a>`, u.ID, html.EscapeString(content))
 }
 
-func RoleLink(cm model.ChatMember) string {
-	var displayName string
-	if cm.Tag != "" {
-		displayName = cm.Tag
-	} else {
-		fullName := strings.TrimSpace(cm.User.FirstName + " " + cm.User.LastName)
-		if fullName == "" {
-			fullName = "—"
-		}
-		displayName = fullName
-	}
+func RoleEmojiLink(cm model.ChatMember) string {
 	var emoji string
-	if cm.User.Emoji != "" {
+	if cm.Emoji != "" {
+		emoji = cm.Emoji + " "
+	} else if cm.User.Emoji != "" {
 		emoji = cm.User.Emoji + " "
 	}
-	return emoji + LinkWithContent(cm.User, displayName)
+	return emoji + LinkWithContent(cm.User, MemberDisplayName(cm))
 
 }
 
-func RoleMention(cm model.ChatMember) string {
+func RoleLink(cm model.ChatMember) string {
+	return LinkWithContent(cm.User, MemberDisplayName(cm))
+}
+
+func MemberDisplayName(cm model.ChatMember) string {
 	var displayName string
 	if cm.Tag != "" {
 		displayName = cm.Tag
@@ -61,17 +57,21 @@ func RoleMention(cm model.ChatMember) string {
 		}
 		displayName = fullName
 	}
+	return displayName
+}
+
+func RoleMentionEmoji(cm model.ChatMember) string {
 	var emoji string
 	if cm.User.Emoji != "" {
 		emoji = cm.User.Emoji + " "
 	}
-	return emoji + Mention(cm.User.ID, displayName)
+	return emoji + Mention(cm.User.ID, MemberDisplayName(cm))
 
 }
 
 func Mention(id int64, value string) string {
 	if value == "" {
-		value = "?"
+		value = "—"
 	}
 	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, id, html.EscapeString(value))
 }

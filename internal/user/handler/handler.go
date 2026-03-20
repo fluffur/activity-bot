@@ -7,15 +7,10 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/makeworld-the-better-one/go-isemoji"
-	"github.com/rivo/uniseg"
 )
-
-var tgEmojiRegex = regexp.MustCompile(`<tg-emoji[^>]*>.*?</tg-emoji>`)
 
 type Handler struct {
 	service *user.Service
@@ -71,7 +66,7 @@ func (h *Handler) ShowGender(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 	emojis := strings.TrimSpace(ctx.HTML())
-	graphemes := parseEmojis(emojis)
+	graphemes := helpers.ParseEmojis(emojis)
 
 	if len(graphemes) > 3 {
 		return ctx.Reply(b, "❌ Нужно отправить не более 3 emojis", nil)
@@ -103,36 +98,4 @@ func (h *Handler) ShowEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	return ctx.ReplyHTML(b, fmt.Sprintf("Emoji пользователя: %s", u.Emoji))
 
-}
-
-func parseEmojis(input string) []string {
-	var result []string
-
-	for len(input) > 0 {
-
-		if strings.HasPrefix(input, "<tg-emoji") {
-			loc := tgEmojiRegex.FindStringIndex(input)
-			if loc != nil {
-				result = append(result, input[loc[0]:loc[1]])
-				input = input[loc[1]:]
-				continue
-			}
-		}
-
-		g := uniseg.NewGraphemes(input)
-		if g.Next() {
-			part := g.Str()
-
-			if isemoji.IsEmoji(part) {
-				result = append(result, part)
-			}
-
-			input = input[len(part):]
-			continue
-		}
-
-		break
-	}
-
-	return result
 }

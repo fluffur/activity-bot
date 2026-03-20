@@ -134,6 +134,7 @@ type ChatMember struct {
 	Status     string             `db:"status" json:"status"`
 	LeftAt     pgtype.Timestamptz `db:"left_at" json:"leftAt"`
 	RestReason pgtype.Text        `db:"rest_reason" json:"restReason"`
+	Emoji      pgtype.Text        `db:"emoji" json:"emoji"`
 }
 
 type Message struct {

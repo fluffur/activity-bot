@@ -94,29 +94,29 @@ SELECT chat_id_resolve.id,
 FROM chat_id_resolve,
      user_upsert
 ON CONFLICT (chat_id, user_id) DO UPDATE
-    SET tag = CASE
-                           WHEN @tag IS NOT NULL AND @tag <> ''
-                               THEN @tag
-                           ELSE chat_members.tag
+    SET tag     = CASE
+                      WHEN @tag IS NOT NULL AND @tag <> ''
+                          THEN @tag
+                      ELSE chat_members.tag
         END,
-        left_at      = NULL
+        left_at = NULL
 RETURNING *;
 
 -- name: UpsertChatMembers :exec
 INSERT INTO chat_members(chat_id, user_id, tag, status)
 SELECT @chat_id, UNNEST(@user_ids::BIGINT[]), UNNEST(@tags::TEXT[]), UNNEST(@statuses::TEXT[])
-ON CONFLICT (chat_id, user_id) DO UPDATE SET tag = CASE
-                                                                WHEN EXCLUDED.tag <> ''
-                                                                    THEN EXCLUDED.tag
-                                                                ELSE chat_members.tag
+ON CONFLICT (chat_id, user_id) DO UPDATE SET tag     = CASE
+                                                           WHEN EXCLUDED.tag <> ''
+                                                               THEN EXCLUDED.tag
+                                                           ELSE chat_members.tag
     END,
-                                             status       = CASE
-                                                                WHEN EXCLUDED.status = 'creator' THEN 'creator'
-                                                                WHEN chat_members.status = 'administrator'
-                                                                    THEN 'administrator'
-                                                                ELSE EXCLUDED.status
+                                             status  = CASE
+                                                           WHEN EXCLUDED.status = 'creator' THEN 'creator'
+                                                           WHEN chat_members.status = 'administrator'
+                                                               THEN 'administrator'
+                                                           ELSE EXCLUDED.status
                                                  END,
-                                             left_at      = NULL
+                                             left_at = NULL
 ;
 
 -- name: MarkChatMembersLeftNotInList :exec
@@ -168,10 +168,21 @@ WHERE cm.chat_id = @chat_id
 SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
-WHERE cm.chat_id = $1 AND cm.tag ILIKE '%' || @tag || '%' LIMIT 1;
+WHERE cm.chat_id = $1
+  AND cm.tag ILIKE '%' || @tag || '%'
+LIMIT 1;
 
 -- name: FindChatMemberByUsername :one
 SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
-WHERE cm.chat_id = $1 AND u.username = $2 AND cm.left_at IS NULL LIMIT 1;
+WHERE cm.chat_id = $1
+  AND u.username = $2
+  AND cm.left_at IS NULL
+LIMIT 1;
+
+-- name: SetChatMemberEmoji :exec
+UPDATE chat_members
+SET emoji = $1
+WHERE user_id = $2
+  AND chat_id = $3;

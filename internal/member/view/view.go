@@ -14,7 +14,7 @@ func FormatRolesList(members []model.ChatMember) string {
 	sb.WriteString("<blockquote expandable>")
 
 	for i, m := range members {
-		sb.WriteString(fmt.Sprintf("%d. %s — %s\n", i+1, helpers.RoleLink(m), helpers.UserLink(m.User)))
+		sb.WriteString(fmt.Sprintf("%d. %s — %s\n", i+1, helpers.RoleEmojiLink(m), helpers.UserLink(m.User)))
 	}
 	sb.WriteString("</blockquote>")
 	sb.WriteString("\nЧтобы изменить роль участника введите <code>!роль @участник название</code>")
@@ -23,7 +23,7 @@ func FormatRolesList(members []model.ChatMember) string {
 }
 
 func FormatRoleUpdated(user model.ChatMember, role string) string {
-	return fmt.Sprintf("Роль %s обновлена на \"%s\"", helpers.RoleLink(user), html.EscapeString(role))
+	return fmt.Sprintf("Роль %s обновлена на \"%s\"", helpers.RoleEmojiLink(user), html.EscapeString(role))
 }
 
 func FormatMemberRole(user model.User, title string) string {

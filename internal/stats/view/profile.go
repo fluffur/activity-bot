@@ -43,7 +43,7 @@ func FormatProfile(m model.MemberStats) string {
 ▸ 30 дней: <code>%d</code></blockquote>
 %s`,
 		helpers.CustomEmoji(5316727448644103237, "👤"),
-		helpers.RoleLink(m.ChatMember),
+		helpers.RoleEmojiLink(m.ChatMember),
 		status,
 		getStatusEmoji(m.Status),
 		helpers.Gendered(m.ChatMember.User.Gender, "зашел", "зашла"),

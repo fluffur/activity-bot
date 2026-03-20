@@ -190,7 +190,7 @@ func (q *Queries) MessageActivityByDayAll(ctx context.Context, arg MessageActivi
 }
 
 const messageReport = `-- name: MessageReport :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason,
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason, cm.emoji,
        u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
        COUNT(m.chat_id) AS messages_count,
        c.norm_warn,
@@ -246,6 +246,7 @@ func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([
 			&i.ChatMember.Status,
 			&i.ChatMember.LeftAt,
 			&i.ChatMember.RestReason,
+			&i.ChatMember.Emoji,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,
@@ -270,7 +271,7 @@ func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([
 }
 
 const messageReportOne = `-- name: MessageReportOne :one
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason,
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason, cm.emoji,
        u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
 
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now())), 0)::bigint   AS day_count,
@@ -341,6 +342,7 @@ func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOnePara
 		&i.ChatMember.Status,
 		&i.ChatMember.LeftAt,
 		&i.ChatMember.RestReason,
+		&i.ChatMember.Emoji,
 		&i.User.ID,
 		&i.User.Username,
 		&i.User.FirstName,

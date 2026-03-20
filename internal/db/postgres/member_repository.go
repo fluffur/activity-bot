@@ -291,3 +291,14 @@ func (r *MemberRepository) GetByUsername(ctx context.Context, chatID int64, user
 
 	return mapChatMemberFull(m.ChatMember, m.User), nil
 }
+
+func (r *MemberRepository) SetEmoji(ctx context.Context, chatID, userID int64, emoji string) error {
+	return r.queries.SetChatMemberEmoji(ctx, db.SetChatMemberEmojiParams{
+		ChatID: chatID,
+		UserID: userID,
+		Emoji: pgtype.Text{
+			String: emoji,
+			Valid:  emoji != "",
+		},
+	})
+}

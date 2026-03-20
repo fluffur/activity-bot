@@ -166,7 +166,7 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 			normBanDone = r.MessagesCount >= r.NormBan
 		}
 
-		line := fmt.Sprintf("%s — <code>%d</code>", helpers.RoleLink(r.ChatMember), r.MessagesCount)
+		line := fmt.Sprintf("%s — <code>%d</code>", helpers.RoleEmojiLink(r.ChatMember), r.MessagesCount)
 
 		isNewbie := false
 		if r.NewbieThresholdDays > 0 {
@@ -178,7 +178,7 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 
 		if isNewbie {
 			if normWarnDone {
-				s.Passed = append(s.Passed, fmt.Sprintf("%s %s — <code>%d</code>", helpers.NewbieEmoji(), helpers.RoleLink(r.ChatMember), r.MessagesCount))
+				s.Passed = append(s.Passed, fmt.Sprintf("%s %s — <code>%d</code>", helpers.NewbieEmoji(), helpers.RoleEmojiLink(r.ChatMember), r.MessagesCount))
 			} else {
 				s.Newbies = append(s.Newbies, line)
 			}
@@ -208,7 +208,7 @@ func formatRestLine(r model.ChatMember) string {
 	} else {
 		untilText = "неизвестно"
 	}
-	return fmt.Sprintf("%s до %s", helpers.RoleLink(r), untilText)
+	return fmt.Sprintf("%s до %s", helpers.RoleEmojiLink(r), untilText)
 }
 
 func formatPeriodHeader(from, to *time.Time) string {

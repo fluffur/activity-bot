@@ -180,7 +180,7 @@ func (a *App) registerWorkerHandlers() *asynq.ServeMux {
 			}
 		}
 
-		if _, err = a.Bot.SendMessage(p.ChatID, fmt.Sprintf("Срок мута для участника %s подошёл к концу", helpers.RoleLink(m)), &gotgbot.SendMessageOpts{
+		if _, err = a.Bot.SendMessage(p.ChatID, fmt.Sprintf("Срок мута для участника %s подошёл к концу", helpers.RoleEmojiLink(m)), &gotgbot.SendMessageOpts{
 			LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
 				IsDisabled: true,
 			},

@@ -30,6 +30,7 @@ type ChatMember struct {
 	RestReason string
 	Tag        string
 	Status     string
+	Emoji      string
 }
 
 func (cm ChatMember) IsRestActive(now time.Time) bool {

@@ -418,7 +418,21 @@ func (a *App) RegisterHandlers() {
 
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"), cf.WrapCallback(restHandler.ApproveRestRequest)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("reject:"), cf.WrapCallback(restHandler.RejectRestRequest)))
+	a.Dispatcher.AddHandler(cf.New(memberHandler.ShowEmoji, "значок").
+		WithGuards(groupGuard).
+		FallbackToSender().
+		WithAmbiguityResolution("show_member_emoji"),
+	)
 
+	a.Dispatcher.AddHandler(cf.New(memberHandler.SetEmoji, "значок").
+		SetArgsCount(1).
+		FallbackToSender().WithGuards(groupGuard, adminGuard),
+	)
+
+	a.Dispatcher.AddHandler(cf.New(memberHandler.RemoveEmoji, "значок").
+		SetArgsCount(1).
+		FallbackToSender().WithGuards(groupGuard, adminGuard),
+	)
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.LeftChatMember, cf.WrapEvent(memberHandler.OnLeftMember)))
 	a.Dispatcher.AddHandler(handlers.NewMyChatMember(chatmember.NewStatus("administrator"), cf.WrapEvent(memberHandler.OnBotPromote)))
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.NewChatMembers, cf.WrapEvent(memberHandler.OnJoinMember)))
@@ -448,5 +462,6 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("member_role_show:"), cf.WrapCallback(memberHandler.ShowRole)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("member_role_set:"), cf.WrapCallback(memberHandler.SetRole)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("profile_graph:"), cf.WrapCallback(statsHandler.CallbackProfileGraph)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("show_member_emoji:"), cf.WrapCallback(memberHandler.ShowEmoji)))
 
 }
