@@ -185,9 +185,12 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard).
 		WithAmbiguityResolution("rest_end"),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.ListAdmins, "admins", "админы", "админчики", "администраторы", "адмы", "модеры", "mods").
+	a.Dispatcher.AddHandler(cf.New(adminHandler.ListAdmins,
+		"admins", "админы", "модеры", "mods",
+	).
 		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 10*time.Second, sessionService)),
 	)
+
 	a.Dispatcher.AddHandler(cf.New(adminHandler.IsAdmin, "админ", "admin", "is_admin", "адм", "модер", "mod", "is_mod").
 		WithGuards(groupGuard).
 		FallbackToSender().
