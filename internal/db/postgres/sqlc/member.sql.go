@@ -380,6 +380,7 @@ WHERE cm.chat_id = $1
   AND cm.left_at IS NULL
   AND cm.tag IS NOT NULL
   AND cm.tag <> ''
+ORDER BY cm.tag COLLATE "und-x-icu"
 `
 
 type GetChatMembersWithTitlesRow struct {

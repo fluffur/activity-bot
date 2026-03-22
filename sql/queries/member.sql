@@ -35,7 +35,8 @@ FROM chat_members cm
 WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL
   AND cm.tag IS NOT NULL
-  AND cm.tag <> '';
+  AND cm.tag <> ''
+ORDER BY cm.tag COLLATE "und-x-icu";
 
 -- name: GetAnyChatMembersWithTitles :many
 SELECT sqlc.embed(cm), sqlc.embed(u)
