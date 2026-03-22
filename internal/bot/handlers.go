@@ -261,10 +261,10 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, creatorGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ToggleRights, "права", "rights").
-		WithGuards(developerGuard).SetArgsCount(1).FallbackToSender(),
+		WithGuards(groupGuard, developerGuard).SetArgsCount(1).FallbackToSender(),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.UpdateChats, "update_chats").
-		WithGuards(developerGuard),
+		WithGuards(groupGuard, developerGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.UpdateMembersList, "обновить чат", "update chat", "update").
 		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 10*time.Second, sessionService)),

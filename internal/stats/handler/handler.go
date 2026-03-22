@@ -153,6 +153,8 @@ func (h *Handler) WhoAreUser(
 					Text:         "📊 Показать график",
 					CallbackData: fmt.Sprintf("profile_graph:%d", userID),
 				},
+			},
+			{
 				{
 					Text:              "Вся активность",
 					CallbackData:      fmt.Sprintf("profile_activity:%d", userID),
