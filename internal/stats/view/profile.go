@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func FormatProfile(m model.MemberStats) string {
+func FormatProfile(m model.MemberStats, full bool) string {
 	now := time.Now().UTC()
 
 	isNewbie := false
@@ -29,10 +29,10 @@ func FormatProfile(m model.MemberStats) string {
 		leftAtInfo = ", покинул чат " + helpers.FormatLastSeen(m.LeftAt)
 	}
 
-	text := fmt.Sprintf(
-		`%s Информация о %s
-• %s %s (%s %s%s%s)
-%s
+	var activityBlock string
+
+	if full {
+		activityBlock = fmt.Sprintf(`%s
 %s Актив<blockquote>▸ сегодня: <code>%d</code>
 ▸ эта неделя: <code>%d</code>
 ▸ этот месяц: <code>%d</code>
@@ -42,6 +42,25 @@ func FormatProfile(m model.MemberStats) string {
 ▸ 7 дней: <code>%d</code>
 ▸ 30 дней: <code>%d</code></blockquote>
 %s`,
+			helpers.Line(),
+			helpers.StatsEmoji(),
+			m.DayCount,
+			m.WeekCount,
+			m.MonthCount,
+			m.AllTime,
+			helpers.Line(),
+			helpers.CustomEmoji(5337121636992690373, "⏰"),
+			m.DayRollingCount,
+			m.WeekRollingCount,
+			m.MonthRollingCount,
+			helpers.Line(),
+		)
+	}
+
+	text := fmt.Sprintf(
+		`%s Информация о %s
+• %s %s (%s %s%s%s)
+%s`,
 		helpers.CustomEmoji(5316727448644103237, "👤"),
 		helpers.RoleEmojiLink(m.ChatMember),
 		status,
@@ -50,18 +69,7 @@ func FormatProfile(m model.MemberStats) string {
 		helpers.FormatLastSeen(m.JoinedAt),
 		newbieEmoji,
 		leftAtInfo,
-		helpers.Line(),
-		helpers.StatsEmoji(),
-		m.DayCount,
-		m.WeekCount,
-		m.MonthCount,
-		m.AllTime,
-		helpers.Line(),
-		helpers.CustomEmoji(5337121636992690373, "⏰"),
-		m.DayRollingCount,
-		m.WeekRollingCount,
-		m.MonthRollingCount,
-		helpers.Line(),
+		activityBlock,
 	)
 	isRestActive := m.RestUntil.After(time.Now())
 

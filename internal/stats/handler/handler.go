@@ -144,7 +144,7 @@ func (h *Handler) WhoAreUser(
 		return err
 	}
 
-	text := view.FormatProfile(m)
+	text := view.FormatProfile(m, false)
 
 	kb := gotgbot.InlineKeyboardMarkup{
 		InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
@@ -152,7 +152,12 @@ func (h *Handler) WhoAreUser(
 				{
 					Text:         "📊 Показать график",
 					CallbackData: fmt.Sprintf("profile_graph:%d", userID),
-					Style:        "primary",
+				},
+				{
+					Text:              "Вся активность",
+					CallbackData:      fmt.Sprintf("profile_activity:%d", userID),
+					IconCustomEmojiId: "5425112292683435471",
+					Style:             "primary",
 				},
 			},
 		},
@@ -162,7 +167,7 @@ func (h *Handler) WhoAreUser(
 		ParseMode:   gotgbot.ParseModeHTML,
 		ReplyMarkup: kb,
 		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-			ShowAboveText: true,
+			IsDisabled: true,
 		},
 	})
 
@@ -187,16 +192,9 @@ func (h *Handler) CallbackProfileGraph(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	m, err := h.service.GetMemberStats(ctx.StdContext(), chatID, userID)
-	if err != nil {
-		return err
-	}
-
-	text := view.FormatProfile(m)
-
 	media := gotgbot.InputMediaPhoto{
 		Media:     gotgbot.InputFileByReader("activity.png", buf),
-		Caption:   text,
+		Caption:   ctx.EffectiveMessage.OriginalHTML(),
 		ParseMode: gotgbot.ParseModeHTML,
 	}
 
@@ -206,6 +204,47 @@ func (h *Handler) CallbackProfileGraph(b *gotgbot.Bot, ctx *cmd.Context) error {
 		&gotgbot.EditMessageMediaOpts{},
 	)
 	return err
+}
+
+func (h *Handler) CallbackAllActivity(b *gotgbot.Bot, ctx *cmd.Context) error {
+	var userID int64
+	if _, err := fmt.Sscanf(ctx.CallbackQuery.Data, "profile_activity:%d", &userID); err != nil {
+		return err
+	}
+	chatID := ctx.TargetChatID()
+
+	m, err := h.service.GetMemberStats(ctx.StdContext(), chatID, userID)
+	if err != nil {
+		return err
+	}
+
+	text := view.FormatProfile(m, true)
+
+	if ctx.EffectiveMessage.Text == "" {
+		_, _, err = ctx.EffectiveMessage.EditCaption(b, &gotgbot.EditMessageCaptionOpts{
+			Caption:   text,
+			ParseMode: gotgbot.ParseModeHTML,
+		})
+		return err
+	}
+
+	if _, _, err = ctx.EffectiveMessage.EditText(b, text, &gotgbot.EditMessageTextOpts{
+		ParseMode: gotgbot.ParseModeHTML,
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			ShowAboveText: true,
+		},
+		ReplyMarkup: gotgbot.InlineKeyboardMarkup{
+			InlineKeyboard: [][]gotgbot.InlineKeyboardButton{{{
+				Text:         "📊 Показать график",
+				CallbackData: fmt.Sprintf("profile_graph:%d", userID),
+				Style:        "primary",
+			}}},
+		},
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (h *Handler) ListInactive(b *gotgbot.Bot, ctx *cmd.Context) error {

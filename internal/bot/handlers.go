@@ -455,6 +455,7 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("member_role_show:"), cf.WrapCallback(memberHandler.ShowRole)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("member_role_set:"), cf.WrapCallback(memberHandler.SetRole)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("profile_graph:"), cf.WrapCallback(statsHandler.CallbackProfileGraph)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("profile_activity:"), cf.WrapCallback(statsHandler.CallbackAllActivity)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("show_member_emoji:"), cf.WrapCallback(memberHandler.ShowEmoji)))
 
 }
