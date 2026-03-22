@@ -93,17 +93,21 @@ func (q *Queries) GetUserByUsername(ctx context.Context, lower string) (User, er
 }
 
 const getUsersByCustomTitle = `-- name: GetUsersByCustomTitle :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason, cm.emoji, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM chat_members cm
-         JOIN users u ON cm.user_id = u.id
-WHERE cm.tag ILIKE '%' || $1 || '%'
-  AND cm.chat_id = $2
-LIMIT 10
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = $1
+  AND (
+    (length($2::text) < 2 AND lower(cm.tag::text) = lower($2::text))
+        OR
+    (length($2::text) >= 2 AND cm.tag ILIKE $2::text || '%')
+    )
+LIMIT 1
 `
 
 type GetUsersByCustomTitleParams struct {
-	Tag    pgtype.Text `db:"tag" json:"tag"`
-	ChatID int64       `db:"chat_id" json:"chatId"`
+	ChatID int64  `db:"chat_id" json:"chatId"`
+	Tag    string `db:"tag" json:"tag"`
 }
 
 type GetUsersByCustomTitleRow struct {
@@ -112,7 +116,7 @@ type GetUsersByCustomTitleRow struct {
 }
 
 func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCustomTitleParams) ([]GetUsersByCustomTitleRow, error) {
-	rows, err := q.db.Query(ctx, getUsersByCustomTitle, arg.Tag, arg.ChatID)
+	rows, err := q.db.Query(ctx, getUsersByCustomTitle, arg.ChatID, arg.Tag)
 	if err != nil {
 		return nil, err
 	}
@@ -126,10 +130,10 @@ func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCusto
 			&i.ChatMember.JoinedAt,
 			&i.ChatMember.RestUntil,
 			&i.ChatMember.Tag,
-			&i.ChatMember.Status,
 			&i.ChatMember.LeftAt,
 			&i.ChatMember.RestReason,
 			&i.ChatMember.Emoji,
+			&i.ChatMember.Status,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,

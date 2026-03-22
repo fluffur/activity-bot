@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"activity-bot/internal/admin"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
+	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"encoding/json"
 	"fmt"
@@ -14,14 +14,14 @@ import (
 )
 
 type Handler struct {
-	adminService *admin.Service
-	chatService  *chat.Service
-	asyncClient  *asynq.Client
-	channelID    int64
+	memberService *member.Service
+	chatService   *chat.Service
+	asyncClient   *asynq.Client
+	channelID     int64
 }
 
-func New(adminService *admin.Service, chatService *chat.Service, asyncClient *asynq.Client, channelID int64) *Handler {
-	return &Handler{adminService, chatService, asyncClient, channelID}
+func New(memberService *member.Service, chatService *chat.Service, asyncClient *asynq.Client, channelID int64) *Handler {
+	return &Handler{memberService, chatService, asyncClient, channelID}
 }
 
 func (h *Handler) Post(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -57,11 +57,11 @@ func (h *Handler) Post(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 func (h *Handler) Unsubscribe(b *gotgbot.Bot, ctx *cmd.Context) error {
 
-	isAdmin, err := h.adminService.IsAdmin(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+	m, err := h.memberService.GetChatMember(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
 	if err != nil {
 		return err
 	}
-	if !isAdmin {
+	if !m.IsAdmin() {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "У вас нет прав адмниистратора для этого",
 		})

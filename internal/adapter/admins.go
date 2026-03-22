@@ -28,9 +28,10 @@ func (p *TelegramChatAdminsProvider) GetChatAdmins(chatID int64) ([]model.ChatMe
 			continue
 		}
 
-		role := admin.GetStatus()
-		if role != "creator" {
-			role = "member"
+		status := admin.GetStatus()
+		var rank int16
+		if status == "creator" {
+			rank = 5
 		}
 
 		result = append(result, model.ChatMemberUpdate{
@@ -41,7 +42,7 @@ func (p *TelegramChatAdminsProvider) GetChatAdmins(chatID int64) ([]model.ChatMe
 				Username:  chatUser.User.Username,
 			},
 			Tag:    chatUser.CustomTitle,
-			Status: role,
+			Status: rank,
 		})
 	}
 

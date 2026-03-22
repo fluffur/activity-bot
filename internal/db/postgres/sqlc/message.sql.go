@@ -64,7 +64,7 @@ ORDER BY MAX(m.created_at) NULLS FIRST
 type InactiveChatMembersRow struct {
 	User          User               `db:"user" json:"user"`
 	Tag           pgtype.Text        `db:"tag" json:"tag"`
-	Status        string             `db:"status" json:"status"`
+	Status        int16              `db:"status" json:"status"`
 	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
 	LastMessageAt pgtype.Timestamptz `db:"last_message_at" json:"lastMessageAt"`
 }
@@ -190,7 +190,7 @@ func (q *Queries) MessageActivityByDayAll(ctx context.Context, arg MessageActivi
 }
 
 const messageReport = `-- name: MessageReport :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason, cm.emoji,
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status,
        u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
        COUNT(m.chat_id) AS messages_count,
        c.norm_warn,
@@ -243,10 +243,10 @@ func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([
 			&i.ChatMember.JoinedAt,
 			&i.ChatMember.RestUntil,
 			&i.ChatMember.Tag,
-			&i.ChatMember.Status,
 			&i.ChatMember.LeftAt,
 			&i.ChatMember.RestReason,
 			&i.ChatMember.Emoji,
+			&i.ChatMember.Status,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,
@@ -271,7 +271,7 @@ func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([
 }
 
 const messageReportOne = `-- name: MessageReportOne :one
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason, cm.emoji,
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status,
        u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
 
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now())), 0)::bigint   AS day_count,
@@ -339,10 +339,10 @@ func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOnePara
 		&i.ChatMember.JoinedAt,
 		&i.ChatMember.RestUntil,
 		&i.ChatMember.Tag,
-		&i.ChatMember.Status,
 		&i.ChatMember.LeftAt,
 		&i.ChatMember.RestReason,
 		&i.ChatMember.Emoji,
+		&i.ChatMember.Status,
 		&i.User.ID,
 		&i.User.Username,
 		&i.User.FirstName,

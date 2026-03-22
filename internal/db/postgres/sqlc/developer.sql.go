@@ -124,18 +124,17 @@ func (q *Queries) RemoveDeveloper(ctx context.Context, arg RemoveDeveloperParams
 }
 
 const setDeveloper = `-- name: SetDeveloper :exec
-INSERT INTO bot_developers (user_id, chat_id, role)
-VALUES ($1, $2, $3)
-ON CONFLICT (user_id, chat_id) DO UPDATE SET role = EXCLUDED.role
+UPDATE chat_members SET status = $1
+WHERE chat_id = $2 AND user_id = $3
 `
 
 type SetDeveloperParams struct {
-	UserID int64  `db:"user_id" json:"userId"`
-	ChatID int64  `db:"chat_id" json:"chatId"`
-	Role   string `db:"role" json:"role"`
+	Status int16 `db:"status" json:"status"`
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	UserID int64 `db:"user_id" json:"userId"`
 }
 
 func (q *Queries) SetDeveloper(ctx context.Context, arg SetDeveloperParams) error {
-	_, err := q.db.Exec(ctx, setDeveloper, arg.UserID, arg.ChatID, arg.Role)
+	_, err := q.db.Exec(ctx, setDeveloper, arg.Status, arg.ChatID, arg.UserID)
 	return err
 }

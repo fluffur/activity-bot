@@ -89,14 +89,13 @@ func FormatProfile(m model.MemberStats) string {
 	return text
 }
 
-func getStatusEmoji(status string) string {
-
+func getStatusEmoji(status int16) string {
 	switch status {
-	case "member":
+	case 0:
 		return helpers.CustomEmoji(5298673841378191838, "🤓")
-	case "administrator":
+	case 4:
 		return helpers.CustomEmoji(5296305123964773541, "💀")
-	case "creator":
+	case 5:
 		return helpers.CustomEmoji(5298512178809168321, "😎")
 	}
 	return helpers.CustomEmoji(5298532506889382420, "😭")

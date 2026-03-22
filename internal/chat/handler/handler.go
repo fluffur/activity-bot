@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
+	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"activity-bot/internal/session"
 	"fmt"
@@ -21,6 +22,7 @@ import (
 type Handler struct {
 	service        *chat.Service
 	adminService   *admin.Service
+	memberService  *member.Service
 	sessionService *session.Service
 	dateParser     *helpers.DateParser
 }
@@ -30,8 +32,8 @@ type chatInfo struct {
 	Title string
 }
 
-func New(service *chat.Service, adminService *admin.Service, sessionService *session.Service, dateParser *helpers.DateParser) *Handler {
-	return &Handler{service, adminService, sessionService, dateParser}
+func New(service *chat.Service, adminService *admin.Service, memberService *member.Service, sessionService *session.Service, dateParser *helpers.DateParser) *Handler {
+	return &Handler{service, adminService, memberService, sessionService, dateParser}
 }
 
 func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -421,16 +423,11 @@ func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
-
-	isAdmin, err := h.adminService.IsAdmin(ctx.StdContext(), chatID, ctx.EffectiveUser.Id)
+	m, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, ctx.EffectiveUser.Id)
 	if err != nil {
 		return err
 	}
-	isDeveloper, err := h.adminService.IsDeveloper(ctx.StdContext(), chatID, ctx.EffectiveUser.Id)
-	if err != nil {
-		return err
-	}
-	if !isAdmin && !isDeveloper {
+	if !m.IsAdmin() && h.adminService.OwnerID() != m.User.ID {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text:      "У вас больше нет прав администратора в этом чате",
 			ShowAlert: true,

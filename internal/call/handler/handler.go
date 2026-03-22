@@ -79,7 +79,7 @@ func (h *Handler) adminCallback(
 	handler func(*gotgbot.Bot, *cmd.Context) error,
 ) error {
 
-	isAdmin, err := h.adminService.IsAdmin(
+	m, err := h.memberService.GetChatMember(
 		ctx.StdContext(),
 		ctx.EffectiveChat.Id,
 		ctx.EffectiveSender.Id(),
@@ -88,7 +88,7 @@ func (h *Handler) adminCallback(
 		return err
 	}
 
-	if !isAdmin {
+	if !m.IsAdmin() {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Требуются права администратора",
 		})
@@ -336,7 +336,7 @@ func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	chatID := ctx.TargetChatID()
 
-	isAdmin, err := h.adminService.IsAdmin(
+	m, err := h.memberService.GetChatMember(
 		ctx.StdContext(),
 		chatID,
 		ctx.EffectiveSender.Id(),
@@ -345,7 +345,7 @@ func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	if !isAdmin {
+	if !m.IsAdmin() {
 		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "У вас нет прав администратора для выполнения действия",
 		})
@@ -498,13 +498,12 @@ func (h *Handler) startCallConversation(
 	if err != nil {
 		chatID = ctx.EffectiveChat.Id
 	}
-
-	isAdmin, err := h.adminService.IsAdmin(stdCtx, chatID, ctx.EffectiveSender.Id())
+	m, err := h.memberService.GetChatMember(stdCtx, chatID, ctx.EffectiveSender.Id())
 	if err != nil {
 		return err
 	}
 
-	if !isAdmin {
+	if !m.IsAdmin() {
 		if ctx.CallbackQuery != nil {
 			_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 				Text:      "Требуются права администратора",

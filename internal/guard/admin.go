@@ -1,27 +1,28 @@
 package guard
 
 import (
-	"activity-bot/internal/admin"
 	"activity-bot/internal/cmd"
+	"activity-bot/internal/member"
 	"context"
 
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-type AdminGuard struct {
-	service        *admin.Service
-	sessionService interface {
-		GetActiveChat(ctx context.Context, userID int64) (int64, error)
-	}
-}
-
-func NewAdminGuard(service *admin.Service, sessionService interface {
+type SessionService interface {
 	GetActiveChat(ctx context.Context, userID int64) (int64, error)
-}) cmd.Guard {
-	return &AdminGuard{service, sessionService}
 }
 
-func (g *AdminGuard) Check(ctx *ext.Context, _ string, stdCtx context.Context) (bool, string) {
+type AdminGuard struct {
+	service        *member.Service
+	sessionService SessionService
+	status         int16
+}
+
+func NewStatusGuard(service *member.Service, sessionService SessionService, status int16) cmd.Guard {
+	return &AdminGuard{service, sessionService, status}
+}
+
+func (g AdminGuard) Check(ctx *ext.Context, _ string, stdCtx context.Context) (bool, string) {
 	chatID := ctx.EffectiveChat.Id
 	if ctx.EffectiveChat.Type == "private" && g.sessionService != nil {
 		targetID, err := g.sessionService.GetActiveChat(stdCtx, ctx.EffectiveSender.Id())
@@ -30,8 +31,9 @@ func (g *AdminGuard) Check(ctx *ext.Context, _ string, stdCtx context.Context) (
 		}
 	}
 
-	if !g.service.CheckIsAdmin(stdCtx, chatID, ctx.EffectiveSender.Id()) {
+	m, err := g.service.GetChatMember(stdCtx, chatID, ctx.EffectiveSender.Id())
+	if err != nil {
 		return false, ""
 	}
-	return true, ""
+	return m.Status >= g.status, ""
 }

@@ -7,20 +7,8 @@ import (
 )
 
 type Repository interface {
-	Add(ctx context.Context, chatID int64, userID int64) error
-	Remove(ctx context.Context, chatID int64, userID int64) error
-	GetFromChat(ctx context.Context, chatID int64) ([]model.ChatMember, error)
-	IsAdmin(ctx context.Context, chatID int64, userID int64) (bool, error)
-	IsCreator(ctx context.Context, chatID int64, userID int64) (bool, error)
-	GetRole(ctx context.Context, chatID int64, userID int64) (string, error)
-
-	EnsureDeveloperUser(ctx context.Context, userID int64) error
-	GetDeveloperRole(ctx context.Context, chatID, userID int64) (string, error)
-	SetDeveloperRole(ctx context.Context, chatID, userID int64, role string) error
-	RemoveDeveloperRole(ctx context.Context, chatID, userID int64) error
-	IsDeveloper(ctx context.Context, chatID, userID int64) (bool, error)
-	GetAllDevelopers(ctx context.Context, chatID int64) ([]model.User, []string, error)
-	GetDevelopersCount(ctx context.Context, chatID int64) (int64, error)
+	SetStatus(ctx context.Context, chatID int64, userID int64, status int16) error
+	GetAdmins(ctx context.Context, chatID int64) ([]model.ChatMember, error)
 	CreateModerationAction(ctx context.Context, actionType string, chatID, userID, modID int64, reason string, until *time.Time) error
 	GetWarnsCount(ctx context.Context, chatID, userID int64) (int64, error)
 	ClearWarns(ctx context.Context, chatID, userID int64) error

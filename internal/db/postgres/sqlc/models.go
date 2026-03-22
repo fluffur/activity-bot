@@ -131,10 +131,10 @@ type ChatMember struct {
 	JoinedAt   pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
 	RestUntil  pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
 	Tag        pgtype.Text        `db:"tag" json:"tag"`
-	Status     string             `db:"status" json:"status"`
 	LeftAt     pgtype.Timestamptz `db:"left_at" json:"leftAt"`
 	RestReason pgtype.Text        `db:"rest_reason" json:"restReason"`
 	Emoji      pgtype.Text        `db:"emoji" json:"emoji"`
+	Status     int16              `db:"status" json:"status"`
 }
 
 type Message struct {

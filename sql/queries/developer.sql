@@ -7,9 +7,8 @@ VALUES ($1, 'Developer', '')
 ON CONFLICT (id) DO NOTHING;
 
 -- name: SetDeveloper :exec
-INSERT INTO bot_developers (user_id, chat_id, role)
-VALUES ($1, $2, $3)
-ON CONFLICT (user_id, chat_id) DO UPDATE SET role = EXCLUDED.role;
+UPDATE chat_members SET status = $1
+WHERE chat_id = $2 AND user_id = $3;
 
 -- name: RemoveDeveloper :exec
 DELETE FROM bot_developers WHERE user_id = $1 AND chat_id = $2;

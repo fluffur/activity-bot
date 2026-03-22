@@ -52,7 +52,7 @@ func (a *App) RegisterHandlers() {
 
 	helpHandler := helpH.New(a.Config.BotOwnerUsername, a.Config.CommandsLink)
 	statsHandler := statsH.New(statsService, restService, a.MemberService, a.UserService, a.ChatService, sessionService)
-	chatHandler := chatH.New(a.ChatService, a.AdminService, sessionService, dateParser)
+	chatHandler := chatH.New(a.ChatService, a.AdminService, a.MemberService, sessionService, dateParser)
 	restHandler := restH.New(restService, a.UserService, a.MemberService, a.AdminService, dateParser, sessionService, a.AsyncClient)
 
 	adminHandler := adminH.New(a.AdminService, a.UserService, a.MemberService, a.ChatService, dateParser, a.AsyncClient)
@@ -61,12 +61,11 @@ func (a *App) RegisterHandlers() {
 	memberHandler := memberH.New(a.MemberService, a.ChatService, a.UserService, callService, a.AdminService)
 	callHandler := callH.New(callService, a.MemberService, a.ChatService, a.AdminService, sessionService)
 	userHandler := userH.New(a.UserService)
-	channelHandler := channelH.New(a.AdminService, a.ChatService, a.AsyncClient, a.Config.ChannelID)
+	channelHandler := channelH.New(a.MemberService, a.ChatService, a.AsyncClient, a.Config.ChannelID)
 
-	adminGuard := guard.NewAdminGuard(a.AdminService, sessionService)
-	creatorGuard := guard.NewCreatorGuard(a.AdminService, sessionService)
-	ownerGuard := guard.NewDevCreatorGuard(a.AdminService, sessionService)
-	developerGuard := guard.NewDeveloperGuard(a.AdminService, sessionService)
+	adminGuard := guard.NewStatusGuard(a.MemberService, sessionService, 3)
+	creatorGuard := guard.NewStatusGuard(a.MemberService, sessionService, 5)
+	developerGuard := guard.NewDeveloperGuard(a.AdminService, a.Config.BotOwnerID)
 	groupGuard := guard.OnlyGroups(sessionService)
 	rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 2, 10*time.Second, sessionService)
 
@@ -196,8 +195,9 @@ func (a *App) RegisterHandlers() {
 		FallbackToSender().
 		WithAmbiguityResolution("admin_is"),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.AddAdmin, "+админ", "+admin", "+адм", "+модер", "+mod").
+	a.Dispatcher.AddHandler(cf.New(adminHandler.SetStatus, "+админ", "+admin", "+адм", "+модер", "+mod").
 		WithGuards(groupGuard, adminGuard).
+		SetArgsCount(1).
 		WithAmbiguityResolution("admin_add"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.RemoveAdmin, "-администратор", "-админ", "-admin", "-адм", "-модер", "-mod").
@@ -261,17 +261,7 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, creatorGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ToggleRights, "права", "rights").
-		WithGuards(developerGuard).SetArgsCount(1),
-	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.AddDeveloper, "дев", "adddev").
-		WithGuards(ownerGuard).SetArgsCount(1).
-		AddTriggers("+"),
-	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.RemoveDeveloper, "-дев", "remdev").
-		WithGuards(ownerGuard).SetArgsCount(1),
-	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.ListDevelopers, "девс", "devs").
-		WithGuards(developerGuard),
+		WithGuards(developerGuard).SetArgsCount(1).FallbackToSender(),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.UpdateChats, "update_chats").
 		WithGuards(developerGuard),
@@ -411,7 +401,7 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(adminHandler.DemoteTgAdmin, "разжаловать").WithGuards(groupGuard, adminGuard))
 	a.Dispatcher.AddHandler(cf.New(adminHandler.FakeLeave, "фейклив").FallbackToSender().WithGuards(groupGuard))
 	a.Dispatcher.AddHandler(cf.New(userHandler.ShowGender, "пол", "gender").FallbackToSender())
-	a.Dispatcher.AddHandler(cf.New(userHandler.SetGender, "пол", "gender").
+	a.Dispatcher.AddHandler(cf.New(userHandler.SetGender, "пол", "gender", "установить пол").
 		FallbackToSender().
 		SetArgsCount(1),
 	)
@@ -451,7 +441,7 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("all_rests:"), cf.WrapCallback(restHandler.AllUserRests)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("rest_end:"), cf.WrapCallback(restHandler.End)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_is:"), cf.WrapCallback(adminHandler.IsAdmin)))
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_add:"), cf.WrapCallback(adminHandler.AddAdmin)))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_add:"), cf.WrapCallback(adminHandler.SetStatus)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_remove:"), cf.WrapCallback(adminHandler.RemoveAdmin)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_unban:"), cf.WrapCallback(adminHandler.Unban)))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("admin_unmute:"), cf.WrapCallback(adminHandler.Unmute)))

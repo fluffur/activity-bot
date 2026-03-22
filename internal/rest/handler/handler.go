@@ -41,7 +41,10 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if m == nil {
 		return cmd.ErrNoUser
 	}
-
+	mod, err := h.memberService.GetChatMember(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id())
+	if err != nil {
+		return err
+	}
 	firstArgument := ctx.FirstArgument()
 
 	date := time.Time{}
@@ -60,7 +63,7 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "Нельзя указывать прошедшую дату", nil)
 	}
 
-	if !h.adminService.CheckIsAdmin(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id()) {
+	if !mod.IsAdmin() {
 		return h.createRequest(b, ctx, m, date)
 	}
 
@@ -137,8 +140,11 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if m == nil {
 		return cmd.ErrNoUser
 	}
-
-	if m.User.ID != ctx.EffectiveUser.Id && !h.adminService.CheckIsAdmin(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id()) {
+	mod, err := h.memberService.GetChatMember(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id())
+	if err != nil {
+		return err
+	}
+	if m.User.ID != mod.User.ID && !mod.IsAdmin() {
 		return ctx.Reply(b, "Вы можете удалить из реста только себя", nil)
 	}
 
@@ -167,8 +173,11 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 		})
 		return err
 	}
-
-	if !h.adminService.CheckIsAdmin(ctx.StdContext(), chatID, ctx.EffectiveSender.Id()) {
+	mod, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, fromID)
+	if err != nil {
+		return err
+	}
+	if !mod.IsAdmin() {
 		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Подтвердить запрос может только администратор",
 		})
@@ -211,8 +220,11 @@ func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 		})
 		return err
 	}
-
-	if restRequest.UserID != ctx.EffectiveSender.Id() && !h.adminService.CheckIsAdmin(cctx, chatID, ctx.EffectiveSender.Id()) {
+	mod, err := h.memberService.GetChatMember(ctx.StdContext(), ctx.TargetChatID(), fromID)
+	if err != nil {
+		return err
+	}
+	if restRequest.UserID != ctx.EffectiveSender.Id() && !mod.IsAdmin() {
 		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Отклонить запрос может только администратор или заявитель реста",
 		})

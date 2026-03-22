@@ -29,8 +29,18 @@ type ChatMember struct {
 	RestUntil  time.Time
 	RestReason string
 	Tag        string
-	Status     string
+	Status     int16
 	Emoji      string
+	JoinedAt   time.Time
+	LeftAt     time.Time
+}
+
+func (cm ChatMember) CanModerate(c ChatMember) bool {
+	return cm.Status > c.Status
+}
+
+func (cm ChatMember) IsAdmin() bool {
+	return cm.Status > 0
 }
 
 func (cm ChatMember) IsRestActive(now time.Time) bool {

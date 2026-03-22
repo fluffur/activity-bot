@@ -8,19 +8,76 @@ import (
 	"time"
 )
 
+func StatusTitle(status int16, count int) string {
+	if count == 1 {
+		switch status {
+		case 1:
+			return "Младший модератор"
+		case 2:
+			return "Старший модератор"
+		case 3:
+			return "Администратор"
+		case 4:
+			return "Совладелец"
+		case 5:
+			return "Владелец"
+		default:
+			return "Неизвестный"
+		}
+	}
+
+	switch status {
+	case 1:
+		return "Младшие модераторы"
+	case 2:
+		return "Старшие модераторы"
+	case 3:
+		return "Администраторы"
+	case 4:
+		return "Совладельцы"
+	case 5:
+		return "Владельцы"
+	default:
+		return "Неизвестные"
+	}
+}
 func FormatAdminsList(admins []model.ChatMember) string {
 	var sb strings.Builder
-	sb.WriteString("👮 Администраторы бота:\n")
-	for i, a := range admins {
-		sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, helpers.RoleEmojiLink(a)))
+
+	categories := map[int16][]model.ChatMember{}
+
+	for _, a := range admins {
+		if !a.LeftAt.IsZero() {
+			continue
+		}
+		categories[a.Status] = append(categories[a.Status], a)
 	}
+
+	sb.WriteString("👮 Администраторы бота:\n")
+
+	order := []int16{5, 4, 3, 2, 1}
+
+	for _, status := range order {
+		members := categories[status]
+		if len(members) == 0 {
+			continue
+		}
+
+		sb.WriteString("\n" + StatusTitle(status, len(members)) + ":\n")
+
+		for i, m := range members {
+			sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, helpers.RoleEmojiLink(m)))
+		}
+	}
+
 	return sb.String()
 }
 
-func FormatAdminAdded(user model.ChatMember) string {
-	return fmt.Sprintf("Участник %s %s администратором бота",
+func FormatAdminAdded(user model.ChatMember, status int16) string {
+	return fmt.Sprintf("Участнику %s %s ранг %d",
 		helpers.RoleEmojiLink(user),
 		helpers.Gendered(user.User.Gender, "назначен", "назначена"),
+		status,
 	)
 }
 
@@ -28,30 +85,6 @@ func FormatAdminRemoved(user model.ChatMember) string {
 	return fmt.Sprintf("%s %s из администраторов бота",
 		helpers.RoleEmojiLink(user),
 		helpers.Gendered(user.User.Gender, "удален", "удалена"),
-	)
-}
-
-func FormatDevelopersList(users []model.User, roles []string) string {
-	var sb strings.Builder
-	sb.WriteString("🛠 Разработчики бота:\n")
-	for i, u := range users {
-		sb.WriteString(fmt.Sprintf("\n%d. %s (%s)", i+1, helpers.UserLink(u), roles[i]))
-	}
-	return sb.String()
-}
-
-func FormatDeveloperAdded(user model.User, role string) string {
-	return fmt.Sprintf("Участник %s %s разработчиком бота с ролью %s",
-		helpers.UserLink(user),
-		helpers.Gendered(user.Gender, "назначен", "назначена"),
-		role,
-	)
-}
-
-func FormatDeveloperRemoved(user model.User) string {
-	return fmt.Sprintf("Участник %s %s из списка разработчиков",
-		helpers.UserLink(user),
-		helpers.Gendered(user.Gender, "удален", "удалена"),
 	)
 }
 

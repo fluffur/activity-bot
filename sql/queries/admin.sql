@@ -1,43 +1,16 @@
--- name: AddChatAdmin :exec
+-- name: SetChatMemberStatus :exec
 UPDATE chat_members
-SET status = 'administrator'
-WHERE chat_id = $1
-  AND user_id = $2;
-
--- name: RemoveChatAdmin :exec
-UPDATE chat_members
-SET status = 'member'
-WHERE chat_id = $1
-  AND user_id = $2;
+SET status = $1
+WHERE chat_id = $2
+  AND user_id = $3;
 
 -- name: GetChatAdmins :many
 SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
-  AND cm.status IN ('administrator', 'creator')
+  AND cm.status > 0
 ORDER BY cm.joined_at;
-
--- name: IsChatAdmin :one
-SELECT EXISTS(SELECT 1
-              FROM chat_members
-              WHERE chat_id = $1
-                AND user_id = $2
-                AND status IN ('administrator', 'creator'));
-
--- name: IsChatCreator :one
-SELECT EXISTS(SELECT 1
-              FROM chat_members
-              WHERE chat_id = $1
-                AND user_id = $2
-                AND status = 'creator');
-
-
--- name: GetChatMemberStatus :one
-SELECT status
-FROM chat_members
-WHERE chat_id = $1
-  AND user_id = $2;
 
 -- name: GetMembersWithExpiredMute :many
 SELECT sqlc.embed(cm)

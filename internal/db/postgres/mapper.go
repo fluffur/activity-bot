@@ -55,15 +55,17 @@ func mapChats(chats []db.Chat) []model.Chat {
 
 func mapChatMember(m db.ChatMember) model.ChatMember {
 	return model.ChatMember{
-		ChatID: m.ChatID,
 		User: model.User{
 			ID: m.UserID,
 		},
+		ChatID:     m.ChatID,
 		RestUntil:  m.RestUntil.Time,
 		RestReason: m.RestReason.String,
 		Tag:        m.Tag.String,
 		Status:     m.Status,
 		Emoji:      m.Emoji.String,
+		JoinedAt:   m.JoinedAt.Time,
+		LeftAt:     m.LeftAt.Time,
 	}
 }
 
@@ -151,12 +153,4 @@ func mapApprovedRestRequest(rr db.RestRequest, cm db.ChatMember, u db.User) mode
 		RestRequest: mapRestRequest(rr),
 		ChatMember:  mapChatMemberFull(cm, u),
 	}
-}
-
-func mapApprovedRestRequests[T any](rows []T, mapper func(T) model.ApprovedRestRequest) []model.ApprovedRestRequest {
-	result := make([]model.ApprovedRestRequest, len(rows))
-	for i, row := range rows {
-		result[i] = mapper(row)
-	}
-	return result
 }

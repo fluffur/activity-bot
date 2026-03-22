@@ -18,21 +18,15 @@ func NewAdminRepository(queries *db.Queries) admin.Repository {
 	return &AdminRepository{queries}
 }
 
-func (r *AdminRepository) Add(ctx context.Context, chatID int64, userID int64) error {
-	return r.queries.AddChatAdmin(ctx, db.AddChatAdminParams{
+func (r *AdminRepository) SetStatus(ctx context.Context, chatID int64, userID int64, status int16) error {
+	return r.queries.SetChatMemberStatus(ctx, db.SetChatMemberStatusParams{
 		ChatID: chatID,
 		UserID: userID,
+		Status: status,
 	})
 }
 
-func (r *AdminRepository) Remove(ctx context.Context, chatID int64, userID int64) error {
-	return r.queries.RemoveChatAdmin(ctx, db.RemoveChatAdminParams{
-		ChatID: chatID,
-		UserID: userID,
-	})
-}
-
-func (r *AdminRepository) GetFromChat(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
+func (r *AdminRepository) GetAdmins(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
 	rows, err := r.queries.GetChatAdmins(ctx, chatID)
 	if err != nil {
 		return nil, err
@@ -41,27 +35,6 @@ func (r *AdminRepository) GetFromChat(ctx context.Context, chatID int64) ([]mode
 	return mapMembers(rows, func(row db.GetChatAdminsRow) model.ChatMember {
 		return mapChatMemberFull(row.ChatMember, row.User)
 	}), nil
-}
-
-func (r *AdminRepository) IsAdmin(ctx context.Context, chatID int64, userID int64) (bool, error) {
-	return r.queries.IsChatAdmin(ctx, db.IsChatAdminParams{
-		ChatID: chatID,
-		UserID: userID,
-	})
-}
-
-func (r *AdminRepository) IsCreator(ctx context.Context, chatID int64, userID int64) (bool, error) {
-	return r.queries.IsChatCreator(ctx, db.IsChatCreatorParams{
-		ChatID: chatID,
-		UserID: userID,
-	})
-}
-
-func (r *AdminRepository) GetRole(ctx context.Context, chatID int64, userID int64) (string, error) {
-	return r.queries.GetChatMemberStatus(ctx, db.GetChatMemberStatusParams{
-		ChatID: chatID,
-		UserID: userID,
-	})
 }
 
 func (r *AdminRepository) CreateModerationAction(ctx context.Context, actionType string, chatID, userID, modID int64, reason string, until *time.Time) error {
@@ -147,63 +120,6 @@ func (r *AdminRepository) RemoveLatestWarn(ctx context.Context, chatID, userID i
 
 func (r *AdminRepository) EnsureDeveloperUser(ctx context.Context, userID int64) error {
 	return r.queries.EnsureDeveloperUser(ctx, userID)
-}
-
-func (r *AdminRepository) GetDeveloperRole(ctx context.Context, chatID, userID int64) (string, error) {
-	dev, err := r.queries.GetDeveloper(ctx, db.GetDeveloperParams{
-		UserID: userID,
-		ChatID: chatID,
-	})
-	if err != nil {
-		return "", err
-	}
-	return dev.Role, nil
-}
-
-func (r *AdminRepository) SetDeveloperRole(ctx context.Context, chatID, userID int64, role string) error {
-	return r.queries.SetDeveloper(ctx, db.SetDeveloperParams{
-		UserID: userID,
-		ChatID: chatID,
-		Role:   role,
-	})
-}
-
-func (r *AdminRepository) RemoveDeveloperRole(ctx context.Context, chatID, userID int64) error {
-	return r.queries.RemoveDeveloper(ctx, db.RemoveDeveloperParams{
-		UserID: userID,
-		ChatID: chatID,
-	})
-}
-
-func (r *AdminRepository) IsDeveloper(ctx context.Context, chatID, userID int64) (bool, error) {
-	return r.queries.IsDeveloper(ctx, db.IsDeveloperParams{
-		UserID: userID,
-		ChatID: chatID,
-	})
-}
-
-func (r *AdminRepository) GetAllDevelopers(ctx context.Context, chatID int64) ([]model.User, []string, error) {
-	rows, err := r.queries.GetAllDevelopers(ctx, chatID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	users := make([]model.User, len(rows))
-	roles := make([]string, len(rows))
-	for i, row := range rows {
-		users[i] = model.User{
-			ID:        row.UserID,
-			FirstName: row.FirstName.String,
-			LastName:  row.LastName.String,
-			Username:  row.Username.String,
-		}
-		roles[i] = row.Role
-	}
-	return users, roles, nil
-}
-
-func (r *AdminRepository) GetDevelopersCount(ctx context.Context, chatID int64) (int64, error) {
-	return r.queries.GetDevelopersCount(ctx, chatID)
 }
 
 func (r *AdminRepository) GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]model.Warn, error) {

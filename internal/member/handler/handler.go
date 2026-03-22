@@ -112,12 +112,6 @@ func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *cmd.Context) error {
 		if err := limiter.Wait(ctx.StdContext()); err != nil {
 			return err
 		}
-		if m.Status == "creator" {
-			continue
-		}
-		if m.Status == "administrator" {
-			continue
-		}
 
 		if ok, err := b.PromoteChatMember(targetChatID, m.User.ID, &gotgbot.PromoteChatMemberOpts{
 			CanManageChat:   true,
@@ -322,7 +316,7 @@ func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if m == nil {
 		return cmd.ErrNoUser
 	}
-	if m.Status == "creator" && m.User.ID != ctx.EffectiveSender.Id() {
+	if m.Status == 5 && m.User.ID != ctx.EffectiveSender.Id() {
 		return ctx.ReplyHTML(b, "Нельзя поменять значок владельцу")
 	}
 	emojis := ctx.HTML()
@@ -343,7 +337,7 @@ func (h *Handler) RemoveEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if m == nil {
 		return cmd.ErrNoUser
 	}
-	if m.Status == "creator" && m.User.ID != ctx.EffectiveSender.Id() {
+	if m.Status == 5 && m.User.ID != ctx.EffectiveSender.Id() {
 		return ctx.ReplyHTML(b, "Нельзя поменять значок владельцу")
 	}
 	if err := h.service.SetChatMemberEmoji(ctx.StdContext(), ctx.TargetChatID(), m.User.ID, ""); err != nil {

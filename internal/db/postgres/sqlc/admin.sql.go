@@ -9,29 +9,12 @@ import (
 	"context"
 )
 
-const addChatAdmin = `-- name: AddChatAdmin :exec
-UPDATE chat_members
-SET status = 'administrator'
-WHERE chat_id = $1
-  AND user_id = $2
-`
-
-type AddChatAdminParams struct {
-	ChatID int64 `db:"chat_id" json:"chatId"`
-	UserID int64 `db:"user_id" json:"userId"`
-}
-
-func (q *Queries) AddChatAdmin(ctx context.Context, arg AddChatAdminParams) error {
-	_, err := q.db.Exec(ctx, addChatAdmin, arg.ChatID, arg.UserID)
-	return err
-}
-
 const getChatAdmins = `-- name: GetChatAdmins :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason, cm.emoji, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
-  AND cm.status IN ('administrator', 'creator')
+  AND cm.status > 0
 ORDER BY cm.joined_at
 `
 
@@ -55,10 +38,10 @@ func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdm
 			&i.ChatMember.JoinedAt,
 			&i.ChatMember.RestUntil,
 			&i.ChatMember.Tag,
-			&i.ChatMember.Status,
 			&i.ChatMember.LeftAt,
 			&i.ChatMember.RestReason,
 			&i.ChatMember.Emoji,
+			&i.ChatMember.Status,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,
@@ -78,27 +61,8 @@ func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdm
 	return items, nil
 }
 
-const getChatMemberStatus = `-- name: GetChatMemberStatus :one
-SELECT status
-FROM chat_members
-WHERE chat_id = $1
-  AND user_id = $2
-`
-
-type GetChatMemberStatusParams struct {
-	ChatID int64 `db:"chat_id" json:"chatId"`
-	UserID int64 `db:"user_id" json:"userId"`
-}
-
-func (q *Queries) GetChatMemberStatus(ctx context.Context, arg GetChatMemberStatusParams) (string, error) {
-	row := q.db.QueryRow(ctx, getChatMemberStatus, arg.ChatID, arg.UserID)
-	var status string
-	err := row.Scan(&status)
-	return status, err
-}
-
 const getMembersWithExpiredMute = `-- name: GetMembersWithExpiredMute :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.status, cm.left_at, cm.rest_reason, cm.emoji
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status
 FROM moderation_actions ma
          JOIN chat_members cm ON ma.chat_id = cm.chat_id AND ma.user_id = cm.user_id
 WHERE ma.type = 'mute'
@@ -125,10 +89,10 @@ func (q *Queries) GetMembersWithExpiredMute(ctx context.Context) ([]GetMembersWi
 			&i.ChatMember.JoinedAt,
 			&i.ChatMember.RestUntil,
 			&i.ChatMember.Tag,
-			&i.ChatMember.Status,
 			&i.ChatMember.LeftAt,
 			&i.ChatMember.RestReason,
 			&i.ChatMember.Emoji,
+			&i.ChatMember.Status,
 		); err != nil {
 			return nil, err
 		}
@@ -140,59 +104,20 @@ func (q *Queries) GetMembersWithExpiredMute(ctx context.Context) ([]GetMembersWi
 	return items, nil
 }
 
-const isChatAdmin = `-- name: IsChatAdmin :one
-SELECT EXISTS(SELECT 1
-              FROM chat_members
-              WHERE chat_id = $1
-                AND user_id = $2
-                AND status IN ('administrator', 'creator'))
-`
-
-type IsChatAdminParams struct {
-	ChatID int64 `db:"chat_id" json:"chatId"`
-	UserID int64 `db:"user_id" json:"userId"`
-}
-
-func (q *Queries) IsChatAdmin(ctx context.Context, arg IsChatAdminParams) (bool, error) {
-	row := q.db.QueryRow(ctx, isChatAdmin, arg.ChatID, arg.UserID)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const isChatCreator = `-- name: IsChatCreator :one
-SELECT EXISTS(SELECT 1
-              FROM chat_members
-              WHERE chat_id = $1
-                AND user_id = $2
-                AND status = 'creator')
-`
-
-type IsChatCreatorParams struct {
-	ChatID int64 `db:"chat_id" json:"chatId"`
-	UserID int64 `db:"user_id" json:"userId"`
-}
-
-func (q *Queries) IsChatCreator(ctx context.Context, arg IsChatCreatorParams) (bool, error) {
-	row := q.db.QueryRow(ctx, isChatCreator, arg.ChatID, arg.UserID)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const removeChatAdmin = `-- name: RemoveChatAdmin :exec
+const setChatMemberStatus = `-- name: SetChatMemberStatus :exec
 UPDATE chat_members
-SET status = 'member'
-WHERE chat_id = $1
-  AND user_id = $2
+SET status = $1
+WHERE chat_id = $2
+  AND user_id = $3
 `
 
-type RemoveChatAdminParams struct {
+type SetChatMemberStatusParams struct {
+	Status int16 `db:"status" json:"status"`
 	ChatID int64 `db:"chat_id" json:"chatId"`
 	UserID int64 `db:"user_id" json:"userId"`
 }
 
-func (q *Queries) RemoveChatAdmin(ctx context.Context, arg RemoveChatAdminParams) error {
-	_, err := q.db.Exec(ctx, removeChatAdmin, arg.ChatID, arg.UserID)
+func (q *Queries) SetChatMemberStatus(ctx context.Context, arg SetChatMemberStatusParams) error {
+	_, err := q.db.Exec(ctx, setChatMemberStatus, arg.Status, arg.ChatID, arg.UserID)
 	return err
 }

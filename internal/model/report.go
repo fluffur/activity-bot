@@ -10,7 +10,7 @@ type MessageReportMember struct {
 	NormWarn            int
 	NormBan             int
 	NewbieThresholdDays int
-	Status              string
+	Status              int16
 	Tag                 string
 	JoinedAt            time.Time
 }
@@ -37,7 +37,7 @@ type MemberStats struct {
 	JoinedAt        time.Time
 	RestUntil       time.Time
 	NewbieThreshold int
-	Status          string
+	Status          int16
 	Tag             string
 	LeftAt          time.Time
 }

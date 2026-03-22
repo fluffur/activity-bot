@@ -112,7 +112,7 @@ func (r *MemberRepository) UpdateCustomTitle(ctx context.Context, chatID int64, 
 
 }
 
-func (r *MemberRepository) UpdateStatus(ctx context.Context, chatID int64, userID int64, status string) error {
+func (r *MemberRepository) UpdateStatus(ctx context.Context, chatID int64, userID int64, status int16) error {
 	return r.queries.UpdateMemberStatus(ctx, db.UpdateMemberStatusParams{
 		ChatID: chatID,
 		UserID: userID,
@@ -161,7 +161,7 @@ func (r *MemberRepository) GetAnyWithCustomTitles(ctx context.Context, chatID in
 func (r *MemberRepository) UpsertChatMembers(ctx context.Context, chatID int64, users []model.ChatMemberUpdate) error {
 	userIDs := make([]int64, len(users))
 	tags := make([]string, len(users))
-	statuses := make([]string, len(users))
+	statuses := make([]int16, len(users))
 	for i, u := range users {
 		userIDs[i] = u.User.ID
 		tags[i] = u.Tag
@@ -195,7 +195,7 @@ func (r *MemberRepository) Remove(ctx context.Context, chatID int64, userID int6
 	})
 }
 
-func (r *MemberRepository) EnsureExists(ctx context.Context, chatID int64, userID int64, status string) (model.ChatMember, error) {
+func (r *MemberRepository) EnsureExists(ctx context.Context, chatID int64, userID int64, status int16) (model.ChatMember, error) {
 	m, err := r.queries.EnsureChatMemberExists(ctx, db.EnsureChatMemberExistsParams{
 		ChatID: chatID,
 		UserID: userID,
@@ -268,10 +268,7 @@ func (r *MemberRepository) SetNewbies(ctx context.Context, chatID int64, users [
 func (r *MemberRepository) FindByCustomTitle(ctx context.Context, chatID int64, tag string) (model.ChatMember, error) {
 	m, err := r.queries.FindChatMemberByCustomTitle(ctx, db.FindChatMemberByCustomTitleParams{
 		ChatID: chatID,
-		Tag: pgtype.Text{
-			String: tag,
-			Valid:  tag != "",
-		},
+		Tag:    tag,
 	})
 	if err != nil {
 		return model.ChatMember{}, err
