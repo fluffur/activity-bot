@@ -53,17 +53,15 @@ func FormatAdminsList(admins []model.ChatMember) string {
 		categories[a.Status] = append(categories[a.Status], a)
 	}
 
-	sb.WriteString("👮 Администраторы бота:\n")
-
-	order := []int16{5, 4, 3, 2, 1}
-
-	for _, status := range order {
+	order := [5]int16{5, 4, 3, 2, 1}
+	orderCustomEmojis := [5]int64{5258432055103991193, 5260268737738581704, 5260306546335690159, 5260274901016650206, 5260736442497247998}
+	for i, status := range order {
 		members := categories[status]
 		if len(members) == 0 {
 			continue
 		}
 
-		sb.WriteString("\n" + StatusTitle(status, len(members)) + ":\n")
+		sb.WriteString("\n" + helpers.CustomEmoji(orderCustomEmojis[i], "⭐️") + " " + StatusTitle(status, len(members)) + ":\n")
 
 		for i, m := range members {
 			sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, helpers.RoleEmojiLink(m)))
