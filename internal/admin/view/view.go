@@ -67,7 +67,7 @@ func FormatAdminsList(admins []model.ChatMember) string {
 		}
 	}
 
-	return sb.String()
+	return sb.String() + "\n\nЧтобы добавить администратора, напишите <code>+mod @участник</code>"
 }
 
 func FormatAdminAdded(user model.ChatMember, status int16) string {
