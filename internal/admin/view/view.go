@@ -12,9 +12,9 @@ func StatusTitle(status int16, count int) string {
 	if count == 1 {
 		switch status {
 		case 1:
-			return "Младший модератор"
+			return "Модератор"
 		case 2:
-			return "Старший модератор"
+			return "Младший администратор"
 		case 3:
 			return "Администратор"
 		case 4:
@@ -28,9 +28,9 @@ func StatusTitle(status int16, count int) string {
 
 	switch status {
 	case 1:
-		return "Младшие модераторы"
+		return "Модераторы"
 	case 2:
-		return "Старшие модераторы"
+		return "Младшие дминистраторы"
 	case 3:
 		return "Администраторы"
 	case 4:
@@ -54,14 +54,13 @@ func FormatAdminsList(admins []model.ChatMember) string {
 	}
 
 	order := [5]int16{5, 4, 3, 2, 1}
-	orderCustomEmojis := [5]int64{5258432055103991193, 5260268737738581704, 5260306546335690159, 5260274901016650206, 5260736442497247998}
-	for i, status := range order {
+	for _, status := range order {
 		members := categories[status]
 		if len(members) == 0 {
 			continue
 		}
 
-		sb.WriteString("\n" + helpers.CustomEmoji(orderCustomEmojis[i], "⭐️") + " " + StatusTitle(status, len(members)) + ":\n")
+		sb.WriteString("\n" + helpers.StatusEmoji(status) + " " + StatusTitle(status, len(members)) + "\n")
 
 		for i, m := range members {
 			sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, helpers.RoleEmojiLink(m)))

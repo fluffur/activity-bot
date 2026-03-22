@@ -42,3 +42,18 @@ func TranslateMemberStatusNoLeft(status int16) string {
 	}
 	return "Неизвестно"
 }
+
+func StatusEmoji(status int16) string {
+	customEmojis := []string{
+		CustomEmoji(5224390118546101411, "0️⃣"),
+		CustomEmoji(5224473711494581672, "1️⃣"),
+		CustomEmoji(5224251017440285983, "2️⃣"),
+		CustomEmoji(5224414625629492488, "3️⃣"),
+		CustomEmoji(5224667831131460953, "4️⃣"),
+		CustomEmoji(5224483718768384409, "5️⃣"),
+	}
+	if status < 0 || status > 5 {
+		return ""
+	}
+	return customEmojis[status]
+}

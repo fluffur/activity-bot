@@ -45,7 +45,7 @@ func FormatProfile(m model.MemberStats) string {
 		helpers.CustomEmoji(5316727448644103237, "👤"),
 		helpers.RoleEmojiLink(m.ChatMember),
 		status,
-		getStatusEmoji(m.Status),
+		helpers.StatusEmoji(m.Status),
 		helpers.Gendered(m.ChatMember.User.Gender, "зашел", "зашла"),
 		helpers.FormatLastSeen(m.JoinedAt),
 		newbieEmoji,
@@ -87,18 +87,6 @@ func FormatProfile(m model.MemberStats) string {
 	}
 
 	return text
-}
-
-func getStatusEmoji(status int16) string {
-	switch status {
-	case 0:
-		return helpers.CustomEmoji(5298673841378191838, "🤓")
-	case 4:
-		return helpers.CustomEmoji(5296305123964773541, "💀")
-	case 5:
-		return helpers.CustomEmoji(5298512178809168321, "😎")
-	}
-	return helpers.CustomEmoji(5298532506889382420, "😭")
 }
 
 func getNormStatusEmoji(weekCount, normWarn, normBan int, isRestActive, isNewbie bool) string {
