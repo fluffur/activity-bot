@@ -69,7 +69,11 @@ func (s *Service) UpdateChatMembers(ctx context.Context, chatID int64, members [
 	if err := s.repo.ResetCreators(ctx, chatID); err != nil {
 		return fmt.Errorf("failed to reset creators: %w", err)
 	}
-	return fmt.Errorf("failed to upsert chat mebmers: %w", s.repo.UpsertChatMembers(ctx, chatID, members))
+	if err := s.repo.UpsertChatMembers(ctx, chatID, members); err != nil {
+		return fmt.Errorf("failed to upsert members: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Service) ProcessLeftMember(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error) {
