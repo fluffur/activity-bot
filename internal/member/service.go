@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -53,7 +54,7 @@ func (s *Service) GetChatMembers(ctx context.Context, chatID int64) ([]model.Cha
 
 func (s *Service) UpdateChatMembers(ctx context.Context, chatID int64, members []model.ChatMemberUpdate) error {
 	if _, err := s.chatRepo.Ensure(ctx, model.Chat{ID: chatID}); err != nil {
-		return err
+		return fmt.Errorf("failed to ensure chat: %w", err)
 	}
 
 	users := make([]model.User, len(members))
@@ -65,7 +66,10 @@ func (s *Service) UpdateChatMembers(ctx context.Context, chatID int64, members [
 		return err
 	}
 
-	return s.repo.UpsertChatMembers(ctx, chatID, members)
+	if err := s.repo.ResetCreators(ctx, chatID); err != nil {
+		return fmt.Errorf("failed to reset creators: %w", err)
+	}
+	return fmt.Errorf("failed to upsert chat mebmers: %w", s.repo.UpsertChatMembers(ctx, chatID, members))
 }
 
 func (s *Service) ProcessLeftMember(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error) {

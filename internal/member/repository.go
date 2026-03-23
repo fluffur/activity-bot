@@ -31,4 +31,5 @@ type Repository interface {
 	FindByCustomTitle(ctx context.Context, chatID int64, tag string) (model.ChatMember, error)
 	GetByUsername(ctx context.Context, chatID int64, username string) (model.ChatMember, error)
 	SetEmoji(ctx context.Context, chatID, userID int64, emoji string) error
+	ResetCreators(ctx context.Context, chatID int64) error
 }

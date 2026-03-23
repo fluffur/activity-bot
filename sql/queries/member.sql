@@ -103,6 +103,13 @@ ON CONFLICT (chat_id, user_id) DO UPDATE
         left_at = NULL
 RETURNING *;
 
+-- name: ResetChatMemberCreators :exec
+UPDATE chat_members
+SET status = 0
+WHERE chat_id = @chat_id
+  AND status = 5;
+
+
 -- name: UpsertChatMembers :exec
 INSERT INTO chat_members(chat_id, user_id, tag, status)
 SELECT @chat_id, UNNEST(@user_ids::BIGINT[]), UNNEST(@tags::TEXT[]), UNNEST(@statuses::SMALLINT[])
@@ -111,12 +118,7 @@ ON CONFLICT (chat_id, user_id) DO UPDATE SET tag     = CASE
                                                                THEN EXCLUDED.tag
                                                            ELSE chat_members.tag
     END,
-                                             status  = CASE
-                                                           WHEN EXCLUDED.status = 5 THEN 5
-                                                           WHEN chat_members.status = 4
-                                                               THEN 4
-                                                           ELSE EXCLUDED.status
-                                                 END,
+                                             status  = GREATEST(EXCLUDED.status, chat_members.status),
                                              left_at = NULL
 ;
 

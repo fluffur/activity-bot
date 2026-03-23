@@ -578,6 +578,18 @@ func (q *Queries) MoveChatMembersToOldExcept(ctx context.Context, arg MoveChatMe
 	return err
 }
 
+const resetChatMemberCreators = `-- name: ResetChatMemberCreators :exec
+UPDATE chat_members
+SET status = 0
+WHERE chat_id = $1
+  AND status = 5
+`
+
+func (q *Queries) ResetChatMemberCreators(ctx context.Context, chatID int64) error {
+	_, err := q.db.Exec(ctx, resetChatMemberCreators, chatID)
+	return err
+}
+
 const setChatMemberEmoji = `-- name: SetChatMemberEmoji :exec
 UPDATE chat_members
 SET emoji = $1
@@ -640,12 +652,7 @@ ON CONFLICT (chat_id, user_id) DO UPDATE SET tag     = CASE
                                                                THEN EXCLUDED.tag
                                                            ELSE chat_members.tag
     END,
-                                             status  = CASE
-                                                           WHEN EXCLUDED.status = 5 THEN 5
-                                                           WHEN chat_members.status = 4
-                                                               THEN 4
-                                                           ELSE EXCLUDED.status
-                                                 END,
+                                             status  = GREATEST(EXCLUDED.status, chat_members.status),
                                              left_at = NULL
 `
 
