@@ -427,7 +427,7 @@ func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
-	if !m.IsAdmin() && h.adminService.OwnerID() != m.User.ID {
+	if !m.IsStatus(model.StatusModerator) && h.adminService.OwnerID() != m.User.ID {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text:      "У вас больше нет прав администратора в этом чате",
 			ShowAlert: true,

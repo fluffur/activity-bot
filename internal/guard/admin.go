@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
+	"activity-bot/internal/model"
 	"context"
 	"fmt"
 
@@ -17,10 +18,10 @@ type SessionService interface {
 type AdminGuard struct {
 	service        *member.Service
 	sessionService SessionService
-	status         int16
+	status         model.Status
 }
 
-func NewStatusGuard(service *member.Service, sessionService SessionService, status int16) cmd.Guard {
+func NewStatusGuard(service *member.Service, sessionService SessionService, status model.Status) cmd.Guard {
 	return &AdminGuard{service, sessionService, status}
 }
 

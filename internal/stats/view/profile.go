@@ -23,7 +23,7 @@ func FormatProfile(m model.MemberStats, full bool) string {
 		newbieEmoji = " " + helpers.NewbieEmoji()
 	}
 
-	status := helpers.TranslateMemberStatus(m.Status, m.LeftAt)
+	status := helpers.TranslateMemberStatus(model.Status(m.Status), m.LeftAt)
 	leftAtInfo := ""
 	if !m.LeftAt.IsZero() {
 		leftAtInfo = ", покинул чат " + helpers.FormatLastSeen(m.LeftAt)
@@ -64,7 +64,7 @@ func FormatProfile(m model.MemberStats, full bool) string {
 		helpers.CustomEmoji(5316727448644103237, "👤"),
 		helpers.RoleEmojiLink(m.ChatMember),
 		status,
-		helpers.StatusEmoji(m.Status),
+		helpers.StatusEmoji(model.Status(m.Status)),
 		helpers.Gendered(m.ChatMember.User.Gender, "зашел", "зашла"),
 		helpers.FormatLastSeen(m.JoinedAt),
 		newbieEmoji,

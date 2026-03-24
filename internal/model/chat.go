@@ -23,13 +23,24 @@ type Chat struct {
 	WeekStartTime       string
 }
 
+type Status int16
+
+const (
+	StatusMember Status = iota
+	StatusModerator
+	StatusAdmin
+	StatusSeniorAdmin
+	StatusCoOwner
+	StatusOwner
+)
+
 type ChatMember struct {
 	User       User
 	ChatID     int64
 	RestUntil  time.Time
 	RestReason string
 	Tag        string
-	Status     int16
+	Status     Status
 	Emoji      string
 	JoinedAt   time.Time
 	LeftAt     time.Time
@@ -39,8 +50,8 @@ func (cm ChatMember) CanModerate(c ChatMember) bool {
 	return cm.Status > c.Status
 }
 
-func (cm ChatMember) IsAdmin() bool {
-	return cm.Status >= 3
+func (cm ChatMember) IsStatus(s Status) bool {
+	return s == cm.Status
 }
 
 func (cm ChatMember) IsRestActive(now time.Time) bool {

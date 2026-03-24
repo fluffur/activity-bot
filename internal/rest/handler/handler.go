@@ -63,7 +63,7 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "Нельзя указывать прошедшую дату", nil)
 	}
 
-	if !mod.IsAdmin() {
+	if !mod.IsStatus(model.StatusModerator) {
 		return h.createRequest(b, ctx, m, date)
 	}
 
@@ -144,7 +144,7 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
-	if m.User.ID != mod.User.ID && !mod.IsAdmin() {
+	if m.User.ID != mod.User.ID && !mod.IsStatus(model.StatusModerator) {
 		return ctx.Reply(b, "Вы можете удалить из реста только себя", nil)
 	}
 
@@ -177,7 +177,7 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
-	if !mod.IsAdmin() {
+	if !mod.IsStatus(model.StatusModerator) {
 		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Подтвердить запрос может только администратор",
 		})
@@ -224,7 +224,7 @@ func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
-	if restRequest.UserID != ctx.EffectiveSender.Id() && !mod.IsAdmin() {
+	if restRequest.UserID != ctx.EffectiveSender.Id() && !mod.IsStatus(model.StatusModerator) {
 		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Отклонить запрос может только администратор или заявитель реста",
 		})

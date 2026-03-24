@@ -62,7 +62,7 @@ func mapChatMember(m db.ChatMember) model.ChatMember {
 		RestUntil:  m.RestUntil.Time,
 		RestReason: m.RestReason.String,
 		Tag:        m.Tag.String,
-		Status:     m.Status,
+		Status:     model.Status(m.Status),
 		Emoji:      m.Emoji.String,
 		JoinedAt:   m.JoinedAt.Time,
 		LeftAt:     m.LeftAt.Time,
@@ -122,7 +122,7 @@ func mapInactiveChatMembersRow(m db.InactiveChatMembersRow) model.ChatMember {
 	return model.ChatMember{
 		User:      res,
 		Tag:       m.Tag.String,
-		Status:    m.Status,
+		Status:    model.Status(m.Status),
 		RestUntil: m.RestUntil.Time,
 	}
 }

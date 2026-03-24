@@ -9,7 +9,6 @@ import (
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
-	"activity-bot/internal/user"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,15 +24,14 @@ import (
 
 type Handler struct {
 	service       *admin.Service
-	userService   *user.Service
 	memberService *member.Service
 	chatService   *chat.Service
 	dateParser    *helpers.DateParser
 	asyncClient   *asynq.Client
 }
 
-func New(service *admin.Service, userService *user.Service, memberService *member.Service, chatService *chat.Service, dateParser *helpers.DateParser, asyncClient *asynq.Client) *Handler {
-	return &Handler{service, userService, memberService, chatService, dateParser, asyncClient}
+func New(service *admin.Service, memberService *member.Service, chatService *chat.Service, dateParser *helpers.DateParser, asyncClient *asynq.Client) *Handler {
+	return &Handler{service, memberService, chatService, dateParser, asyncClient}
 }
 
 func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -51,13 +49,13 @@ func (h *Handler) SetStatus(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.Reply(b, "Вы забыли указать участника, которого хотите сделать админом, либо он был не найден в чате", nil)
 	}
 
-	var status int16 = 3
+	var status model.Status = 3
 	if arg := ctx.FirstArgument(); arg != "" {
 		result, err := strconv.Atoi(arg)
 		if err != nil || result < 1 || result > 5 {
 			return ctx.ReplyHTML(b, "Некорреткно указан статус, нужно число в диапозоне от 1 до 5")
 		}
-		status = int16(result)
+		status = model.Status(result)
 	}
 
 	if err := h.service.SetStatus(ctx.StdContext(), *m, status); err != nil {
@@ -488,7 +486,7 @@ func (h *Handler) ToggleRights(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	status := int16(s)
+	status := model.Status(s)
 	if err := h.service.SetStatus(ctx.StdContext(), *m, status); err != nil {
 		return fmt.Errorf("failed to set dev status: %w", err)
 	}

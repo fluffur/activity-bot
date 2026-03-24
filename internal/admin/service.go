@@ -49,7 +49,7 @@ func (s *Service) OwnerID() int64 {
 	return s.ownerID
 }
 
-func (s *Service) SetStatus(ctx context.Context, m model.ChatMember, status int16) error {
+func (s *Service) SetStatus(ctx context.Context, m model.ChatMember, status model.Status) error {
 	if m.Status == status {
 		return ErrUserIsAlreadyAdmin
 	}
@@ -65,10 +65,10 @@ func (s *Service) SetStatus(ctx context.Context, m model.ChatMember, status int1
 		}
 	}
 
-	return s.repo.SetStatus(ctx, m.ChatID, m.User.ID, status)
+	return s.repo.SetStatus(ctx, m.ChatID, m.User.ID, int16(status))
 }
 
-func (s *Service) CheckStatus(ctx context.Context, chatID, userID int64, status int16) (bool, error) {
+func (s *Service) CheckStatus(ctx context.Context, chatID, userID int64, status model.Status) (bool, error) {
 	m, err := s.memberRepo.Get(ctx, chatID, userID)
 	if err != nil {
 		return false, err

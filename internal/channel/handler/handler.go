@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/member"
+	"activity-bot/internal/model"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/hibiken/asynq"
@@ -57,7 +58,7 @@ func (h *Handler) Unsubscribe(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
-	if !m.IsAdmin() {
+	if !m.IsStatus(model.StatusCoOwner) {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "У вас нет прав адмниистратора для этого",
 		})

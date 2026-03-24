@@ -44,7 +44,7 @@ func StatusTitle(status int16, count int) string {
 func FormatAdminsList(admins []model.ChatMember) string {
 	var sb strings.Builder
 
-	categories := map[int16][]model.ChatMember{}
+	categories := map[model.Status][]model.ChatMember{}
 
 	for _, a := range admins {
 		if !a.LeftAt.IsZero() {
@@ -55,12 +55,12 @@ func FormatAdminsList(admins []model.ChatMember) string {
 
 	order := [5]int16{5, 4, 3, 2, 1}
 	for _, status := range order {
-		members := categories[status]
+		members := categories[model.Status(status)]
 		if len(members) == 0 {
 			continue
 		}
 
-		sb.WriteString("\n" + helpers.StatusEmoji(status) + " " + StatusTitle(status, len(members)) + "\n")
+		sb.WriteString("\n" + helpers.StatusEmoji(model.Status(status)) + " " + StatusTitle(status, len(members)) + "\n")
 
 		for i, m := range members {
 			sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, helpers.RoleEmojiLink(m)))
@@ -70,7 +70,7 @@ func FormatAdminsList(admins []model.ChatMember) string {
 	return sb.String() + "\nЧтобы добавить, напишите <code>+mod @участник [0-5]</code>"
 }
 
-func FormatAdminAdded(user model.ChatMember, status int16) string {
+func FormatAdminAdded(user model.ChatMember, status model.Status) string {
 	return fmt.Sprintf("Участнику %s %s ранг %d",
 		helpers.RoleEmojiLink(user),
 		helpers.Gendered(user.User.Gender, "назначен", "назначена"),

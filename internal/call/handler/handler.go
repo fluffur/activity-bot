@@ -88,9 +88,9 @@ func (h *Handler) adminCallback(
 		return err
 	}
 
-	if !m.IsAdmin() {
+	if !m.IsStatus(model.StatusModerator) {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text: "Требуются права администратора",
+			Text: fmt.Sprintf("%d Требуются права администратора", m.Status),
 		})
 		return err
 	}
@@ -345,7 +345,7 @@ func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	if !m.IsAdmin() {
+	if !m.IsStatus(model.StatusSeniorAdmin) {
 		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "У вас нет прав администратора для выполнения действия",
 		})
@@ -503,7 +503,7 @@ func (h *Handler) startCallConversation(
 		return err
 	}
 
-	if !m.IsAdmin() {
+	if !m.IsStatus(model.StatusModerator) {
 		if ctx.CallbackQuery != nil {
 			_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 				Text:      "Требуются права администратора",

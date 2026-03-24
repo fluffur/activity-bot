@@ -1,49 +1,36 @@
 package helpers
 
-import "time"
+import (
+	"activity-bot/internal/model"
+	"time"
+)
 
-func TranslateMemberStatus(status int16, leftAt time.Time) string {
+func TranslateMemberStatus(status model.Status, leftAt time.Time) string {
 	if !leftAt.IsZero() {
 		return "Не в чате"
 	}
-	switch status {
-	case 0:
-		return "Участник"
-	case 1:
-		return "Младший модератор"
-	case 2:
-		return "Старший модератор"
-	case 3:
-		return "Администратор"
-	case 4:
-		return "Совладелец"
-	case 5:
-		return "Владелец"
+	return TranslateMemberStatusNoLeft(status)
+}
 
+func TranslateMemberStatusNoLeft(status model.Status) string {
+	switch status {
+	case model.StatusMember:
+		return "Участник"
+	case model.StatusModerator:
+		return "Модератор"
+	case model.StatusAdmin:
+		return "Администратор"
+	case model.StatusSeniorAdmin:
+		return "Старший Администратор"
+	case model.StatusCoOwner:
+		return "Совладелец"
+	case model.StatusOwner:
+		return "Владелец"
 	}
 	return "Неизвестно"
 }
 
-func TranslateMemberStatusNoLeft(status int16) string {
-	switch status {
-	case 0:
-		return "Участник"
-	case 1:
-		return "Младший модератор"
-	case 2:
-		return "Старший модератор"
-	case 3:
-		return "Администратор"
-	case 4:
-		return "Совладелец"
-	case 5:
-		return "Владелец"
-
-	}
-	return "Неизвестно"
-}
-
-func StatusEmoji(status int16) string {
+func StatusEmoji(status model.Status) string {
 	customEmojis := []string{
 		CustomEmoji(5368832132158337100, "0️⃣"),
 		CustomEmoji(5366311523226496082, "1️⃣"),
