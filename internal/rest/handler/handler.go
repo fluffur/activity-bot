@@ -149,7 +149,7 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
-	if m.User.ID != mod.User.ID && !mod.IsStatus(model.StatusModerator) {
+	if m.User.ID != mod.User.ID && !mod.StatusGranted(model.StatusModerator) {
 		return ctx.Reply(b, "Вы можете удалить из реста только себя", nil)
 	}
 

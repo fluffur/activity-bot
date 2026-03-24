@@ -58,7 +58,7 @@ func (h *Handler) Unsubscribe(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if err != nil {
 		return err
 	}
-	if !m.IsStatus(model.StatusCoOwner) {
+	if !m.StatusGranted(model.StatusCoOwner) {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "У вас нет прав адмниистратора для этого",
 		})

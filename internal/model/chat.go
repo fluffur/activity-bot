@@ -50,7 +50,7 @@ func (cm ChatMember) CanModerate(c ChatMember) bool {
 	return cm.Status > c.Status
 }
 
-func (cm ChatMember) IsStatus(s Status) bool {
+func (cm ChatMember) StatusGranted(s Status) bool {
 	return cm.Status >= s
 }
 
