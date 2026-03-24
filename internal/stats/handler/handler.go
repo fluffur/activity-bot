@@ -150,12 +150,6 @@ func (h *Handler) WhoAreUser(
 		InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
 			{
 				{
-					Text:         "📊 Показать график",
-					CallbackData: fmt.Sprintf("profile_graph:%d", userID),
-				},
-			},
-			{
-				{
 					Text:              "Вся активность",
 					CallbackData:      fmt.Sprintf("profile_activity:%d", userID),
 					IconCustomEmojiId: "5425112292683435471",
