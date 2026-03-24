@@ -1,40 +1,19 @@
 package model
 
-import (
-	"time"
-)
-
 type MessageReportMember struct {
-	ChatMember          ChatMember
-	MessagesCount       int
-	NormWarn            int
-	NormBan             int
-	NewbieThresholdDays int
-}
-
-type RestMember struct {
-	ChatMember ChatMember
-	RestUntil  time.Time
-	Status     string
-	Tag        string
+	ChatMember    ChatMember
+	Chat          Chat
+	MessagesCount int64
 }
 
 type MemberStats struct {
 	ChatMember        ChatMember
-	DayCount          int
-	DayRollingCount   int
-	WeekCount         int
-	WeekRollingCount  int
-	MonthCount        int
-	MonthRollingCount int
-	AllTime           int
-
-	NormBan         int
-	NormWarn        int
-	JoinedAt        time.Time
-	RestUntil       time.Time
-	NewbieThreshold int
-	Status          Status
-	Tag             string
-	LeftAt          time.Time
+	Chat              Chat
+	DayCount          int64
+	DayRollingCount   int64
+	WeekCount         int64
+	WeekRollingCount  int64
+	MonthCount        int64
+	MonthRollingCount int64
+	AllTime           int64
 }

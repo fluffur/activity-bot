@@ -193,9 +193,7 @@ const messageReport = `-- name: MessageReport :many
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status,
        u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
        COUNT(m.chat_id) AS messages_count,
-       c.norm_warn,
-       c.norm_ban,
-       c.newbie_threshold_days
+       c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
@@ -220,12 +218,10 @@ type MessageReportParams struct {
 }
 
 type MessageReportRow struct {
-	ChatMember          ChatMember  `db:"chat_member" json:"chatMember"`
-	User                User        `db:"user" json:"user"`
-	MessagesCount       int64       `db:"messages_count" json:"messagesCount"`
-	NormWarn            pgtype.Int4 `db:"norm_warn" json:"normWarn"`
-	NormBan             pgtype.Int4 `db:"norm_ban" json:"normBan"`
-	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
+	ChatMember    ChatMember `db:"chat_member" json:"chatMember"`
+	User          User       `db:"user" json:"user"`
+	MessagesCount int64      `db:"messages_count" json:"messagesCount"`
+	Chat          Chat       `db:"chat" json:"chat"`
 }
 
 func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([]MessageReportRow, error) {
@@ -256,9 +252,24 @@ func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([
 			&i.User.Emoji,
 			&i.User.CustomEmojiID,
 			&i.MessagesCount,
-			&i.NormWarn,
-			&i.NormBan,
-			&i.NewbieThresholdDays,
+			&i.Chat.ID,
+			&i.Chat.NormWarn,
+			&i.Chat.NewbieThresholdDays,
+			&i.Chat.AiSystemPrompt,
+			&i.Chat.MaxLadder,
+			&i.Chat.CallOnJoin,
+			&i.Chat.WelcomeCallMessage,
+			&i.Chat.WeekStartDay,
+			&i.Chat.MaxWarns,
+			&i.Chat.NormBan,
+			&i.Chat.CommandPrefix,
+			&i.Chat.AllowPrefixless,
+			&i.Chat.MentionsPerMessage,
+			&i.Chat.MentionTypes,
+			&i.Chat.Title,
+			&i.Chat.TagsEnabled,
+			&i.Chat.WeekStartTime,
+			&i.Chat.BroadcastEnabled,
 		); err != nil {
 			return nil, err
 		}
@@ -273,7 +284,7 @@ func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([
 const messageReportOne = `-- name: MessageReportOne :one
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status,
        u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
-
+       c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled,
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now())), 0)::bigint   AS day_count,
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day'),
                 0)::bigint                                                                             AS day_rolling_count,
@@ -293,11 +304,8 @@ SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, 
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('month', now())), 0)::bigint AS month_count,
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '30 days'),
                 0)::bigint                                                                             AS month_rolling_count,
-       COALESCE(COUNT(m.chat_id), 0)::bigint                                                           AS all_time_count,
+       COALESCE(COUNT(m.chat_id), 0)::bigint                                                           AS all_time_count
 
-       c.norm_ban,
-       c.norm_warn,
-       c.newbie_threshold_days
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
@@ -316,18 +324,16 @@ type MessageReportOneParams struct {
 }
 
 type MessageReportOneRow struct {
-	ChatMember          ChatMember  `db:"chat_member" json:"chatMember"`
-	User                User        `db:"user" json:"user"`
-	DayCount            int64       `db:"day_count" json:"dayCount"`
-	DayRollingCount     int64       `db:"day_rolling_count" json:"dayRollingCount"`
-	WeekCount           int64       `db:"week_count" json:"weekCount"`
-	WeekRollingCount    int64       `db:"week_rolling_count" json:"weekRollingCount"`
-	MonthCount          int64       `db:"month_count" json:"monthCount"`
-	MonthRollingCount   int64       `db:"month_rolling_count" json:"monthRollingCount"`
-	AllTimeCount        int64       `db:"all_time_count" json:"allTimeCount"`
-	NormBan             pgtype.Int4 `db:"norm_ban" json:"normBan"`
-	NormWarn            pgtype.Int4 `db:"norm_warn" json:"normWarn"`
-	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
+	ChatMember        ChatMember `db:"chat_member" json:"chatMember"`
+	User              User       `db:"user" json:"user"`
+	Chat              Chat       `db:"chat" json:"chat"`
+	DayCount          int64      `db:"day_count" json:"dayCount"`
+	DayRollingCount   int64      `db:"day_rolling_count" json:"dayRollingCount"`
+	WeekCount         int64      `db:"week_count" json:"weekCount"`
+	WeekRollingCount  int64      `db:"week_rolling_count" json:"weekRollingCount"`
+	MonthCount        int64      `db:"month_count" json:"monthCount"`
+	MonthRollingCount int64      `db:"month_rolling_count" json:"monthRollingCount"`
+	AllTimeCount      int64      `db:"all_time_count" json:"allTimeCount"`
 }
 
 func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOneParams) (MessageReportOneRow, error) {
@@ -351,6 +357,24 @@ func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOnePara
 		&i.User.Gender,
 		&i.User.Emoji,
 		&i.User.CustomEmojiID,
+		&i.Chat.ID,
+		&i.Chat.NormWarn,
+		&i.Chat.NewbieThresholdDays,
+		&i.Chat.AiSystemPrompt,
+		&i.Chat.MaxLadder,
+		&i.Chat.CallOnJoin,
+		&i.Chat.WelcomeCallMessage,
+		&i.Chat.WeekStartDay,
+		&i.Chat.MaxWarns,
+		&i.Chat.NormBan,
+		&i.Chat.CommandPrefix,
+		&i.Chat.AllowPrefixless,
+		&i.Chat.MentionsPerMessage,
+		&i.Chat.MentionTypes,
+		&i.Chat.Title,
+		&i.Chat.TagsEnabled,
+		&i.Chat.WeekStartTime,
+		&i.Chat.BroadcastEnabled,
 		&i.DayCount,
 		&i.DayRollingCount,
 		&i.WeekCount,
@@ -358,9 +382,6 @@ func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOnePara
 		&i.MonthCount,
 		&i.MonthRollingCount,
 		&i.AllTimeCount,
-		&i.NormBan,
-		&i.NormWarn,
-		&i.NewbieThresholdDays,
 	)
 	return i, err
 }

@@ -85,32 +85,23 @@ func mapMembers[T any](members []T, mapper func(T) model.ChatMember) []model.Cha
 
 func mapMessageReportRow(m db.MessageReportRow) model.MessageReportMember {
 	return model.MessageReportMember{
-		ChatMember:          mapChatMemberFull(m.ChatMember, m.User),
-		MessagesCount:       int(m.MessagesCount),
-		NormWarn:            int(m.NormWarn.Int32),
-		NormBan:             int(m.NormBan.Int32),
-		NewbieThresholdDays: int(m.NewbieThresholdDays),
+		Chat:          mapChat(m.Chat),
+		ChatMember:    mapChatMemberFull(m.ChatMember, m.User),
+		MessagesCount: m.MessagesCount,
 	}
 }
 
 func mapMessageReportOneRow(m db.MessageReportOneRow) model.MemberStats {
 	return model.MemberStats{
 		ChatMember:        mapChatMemberFull(m.ChatMember, m.User),
-		DayCount:          int(m.DayCount),
-		DayRollingCount:   int(m.DayRollingCount),
-		WeekCount:         int(m.WeekCount),
-		WeekRollingCount:  int(m.WeekRollingCount),
-		MonthCount:        int(m.MonthCount),
-		MonthRollingCount: int(m.MonthRollingCount),
-		AllTime:           int(m.AllTimeCount),
-		NormBan:           int(m.NormBan.Int32),
-		NormWarn:          int(m.NormWarn.Int32),
-		JoinedAt:          m.ChatMember.JoinedAt.Time,
-		RestUntil:         m.ChatMember.RestUntil.Time,
-		NewbieThreshold:   int(m.NewbieThresholdDays),
-		Status:            model.Status(m.ChatMember.Status),
-		Tag:               m.ChatMember.Tag.String,
-		LeftAt:            m.ChatMember.LeftAt.Time,
+		Chat:              mapChat(m.Chat),
+		DayCount:          m.DayCount,
+		DayRollingCount:   m.DayRollingCount,
+		WeekCount:         m.WeekCount,
+		WeekRollingCount:  m.WeekRollingCount,
+		MonthCount:        m.MonthCount,
+		MonthRollingCount: m.MonthRollingCount,
+		AllTime:           m.AllTimeCount,
 	}
 }
 

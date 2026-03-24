@@ -11,8 +11,8 @@ func FormatProfile(m model.MemberStats, full bool) string {
 	now := time.Now().UTC()
 
 	isNewbie := false
-	if m.NewbieThreshold > 0 {
-		newbieUntil := m.JoinedAt.AddDate(0, 0, m.NewbieThreshold)
+	if m.Chat.NewbieThresholdDays > 0 {
+		newbieUntil := m.ChatMember.JoinedAt.AddDate(0, 0, int(m.Chat.NewbieThresholdDays))
 		if newbieUntil.After(now) {
 			isNewbie = true
 		}
@@ -23,15 +23,15 @@ func FormatProfile(m model.MemberStats, full bool) string {
 		newbieEmoji = " " + helpers.NewbieEmoji()
 	}
 
-	status := m.Status.Title()
+	status := m.ChatMember.Status.Title()
 
-	if !m.LeftAt.IsZero() {
+	if !m.ChatMember.LeftAt.IsZero() {
 		status = "Не в чате"
 	}
 
 	leftAtInfo := ""
-	if !m.LeftAt.IsZero() {
-		leftAtInfo = ", покинул чат " + helpers.FormatLastSeen(m.LeftAt)
+	if !m.ChatMember.LeftAt.IsZero() {
+		leftAtInfo = ", покинул чат " + helpers.FormatLastSeen(m.ChatMember.LeftAt)
 	}
 
 	var activityBlock string
@@ -69,40 +69,40 @@ func FormatProfile(m model.MemberStats, full bool) string {
 		helpers.CustomEmoji(5316727448644103237, "👤"),
 		helpers.RoleEmojiLink(m.ChatMember),
 		status,
-		helpers.StatusEmoji(model.Status(m.Status)),
+		helpers.StatusEmoji(m.ChatMember.Status),
 		helpers.Gendered(m.ChatMember.User.Gender, "зашел", "зашла"),
-		helpers.FormatLastSeen(m.JoinedAt),
+		helpers.FormatLastSeen(m.ChatMember.JoinedAt),
 		newbieEmoji,
 		leftAtInfo,
 		activityBlock,
 	)
-	isRestActive := m.RestUntil.After(time.Now())
+	isRestActive := m.ChatMember.RestUntil.After(time.Now())
 
-	if m.NormWarn > 0 || m.NormBan > 0 {
-		normStatus := getNormStatusEmoji(m.WeekCount, m.NormWarn, m.NormBan, isRestActive, isNewbie)
+	if m.Chat.NormWarn > 0 || m.Chat.NormBan > 0 {
+		normStatus := getNormStatusEmoji(m.WeekCount, int64(m.Chat.NormWarn), int64(m.Chat.NormBan), isRestActive, isNewbie)
 		text += fmt.Sprintf("\n%s", normStatus)
 	}
 
-	daysSinceRestEnd := int(now.Sub(m.RestUntil).Hours() / 24)
+	daysSinceRestEnd := int(now.Sub(m.ChatMember.RestUntil).Hours() / 24)
 
-	if isRestActive && m.LeftAt.IsZero() {
+	if isRestActive && m.ChatMember.LeftAt.IsZero() {
 		text += fmt.Sprintf(
 			"<blockquote>%s Рест до %s</blockquote>",
 			helpers.RestEmoji(),
-			helpers.FormatToHumanDateTime(m.RestUntil),
+			helpers.FormatToHumanDateTime(m.ChatMember.RestUntil),
 		)
 	} else if daysSinceRestEnd >= 0 && daysSinceRestEnd <= 3 {
 		text += fmt.Sprintf(
 			"\n<blockquote>%s Последний рест был завершен %s</blockquote>",
 			helpers.RestEmoji(),
-			helpers.FormatToHumanDate(m.RestUntil),
+			helpers.FormatToHumanDate(m.ChatMember.RestUntil),
 		)
 	}
 
 	return text
 }
 
-func getNormStatusEmoji(weekCount, normWarn, normBan int, isRestActive, isNewbie bool) string {
+func getNormStatusEmoji(weekCount, normWarn, normBan int64, isRestActive, isNewbie bool) string {
 	if isRestActive || isNewbie {
 		return fmt.Sprintf("%s Освобождение от нормы", helpers.CustomEmoji(5456648248968121823, "🕊"))
 	}

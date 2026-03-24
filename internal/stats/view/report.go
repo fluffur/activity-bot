@@ -146,9 +146,9 @@ type reportSections struct {
 	FailedBan     []string
 	Newbies       []string
 	InRest        []string
-	NormWarn      int
-	NormBan       int
-	TotalMessages int
+	NormWarn      int32
+	NormBan       int32
+	TotalMessages int64
 }
 
 func prepareReportSections(report []model.MessageReportMember, restMembers []model.ChatMember) reportSections {
@@ -156,21 +156,21 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 	s := reportSections{}
 
 	for _, r := range report {
-		s.NormBan = r.NormBan
-		s.NormWarn = r.NormWarn
+		s.NormBan = r.Chat.NormBan
+		s.NormWarn = r.Chat.NormWarn
 		s.TotalMessages += r.MessagesCount
 
-		normWarnDone := r.MessagesCount >= r.NormWarn
+		normWarnDone := r.MessagesCount >= int64(r.Chat.NormWarn)
 		normBanDone := true
-		if r.NormBan > 0 {
-			normBanDone = r.MessagesCount >= r.NormBan
+		if r.Chat.NormBan > 0 {
+			normBanDone = r.MessagesCount >= int64(r.Chat.NormBan)
 		}
 
 		line := fmt.Sprintf("%s — <code>%d</code>", helpers.RoleEmojiLink(r.ChatMember), r.MessagesCount)
 
 		isNewbie := false
-		if r.NewbieThresholdDays > 0 {
-			newbieUntil := r.ChatMember.JoinedAt.AddDate(0, 0, r.NewbieThresholdDays)
+		if r.Chat.NewbieThresholdDays > 0 {
+			newbieUntil := r.ChatMember.JoinedAt.AddDate(0, 0, int(r.Chat.NewbieThresholdDays))
 			if newbieUntil.After(now) {
 				isNewbie = true
 			}
@@ -185,7 +185,7 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 			continue
 		}
 
-		if !normBanDone && r.NormBan > 0 {
+		if !normBanDone && r.Chat.NormBan > 0 {
 			s.FailedBan = append(s.FailedBan, line)
 		} else if !normWarnDone {
 			s.FailedWarn = append(s.FailedWarn, line)

@@ -7,9 +7,7 @@ RETURNING *;
 SELECT sqlc.embed(cm),
        sqlc.embed(u),
        COUNT(m.chat_id) AS messages_count,
-       c.norm_warn,
-       c.norm_ban,
-       c.newbie_threshold_days
+       sqlc.embed(c)
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
@@ -30,7 +28,7 @@ ORDER BY messages_count DESC;
 -- name: MessageReportOne :one
 SELECT sqlc.embed(cm),
        sqlc.embed(u),
-
+       sqlc.embed(c),
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now())), 0)::bigint   AS day_count,
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day'),
                 0)::bigint                                                                             AS day_rolling_count,
@@ -50,11 +48,8 @@ SELECT sqlc.embed(cm),
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('month', now())), 0)::bigint AS month_count,
        COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '30 days'),
                 0)::bigint                                                                             AS month_rolling_count,
-       COALESCE(COUNT(m.chat_id), 0)::bigint                                                           AS all_time_count,
+       COALESCE(COUNT(m.chat_id), 0)::bigint                                                           AS all_time_count
 
-       c.norm_ban,
-       c.norm_warn,
-       c.newbie_threshold_days
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
