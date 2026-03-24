@@ -478,7 +478,7 @@ func (h *Handler) ToggleRights(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	if arg == "" {
 		return ctx.ReplyHTML(b,
-			fmt.Sprintf("Текущая роль разработчика: %s", m.Status.String()),
+			fmt.Sprintf("Права разработчика в этой группе: %s", m.Status.String()),
 		)
 	}
 
