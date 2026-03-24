@@ -37,5 +37,5 @@ func (g AdminGuard) Check(ctx *ext.Context, _ string, stdCtx context.Context) (b
 	if err != nil {
 		return false, ""
 	}
-	return m.Status >= g.status, fmt.Sprintf("Требуются права уровня %s", helpers.StatusEmoji(g.status))
+	return m.Status >= g.status, fmt.Sprintf("%sТребуются права администратора", helpers.StatusEmoji(g.status))
 }
