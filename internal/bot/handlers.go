@@ -139,7 +139,7 @@ func (a *App) RegisterHandlers() {
 		WithDescription("Список рестов").
 		WithCategory(cmd.CategoryStats),
 	)
-	a.Dispatcher.AddHandler(cf.New(restHandler.AllUserRests, "all_rests", "все ресты", "история рестов").
+	a.Dispatcher.AddHandler(cf.New(restHandler.AllUserRests, "all_rests", "все ресты").
 		WithGuards(groupGuard).FallbackToSender().
 		Restricted(model.StatusMember).
 		WithDescription("Список всех запросов на рест").
