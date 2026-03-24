@@ -51,7 +51,7 @@ func (cm ChatMember) CanModerate(c ChatMember) bool {
 }
 
 func (cm ChatMember) IsStatus(s Status) bool {
-	return s == cm.Status
+	return s >= cm.Status
 }
 
 func (cm ChatMember) IsRestActive(now time.Time) bool {
