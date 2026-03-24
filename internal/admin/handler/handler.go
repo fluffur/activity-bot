@@ -478,7 +478,7 @@ func (h *Handler) ToggleRights(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	if arg == "" {
 		return ctx.ReplyHTML(b,
-			fmt.Sprintf("Текущая роль разработчика: %s", helpers.TranslateMemberStatusNoLeft(m.Status)),
+			fmt.Sprintf("Текущая роль разработчика: %s", m.Status.String()),
 		)
 	}
 
@@ -493,7 +493,7 @@ func (h *Handler) ToggleRights(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	return ctx.ReplyHTML(b,
-		fmt.Sprintf("Роль разработчика изменена на: %s", helpers.TranslateMemberStatusNoLeft(status)),
+		fmt.Sprintf("Права разработчика изменены на: %s", status.String()),
 	)
 }
 

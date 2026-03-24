@@ -37,7 +37,7 @@ type MemberStats struct {
 	JoinedAt        time.Time
 	RestUntil       time.Time
 	NewbieThreshold int
-	Status          int16
+	Status          Status
 	Tag             string
 	LeftAt          time.Time
 }

@@ -2,37 +2,7 @@ package helpers
 
 import (
 	"activity-bot/internal/model"
-	"time"
 )
-
-func TranslateMemberStatus(status model.Status, leftAt time.Time) string {
-	if !leftAt.IsZero() {
-		return "Не в чате"
-	}
-	return TranslateMemberStatusNoLeft(status)
-}
-
-func TranslateMemberStatusNoLeft(status model.Status) string {
-	switch status {
-	case model.StatusMember:
-		return "Участник"
-	case model.StatusModerator:
-		return "Модератор"
-	case model.StatusAdmin:
-		return "Администратор"
-	case model.StatusSeniorAdmin:
-		return "Ст. Администратор"
-	case model.StatusCoOwner:
-		return "Совладелец"
-	case model.StatusOwner:
-		return "Владелец"
-	}
-	return "Неизвестно"
-}
-
-func StatusName(status model.Status) string {
-	return TranslateMemberStatusNoLeft(status)
-}
 
 func StatusEmoji(status model.Status) string {
 	customEmojis := []string{

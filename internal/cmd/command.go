@@ -348,7 +348,7 @@ func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 	}
 
 	if m.Status < required {
-		message := fmt.Sprintf("%s Требуются права: %s", helpers.StatusEmoji(required), helpers.StatusName(required))
+		message := fmt.Sprintf("%s Требуются права: %s", helpers.StatusEmoji(required), required.String())
 		_, err := ctx.EffectiveMessage.Reply(b, message, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 		return err
 	}

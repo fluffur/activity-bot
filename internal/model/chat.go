@@ -2,6 +2,9 @@ package model
 
 import (
 	"time"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type Chat struct {
@@ -33,6 +36,46 @@ const (
 	StatusCoOwner
 	StatusOwner
 )
+
+func (s Status) String() string {
+	switch s {
+	case StatusMember:
+		return "участник"
+	case StatusModerator:
+		return "модератор"
+	case StatusAdmin:
+		return "младший администратор"
+	case StatusSeniorAdmin:
+		return "старший администратор"
+	case StatusCoOwner:
+		return "совладелец"
+	case StatusOwner:
+		return "владелец"
+	}
+	return "неизвестно"
+}
+
+func (s Status) Plural() string {
+	switch s {
+	case StatusMember:
+		return "участники"
+	case StatusModerator:
+		return "модераторы"
+	case StatusAdmin:
+		return "младшие администраторы"
+	case StatusSeniorAdmin:
+		return "старшие администраторы"
+	case StatusCoOwner:
+		return "совладельцы"
+	case StatusOwner:
+		return "владельцы"
+	}
+	return "неизвестно кто"
+}
+
+func (s Status) Title() string {
+	return cases.Title(language.Und, cases.NoLower).String(s.String())
+}
 
 type ChatMember struct {
 	User       User

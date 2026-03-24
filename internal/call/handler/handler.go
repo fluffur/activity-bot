@@ -90,7 +90,7 @@ func (h *Handler) adminCallback(
 
 	if !m.StatusGranted(model.StatusModerator) {
 		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text: fmt.Sprintf("%d Требуются права администратора", m.Status),
+			Text: fmt.Sprintf("%d Требуются права: %s", m.Status, m.Status.String()),
 		})
 		return err
 	}

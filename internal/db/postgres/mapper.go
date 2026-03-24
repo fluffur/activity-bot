@@ -111,7 +111,7 @@ func mapMessageReportOneRow(m db.MessageReportOneRow) model.MemberStats {
 		JoinedAt:          m.ChatMember.JoinedAt.Time,
 		RestUntil:         m.ChatMember.RestUntil.Time,
 		NewbieThreshold:   int(m.NewbieThresholdDays),
-		Status:            m.ChatMember.Status,
+		Status:            model.Status(m.ChatMember.Status),
 		Tag:               m.ChatMember.Tag.String,
 		LeftAt:            m.ChatMember.LeftAt.Time,
 	}

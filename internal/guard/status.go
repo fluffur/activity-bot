@@ -32,7 +32,7 @@ func Restricted(memberService *member.Service, chatService *chat.Service, sessio
 		}
 
 		if m.Status < required {
-			return false, fmt.Sprintf("%s Требуются права: %s", helpers.StatusEmojiPlain(required), helpers.StatusName(required))
+			return false, fmt.Sprintf("%s Требуются права: %s", helpers.StatusEmojiPlain(required), required.String())
 		}
 
 		return true, ""

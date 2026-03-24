@@ -109,7 +109,7 @@ func FormatEditCommandRights(key string, currentStatus model.Status, commands []
 		config.GetDescription(),
 		strings.Join(formattedAliases, ", "),
 		helpers.StatusEmoji(currentStatus),
-		helpers.StatusName(currentStatus),
+		currentStatus.String(),
 	)
 }
 
@@ -131,7 +131,7 @@ func GetEditRightsKeyboard(key string, currentStatus model.Status, commands []*c
 			style = "primary"
 		}
 		currentRow = append(currentRow, gotgbot.InlineKeyboardButton{
-			Text:              helpers.StatusName(s),
+			Text:              s.Title(),
 			CallbackData:      fmt.Sprintf("rights_set:%s:%d", key, s),
 			Style:             style,
 			IconCustomEmojiId: helpers.StatusEmojiId(s),

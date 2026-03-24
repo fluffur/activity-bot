@@ -16,7 +16,7 @@ func StatusTitle(status int16, count int) string {
 		case 2:
 			return "Младший администратор"
 		case 3:
-			return "Администратор"
+			return "Старший администратор"
 		case 4:
 			return "Совладелец"
 		case 5:
@@ -30,9 +30,9 @@ func StatusTitle(status int16, count int) string {
 	case 1:
 		return "Модераторы"
 	case 2:
-		return "Младшие дминистраторы"
+		return "Младшие администраторы"
 	case 3:
-		return "Администраторы"
+		return "Старшие администраторы"
 	case 4:
 		return "Совладельцы"
 	case 5:
