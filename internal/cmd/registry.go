@@ -10,7 +10,7 @@ const (
 	CategoryModeration Category = "Модерация"
 	CategoryCall       Category = "Рассылки"
 	CategorySettings   Category = "Настройки"
-	CategoryCommunity  Category = "Сообщество"
+	CategoryStats      Category = "Статистика"
 )
 
 func GetDefaultStatus(commands []*Command, key string) model.Status {

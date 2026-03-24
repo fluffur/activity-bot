@@ -16,10 +16,10 @@ func FormatCategories() string {
 
 func GetCategoriesKeyboard() gotgbot.InlineKeyboardMarkup {
 	categories := []cmd.Category{
+		cmd.CategoryStats,
 		cmd.CategoryModeration,
 		cmd.CategoryCall,
 		cmd.CategorySettings,
-		cmd.CategoryCommunity,
 	}
 
 	var rows [][]gotgbot.InlineKeyboardButton

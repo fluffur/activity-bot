@@ -106,7 +106,7 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 2, 4*time.Second, sessionService)).
 		Restricted(model.StatusMember).
 		WithDescription("Отчёт в чате").
-		WithCategory(cmd.CategoryCommunity),
+		WithCategory(cmd.CategoryStats),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowChatActivityGraph, "stats_graph", "график", "граф").
 		SetArgsCount(1).
@@ -128,13 +128,23 @@ func (a *App) RegisterHandlers() {
 		WithAmbiguityResolution("whoareyou"),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ListInactive, "inactive", "неактив", "инактив").
-		WithGuards(groupGuard),
+		WithGuards(groupGuard).
+		Restricted(model.StatusMember).
+		WithDescription("Список неактив").
+		WithCategory(cmd.CategoryStats),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowRestList, "rests", "ресты").
-		WithGuards(groupGuard),
+		WithGuards(groupGuard).
+		Restricted(model.StatusMember).
+		WithDescription("Список рестов").
+		WithCategory(cmd.CategoryStats),
 	)
 	a.Dispatcher.AddHandler(cf.New(restHandler.AllUserRests, "all_rests", "все ресты", "история рестов").
-		WithGuards(groupGuard).FallbackToSender().WithAmbiguityResolution("all_rests"),
+		WithGuards(groupGuard).FallbackToSender().
+		Restricted(model.StatusMember).
+		WithDescription("Список всех запросов на рест").
+		WithCategory(cmd.CategoryStats).
+		WithAmbiguityResolution("all_rests"),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowFailedNorm, "nonorm", "без нормы").
 		SetArgsCount(1).
@@ -307,7 +317,7 @@ func (a *App) RegisterHandlers() {
 		WithCategory(cmd.CategorySettings),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.ListRoles, "роли", "roles", "titles").
-		WithGuards(groupGuard, rateLimiterGuard),
+		WithGuards(groupGuard, rateLimiterGuard).Restricted(model.StatusMember).WithDescription("Список ролей (тегов) участников").WithCategory(cmd.CategoryStats),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.ShowRole, "роль", "role", "title",
 		"какая роль", "роль у", "роль кого").
@@ -321,7 +331,7 @@ func (a *App) RegisterHandlers() {
 		Restricted(model.StatusModerator).
 		SetArgsCount(1).
 		WithDescription("Присвоение ролей").
-		WithCategory(cmd.CategoryCommunity).
+		WithCategory(cmd.CategoryStats).
 		WithAmbiguityResolution("member_role_set"),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.RestoreRoles, "перенести админки", "move admins").
@@ -502,7 +512,7 @@ func (a *App) RegisterHandlers() {
 		FallbackToSender().WithGuards(groupGuard).
 		Restricted(model.StatusSeniorAdmin).
 		WithDescription("Настройка значка участника").
-		WithCategory(cmd.CategoryCommunity),
+		WithCategory(cmd.CategoryStats),
 	)
 
 	a.Dispatcher.AddHandler(cf.New(memberHandler.RemoveEmoji, "значок").
@@ -514,7 +524,7 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(handlers.NewMyChatMember(chatmember.NewStatus("administrator"), cf.WrapEvent(memberHandler.OnBotPromote)))
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.NewChatMembers, cf.WrapEvent(memberHandler.OnJoinMember)))
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.Channel, cf.WrapEvent(channelHandler.Post)).SetAllowChannel(true))
-	a.Dispatcher.AddHandler(cf.New(channelHandler.Subscribe, "subscribe").WithGuards(groupGuard).Restricted(model.StatusSeniorAdmin).WithDescription("Подписка на канал").WithCategory(cmd.CategoryCommunity))
+	a.Dispatcher.AddHandler(cf.New(channelHandler.Subscribe, "subscribe").WithGuards(groupGuard).Restricted(model.StatusSeniorAdmin).WithDescription("Подписка на канал").WithCategory(cmd.CategoryStats))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("unsubscribe"), cf.WrapEvent(channelHandler.Unsubscribe)))
 	a.Dispatcher.AddHandler(handlers.NewMessage(filter.OnlyGroups, cf.WrapEvent(messageHandler.Message)))
 
