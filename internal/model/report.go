@@ -10,9 +10,6 @@ type MessageReportMember struct {
 	NormWarn            int
 	NormBan             int
 	NewbieThresholdDays int
-	Status              int16
-	Tag                 string
-	JoinedAt            time.Time
 }
 
 type RestMember struct {

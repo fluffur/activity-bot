@@ -170,7 +170,7 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 
 		isNewbie := false
 		if r.NewbieThresholdDays > 0 {
-			newbieUntil := r.JoinedAt.AddDate(0, 0, r.NewbieThresholdDays)
+			newbieUntil := r.ChatMember.JoinedAt.AddDate(0, 0, r.NewbieThresholdDays)
 			if newbieUntil.After(now) {
 				isNewbie = true
 			}

@@ -90,9 +90,6 @@ func mapMessageReportRow(m db.MessageReportRow) model.MessageReportMember {
 		NormWarn:            int(m.NormWarn.Int32),
 		NormBan:             int(m.NormBan.Int32),
 		NewbieThresholdDays: int(m.NewbieThresholdDays),
-		Status:              m.ChatMember.Status,
-		Tag:                 m.ChatMember.Tag.String,
-		JoinedAt:            m.ChatMember.JoinedAt.Time,
 	}
 }
 
