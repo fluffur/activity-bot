@@ -483,7 +483,7 @@ func (a *App) RegisterHandlers() {
 
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ManageRights, "дк").
 		WithGuards(groupGuard).
-		Restricted(model.StatusSeniorAdmin).
+		Restricted(model.StatusCoOwner).
 		WithDescription("Управление доступом команд").
 		WithCategory(cmd.CategorySettings),
 	)
