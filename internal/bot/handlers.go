@@ -421,7 +421,7 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(handlers.NewMessage(cmd.NewChatTitle, cf.WrapEvent(chatHandler.OnNewChatTitle)))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.Manage, "manage", "управление"))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage:"), cf.WrapCallback(chatHandler.CallbackManage)))
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage_page:"), cf.WrapCallback(chatHandler.CallbackManagePage, guard.Restricted(a.MemberService, a.ChatService, sessionService, "manage", model.StatusSeniorAdmin))))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage_page:"), cf.WrapCallback(chatHandler.CallbackManagePage)))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.EnableTags, "+tags", "+теги", "+тэги").WithGuards(groupGuard).Restricted(model.StatusSeniorAdmin).WithDescription("Включение тегов").WithCategory(cmd.CategorySettings))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.DisableTags, "-tags", "-теги", "-тэги").WithGuards(groupGuard).Restricted(model.StatusSeniorAdmin).WithDescription("Отключение тегов").WithCategory(cmd.CategorySettings))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowTags, "tags", "теги", "тэги"))
