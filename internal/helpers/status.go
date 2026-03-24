@@ -45,12 +45,12 @@ func TranslateMemberStatusNoLeft(status int16) string {
 
 func StatusEmoji(status int16) string {
 	customEmojis := []string{
-		CustomEmoji(5458853959487724162, "0️⃣"),
-		CustomEmoji(5456218692108950712, "1️⃣"),
-		CustomEmoji(5458791343159516783, "2️⃣"),
-		CustomEmoji(5458443480873312556, "3️⃣"),
-		CustomEmoji(5458747431413882769, "4️⃣"),
-		CustomEmoji(5458892313545677652, "5️⃣"),
+		CustomEmoji(5368832132158337100, "0️⃣"),
+		CustomEmoji(5366311523226496082, "1️⃣"),
+		CustomEmoji(5366536356174510823, "2️⃣"),
+		CustomEmoji(5366525906519076469, "3️⃣"),
+		CustomEmoji(5368367657215078446, "4️⃣"),
+		CustomEmoji(5368552151830244939, "5️⃣"),
 	}
 	if status < 0 || status > 5 {
 		return ""
