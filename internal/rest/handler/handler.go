@@ -2,6 +2,7 @@ package handler
 
 import (
 	"activity-bot/internal/admin"
+	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
@@ -26,14 +27,15 @@ type Handler struct {
 	service        *rest.Service
 	userService    *user.Service
 	memberService  *member.Service
+	chatService    *chat.Service
 	adminService   *admin.Service
 	dateParser     *helpers.DateParser
 	sessionService *session.Service
 	asyncClient    *asynq.Client
 }
 
-func New(service *rest.Service, userService *user.Service, memberService *member.Service, adminService *admin.Service, dateParser *helpers.DateParser, sessionService *session.Service, asyncClient *asynq.Client) *Handler {
-	return &Handler{service, userService, memberService, adminService, dateParser, sessionService, asyncClient}
+func New(service *rest.Service, userService *user.Service, memberService *member.Service, chatService *chat.Service, adminService *admin.Service, dateParser *helpers.DateParser, sessionService *session.Service, asyncClient *asynq.Client) *Handler {
+	return &Handler{service, userService, memberService, chatService, adminService, dateParser, sessionService, asyncClient}
 }
 
 func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
@@ -59,11 +61,14 @@ func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if !ok {
 		return ctx.Reply(b, "Не понял формат. Примеры:\n+рест 12.01\n+рест 2 недели\n+рест месяц", nil)
 	}
-	if date.Before(time.Now()) {
-		return ctx.Reply(b, "Нельзя указывать прошедшую дату", nil)
+	requiredStatus := model.StatusModerator
+	if h.chatService != nil {
+		if s, err := h.chatService.GetCommandPermission(ctx.StdContext(), ctx.TargetChatID(), "rests"); err == nil {
+			requiredStatus = s
+		}
 	}
 
-	if !mod.IsStatus(model.StatusModerator) {
+	if mod.Status < requiredStatus {
 		return h.createRequest(b, ctx, m, date)
 	}
 
@@ -173,11 +178,19 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 		})
 		return err
 	}
-	mod, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, fromID)
+	moderator, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, ctx.EffectiveSender.Id())
 	if err != nil {
 		return err
 	}
-	if !mod.IsStatus(model.StatusModerator) {
+
+	requiredStatus := model.StatusAdmin
+	if h.chatService != nil {
+		if s, err := h.chatService.GetCommandPermission(ctx.StdContext(), chatID, "rests"); err == nil {
+			requiredStatus = s
+		}
+	}
+
+	if moderator.Status < requiredStatus {
 		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Подтвердить запрос может только администратор",
 		})
@@ -220,11 +233,19 @@ func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 		})
 		return err
 	}
-	mod, err := h.memberService.GetChatMember(ctx.StdContext(), ctx.TargetChatID(), fromID)
+	moderator, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, ctx.EffectiveSender.Id())
 	if err != nil {
 		return err
 	}
-	if restRequest.UserID != ctx.EffectiveSender.Id() && !mod.IsStatus(model.StatusModerator) {
+
+	requiredStatus := model.StatusAdmin
+	if h.chatService != nil {
+		if s, err := h.chatService.GetCommandPermission(ctx.StdContext(), chatID, "rests"); err == nil {
+			requiredStatus = s
+		}
+	}
+
+	if restRequest.UserID != ctx.EffectiveSender.Id() && moderator.Status < requiredStatus {
 		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Отклонить запрос может только администратор или заявитель реста",
 		})

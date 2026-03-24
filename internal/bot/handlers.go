@@ -51,12 +51,14 @@ func (a *App) RegisterHandlers() {
 
 	dateParser := helpers.NewDateParser()
 
+	cf := cmd.NewFactory(a.UserService, a.ChatService, a.MemberService, sessionService, a.Config.UniquePrefix, "/", "!", ".")
+
 	helpHandler := helpH.New(a.Config.BotOwnerUsername, a.Config.CommandsLink)
 	statsHandler := statsH.New(statsService, restService, a.MemberService, a.UserService, a.ChatService, sessionService)
 	chatHandler := chatH.New(a.ChatService, a.AdminService, a.MemberService, sessionService, dateParser)
-	restHandler := restH.New(restService, a.UserService, a.MemberService, a.AdminService, dateParser, sessionService, a.AsyncClient)
+	restHandler := restH.New(restService, a.UserService, a.MemberService, a.ChatService, a.AdminService, dateParser, sessionService, a.AsyncClient)
 
-	adminHandler := adminH.New(a.AdminService, a.MemberService, a.ChatService, dateParser, a.AsyncClient)
+	adminHandler := adminH.New(a.AdminService, a.MemberService, a.ChatService, dateParser, a.AsyncClient, cf)
 
 	messageHandler := messageH.New(messageService, a.MemberService, a.ChatService, a.Deepseek)
 	memberHandler := memberH.New(a.MemberService, a.ChatService, a.UserService, callService, a.AdminService)
@@ -64,17 +66,9 @@ func (a *App) RegisterHandlers() {
 	userHandler := userH.New(a.UserService)
 	channelHandler := channelH.New(a.MemberService, a.ChatService, a.AsyncClient, a.Config.ChannelID)
 
-	moderGuard := guard.NewStatusGuard(a.MemberService, sessionService, model.StatusModerator)
-	adminGuard := guard.NewStatusGuard(a.MemberService, sessionService, model.StatusAdmin)
-	seniorAdminGuard := guard.NewStatusGuard(a.MemberService, sessionService, model.StatusSeniorAdmin)
-	coOwnerGuard := guard.NewStatusGuard(a.MemberService, sessionService, model.StatusCoOwner)
-	//ownerGuard := guard.NewStatusGuard(a.MemberService, sessionService, model.StatusOwner)
-
 	developerGuard := guard.NewDeveloperGuard(a.AdminService, a.Config.BotOwnerID)
 	groupGuard := guard.OnlyGroups(sessionService)
 	rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 2, 10*time.Second, sessionService)
-
-	cf := cmd.NewFactory(a.UserService, a.ChatService, a.MemberService, sessionService, a.Config.UniquePrefix, "/", "!", ".")
 
 	a.Dispatcher.AddHandler(cf.New(helpHandler.Start, "start"))
 	a.Dispatcher.AddHandler(cf.New(helpHandler.Help, "help"))
@@ -84,25 +78,35 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.SetWelcomeCallMessage, "call_message", "call сообщение", "колл сообщение", "калл сообщение").
 		AddTriggers("+").
-		WithGuards(groupGuard, seniorAdminGuard).
-		SetArgsCount(1),
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin).
+		SetArgsCount(1).
+		WithDescription("Настройка сообщения сбора").
+		WithCategory(cmd.CategoryCall),
 	)
-
 	a.Dispatcher.AddHandler(cf.New(callHandler.DeleteWelcomeCallMessage, "-call_message", "-call сообщение", "-колл сообщение", "-калл сообщение").
-		WithGuards(groupGuard, seniorAdminGuard).
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin).
 		SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowNewbieThreshold, "newbie", "новички срок", "новички после").
-		WithGuards(groupGuard, seniorAdminGuard),
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin),
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.SetNewbieThreshold, "newbie", "новички срок", "новички после").
 		AddTriggers("+").
-		WithGuards(groupGuard, seniorAdminGuard).
-		SetArgsCount(1),
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin).
+		SetArgsCount(1).
+		WithDescription("Настройка срока новичка").
+		WithCategory(cmd.CategorySettings),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowStats, "stats", "отчёт", "отчет", "стата").
 		SetArgsCount(1).
-		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 2, 4*time.Second, sessionService)),
+		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 2, 4*time.Second, sessionService)).
+		Restricted(model.StatusMember).
+		WithDescription("Отчёт в чате").
+		WithCategory(cmd.CategoryCommunity),
 	)
 	a.Dispatcher.AddHandler(cf.New(statsHandler.ShowChatActivityGraph, "stats_graph", "график", "граф").
 		SetArgsCount(1).
@@ -145,12 +149,16 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.SetNorm, "norm", "норма", "quota").
 		AddTriggers("+").
-		WithGuards(groupGuard, seniorAdminGuard).
-		SetArgsCount(2),
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin).
+		SetArgsCount(2).
+		WithDescription("Настройка нормы").
+		WithCategory(cmd.CategorySettings),
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.RemoveNorm, "-norm", "-норма", "-quota").
 		AddTriggers("+").
-		WithGuards(groupGuard, seniorAdminGuard).
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin).
 		SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.ShipRandom, "шипперим", "рандом шипперим").
@@ -172,8 +180,10 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(restHandler.RemoveRestRequest, "удалить рест").
 		FallbackToSender().
-		WithGuards(groupGuard, moderGuard).
-		SetArgsCount(1).
+		WithGuards(groupGuard).
+		SetArgsCount(1).Restricted(model.StatusAdmin).
+		WithDescription("Удаление запроса реста").
+		WithCategory(cmd.CategorySettings).
 		WithAmbiguityResolution("rest_remove"),
 	)
 	a.Dispatcher.AddHandler(cf.New(restHandler.End, "-рест", "-rest", "снять рест").
@@ -192,44 +202,64 @@ func (a *App) RegisterHandlers() {
 		FallbackToSender().
 		WithAmbiguityResolution("admin_is"),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.SetStatus, "+админ", "+admin", "+адм", "+модер", "+mod").
-		WithGuards(groupGuard, coOwnerGuard).
+	a.Dispatcher.AddHandler(cf.New(adminHandler.SetStatus, "+админ", "+admin", "+mod").
+		WithGuards(groupGuard).
+		Restricted(model.StatusCoOwner).
 		SetArgsCount(1).
 		WithAmbiguityResolution("admin_add"),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.RemoveAdmin, "-администратор", "-админ", "-admin", "-адм", "-модер", "-mod").
-		WithGuards(groupGuard, coOwnerGuard).
+	a.Dispatcher.AddHandler(cf.New(adminHandler.RemoveAdmin, "-админ", "-admin", "-mod").
+		WithGuards(groupGuard).
+		Restricted(model.StatusCoOwner).
 		WithAmbiguityResolution("admin_remove"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Unban, "unban", "-бан", "разбан", "разбанить").
-		WithGuards(groupGuard, seniorAdminGuard).
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin).
+		WithDescription("Разбан участника").
+		WithCategory(cmd.CategoryModeration).
 		WithAmbiguityResolution("admin_unban"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Unmute, "unmute", "размут", "размутить", "-мут").
-		WithGuards(groupGuard, adminGuard).
+		WithGuards(groupGuard).
+		Restricted(model.StatusAdmin).
+		WithDescription("Размут участника").
+		WithCategory(cmd.CategoryModeration).
 		WithAmbiguityResolution("admin_unmute"),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.Unwarn, "unwarn", "анварн", "снятьпред", "-варн", "-пред").
-		WithGuards(groupGuard, adminGuard).
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Unwarn, "unwarn", "снять пред", "-варн", "-пред").
+		WithGuards(groupGuard).
+		Restricted(model.StatusAdmin).
+		WithDescription("Снять предупреждение").
+		WithCategory(cmd.CategoryModeration).
 		WithAmbiguityResolution("admin_unwarn"),
 	)
 
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Kick, "kick", "кик", "выгнать").
 		AddTriggers("+").
 		SetArgsCount(1).
-		WithGuards(groupGuard, seniorAdminGuard).
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin).
+		WithDescription("Кик участника").
+		WithCategory(cmd.CategoryModeration).
 		WithAmbiguityResolution("admin_kick"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Ban, "ban", "бан").
 		AddTriggers("+").
-		WithGuards(groupGuard, seniorAdminGuard).
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin).
 		SetArgsCount(2).
+		WithDescription("Бан участника").
+		WithCategory(cmd.CategoryModeration).
 		WithAmbiguityResolution("admin_ban"),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.Mute, "mute", "мут", "замутить").
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Mute, "mute", "мут").
 		AddTriggers("+").
-		WithGuards(groupGuard, adminGuard).
+		WithGuards(groupGuard).
+		Restricted(model.StatusAdmin).
 		SetArgsCount(2).
+		WithDescription("Мут участника").
+		WithCategory(cmd.CategoryModeration).
 		WithAmbiguityResolution("admin_mute"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowWarns, "warns", "варны", "преды").
@@ -240,13 +270,19 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(adminHandler.Warnlist, "warnlist", "варнлист", "предывсе").
 		WithGuards(groupGuard),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.Warn, "warn", "варн", "пред", "предупреждение").
+	a.Dispatcher.AddHandler(cf.New(adminHandler.Warn, "warn", "варн", "пред").
 		AddTriggers("+").SetArgsCount(2).
-		WithGuards(groupGuard, adminGuard).
+		WithGuards(groupGuard).
+		Restricted(model.StatusAdmin).
+		WithDescription("Предупреждение").
+		WithCategory(cmd.CategoryModeration).
 		WithAmbiguityResolution("admin_warn"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ClearWarns, "clear_warns", "очистить преды", "очистить варны").
-		WithGuards(groupGuard, adminGuard).
+		WithGuards(groupGuard).
+		Restricted(model.StatusAdmin).
+		WithDescription("Очистить предупреждения").
+		WithCategory(cmd.CategoryModeration).
 		WithAmbiguityResolution("admin_clear"),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ShowMaxWarns, "макс преды", "макс варны", "max_warns").
@@ -255,7 +291,8 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(adminHandler.SetMaxWarns, "max_warns", "макс преды", "макс варны").
 		AddTriggers("+").
 		SetArgsCount(1).
-		WithGuards(groupGuard, coOwnerGuard),
+		WithGuards(groupGuard).
+		Restricted(model.StatusCoOwner),
 	)
 	a.Dispatcher.AddHandler(cf.New(adminHandler.ToggleRights, "права", "rights").
 		WithGuards(groupGuard, developerGuard).SetArgsCount(1).FallbackToSender(),
@@ -264,7 +301,10 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, developerGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.UpdateMembersList, "обновить чат", "update chat", "update").
-		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 10*time.Second, sessionService), moderGuard),
+		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 10*time.Second, sessionService)).
+		Restricted(model.StatusModerator).
+		WithDescription("Обновление списка участников").
+		WithCategory(cmd.CategorySettings),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.ListRoles, "роли", "roles", "titles").
 		WithGuards(groupGuard, rateLimiterGuard),
@@ -277,12 +317,18 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.SetRole, "роль", "role", "title").
 		AddTriggers("+").
-		WithGuards(groupGuard, moderGuard).
+		WithGuards(groupGuard).
+		Restricted(model.StatusModerator).
 		SetArgsCount(1).
+		WithDescription("Присвоение ролей").
+		WithCategory(cmd.CategoryCommunity).
 		WithAmbiguityResolution("member_role_set"),
 	)
-	a.Dispatcher.AddHandler(cf.New(memberHandler.RestoreRoles, "восстановить роли", "restore_roles").
-		WithGuards(groupGuard, seniorAdminGuard),
+	a.Dispatcher.AddHandler(cf.New(memberHandler.RestoreRoles, "перенести админки", "move admins").
+		WithGuards(groupGuard).
+		Restricted(model.StatusModerator).
+		WithDescription("Перенос тг админок").
+		WithCategory(cmd.CategoryModeration),
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.ShowCallTypes, "call_type", "калл тип", "калл стиль").
 		AddTriggers("+", "!").
@@ -290,25 +336,34 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.SetMentionsPerMessage, "call_limit", "калл лимит", "калл лим").
 		AddTriggers("+", "!").
-		WithGuards(groupGuard, coOwnerGuard).
+		WithGuards(groupGuard).
+		Restricted(model.StatusCoOwner).
 		SetArgsCount(1),
 	)
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Equal("call_style"), cf.WrapCallback(callHandler.ShowCallTypes)))
 
 	a.Dispatcher.AddHandler(cf.New(callHandler.CallInactive, "call_inactive", "калл инактив", "калл неактив", "созвать неактивных").
-		WithGuards(groupGuard, moderGuard, rateLimiterGuard),
+		WithGuards(groupGuard, rateLimiterGuard).
+		Restricted(model.StatusModerator).
+		WithDescription("Сбор неактивных").
+		WithCategory(cmd.CategoryCall),
 	)
 
 	a.Dispatcher.AddHandler(cf.New(callHandler.CallNoNorm, "call_no_norm", "калл без нормы", "созвать без нормы").
-		WithGuards(groupGuard, moderGuard, rateLimiterGuard),
+		WithGuards(groupGuard, rateLimiterGuard).
+		Restricted(model.StatusModerator).
+		WithDescription("Сбор тех, кто без нормы").
+		WithCategory(cmd.CategoryCall),
 	)
 
 	a.Dispatcher.AddHandler(cf.New(callHandler.CallNoNormWarn, "call_no_norm_warn", "калл без нормы варн", "созвать без нормы варн").
-		WithGuards(groupGuard, moderGuard, rateLimiterGuard),
+		WithGuards(groupGuard, rateLimiterGuard).
+		Restricted(model.StatusModerator),
 	)
 
 	a.Dispatcher.AddHandler(cf.New(callHandler.CallNoNormWarn, "call_no_norm_ban", "калл без нормы бан", "созвать без нормы бан").
-		WithGuards(groupGuard, moderGuard, rateLimiterGuard),
+		WithGuards(groupGuard, rateLimiterGuard).
+		Restricted(model.StatusModerator),
 	)
 	callConversation := handlers.NewConversation(
 		[]ext.Handler{
@@ -344,58 +399,78 @@ func (a *App) RegisterHandlers() {
 
 	a.Dispatcher.AddHandler(cf.New(callHandler.Call, "call", "калл", "колл", "all", "каллалл").
 		AddTriggers("+").
-		WithGuards(groupGuard, moderGuard, rateLimiterGuard).
-		SetArgsCount(1),
+		WithGuards(groupGuard, rateLimiterGuard).
+		Restricted(model.StatusModerator).
+		SetArgsCount(1).
+		WithDescription("Общий сбор чата").
+		WithCategory(cmd.CategoryCall),
 	)
 
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("call_type:"), cf.WrapCallback(callHandler.CallbackCallType)))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrompt, "промпт").WithGuards(groupGuard))
 	a.Dispatcher.AddHandler(handlers.NewMessage(cmd.NewChatTitle, cf.WrapEvent(chatHandler.OnNewChatTitle)))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.Manage, "manage", "управление"))
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage:"), cf.WrapCallback(chatHandler.CallbackManage)))
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage_page:"), cf.WrapCallback(chatHandler.CallbackManagePage)))
-	a.Dispatcher.AddHandler(cf.New(chatHandler.EnableTags, "+tags", "+теги", "+тэги").WithGuards(groupGuard, seniorAdminGuard))
-	a.Dispatcher.AddHandler(cf.New(chatHandler.DisableTags, "-tags", "-теги", "-тэги").WithGuards(groupGuard, seniorAdminGuard))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage:"), cf.WrapCallback(chatHandler.CallbackManage, guard.Restricted(a.MemberService, a.ChatService, sessionService, "manage", model.StatusSeniorAdmin))))
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("manage_page:"), cf.WrapCallback(chatHandler.CallbackManagePage, guard.Restricted(a.MemberService, a.ChatService, sessionService, "manage", model.StatusSeniorAdmin))))
+	a.Dispatcher.AddHandler(cf.New(chatHandler.EnableTags, "+tags", "+теги", "+тэги").WithGuards(groupGuard).Restricted(model.StatusSeniorAdmin).WithDescription("Включение тегов").WithCategory(cmd.CategorySettings))
+	a.Dispatcher.AddHandler(cf.New(chatHandler.DisableTags, "-tags", "-теги", "-тэги").WithGuards(groupGuard).Restricted(model.StatusSeniorAdmin).WithDescription("Отключение тегов").WithCategory(cmd.CategorySettings))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowTags, "tags", "теги", "тэги"))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.UserChats, "chats", "чаты", "нормы", "чаты без нормы"))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.SetPrompt, "промпт").
 		AddTriggers("+").
 		SetArgsCount(1).
-		WithGuards(groupGuard, seniorAdminGuard),
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin).
+		WithDescription("Настройка промпта для ИИ").
+		WithCategory(cmd.CategorySettings),
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowWeekStart, "week_start", "начало недели", "чистка", "время чистки", "конец чистки"))
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ManageWeekStart, "week_start", "начало недели", "чистка", "время чистки", "конец чистки").
 		AddTriggers("+").
-		SetArgsCount(1).WithGuards(groupGuard, seniorAdminGuard),
+		SetArgsCount(1).WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin).
+		WithDescription("Настройка начала недели").
+		WithCategory(cmd.CategorySettings),
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrefix, "custom_prefix", "кастом префикс", "префикс").
-		WithGuards(groupGuard, seniorAdminGuard),
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin),
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.SetPrefix, "custom_prefix", "кастом префикс", "префикс").
 		AddTriggers("+").
-		WithGuards(groupGuard, seniorAdminGuard).
-		SetArgsCount(1),
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin).
+		SetArgsCount(1).
+		WithDescription("Кастомные префиксы").
+		WithCategory(cmd.CategorySettings),
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.ShowPrefixes, "префиксы", "prefixes").
-		WithGuards(groupGuard, seniorAdminGuard),
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin),
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.DisablePrefixes, "с префиксами", "-prefixless").
-		WithGuards(groupGuard, seniorAdminGuard),
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin),
 	)
 	a.Dispatcher.AddHandler(cf.New(chatHandler.EnablePrefixes, "без префиксов", "+prefixless").
-		WithGuards(groupGuard, seniorAdminGuard),
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin),
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.EnableCallOnJoin, "call_enable", "включить call", "включить колл", "включить калл").
-		WithGuards(groupGuard, seniorAdminGuard),
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin).
+		WithDescription("Включить призыв при входе").
+		WithCategory(cmd.CategoryCall),
 	)
 	a.Dispatcher.AddHandler(cf.New(callHandler.DisableCallOnJoin, "call_disable", "отключить call", "отключить колл", "отключить калл").
-		WithGuards(groupGuard, seniorAdminGuard),
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin),
 	)
 	a.Dispatcher.AddHandler(cf.New(messageHandler.Bot, "крис").
 		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 5, 10*time.Second, sessionService)).
 		SetArgsCount(1),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.DemoteTgAdmin, "разжаловать").WithGuards(groupGuard, seniorAdminGuard))
+	a.Dispatcher.AddHandler(cf.New(adminHandler.DemoteTgAdmin, "разжаловать").WithGuards(groupGuard).Restricted(model.StatusSeniorAdmin))
 	a.Dispatcher.AddHandler(cf.New(adminHandler.FakeLeave, "фейклив").FallbackToSender().WithGuards(groupGuard))
 	a.Dispatcher.AddHandler(cf.New(userHandler.ShowGender, "пол", "gender").FallbackToSender())
 	a.Dispatcher.AddHandler(cf.New(userHandler.SetGender, "пол", "gender", "установить пол").
@@ -406,7 +481,15 @@ func (a *App) RegisterHandlers() {
 	a.Dispatcher.AddHandler(cf.New(userHandler.RemoveEmoji, "-эмоджи", "-эмодзи").FallbackToSender())
 	a.Dispatcher.AddHandler(cf.New(userHandler.SetEmoji, "эмоджи", "эмодзи").FallbackToSender().SetArgsCount(1))
 
-	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"), cf.WrapCallback(restHandler.ApproveRestRequest)))
+	a.Dispatcher.AddHandler(cf.New(adminHandler.ManageRights, "дк").
+		WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin).
+		WithDescription("Управление доступом команд").
+		WithCategory(cmd.CategorySettings),
+	)
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("rights_"), cf.WrapCallback(adminHandler.CallbackManageRights, guard.Restricted(a.MemberService, a.ChatService, sessionService, "дк", model.StatusSeniorAdmin))))
+
+	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("approve:"), cf.WrapCallback(restHandler.ApproveRestRequest, guard.Restricted(a.MemberService, a.ChatService, sessionService, "rests", model.StatusAdmin))))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("reject:"), cf.WrapCallback(restHandler.RejectRestRequest)))
 	a.Dispatcher.AddHandler(cf.New(memberHandler.ShowEmoji, "значок").
 		WithGuards(groupGuard).
@@ -416,18 +499,22 @@ func (a *App) RegisterHandlers() {
 
 	a.Dispatcher.AddHandler(cf.New(memberHandler.SetEmoji, "значок").
 		SetArgsCount(1).
-		FallbackToSender().WithGuards(groupGuard, seniorAdminGuard),
+		FallbackToSender().WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin).
+		WithDescription("Настройка значка участника").
+		WithCategory(cmd.CategoryCommunity),
 	)
 
 	a.Dispatcher.AddHandler(cf.New(memberHandler.RemoveEmoji, "значок").
 		SetArgsCount(1).
-		FallbackToSender().WithGuards(groupGuard, seniorAdminGuard),
+		FallbackToSender().WithGuards(groupGuard).
+		Restricted(model.StatusSeniorAdmin),
 	)
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.LeftChatMember, cf.WrapEvent(memberHandler.OnLeftMember)))
 	a.Dispatcher.AddHandler(handlers.NewMyChatMember(chatmember.NewStatus("administrator"), cf.WrapEvent(memberHandler.OnBotPromote)))
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.NewChatMembers, cf.WrapEvent(memberHandler.OnJoinMember)))
 	a.Dispatcher.AddHandler(handlers.NewMessage(message.Channel, cf.WrapEvent(channelHandler.Post)).SetAllowChannel(true))
-	a.Dispatcher.AddHandler(cf.New(channelHandler.Subscribe, "subscribe").WithGuards(groupGuard, seniorAdminGuard))
+	a.Dispatcher.AddHandler(cf.New(channelHandler.Subscribe, "subscribe").WithGuards(groupGuard).Restricted(model.StatusSeniorAdmin).WithDescription("Подписка на канал").WithCategory(cmd.CategoryCommunity))
 	a.Dispatcher.AddHandler(handlers.NewCallback(callbackquery.Prefix("unsubscribe"), cf.WrapEvent(channelHandler.Unsubscribe)))
 	a.Dispatcher.AddHandler(handlers.NewMessage(filter.OnlyGroups, cf.WrapEvent(messageHandler.Message)))
 

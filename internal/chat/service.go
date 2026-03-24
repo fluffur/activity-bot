@@ -95,7 +95,7 @@ func (s *Service) GetChatsWithEnabledBroadcast(ctx context.Context) ([]model.Cha
 
 func (s *Service) GetUserManagedChats(ctx context.Context, userID int64, ownerID int64) ([]model.Chat, error) {
 	if userID == ownerID {
-		return s.repo.GetAllChats(ctx) // Note: Need to add GetChatsWithEnabledBroadcast to chat repo if missing, or adjust logic!
+		return s.repo.GetAllChats(ctx)
 	}
 	return s.repo.GetUserManagedChats(ctx, userID)
 }
@@ -114,4 +114,16 @@ func (s *Service) RemoveWarnNorm(ctx context.Context, chatID int64) error {
 
 func (s *Service) RemoveBanNorm(ctx context.Context, chatID int64) error {
 	return s.repo.SetBanNorm(ctx, chatID, 0)
+}
+
+func (s *Service) GetCommandPermissions(ctx context.Context, chatID int64) (map[string]model.Status, error) {
+	return s.repo.GetCommandPermissions(ctx, chatID)
+}
+
+func (s *Service) GetCommandPermission(ctx context.Context, chatID int64, key string) (model.Status, error) {
+	return s.repo.GetCommandPermission(ctx, chatID, key)
+}
+
+func (s *Service) SetCommandPermission(ctx context.Context, chatID int64, key string, status model.Status) error {
+	return s.repo.SetCommandPermission(ctx, chatID, key, status)
 }

@@ -31,4 +31,8 @@ type Repository interface {
 	GetAllChats(ctx context.Context) ([]model.Chat, error)
 	GetChatsWithEnabledBroadcast(ctx context.Context) ([]model.Chat, error)
 	SetChatBroadcast(ctx context.Context, chatID int64, enabled bool) error
+
+	GetCommandPermissions(ctx context.Context, chatID int64) (map[string]model.Status, error)
+	GetCommandPermission(ctx context.Context, chatID int64, key string) (model.Status, error)
+	SetCommandPermission(ctx context.Context, chatID int64, key string, status model.Status) error
 }

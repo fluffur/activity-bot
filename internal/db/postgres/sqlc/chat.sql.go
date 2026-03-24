@@ -336,6 +336,50 @@ func (q *Queries) GetChatsWithoutTitle(ctx context.Context) ([]Chat, error) {
 	return items, nil
 }
 
+const getCommandPermission = `-- name: GetCommandPermission :one
+SELECT chat_id, command_key, required_status
+FROM command_permissions
+WHERE chat_id = $1 AND command_key = $2
+`
+
+type GetCommandPermissionParams struct {
+	ChatID     int64  `db:"chat_id" json:"chatId"`
+	CommandKey string `db:"command_key" json:"commandKey"`
+}
+
+func (q *Queries) GetCommandPermission(ctx context.Context, arg GetCommandPermissionParams) (CommandPermission, error) {
+	row := q.db.QueryRow(ctx, getCommandPermission, arg.ChatID, arg.CommandKey)
+	var i CommandPermission
+	err := row.Scan(&i.ChatID, &i.CommandKey, &i.RequiredStatus)
+	return i, err
+}
+
+const getCommandPermissions = `-- name: GetCommandPermissions :many
+SELECT chat_id, command_key, required_status
+FROM command_permissions
+WHERE chat_id = $1
+`
+
+func (q *Queries) GetCommandPermissions(ctx context.Context, chatID int64) ([]CommandPermission, error) {
+	rows, err := q.db.Query(ctx, getCommandPermissions, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommandPermission{}
+	for rows.Next() {
+		var i CommandPermission
+		if err := rows.Scan(&i.ChatID, &i.CommandKey, &i.RequiredStatus); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOrCreateChat = `-- name: GetOrCreateChat :one
 INSERT INTO chats(id, title, norm_warn)
 VALUES ($1, $2, $3)
@@ -486,6 +530,24 @@ type SetChatWelcomeCallMessageParams struct {
 
 func (q *Queries) SetChatWelcomeCallMessage(ctx context.Context, arg SetChatWelcomeCallMessageParams) error {
 	_, err := q.db.Exec(ctx, setChatWelcomeCallMessage, arg.WelcomeCallMessage, arg.ChatID)
+	return err
+}
+
+const setCommandPermission = `-- name: SetCommandPermission :exec
+INSERT INTO command_permissions (chat_id, command_key, required_status)
+VALUES ($1, $2, $3)
+ON CONFLICT (chat_id, command_key) DO UPDATE
+SET required_status = EXCLUDED.required_status
+`
+
+type SetCommandPermissionParams struct {
+	ChatID         int64  `db:"chat_id" json:"chatId"`
+	CommandKey     string `db:"command_key" json:"commandKey"`
+	RequiredStatus int16  `db:"required_status" json:"requiredStatus"`
+}
+
+func (q *Queries) SetCommandPermission(ctx context.Context, arg SetCommandPermissionParams) error {
+	_, err := q.db.Exec(ctx, setCommandPermission, arg.ChatID, arg.CommandKey, arg.RequiredStatus)
 	return err
 }
 

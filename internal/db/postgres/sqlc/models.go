@@ -137,6 +137,12 @@ type ChatMember struct {
 	Status     int16              `db:"status" json:"status"`
 }
 
+type CommandPermission struct {
+	ChatID         int64  `db:"chat_id" json:"chatId"`
+	CommandKey     string `db:"command_key" json:"commandKey"`
+	RequiredStatus int16  `db:"required_status" json:"requiredStatus"`
+}
+
 type Message struct {
 	ChatID    int64              `db:"chat_id" json:"chatId"`
 	UserID    int64              `db:"user_id" json:"userId"`

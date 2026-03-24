@@ -245,3 +245,34 @@ func (r *ChatRepository) SetChatBroadcast(ctx context.Context, chatID int64, ena
 		ID:               chatID,
 	})
 }
+
+func (r *ChatRepository) GetCommandPermissions(ctx context.Context, chatID int64) (map[string]model.Status, error) {
+	perms, err := r.queries.GetCommandPermissions(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[string]model.Status)
+	for _, p := range perms {
+		res[p.CommandKey] = model.Status(p.RequiredStatus)
+	}
+	return res, nil
+}
+
+func (r *ChatRepository) GetCommandPermission(ctx context.Context, chatID int64, key string) (model.Status, error) {
+	p, err := r.queries.GetCommandPermission(ctx, db.GetCommandPermissionParams{
+		ChatID:     chatID,
+		CommandKey: key,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return model.Status(p.RequiredStatus), nil
+}
+
+func (r *ChatRepository) SetCommandPermission(ctx context.Context, chatID int64, key string, status model.Status) error {
+	return r.queries.SetCommandPermission(ctx, db.SetCommandPermissionParams{
+		ChatID:         chatID,
+		CommandKey:     key,
+		RequiredStatus: int16(status),
+	})
+}

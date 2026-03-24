@@ -26,6 +26,9 @@ func FormatNormSet(norm int, action string) string {
 }
 
 func FormatNewbieThreshold(days int) string {
+	if days == 0 {
+		return fmt.Sprintf("Срок для новичков ещё не указан")
+	}
 	return fmt.Sprintf("Участники считаются новичками первые %d %s", days, helpers.PluralizeDays(days))
 }
 

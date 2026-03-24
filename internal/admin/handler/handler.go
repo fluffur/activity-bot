@@ -28,10 +28,11 @@ type Handler struct {
 	chatService   *chat.Service
 	dateParser    *helpers.DateParser
 	asyncClient   *asynq.Client
+	factory       *cmd.Factory
 }
 
-func New(service *admin.Service, memberService *member.Service, chatService *chat.Service, dateParser *helpers.DateParser, asyncClient *asynq.Client) *Handler {
-	return &Handler{service, memberService, chatService, dateParser, asyncClient}
+func New(service *admin.Service, memberService *member.Service, chatService *chat.Service, dateParser *helpers.DateParser, asyncClient *asynq.Client, factory *cmd.Factory) *Handler {
+	return &Handler{service, memberService, chatService, dateParser, asyncClient, factory}
 }
 
 func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {

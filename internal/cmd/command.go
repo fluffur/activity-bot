@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"activity-bot/internal/chat"
+	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -29,6 +31,7 @@ type Factory struct {
 	}
 	uniquePrefix string
 	triggers     []string
+	commands     []*Command
 }
 
 func NewFactory(userService *user.Service, chatService *chat.Service, memberService *member.Service, sessionService interface {
@@ -42,11 +45,13 @@ func NewFactory(userService *user.Service, chatService *chat.Service, memberServ
 		triggers[i] = strings.ToLower(t)
 	}
 
-	return &Factory{userService, chatService, memberService, sessionService, strings.ToLower(uniquePrefix), triggers}
+	return &Factory{userService, chatService, memberService, sessionService, strings.ToLower(uniquePrefix), triggers, make([]*Command, 0)}
 }
 
 func (f *Factory) New(r Response, c string, aliases ...string) *Command {
-	return New(append(aliases, c), f.triggers, r, f.userService, f.chatService, f.memberService, f.sessionService, f.uniquePrefix)
+	cmd := New(append(aliases, c), f.triggers, r, f.userService, f.chatService, f.memberService, f.sessionService, f.uniquePrefix)
+	f.commands = append(f.commands, cmd)
+	return cmd
 }
 
 func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -116,6 +121,16 @@ func (f *Factory) WrapCallback(r Response, guards ...Guard) func(b *gotgbot.Bot,
 		}
 		return nil
 	}
+}
+
+func (f *Factory) ConfigurableCommands() []*Command {
+	var res []*Command
+	for _, c := range f.commands {
+		if c.description != "" {
+			res = append(res, c)
+		}
+	}
+	return res
 }
 
 func (f *Factory) WrapEvent(r Response, guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -188,6 +203,9 @@ type Command struct {
 	guards           []Guard
 	forcePrefix      bool
 	ambiguityPrefix  string
+	requiredStatus   model.Status
+	description      string
+	category         Category
 }
 
 func New(commands []string, triggers []string, response Response, userService *user.Service, chatService *chat.Service, memberService *member.Service, sessionService interface {
@@ -233,6 +251,11 @@ func (c *Command) WithAmbiguityResolution(prefix string) *Command {
 	return c
 }
 
+func (c *Command) Restricted(status model.Status) *Command {
+	c.requiredStatus = status
+	return c
+}
+
 func (c *Command) SetArgsCount(argsCount int) *Command {
 	if argsCount < 0 && argsCount != ArgsCountAny {
 		return c
@@ -240,6 +263,39 @@ func (c *Command) SetArgsCount(argsCount int) *Command {
 
 	c.argsCount = argsCount
 	return c
+}
+
+func (c *Command) WithDescription(desc string) *Command {
+	c.description = desc
+	return c
+}
+
+func (c *Command) WithCategory(cat Category) *Command {
+	c.category = cat
+	return c
+}
+
+func (c *Command) GetKey() string {
+	if len(c.commands) > 0 {
+		return strings.ReplaceAll(c.commands[0], " ", "_")
+	}
+	return ""
+}
+
+func (c *Command) GetAliases() []string {
+	return c.commands
+}
+
+func (c *Command) GetDescription() string {
+	return c.description
+}
+
+func (c *Command) GetCategory() Category {
+	return c.category
+}
+
+func (c *Command) GetDefaultStatus() model.Status {
+	return c.requiredStatus
 }
 
 func (c *Command) SetTriggers(triggers ...string) *Command {
@@ -272,6 +328,31 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 
 func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 	ctxWithTimeout := context.Background()
+
+	chatID, err := GetChatID(c.sessionService, ctx, ctxWithTimeout)
+	if err != nil {
+		logger.L.Error("Failed to get chat ID for permission check", "error", err)
+		return nil
+	}
+
+	required := c.requiredStatus
+	if c.chatService != nil {
+		if s, err := c.chatService.GetCommandPermission(ctxWithTimeout, chatID, c.commands[0]); err == nil {
+			required = s
+		}
+	}
+
+	m, err := c.memberService.GetChatMember(ctxWithTimeout, chatID, ctx.EffectiveSender.Id())
+	if err != nil {
+		return nil
+	}
+
+	if m.Status < required {
+		message := fmt.Sprintf("%s Требуются права: %s", helpers.StatusEmoji(required), helpers.StatusName(required))
+		_, err := ctx.EffectiveMessage.Reply(b, message, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
+		return err
+	}
+
 	for _, guard := range c.guards {
 		if ok, message := guard.Check(ctx, c.commands[0], ctxWithTimeout); !ok {
 			if message != "" {
