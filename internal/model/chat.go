@@ -40,7 +40,7 @@ func (cm ChatMember) CanModerate(c ChatMember) bool {
 }
 
 func (cm ChatMember) IsAdmin() bool {
-	return cm.Status > 0
+	return cm.Status >= 3
 }
 
 func (cm ChatMember) IsRestActive(now time.Time) bool {

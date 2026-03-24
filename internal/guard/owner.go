@@ -18,5 +18,5 @@ func NewDeveloperGuard(service *admin.Service, developerID int64) cmd.Guard {
 }
 
 func (g *DeveloperGuard) Check(ctx *ext.Context, _ string, _ context.Context) (bool, string) {
-	return g.developerID == ctx.EffectiveSender.Id(), "s"
+	return g.developerID == ctx.EffectiveSender.Id(), ""
 }

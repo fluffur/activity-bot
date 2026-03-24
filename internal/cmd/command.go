@@ -125,7 +125,7 @@ func (f *Factory) WrapEvent(r Response, guards ...Guard) func(b *gotgbot.Bot, ct
 		for _, guard := range guards {
 			if ok, message := guard.Check(ctx, "", ctxWithTimeout); !ok {
 				if message != "" && ctx.EffectiveMessage != nil {
-					_, _ = ctx.EffectiveMessage.Reply(b, message, nil)
+					_, _ = ctx.EffectiveMessage.Reply(b, message, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 				}
 				return nil
 			}
@@ -139,7 +139,6 @@ func (f *Factory) WrapEvent(r Response, guards ...Guard) func(b *gotgbot.Bot, ct
 					if err == nil {
 						members = append(members, &m)
 					} else {
-						// Fallback to ensuring user exists if member fetch fails
 						mu, err := f.userService.EnsureUserExists(ctxWithTimeout, u.Id, u.Username, u.FirstName, u.LastName)
 						if err == nil {
 							members = append(members, &model.ChatMember{User: mu})
@@ -276,7 +275,7 @@ func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 	for _, guard := range c.guards {
 		if ok, message := guard.Check(ctx, c.commands[0], ctxWithTimeout); !ok {
 			if message != "" {
-				_, err := ctx.EffectiveMessage.Reply(b, message, nil)
+				_, err := ctx.EffectiveMessage.Reply(b, message, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
 				return err
 			}
 			return nil

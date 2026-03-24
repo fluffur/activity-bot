@@ -2,8 +2,10 @@ package guard
 
 import (
 	"activity-bot/internal/cmd"
+	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"context"
+	"fmt"
 
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
@@ -35,5 +37,5 @@ func (g AdminGuard) Check(ctx *ext.Context, _ string, stdCtx context.Context) (b
 	if err != nil {
 		return false, ""
 	}
-	return m.Status >= g.status, ""
+	return m.Status >= g.status, fmt.Sprintf("Требуются права уровня %s", helpers.StatusEmoji(g.status))
 }
