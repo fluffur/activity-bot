@@ -195,19 +195,6 @@ func (r *MemberRepository) Remove(ctx context.Context, chatID int64, userID int6
 	})
 }
 
-func (r *MemberRepository) EnsureExists(ctx context.Context, chatID int64, userID int64, status int16) (model.ChatMember, error) {
-	m, err := r.queries.EnsureChatMemberExists(ctx, db.EnsureChatMemberExistsParams{
-		ChatID: chatID,
-		UserID: userID,
-		Status: status,
-	})
-	if err != nil {
-		return model.ChatMember{}, err
-	}
-
-	return mapChatMember(m), nil
-}
-
 func (r *MemberRepository) EnsureFull(ctx context.Context, chatID, userID int64, role, firstName, lastName, username string) (model.ChatMember, error) {
 	m, err := r.queries.EnsureMemberFull(ctx, db.EnsureMemberFullParams{
 		Tag: pgtype.Text{

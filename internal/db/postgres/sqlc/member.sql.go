@@ -29,37 +29,6 @@ func (q *Queries) DeleteChatMember(ctx context.Context, arg DeleteChatMemberPara
 	return err
 }
 
-const ensureChatMemberExists = `-- name: EnsureChatMemberExists :one
-INSERT INTO chat_members(chat_id, user_id, status)
-VALUES ($1, $2, $3)
-ON CONFLICT(chat_id, user_id) DO UPDATE SET status  = EXCLUDED.status,
-                                            left_at = NULL
-RETURNING chat_id, user_id, joined_at, rest_until, tag, left_at, rest_reason, emoji, status
-`
-
-type EnsureChatMemberExistsParams struct {
-	ChatID int64 `db:"chat_id" json:"chatId"`
-	UserID int64 `db:"user_id" json:"userId"`
-	Status int16 `db:"status" json:"status"`
-}
-
-func (q *Queries) EnsureChatMemberExists(ctx context.Context, arg EnsureChatMemberExistsParams) (ChatMember, error) {
-	row := q.db.QueryRow(ctx, ensureChatMemberExists, arg.ChatID, arg.UserID, arg.Status)
-	var i ChatMember
-	err := row.Scan(
-		&i.ChatID,
-		&i.UserID,
-		&i.JoinedAt,
-		&i.RestUntil,
-		&i.Tag,
-		&i.LeftAt,
-		&i.RestReason,
-		&i.Emoji,
-		&i.Status,
-	)
-	return i, err
-}
-
 const ensureMemberFull = `-- name: EnsureMemberFull :one
 WITH chat_upsert AS (
     INSERT INTO chats (id)

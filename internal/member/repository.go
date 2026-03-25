@@ -20,7 +20,6 @@ type Repository interface {
 	MarkLeftNotInList(ctx context.Context, chatID int64, userIDs []int64) error
 	Get(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error)
 	Remove(ctx context.Context, chatID int64, userID int64) error
-	EnsureExists(ctx context.Context, chatID int64, userID int64, status int16) (model.ChatMember, error)
 	EnsureFull(ctx context.Context, chatID int64, userID int64, role, firstName, lastName string, username string) (model.ChatMember, error)
 	SetOnlyNewbies(ctx context.Context, chatID int64, users []*model.User) error
 	SetNewbies(ctx context.Context, chatID int64, users []*model.User) error
