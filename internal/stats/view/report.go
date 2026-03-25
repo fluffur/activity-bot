@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func FormatStats(report []model.MessageReportMember, restMembers []model.ChatMember, newbieThresholdDays int32, from, to *time.Time) string {
+func FormatStats(report []model.ChatMemberMessageCount, restMembers []model.ChatMember, newbieThresholdDays int32, from, to *time.Time) string {
 	header := formatPeriodHeader(from, to)
 	sections := prepareReportSections(report, restMembers)
 	topOnly := sections.NormWarn == 0 && sections.NormBan == 0
@@ -102,7 +102,7 @@ func FormatRestList(restMembers []model.ChatMember) string {
 	return sb.String()
 }
 
-func FormatNewbies(report []model.MessageReportMember) string {
+func FormatNewbies(report []model.ChatMemberMessageCount) string {
 	sections := prepareReportSections(report, nil)
 
 	if len(sections.Newbies) == 0 {
@@ -115,7 +115,7 @@ func FormatNewbies(report []model.MessageReportMember) string {
 	return sb.String()
 }
 
-func FormatFailedNorm(report []model.MessageReportMember, from, to *time.Time) string {
+func FormatFailedNorm(report []model.ChatMemberMessageCount, from, to *time.Time) string {
 	header := formatPeriodHeader(from, to)
 	sections := prepareReportSections(report, nil)
 
@@ -151,22 +151,22 @@ type reportSections struct {
 	TotalMessages int64
 }
 
-func prepareReportSections(report []model.MessageReportMember, restMembers []model.ChatMember) reportSections {
+func prepareReportSections(report []model.ChatMemberMessageCount, restMembers []model.ChatMember) reportSections {
 	now := time.Now().UTC()
 	s := reportSections{}
 
 	for _, r := range report {
 		s.NormBan = r.Chat.NormBan
 		s.NormWarn = r.Chat.NormWarn
-		s.TotalMessages += r.MessagesCount
+		s.TotalMessages += r.MessageCount
 
-		normWarnDone := r.MessagesCount >= int64(r.Chat.NormWarn)
+		normWarnDone := r.MessageCount >= int64(r.Chat.NormWarn)
 		normBanDone := true
 		if r.Chat.NormBan > 0 {
-			normBanDone = r.MessagesCount >= int64(r.Chat.NormBan)
+			normBanDone = r.MessageCount >= int64(r.Chat.NormBan)
 		}
 
-		line := fmt.Sprintf("%s — <code>%d</code>", helpers.RoleEmojiLink(r.ChatMember), r.MessagesCount)
+		line := fmt.Sprintf("%s — <code>%d</code>", helpers.RoleEmojiLink(r.ChatMember), r.MessageCount)
 
 		isNewbie := false
 		if r.Chat.NewbieThresholdDays > 0 {
@@ -178,7 +178,7 @@ func prepareReportSections(report []model.MessageReportMember, restMembers []mod
 
 		if isNewbie {
 			if normWarnDone {
-				s.Passed = append(s.Passed, fmt.Sprintf("%s %s — <code>%d</code>", helpers.NewbieEmoji(), helpers.RoleEmojiLink(r.ChatMember), r.MessagesCount))
+				s.Passed = append(s.Passed, fmt.Sprintf("%s %s — <code>%d</code>", helpers.NewbieEmoji(), helpers.RoleEmojiLink(r.ChatMember), r.MessageCount))
 			} else {
 				s.Newbies = append(s.Newbies, line)
 			}

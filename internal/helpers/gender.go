@@ -2,7 +2,6 @@ package helpers
 
 import "activity-bot/internal/model"
 
-// Gendered returns male/female/neutral form based on gender string.
 func Gendered(gender, male, female string) string {
 	switch gender {
 	case model.GenderMale:

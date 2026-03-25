@@ -11,228 +11,54 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createMessage = `-- name: CreateMessage :one
-INSERT INTO messages(chat_id, user_id, created_at, message_id)
-VALUES ($1, $2, $3, $4)
-RETURNING chat_id, user_id, created_at, id, message_id
-`
-
-type CreateMessageParams struct {
-	ChatID    int64              `db:"chat_id" json:"chatId"`
-	UserID    int64              `db:"user_id" json:"userId"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	MessageID pgtype.Int8        `db:"message_id" json:"messageId"`
-}
-
-func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error) {
-	row := q.db.QueryRow(ctx, createMessage,
-		arg.ChatID,
-		arg.UserID,
-		arg.CreatedAt,
-		arg.MessageID,
-	)
-	var i Message
-	err := row.Scan(
-		&i.ChatID,
-		&i.UserID,
-		&i.CreatedAt,
-		&i.ID,
-		&i.MessageID,
-	)
-	return i, err
-}
-
-const inactiveChatMembers = `-- name: InactiveChatMembers :many
-SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
-       cm.tag,
-       cm.status,
-       cm.rest_until,
-       MAX(m.created_at)::timestamptz AS last_message_at
-FROM chat_members cm
-         JOIN users u ON cm.user_id = u.id
-         LEFT JOIN messages m
-                   ON m.user_id = cm.user_id AND m.chat_id = cm.chat_id
-WHERE cm.left_at IS NULL
-  AND cm.chat_id = $1
-  AND (cm.rest_until IS NULL OR cm.rest_until < now())
-GROUP BY cm.user_id, u.id, u.first_name, u.last_name, u.username, cm.tag, cm.status, cm.rest_until
-HAVING MAX(m.created_at) IS NULL
-    OR MAX(m.created_at) < NOW() - INTERVAL '1 days'
-ORDER BY MAX(m.created_at) NULLS FIRST
-`
-
-type InactiveChatMembersRow struct {
-	User          User               `db:"user" json:"user"`
-	Tag           pgtype.Text        `db:"tag" json:"tag"`
-	Status        int16              `db:"status" json:"status"`
-	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
-	LastMessageAt pgtype.Timestamptz `db:"last_message_at" json:"lastMessageAt"`
-}
-
-func (q *Queries) InactiveChatMembers(ctx context.Context, chatID int64) ([]InactiveChatMembersRow, error) {
-	rows, err := q.db.Query(ctx, inactiveChatMembers, chatID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []InactiveChatMembersRow{}
-	for rows.Next() {
-		var i InactiveChatMembersRow
-		if err := rows.Scan(
-			&i.User.ID,
-			&i.User.Username,
-			&i.User.FirstName,
-			&i.User.LastName,
-			&i.User.CreatedAt,
-			&i.User.Gender,
-			&i.User.Emoji,
-			&i.User.CustomEmojiID,
-			&i.Tag,
-			&i.Status,
-			&i.RestUntil,
-			&i.LastMessageAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const messageActivityByDay = `-- name: MessageActivityByDay :many
-SELECT date_trunc('day', m.created_at)::date AS day,
-       COUNT(m.chat_id)                      AS messages_count
-FROM messages m
-         JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = m.user_id
-WHERE m.chat_id = $1
-  AND m.user_id = $2
-  AND m.created_at >= GREATEST(
-        now() - interval '30 days',
-        cm.joined_at
-                      )
-GROUP BY day
-ORDER BY day
-`
-
-type MessageActivityByDayParams struct {
-	ChatID int64 `db:"chat_id" json:"chatId"`
-	UserID int64 `db:"user_id" json:"userId"`
-}
-
-type MessageActivityByDayRow struct {
-	Day           pgtype.Date `db:"day" json:"day"`
-	MessagesCount int64       `db:"messages_count" json:"messagesCount"`
-}
-
-func (q *Queries) MessageActivityByDay(ctx context.Context, arg MessageActivityByDayParams) ([]MessageActivityByDayRow, error) {
-	rows, err := q.db.Query(ctx, messageActivityByDay, arg.ChatID, arg.UserID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []MessageActivityByDayRow{}
-	for rows.Next() {
-		var i MessageActivityByDayRow
-		if err := rows.Scan(&i.Day, &i.MessagesCount); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const messageActivityByDayAll = `-- name: MessageActivityByDayAll :many
-SELECT date_trunc('day', m.created_at)::date AS day,
-       COUNT(*)                              AS messages_count
-FROM messages m
-WHERE m.chat_id = $1
-  AND m.created_at >= COALESCE($2, now() - interval '30 days')
-  AND m.created_at <= COALESCE($3, now())
-GROUP BY day
-ORDER BY day
-`
-
-type MessageActivityByDayAllParams struct {
-	ChatID   int64              `db:"chat_id" json:"chatId"`
-	FromDate pgtype.Timestamptz `db:"from_date" json:"fromDate"`
-	ToDate   pgtype.Timestamptz `db:"to_date" json:"toDate"`
-}
-
-type MessageActivityByDayAllRow struct {
-	Day           pgtype.Date `db:"day" json:"day"`
-	MessagesCount int64       `db:"messages_count" json:"messagesCount"`
-}
-
-func (q *Queries) MessageActivityByDayAll(ctx context.Context, arg MessageActivityByDayAllParams) ([]MessageActivityByDayAllRow, error) {
-	rows, err := q.db.Query(ctx, messageActivityByDayAll, arg.ChatID, arg.FromDate, arg.ToDate)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []MessageActivityByDayAllRow{}
-	for rows.Next() {
-		var i MessageActivityByDayAllRow
-		if err := rows.Scan(&i.Day, &i.MessagesCount); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const messageReport = `-- name: MessageReport :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status,
-       u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
-       COUNT(m.chat_id) AS messages_count,
-       c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled
+const chatMemberMessageStatsByChat = `-- name: ChatMemberMessageStatsByChat :many
+WITH filtered_messages AS (
+    SELECT m.chat_id, m.user_id
+    FROM messages m
+    WHERE m.chat_id = $1
+      AND ($2::timestamptz IS NULL OR m.created_at >= $2::timestamptz)
+      AND ($3::timestamptz IS NULL OR m.created_at < $3::timestamptz)
+)
+SELECT
+    cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status,
+    u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
+    COUNT(fm.chat_id) AS messages_count,
+    c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
-         LEFT JOIN messages m
-                   ON m.chat_id = cm.chat_id
-                       AND m.user_id = cm.user_id
-                       AND (
-                          (m.created_at >= $1 OR $1::timestamptz IS NULL)
-                              AND (m.created_at < $2 OR $2::timestamptz IS NULL)
-                          )
-WHERE cm.chat_id = $3
+         LEFT JOIN filtered_messages fm
+                   ON fm.chat_id = cm.chat_id
+                       AND fm.user_id = cm.user_id
+WHERE cm.chat_id = $1
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
-GROUP BY cm.chat_id, cm.user_id, u.id, c.id, cm.joined_at
+GROUP BY cm.chat_id, cm.user_id, u.id, c.id
 ORDER BY messages_count DESC
 `
 
-type MessageReportParams struct {
+type ChatMemberMessageStatsByChatParams struct {
+	ChatID   int64              `db:"chat_id" json:"chatId"`
 	FromDate pgtype.Timestamptz `db:"from_date" json:"fromDate"`
 	ToDate   pgtype.Timestamptz `db:"to_date" json:"toDate"`
-	ChatID   int64              `db:"chat_id" json:"chatId"`
 }
 
-type MessageReportRow struct {
+type ChatMemberMessageStatsByChatRow struct {
 	ChatMember    ChatMember `db:"chat_member" json:"chatMember"`
 	User          User       `db:"user" json:"user"`
 	MessagesCount int64      `db:"messages_count" json:"messagesCount"`
 	Chat          Chat       `db:"chat" json:"chat"`
 }
 
-func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([]MessageReportRow, error) {
-	rows, err := q.db.Query(ctx, messageReport, arg.FromDate, arg.ToDate, arg.ChatID)
+func (q *Queries) ChatMemberMessageStatsByChat(ctx context.Context, arg ChatMemberMessageStatsByChatParams) ([]ChatMemberMessageStatsByChatRow, error) {
+	rows, err := q.db.Query(ctx, chatMemberMessageStatsByChat, arg.ChatID, arg.FromDate, arg.ToDate)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []MessageReportRow{}
+	items := []ChatMemberMessageStatsByChatRow{}
 	for rows.Next() {
-		var i MessageReportRow
+		var i ChatMemberMessageStatsByChatRow
 		if err := rows.Scan(
 			&i.ChatMember.ChatID,
 			&i.ChatMember.UserID,
@@ -281,49 +107,42 @@ func (q *Queries) MessageReport(ctx context.Context, arg MessageReportParams) ([
 	return items, nil
 }
 
-const messageReportOne = `-- name: MessageReportOne :one
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status,
-       u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
-       c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now())), 0)::bigint   AS day_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day'),
-                0)::bigint                                                                             AS day_rolling_count,
-       COALESCE(
-                       COUNT(m.chat_id) FILTER (
-                   WHERE m.created_at >= (
-                       (date_trunc('day', now()))
-                           - ((extract(isodow from now())::int - c.week_start_day + 7) % 7)
-                           * interval '1 day'
-                       )
-                   ),
-                       0
-       )::bigint                                                                                       AS week_count,
-
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '7 days'),
-                0)::bigint                                                                             AS week_rolling_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('month', now())), 0)::bigint AS month_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '30 days'),
-                0)::bigint                                                                             AS month_rolling_count,
-       COALESCE(COUNT(m.chat_id), 0)::bigint                                                           AS all_time_count
-
+const chatMemberMessageStatsByUser = `-- name: ChatMemberMessageStatsByUser :one
+WITH user_messages AS (
+    SELECT m.created_at
+    FROM messages m
+    WHERE m.chat_id = $1
+      AND m.user_id = $2
+)
+SELECT
+    cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status,
+    u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
+    c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled,
+    COUNT(*) FILTER (WHERE m.created_at >= date_trunc('day', now()))          AS day_count,
+    COUNT(*) FILTER (WHERE m.created_at >= now() - interval '1 day')         AS day_rolling_count,
+    COUNT(*) FILTER (
+        WHERE m.created_at >= date_trunc('day', now())
+            - ((extract(isodow from now())::int - c.week_start_day + 7) % 7) * interval '1 day'
+        )                                                                       AS week_count,
+    COUNT(*) FILTER (WHERE m.created_at >= now() - interval '7 days')         AS week_rolling_count,
+    COUNT(*) FILTER (WHERE m.created_at >= date_trunc('month', now()))        AS month_count,
+    COUNT(*) FILTER (WHERE m.created_at >= now() - interval '30 days')       AS month_rolling_count,
+    COUNT(*)                                                                 AS all_time_count
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
-         LEFT JOIN messages m
-                   ON m.chat_id = cm.chat_id
-                       AND m.user_id = cm.user_id
-
+         LEFT JOIN user_messages m ON TRUE
 WHERE cm.chat_id = $1
   AND cm.user_id = $2
 GROUP BY cm.chat_id, cm.user_id, u.id, c.id
 `
 
-type MessageReportOneParams struct {
+type ChatMemberMessageStatsByUserParams struct {
 	ChatID int64 `db:"chat_id" json:"chatId"`
 	UserID int64 `db:"user_id" json:"userId"`
 }
 
-type MessageReportOneRow struct {
+type ChatMemberMessageStatsByUserRow struct {
 	ChatMember        ChatMember `db:"chat_member" json:"chatMember"`
 	User              User       `db:"user" json:"user"`
 	Chat              Chat       `db:"chat" json:"chat"`
@@ -336,9 +155,9 @@ type MessageReportOneRow struct {
 	AllTimeCount      int64      `db:"all_time_count" json:"allTimeCount"`
 }
 
-func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOneParams) (MessageReportOneRow, error) {
-	row := q.db.QueryRow(ctx, messageReportOne, arg.ChatID, arg.UserID)
-	var i MessageReportOneRow
+func (q *Queries) ChatMemberMessageStatsByUser(ctx context.Context, arg ChatMemberMessageStatsByUserParams) (ChatMemberMessageStatsByUserRow, error) {
+	row := q.db.QueryRow(ctx, chatMemberMessageStatsByUser, arg.ChatID, arg.UserID)
+	var i ChatMemberMessageStatsByUserRow
 	err := row.Scan(
 		&i.ChatMember.ChatID,
 		&i.ChatMember.UserID,
@@ -384,4 +203,122 @@ func (q *Queries) MessageReportOne(ctx context.Context, arg MessageReportOnePara
 		&i.AllTimeCount,
 	)
 	return i, err
+}
+
+const chatMessageActivityDaily = `-- name: ChatMessageActivityDaily :many
+SELECT date_trunc('day', m.created_at)::date AS day,
+       COUNT(*)                              AS messages_count
+FROM messages m
+WHERE m.chat_id = $1
+  AND m.created_at >= COALESCE($2, now() - interval '30 days')
+  AND m.created_at <= COALESCE($3, now())
+GROUP BY day
+ORDER BY day
+`
+
+type ChatMessageActivityDailyParams struct {
+	ChatID   int64              `db:"chat_id" json:"chatId"`
+	FromDate pgtype.Timestamptz `db:"from_date" json:"fromDate"`
+	ToDate   pgtype.Timestamptz `db:"to_date" json:"toDate"`
+}
+
+type ChatMessageActivityDailyRow struct {
+	Day           pgtype.Date `db:"day" json:"day"`
+	MessagesCount int64       `db:"messages_count" json:"messagesCount"`
+}
+
+func (q *Queries) ChatMessageActivityDaily(ctx context.Context, arg ChatMessageActivityDailyParams) ([]ChatMessageActivityDailyRow, error) {
+	rows, err := q.db.Query(ctx, chatMessageActivityDaily, arg.ChatID, arg.FromDate, arg.ToDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ChatMessageActivityDailyRow{}
+	for rows.Next() {
+		var i ChatMessageActivityDailyRow
+		if err := rows.Scan(&i.Day, &i.MessagesCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const createMessage = `-- name: CreateMessage :one
+INSERT INTO messages(chat_id, user_id, created_at, message_id)
+VALUES ($1, $2, $3, $4)
+RETURNING chat_id, user_id, created_at, id, message_id
+`
+
+type CreateMessageParams struct {
+	ChatID    int64              `db:"chat_id" json:"chatId"`
+	UserID    int64              `db:"user_id" json:"userId"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	MessageID pgtype.Int8        `db:"message_id" json:"messageId"`
+}
+
+func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error) {
+	row := q.db.QueryRow(ctx, createMessage,
+		arg.ChatID,
+		arg.UserID,
+		arg.CreatedAt,
+		arg.MessageID,
+	)
+	var i Message
+	err := row.Scan(
+		&i.ChatID,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.ID,
+		&i.MessageID,
+	)
+	return i, err
+}
+
+const userMessageActivityDaily = `-- name: UserMessageActivityDaily :many
+SELECT date_trunc('day', m.created_at)::date AS day,
+       COUNT(m.chat_id)                      AS messages_count
+FROM messages m
+         JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = m.user_id
+WHERE m.chat_id = $1
+  AND m.user_id = $2
+  AND m.created_at >= GREATEST(
+        now() - interval '30 days',
+        cm.joined_at
+                      )
+GROUP BY day
+ORDER BY day
+`
+
+type UserMessageActivityDailyParams struct {
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	UserID int64 `db:"user_id" json:"userId"`
+}
+
+type UserMessageActivityDailyRow struct {
+	Day           pgtype.Date `db:"day" json:"day"`
+	MessagesCount int64       `db:"messages_count" json:"messagesCount"`
+}
+
+func (q *Queries) UserMessageActivityDaily(ctx context.Context, arg UserMessageActivityDailyParams) ([]UserMessageActivityDailyRow, error) {
+	rows, err := q.db.Query(ctx, userMessageActivityDaily, arg.ChatID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []UserMessageActivityDailyRow{}
+	for rows.Next() {
+		var i UserMessageActivityDailyRow
+		if err := rows.Scan(&i.Day, &i.MessagesCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

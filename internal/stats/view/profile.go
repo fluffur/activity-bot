@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func FormatProfile(m model.MemberStats, full bool) string {
+func FormatProfile(m model.ChatMemberStats, full bool) string {
 	now := time.Now().UTC()
 
 	isNewbie := false

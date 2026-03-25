@@ -1,12 +1,12 @@
 package model
 
-type MessageReportMember struct {
-	ChatMember    ChatMember
-	Chat          Chat
-	MessagesCount int64
+type ChatMemberMessageCount struct {
+	ChatMember   ChatMember
+	Chat         Chat
+	MessageCount int64
 }
 
-type MemberStats struct {
+type ChatMemberStats struct {
 	ChatMember        ChatMember
 	Chat              Chat
 	DayCount          int64

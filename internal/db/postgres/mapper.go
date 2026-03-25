@@ -6,7 +6,6 @@ import (
 	"activity-bot/internal/model"
 )
 
-// User mapping helpers
 func mapUser(u db.User) model.User {
 	return model.User{
 		ID:            u.ID,
@@ -19,7 +18,6 @@ func mapUser(u db.User) model.User {
 	}
 }
 
-// Chat mapping helpers
 func mapChat(c db.Chat) model.Chat {
 	return model.Chat{
 		ID:                  c.ID,
@@ -83,16 +81,16 @@ func mapMembers[T any](members []T, mapper func(T) model.ChatMember) []model.Cha
 	return result
 }
 
-func mapMessageReportRow(m db.MessageReportRow) model.MessageReportMember {
-	return model.MessageReportMember{
-		Chat:          mapChat(m.Chat),
-		ChatMember:    mapChatMemberFull(m.ChatMember, m.User),
-		MessagesCount: m.MessagesCount,
+func mapMessageReportRow(m db.ChatMemberMessageStatsByChatRow) model.ChatMemberMessageCount {
+	return model.ChatMemberMessageCount{
+		Chat:         mapChat(m.Chat),
+		ChatMember:   mapChatMemberFull(m.ChatMember, m.User),
+		MessageCount: m.MessagesCount,
 	}
 }
 
-func mapMessageReportOneRow(m db.MessageReportOneRow) model.MemberStats {
-	return model.MemberStats{
+func mapMessageReportOneRow(m db.ChatMemberMessageStatsByUserRow) model.ChatMemberStats {
+	return model.ChatMemberStats{
 		ChatMember:        mapChatMemberFull(m.ChatMember, m.User),
 		Chat:              mapChat(m.Chat),
 		DayCount:          m.DayCount,
@@ -115,7 +113,7 @@ func mapInactiveChatMembersRow(m db.InactiveChatMembersRow) model.ChatMember {
 	}
 }
 
-func mapMessageActivity(row db.MessageActivityByDayRow) model.MessageActivity {
+func mapMessageActivity(row db.ChatMessageActivityDailyRow) model.MessageActivity {
 	return model.MessageActivity{
 		Count: row.MessagesCount,
 		Date:  row.Day.Time,

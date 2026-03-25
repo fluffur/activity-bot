@@ -3,65 +3,61 @@ INSERT INTO messages(chat_id, user_id, created_at, message_id)
 VALUES ($1, $2, $3, $4)
 RETURNING *;
 
--- name: MessageReport :many
-SELECT sqlc.embed(cm),
-       sqlc.embed(u),
-       COUNT(m.chat_id) AS messages_count,
-       sqlc.embed(c)
+-- name: ChatMemberMessageStatsByChat :many
+WITH filtered_messages AS (
+    SELECT m.chat_id, m.user_id
+    FROM messages m
+    WHERE m.chat_id = @chat_id
+      AND (@from_date::timestamptz IS NULL OR m.created_at >= @from_date::timestamptz)
+      AND (@to_date::timestamptz IS NULL OR m.created_at < @to_date::timestamptz)
+)
+SELECT
+    sqlc.embed(cm),
+    sqlc.embed(u),
+    COUNT(fm.chat_id) AS messages_count,
+    sqlc.embed(c)
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
-         LEFT JOIN messages m
-                   ON m.chat_id = cm.chat_id
-                       AND m.user_id = cm.user_id
-                       AND (
-                          (m.created_at >= @from_date OR @from_date::timestamptz IS NULL)
-                              AND (m.created_at < @to_date OR @to_date::timestamptz IS NULL)
-                          )
+         LEFT JOIN filtered_messages fm
+                   ON fm.chat_id = cm.chat_id
+                       AND fm.user_id = cm.user_id
 WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
-GROUP BY cm.chat_id, cm.user_id, u.id, c.id, cm.joined_at
+GROUP BY cm.chat_id, cm.user_id, u.id, c.id
 ORDER BY messages_count DESC;
 
-
--- name: MessageReportOne :one
-SELECT sqlc.embed(cm),
-       sqlc.embed(u),
-       sqlc.embed(c),
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('day', now())), 0)::bigint   AS day_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '1 day'),
-                0)::bigint                                                                             AS day_rolling_count,
-       COALESCE(
-                       COUNT(m.chat_id) FILTER (
-                   WHERE m.created_at >= (
-                       (date_trunc('day', now()))
-                           - ((extract(isodow from now())::int - c.week_start_day + 7) % 7)
-                           * interval '1 day'
-                       )
-                   ),
-                       0
-       )::bigint                                                                                       AS week_count,
-
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '7 days'),
-                0)::bigint                                                                             AS week_rolling_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= date_trunc('month', now())), 0)::bigint AS month_count,
-       COALESCE(COUNT(m.chat_id) FILTER (WHERE m.created_at >= now() - interval '30 days'),
-                0)::bigint                                                                             AS month_rolling_count,
-       COALESCE(COUNT(m.chat_id), 0)::bigint                                                           AS all_time_count
-
+-- name: ChatMemberMessageStatsByUser :one
+WITH user_messages AS (
+    SELECT m.created_at
+    FROM messages m
+    WHERE m.chat_id = @chat_id
+      AND m.user_id = @user_id
+)
+SELECT
+    sqlc.embed(cm),
+    sqlc.embed(u),
+    sqlc.embed(c),
+    COUNT(*) FILTER (WHERE m.created_at >= date_trunc('day', now()))          AS day_count,
+    COUNT(*) FILTER (WHERE m.created_at >= now() - interval '1 day')         AS day_rolling_count,
+    COUNT(*) FILTER (
+        WHERE m.created_at >= date_trunc('day', now())
+            - ((extract(isodow from now())::int - c.week_start_day + 7) % 7) * interval '1 day'
+        )                                                                       AS week_count,
+    COUNT(*) FILTER (WHERE m.created_at >= now() - interval '7 days')         AS week_rolling_count,
+    COUNT(*) FILTER (WHERE m.created_at >= date_trunc('month', now()))        AS month_count,
+    COUNT(*) FILTER (WHERE m.created_at >= now() - interval '30 days')       AS month_rolling_count,
+    COUNT(*)                                                                 AS all_time_count
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
-         LEFT JOIN messages m
-                   ON m.chat_id = cm.chat_id
-                       AND m.user_id = cm.user_id
-
+         LEFT JOIN user_messages m ON TRUE
 WHERE cm.chat_id = @chat_id
   AND cm.user_id = @user_id
 GROUP BY cm.chat_id, cm.user_id, u.id, c.id;
 
--- name: MessageActivityByDay :many
+-- name: UserMessageActivityDaily :many
 SELECT date_trunc('day', m.created_at)::date AS day,
        COUNT(m.chat_id)                      AS messages_count
 FROM messages m
@@ -75,7 +71,7 @@ WHERE m.chat_id = @chat_id
 GROUP BY day
 ORDER BY day;
 
--- name: MessageActivityByDayAll :many
+-- name: ChatMessageActivityDaily :many
 SELECT date_trunc('day', m.created_at)::date AS day,
        COUNT(*)                              AS messages_count
 FROM messages m
@@ -85,21 +81,3 @@ WHERE m.chat_id = $1
 GROUP BY day
 ORDER BY day;
 
-
--- name: InactiveChatMembers :many
-SELECT sqlc.embed(u),
-       cm.tag,
-       cm.status,
-       cm.rest_until,
-       MAX(m.created_at)::timestamptz AS last_message_at
-FROM chat_members cm
-         JOIN users u ON cm.user_id = u.id
-         LEFT JOIN messages m
-                   ON m.user_id = cm.user_id AND m.chat_id = cm.chat_id
-WHERE cm.left_at IS NULL
-  AND cm.chat_id = $1
-  AND (cm.rest_until IS NULL OR cm.rest_until < now())
-GROUP BY cm.user_id, u.id, u.first_name, u.last_name, u.username, cm.tag, cm.status, cm.rest_until
-HAVING MAX(m.created_at) IS NULL
-    OR MAX(m.created_at) < NOW() - INTERVAL '1 days'
-ORDER BY MAX(m.created_at) NULLS FIRST;

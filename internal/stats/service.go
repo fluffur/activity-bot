@@ -20,16 +20,16 @@ func NewService(repo Repository) *Service {
 	return &Service{repo}
 }
 
-func (s *Service) GetAllMembersStats(ctx context.Context, chatID int64, from, to *time.Time) ([]model.MessageReportMember, error) {
-	return s.repo.GetReport(ctx, chatID, from, to)
+func (s *Service) GetChatMembersStats(ctx context.Context, chatID int64, from, to *time.Time) ([]model.ChatMemberMessageCount, error) {
+	return s.repo.ChatMemberMessageStatsByChat(ctx, chatID, from, to)
 }
 
-func (s *Service) GetMemberStats(ctx context.Context, chatID, userID int64) (model.MemberStats, error) {
-	return s.repo.GetReportOne(ctx, chatID, userID)
+func (s *Service) GetChatMemberStats(ctx context.Context, chatID, userID int64) (model.ChatMemberStats, error) {
+	return s.repo.ChatMemberMessageStatsByUser(ctx, chatID, userID)
 }
 
 func (s *Service) GetChatActivityGraph(ctx context.Context, chatID int64, from, to *time.Time) (*bytes.Buffer, error) {
-	activity, err := s.repo.GetMessageActivityByDayAll(ctx, chatID, from, to)
+	activity, err := s.repo.ChatMessageActivityDaily(ctx, chatID, from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (s *Service) GetChatActivityGraph(ctx context.Context, chatID int64, from, 
 }
 
 func (s *Service) GetMessageActivityGraph(ctx context.Context, chatID, userID int64) (*bytes.Buffer, error) {
-	activity, err := s.repo.GetMessageActivityByDay(ctx, chatID, userID)
+	activity, err := s.repo.UserMessageActivityDaily(ctx, chatID, userID)
 	if err != nil {
 		return nil, err
 	}

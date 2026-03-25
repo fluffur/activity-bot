@@ -7,9 +7,9 @@ import (
 )
 
 type Repository interface {
-	GetReport(ctx context.Context, chatID int64, from, to *time.Time) ([]model.MessageReportMember, error)
-	GetReportOne(ctx context.Context, chatID int64, userID int64) (model.MemberStats, error)
-	GetMessageActivityByDay(ctx context.Context, chatID int64, userID int64) ([]model.MessageActivity, error)
+	ChatMemberMessageStatsByChat(ctx context.Context, chatID int64, from, to *time.Time) ([]model.ChatMemberMessageCount, error)
+	ChatMemberMessageStatsByUser(ctx context.Context, chatID int64, userID int64) (model.ChatMemberStats, error)
+	UserMessageActivityDaily(ctx context.Context, chatID int64, userID int64) ([]model.MessageActivity, error)
 	GetInactiveMembers(ctx context.Context, chatID int64) ([]model.InactiveMember, error)
-	GetMessageActivityByDayAll(ctx context.Context, chatID int64, from *time.Time, to *time.Time) ([]model.MessageActivity, error)
+	ChatMessageActivityDaily(ctx context.Context, chatID int64, from *time.Time, to *time.Time) ([]model.MessageActivity, error)
 }

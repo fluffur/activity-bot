@@ -131,7 +131,6 @@ func (c *Context) ResolveUserAmbiguity(b *gotgbot.Bot, callbackPrefix string, ex
 			text = fmt.Sprintf("%s (%s)", u.FirstName, m.Tag)
 		}
 
-		// If extraData is needed by the caller, it's appended to the callback data.
 		data := fmt.Sprintf("%s:%d", callbackPrefix, u.ID)
 		if extraData != "" {
 			data += ":" + extraData

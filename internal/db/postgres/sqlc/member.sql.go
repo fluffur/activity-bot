@@ -179,51 +179,6 @@ func (q *Queries) FindChatMemberByCustomTitle(ctx context.Context, arg FindChatM
 	return i, err
 }
 
-const findChatMemberByUsername = `-- name: FindChatMemberByUsername :one
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
-FROM chat_members cm
-         JOIN users u ON u.id = cm.user_id
-WHERE cm.chat_id = $1
-  AND u.username ILIKE $2
-  AND cm.left_at IS NULL
-LIMIT 1
-`
-
-type FindChatMemberByUsernameParams struct {
-	ChatID   int64       `db:"chat_id" json:"chatId"`
-	Username pgtype.Text `db:"username" json:"username"`
-}
-
-type FindChatMemberByUsernameRow struct {
-	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
-	User       User       `db:"user" json:"user"`
-}
-
-func (q *Queries) FindChatMemberByUsername(ctx context.Context, arg FindChatMemberByUsernameParams) (FindChatMemberByUsernameRow, error) {
-	row := q.db.QueryRow(ctx, findChatMemberByUsername, arg.ChatID, arg.Username)
-	var i FindChatMemberByUsernameRow
-	err := row.Scan(
-		&i.ChatMember.ChatID,
-		&i.ChatMember.UserID,
-		&i.ChatMember.JoinedAt,
-		&i.ChatMember.RestUntil,
-		&i.ChatMember.Tag,
-		&i.ChatMember.LeftAt,
-		&i.ChatMember.RestReason,
-		&i.ChatMember.Emoji,
-		&i.ChatMember.Status,
-		&i.User.ID,
-		&i.User.Username,
-		&i.User.FirstName,
-		&i.User.LastName,
-		&i.User.CreatedAt,
-		&i.User.Gender,
-		&i.User.Emoji,
-		&i.User.CustomEmojiID,
-	)
-	return i, err
-}
-
 const getAnyChatMembersWithTitles = `-- name: GetAnyChatMembersWithTitles :many
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM chat_members cm
@@ -277,6 +232,58 @@ func (q *Queries) GetAnyChatMembersWithTitles(ctx context.Context, chatID int64)
 	return items, nil
 }
 
+const getChatAdmins = `-- name: GetChatAdmins :many
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = $1
+  AND cm.status > 0
+ORDER BY cm.joined_at
+`
+
+type GetChatAdminsRow struct {
+	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
+	User       User       `db:"user" json:"user"`
+}
+
+func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdminsRow, error) {
+	rows, err := q.db.Query(ctx, getChatAdmins, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetChatAdminsRow{}
+	for rows.Next() {
+		var i GetChatAdminsRow
+		if err := rows.Scan(
+			&i.ChatMember.ChatID,
+			&i.ChatMember.UserID,
+			&i.ChatMember.JoinedAt,
+			&i.ChatMember.RestUntil,
+			&i.ChatMember.Tag,
+			&i.ChatMember.LeftAt,
+			&i.ChatMember.RestReason,
+			&i.ChatMember.Emoji,
+			&i.ChatMember.Status,
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getChatMember = `-- name: GetChatMember :one
 SELECT chat_members.chat_id, chat_members.user_id, chat_members.joined_at, chat_members.rest_until, chat_members.tag, chat_members.left_at, chat_members.rest_reason, chat_members.emoji, chat_members.status, users.id, users.username, users.first_name, users.last_name, users.created_at, users.gender, users.emoji, users.custom_emoji_id
 FROM chat_members
@@ -299,6 +306,51 @@ type GetChatMemberRow struct {
 func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (GetChatMemberRow, error) {
 	row := q.db.QueryRow(ctx, getChatMember, arg.ChatID, arg.UserID)
 	var i GetChatMemberRow
+	err := row.Scan(
+		&i.ChatMember.ChatID,
+		&i.ChatMember.UserID,
+		&i.ChatMember.JoinedAt,
+		&i.ChatMember.RestUntil,
+		&i.ChatMember.Tag,
+		&i.ChatMember.LeftAt,
+		&i.ChatMember.RestReason,
+		&i.ChatMember.Emoji,
+		&i.ChatMember.Status,
+		&i.User.ID,
+		&i.User.Username,
+		&i.User.FirstName,
+		&i.User.LastName,
+		&i.User.CreatedAt,
+		&i.User.Gender,
+		&i.User.Emoji,
+		&i.User.CustomEmojiID,
+	)
+	return i, err
+}
+
+const getChatMemberByUsername = `-- name: GetChatMemberByUsername :one
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = $1
+  AND u.username ILIKE $2
+  AND cm.left_at IS NULL
+LIMIT 1
+`
+
+type GetChatMemberByUsernameParams struct {
+	ChatID   int64       `db:"chat_id" json:"chatId"`
+	Username pgtype.Text `db:"username" json:"username"`
+}
+
+type GetChatMemberByUsernameRow struct {
+	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
+	User       User       `db:"user" json:"user"`
+}
+
+func (q *Queries) GetChatMemberByUsername(ctx context.Context, arg GetChatMemberByUsernameParams) (GetChatMemberByUsernameRow, error) {
+	row := q.db.QueryRow(ctx, getChatMemberByUsername, arg.ChatID, arg.Username)
+	var i GetChatMemberByUsernameRow
 	err := row.Scan(
 		&i.ChatMember.ChatID,
 		&i.ChatMember.UserID,
@@ -445,6 +497,49 @@ func (q *Queries) GetMemberCustomTitle(ctx context.Context, arg GetMemberCustomT
 	return tag, err
 }
 
+const getMembersWithExpiredMute = `-- name: GetMembersWithExpiredMute :many
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status
+FROM moderation_actions ma
+         JOIN chat_members cm ON ma.chat_id = cm.chat_id AND ma.user_id = cm.user_id
+WHERE ma.type = 'mute'
+  AND ma.revoked_at IS NULL
+  AND ma.expires_at <= NOW()
+`
+
+type GetMembersWithExpiredMuteRow struct {
+	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
+}
+
+func (q *Queries) GetMembersWithExpiredMute(ctx context.Context) ([]GetMembersWithExpiredMuteRow, error) {
+	rows, err := q.db.Query(ctx, getMembersWithExpiredMute)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetMembersWithExpiredMuteRow{}
+	for rows.Next() {
+		var i GetMembersWithExpiredMuteRow
+		if err := rows.Scan(
+			&i.ChatMember.ChatID,
+			&i.ChatMember.UserID,
+			&i.ChatMember.JoinedAt,
+			&i.ChatMember.RestUntil,
+			&i.ChatMember.Tag,
+			&i.ChatMember.LeftAt,
+			&i.ChatMember.RestReason,
+			&i.ChatMember.Emoji,
+			&i.ChatMember.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getNoNormMembers = `-- name: GetNoNormMembers :many
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
 FROM chat_members cm
@@ -511,6 +606,66 @@ func (q *Queries) GetNoNormMembers(ctx context.Context, arg GetNoNormMembersPara
 			&i.User.Gender,
 			&i.User.Emoji,
 			&i.User.CustomEmojiID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const inactiveChatMembers = `-- name: InactiveChatMembers :many
+SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
+       cm.tag,
+       cm.status,
+       cm.rest_until,
+       MAX(m.created_at)::timestamptz AS last_message_at
+FROM chat_members cm
+         JOIN users u ON cm.user_id = u.id
+         LEFT JOIN messages m
+                   ON m.user_id = cm.user_id AND m.chat_id = cm.chat_id
+WHERE cm.left_at IS NULL
+  AND cm.chat_id = $1
+  AND (cm.rest_until IS NULL OR cm.rest_until < now())
+GROUP BY cm.user_id, u.id, u.first_name, u.last_name, u.username, cm.tag, cm.status, cm.rest_until
+HAVING MAX(m.created_at) IS NULL
+    OR MAX(m.created_at) < NOW() - INTERVAL '1 days'
+ORDER BY MAX(m.created_at) NULLS FIRST
+`
+
+type InactiveChatMembersRow struct {
+	User          User               `db:"user" json:"user"`
+	Tag           pgtype.Text        `db:"tag" json:"tag"`
+	Status        int16              `db:"status" json:"status"`
+	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	LastMessageAt pgtype.Timestamptz `db:"last_message_at" json:"lastMessageAt"`
+}
+
+func (q *Queries) InactiveChatMembers(ctx context.Context, chatID int64) ([]InactiveChatMembersRow, error) {
+	rows, err := q.db.Query(ctx, inactiveChatMembers, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []InactiveChatMembersRow{}
+	for rows.Next() {
+		var i InactiveChatMembersRow
+		if err := rows.Scan(
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
+			&i.Tag,
+			&i.Status,
+			&i.RestUntil,
+			&i.LastMessageAt,
 		); err != nil {
 			return nil, err
 		}
@@ -605,6 +760,24 @@ type SetChatMemberEmojiParams struct {
 
 func (q *Queries) SetChatMemberEmoji(ctx context.Context, arg SetChatMemberEmojiParams) error {
 	_, err := q.db.Exec(ctx, setChatMemberEmoji, arg.Emoji, arg.UserID, arg.ChatID)
+	return err
+}
+
+const setChatMemberStatus = `-- name: SetChatMemberStatus :exec
+UPDATE chat_members
+SET status = $1
+WHERE chat_id = $2
+  AND user_id = $3
+`
+
+type SetChatMemberStatusParams struct {
+	Status int16 `db:"status" json:"status"`
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	UserID int64 `db:"user_id" json:"userId"`
+}
+
+func (q *Queries) SetChatMemberStatus(ctx context.Context, arg SetChatMemberStatusParams) error {
+	_, err := q.db.Exec(ctx, setChatMemberStatus, arg.Status, arg.ChatID, arg.UserID)
 	return err
 }
 

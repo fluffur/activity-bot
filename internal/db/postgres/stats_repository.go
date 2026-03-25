@@ -18,7 +18,7 @@ func NewStatsRepository(queries *db.Queries) stats.Repository {
 	return &StatsRepository{queries}
 }
 
-func (r *StatsRepository) GetReport(ctx context.Context, chatID int64, from, to *time.Time) ([]model.MessageReportMember, error) {
+func (r *StatsRepository) ChatMemberMessageStatsByChat(ctx context.Context, chatID int64, from, to *time.Time) ([]model.ChatMemberMessageCount, error) {
 
 	var fromPg, toPg pgtype.Timestamptz
 
@@ -29,7 +29,7 @@ func (r *StatsRepository) GetReport(ctx context.Context, chatID int64, from, to 
 		toPg = pgtype.Timestamptz{Time: *to, Valid: true}
 	}
 
-	rows, err := r.queries.MessageReport(ctx, db.MessageReportParams{
+	rows, err := r.queries.ChatMemberMessageStatsByChat(ctx, db.ChatMemberMessageStatsByChatParams{
 		ChatID:   chatID,
 		FromDate: fromPg,
 		ToDate:   toPg,
@@ -38,7 +38,7 @@ func (r *StatsRepository) GetReport(ctx context.Context, chatID int64, from, to 
 		return nil, err
 	}
 
-	result := make([]model.MessageReportMember, len(rows))
+	result := make([]model.ChatMemberMessageCount, len(rows))
 	for i, row := range rows {
 		result[i] = mapMessageReportRow(row)
 	}
@@ -46,20 +46,20 @@ func (r *StatsRepository) GetReport(ctx context.Context, chatID int64, from, to 
 	return result, nil
 }
 
-func (r *StatsRepository) GetReportOne(ctx context.Context, chatID int64, userID int64) (model.MemberStats, error) {
-	row, err := r.queries.MessageReportOne(ctx, db.MessageReportOneParams{
+func (r *StatsRepository) ChatMemberMessageStatsByUser(ctx context.Context, chatID int64, userID int64) (model.ChatMemberStats, error) {
+	row, err := r.queries.ChatMemberMessageStatsByUser(ctx, db.ChatMemberMessageStatsByUserParams{
 		ChatID: chatID,
 		UserID: userID,
 	})
 	if err != nil {
-		return model.MemberStats{}, err
+		return model.ChatMemberStats{}, err
 	}
 
 	return mapMessageReportOneRow(row), nil
 }
 
-func (r *StatsRepository) GetMessageActivityByDay(ctx context.Context, chatID int64, userID int64) ([]model.MessageActivity, error) {
-	activities, err := r.queries.MessageActivityByDay(ctx, db.MessageActivityByDayParams{
+func (r *StatsRepository) UserMessageActivityDaily(ctx context.Context, chatID int64, userID int64) ([]model.MessageActivity, error) {
+	activities, err := r.queries.UserMessageActivityDaily(ctx, db.UserMessageActivityDailyParams{
 		ChatID: chatID,
 		UserID: userID,
 	})
@@ -69,7 +69,7 @@ func (r *StatsRepository) GetMessageActivityByDay(ctx context.Context, chatID in
 
 	result := make([]model.MessageActivity, len(activities))
 	for i, activity := range activities {
-		result[i] = mapMessageActivity(activity)
+		result[i] = mapMessageActivity(db.ChatMessageActivityDailyRow(activity))
 	}
 
 	return result, nil
@@ -90,7 +90,7 @@ func (r *StatsRepository) GetInactiveMembers(ctx context.Context, chatID int64) 
 	}
 	return result, nil
 }
-func (r *StatsRepository) GetMessageActivityByDayAll(ctx context.Context, chatID int64, from, to *time.Time) ([]model.MessageActivity, error) {
+func (r *StatsRepository) ChatMessageActivityDaily(ctx context.Context, chatID int64, from, to *time.Time) ([]model.MessageActivity, error) {
 	var fromPg, toPg pgtype.Timestamptz
 	if from != nil {
 		fromPg = pgtype.Timestamptz{Time: *from, Valid: true}
@@ -99,7 +99,7 @@ func (r *StatsRepository) GetMessageActivityByDayAll(ctx context.Context, chatID
 		toPg = pgtype.Timestamptz{Time: *to, Valid: true}
 	}
 
-	rows, err := r.queries.MessageActivityByDayAll(ctx, db.MessageActivityByDayAllParams{
+	rows, err := r.queries.ChatMessageActivityDaily(ctx, db.ChatMessageActivityDailyParams{
 		ChatID:   chatID,
 		FromDate: fromPg,
 		ToDate:   toPg,
@@ -110,7 +110,7 @@ func (r *StatsRepository) GetMessageActivityByDayAll(ctx context.Context, chatID
 
 	result := make([]model.MessageActivity, len(rows))
 	for i, row := range rows {
-		result[i] = mapMessageActivity(db.MessageActivityByDayRow(row))
+		result[i] = mapMessageActivity(row)
 	}
 
 	return result, nil

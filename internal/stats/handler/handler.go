@@ -43,7 +43,7 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>\n\nИспользуйте: <code>01.02-10.02</code>, <code>10</code> (за последние 10 дней), <code>от вчера до сегодня</code> и т.д.")
 	}
 
-	report, err := h.service.GetAllMembersStats(ctx.StdContext(), ctx.TargetChatID(), from, to)
+	report, err := h.service.GetChatMembersStats(ctx.StdContext(), ctx.TargetChatID(), from, to)
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (h *Handler) WhoAreUser(
 	userID int64,
 ) error {
 
-	m, err := h.service.GetMemberStats(ctx, dataChatID, userID)
+	m, err := h.service.GetChatMemberStats(ctx, dataChatID, userID)
 	if err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func (h *Handler) CallbackAllActivity(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 	chatID := ctx.TargetChatID()
 
-	m, err := h.service.GetMemberStats(ctx.StdContext(), chatID, userID)
+	m, err := h.service.GetChatMemberStats(ctx.StdContext(), chatID, userID)
 	if err != nil {
 		return err
 	}
@@ -291,7 +291,7 @@ func (h *Handler) ShowFailedNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>")
 	}
 
-	report, err := h.service.GetAllMembersStats(ctx.StdContext(), ctx.TargetChatID(), from, to)
+	report, err := h.service.GetChatMembersStats(ctx.StdContext(), ctx.TargetChatID(), from, to)
 	if err != nil {
 		return err
 	}
@@ -356,7 +356,7 @@ func (h *Handler) ShowNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>")
 	}
 
-	report, err := h.service.GetAllMembersStats(ctx.StdContext(), ctx.TargetChatID(), from, to)
+	report, err := h.service.GetChatMembersStats(ctx.StdContext(), ctx.TargetChatID(), from, to)
 	if err != nil {
 		return err
 	}

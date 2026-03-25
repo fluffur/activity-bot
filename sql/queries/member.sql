@@ -179,7 +179,7 @@ WHERE cm.chat_id = @chat_id
     )
 LIMIT 1;
 
--- name: FindChatMemberByUsername :one
+-- name: GetChatMemberByUsername :one
 SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
@@ -193,3 +193,44 @@ UPDATE chat_members
 SET emoji = $1
 WHERE user_id = $2
   AND chat_id = $3;
+
+-- name: SetChatMemberStatus :exec
+UPDATE chat_members
+SET status = $1
+WHERE chat_id = $2
+  AND user_id = $3;
+
+-- name: GetChatAdmins :many
+SELECT sqlc.embed(cm), sqlc.embed(u)
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = $1
+  AND cm.status > 0
+ORDER BY cm.joined_at;
+
+-- name: GetMembersWithExpiredMute :many
+SELECT sqlc.embed(cm)
+FROM moderation_actions ma
+         JOIN chat_members cm ON ma.chat_id = cm.chat_id AND ma.user_id = cm.user_id
+WHERE ma.type = 'mute'
+  AND ma.revoked_at IS NULL
+  AND ma.expires_at <= NOW();
+
+
+-- name: InactiveChatMembers :many
+SELECT sqlc.embed(u),
+       cm.tag,
+       cm.status,
+       cm.rest_until,
+       MAX(m.created_at)::timestamptz AS last_message_at
+FROM chat_members cm
+         JOIN users u ON cm.user_id = u.id
+         LEFT JOIN messages m
+                   ON m.user_id = cm.user_id AND m.chat_id = cm.chat_id
+WHERE cm.left_at IS NULL
+  AND cm.chat_id = $1
+  AND (cm.rest_until IS NULL OR cm.rest_until < now())
+GROUP BY cm.user_id, u.id, u.first_name, u.last_name, u.username, cm.tag, cm.status, cm.rest_until
+HAVING MAX(m.created_at) IS NULL
+    OR MAX(m.created_at) < NOW() - INTERVAL '1 days'
+ORDER BY MAX(m.created_at) NULLS FIRST;
