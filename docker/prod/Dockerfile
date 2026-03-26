@@ -16,7 +16,7 @@ ENV GOOS=linux
 ENV GOARCH=amd64
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
-    GOGC=20 go build -ldflags="-s -w" -p 1 -o bot cmd/bot/main.go
+    go build -ldflags="-s -w" -o bot cmd/bot/main.go
 
 FROM alpine:latest
 
