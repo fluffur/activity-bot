@@ -4,3 +4,4 @@ tmp/
 backups/
 ./migrate
 ./bot
+data/

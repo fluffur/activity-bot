@@ -201,7 +201,7 @@ func (r *ChatRepository) GetChatsWithoutTitle(ctx context.Context) ([]model.Chat
 	if err != nil {
 		return nil, err
 	}
-	return mapChats(chats), nil
+	return mapMany(chats, mapChat), nil
 }
 
 func (r *ChatRepository) GetUserManagedChats(ctx context.Context, userID int64) ([]model.Chat, error) {
@@ -236,7 +236,7 @@ func (r *ChatRepository) GetChatsWithEnabledBroadcast(ctx context.Context) ([]mo
 	if err != nil {
 		return nil, err
 	}
-	return mapChats(chats), nil
+	return mapMany(chats, mapChat), nil
 }
 
 func (r *ChatRepository) SetChatBroadcast(ctx context.Context, chatID int64, enabled bool) error {

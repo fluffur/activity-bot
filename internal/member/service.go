@@ -10,19 +10,19 @@ import (
 	"time"
 )
 
-type ChatAdminsProvider interface {
-	GetChatAdmins(chatID int64) ([]model.ChatMemberUpdate, error)
+type ChatMembersProvider interface {
+	GetChatMembers(ctx context.Context, chatID int64) ([]model.ChatMemberUpdate, error)
 }
 
 type Service struct {
 	repo             Repository
 	chatRepo         chat.Repository
 	userRepo         user.Repository
-	adminsProvider   ChatAdminsProvider
+	adminsProvider   ChatMembersProvider
 	memberTagAdapter *adapter.MemberTagAdapter
 }
 
-func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Repository, adminsProvider ChatAdminsProvider, memberTagAdapter *adapter.MemberTagAdapter) *Service {
+func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Repository, adminsProvider ChatMembersProvider, memberTagAdapter *adapter.MemberTagAdapter) *Service {
 	return &Service{repo, chatRepo, userRepo, adminsProvider, memberTagAdapter}
 }
 
@@ -94,7 +94,7 @@ func (s *Service) EnsureMemberExists(ctx context.Context, chatID int64, userID i
 }
 
 func (s *Service) SyncChatMembers(ctx context.Context, chatID int64) (int, error) {
-	members, err := s.adminsProvider.GetChatAdmins(chatID)
+	members, err := s.adminsProvider.GetChatMembers(ctx, chatID)
 	if err != nil {
 		return 0, err
 	}

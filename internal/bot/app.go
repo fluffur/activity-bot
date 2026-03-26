@@ -22,6 +22,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/cohesion-org/deepseek-go"
+	"github.com/gotd/td/telegram"
 	"github.com/hibiken/asynq"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -38,6 +39,8 @@ type App struct {
 	Updater     *ext.Updater
 	AsyncClient *asynq.Client
 	AsyncServer *asynq.Server
+	GotdClient  *telegram.Client
+	GotdReady   chan struct{}
 
 	MemberService *member.Service
 	AdminService  *admin.Service
@@ -68,6 +71,11 @@ func NewApp(cfg config.Config) (*App, error) {
 		asynq.Config{Concurrency: 10},
 	)
 
+	gotdReady := make(chan struct{})
+	gotdClient := telegram.NewClient(cfg.AppID, cfg.AppHash, telegram.Options{
+		SessionStorage: &telegram.FileSessionStorage{Path: cfg.SessionPath},
+	})
+
 	queries := db.New(pool)
 
 	memberRepo := postgres.NewMemberRepository(queries)
@@ -78,7 +86,7 @@ func NewApp(cfg config.Config) (*App, error) {
 
 	statusProvider := adapter.NewTelegramMemberStatusProvider(b)
 	moderator := adapter.NewTelegramModerator(b)
-	adminsProvider := adapter.NewTelegramChatAdminsProvider(b)
+	adminsProvider := adapter.NewTelegramChatMembersProvider(gotdClient, gotdReady)
 	memberTagAdapter := adapter.NewMemberTagAdapter(b, chatRepo)
 
 	userService := user.NewService(userRepo)
@@ -116,6 +124,8 @@ func NewApp(cfg config.Config) (*App, error) {
 		}),
 		AsyncClient:   client,
 		AsyncServer:   srv,
+		GotdClient:    gotdClient,
+		GotdReady:     gotdReady,
 		MemberService: memberService,
 		AdminService:  adminService,
 		UserService:   userService,
@@ -130,6 +140,11 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	a.RegisterHandlers()
+	go func() {
+		if err := a.startGotd(ctx); err != nil {
+			slog.Error("gotd start failed", "error", err)
+		}
+	}()
 
 	mux := a.registerWorkerHandlers()
 	go func() {
@@ -265,6 +280,24 @@ func (a *App) setupBot() error {
 	_, err = a.Bot.SetMyCommands(a.Config.BotCommands, nil)
 
 	return err
+}
+
+func (a *App) startGotd(ctx context.Context) error {
+	return a.GotdClient.Run(ctx, func(ctx context.Context) error {
+		status, err := a.GotdClient.Auth().Status(ctx)
+		if err != nil {
+			return err
+		}
+		if !status.Authorized {
+			if _, err := a.GotdClient.Auth().Bot(ctx, a.Config.BotToken); err != nil {
+				return err
+			}
+		}
+		close(a.GotdReady)
+		slog.Info("Gotd client has been started")
+		<-ctx.Done()
+		return nil
+	})
 }
 
 func (a *App) startWebhook() error {
