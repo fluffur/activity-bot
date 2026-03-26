@@ -4,7 +4,6 @@ import (
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
-	"activity-bot/internal/norm"
 )
 
 func mapUser(u db.User) model.User {
@@ -44,6 +43,14 @@ func mapChatFromRow(c db.EnsureChatExistsRow) model.Chat {
 	return mapChat(db.Chat(c))
 }
 
+func mapChats(chats []db.Chat) []model.Chat {
+	result := make([]model.Chat, len(chats))
+	for i, c := range chats {
+		result[i] = mapChat(c)
+	}
+	return result
+}
+
 func mapChatMember(m db.ChatMember) model.ChatMember {
 	return model.ChatMember{
 		User: model.User{
@@ -67,7 +74,11 @@ func mapChatMemberFull(m db.ChatMember, u db.User) model.ChatMember {
 }
 
 func mapMembers[T any](members []T, mapper func(T) model.ChatMember) []model.ChatMember {
-	return mapMany(members, mapper)
+	result := make([]model.ChatMember, len(members))
+	for i, m := range members {
+		result[i] = mapper(m)
+	}
+	return result
 }
 
 func mapMessageReportRow(m db.ChatMemberMessageStatsByChatRow) model.ChatMemberMessageCount {
@@ -128,19 +139,4 @@ func mapApprovedRestRequest(rr db.RestRequest, cm db.ChatMember, u db.User) mode
 		RestRequest: mapRestRequest(rr),
 		ChatMember:  mapChatMemberFull(cm, u),
 	}
-}
-
-func mapChatNorm(n db.ChatNorm) norm.ChatNorm {
-	return norm.ChatNorm{
-		Name:  n.Name,
-		Value: n.Value,
-	}
-}
-
-func mapMany[T any, V any](input []T, mapper func(T) V) []V {
-	result := make([]V, len(input))
-	for i, v := range input {
-		result[i] = mapper(v)
-	}
-	return result
 }

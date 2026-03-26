@@ -311,7 +311,7 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard, developerGuard),
 	)
 	a.Dispatcher.AddHandler(cf.New(memberHandler.UpdateMembersList, "обновить чат", "update chat", "update").
-		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 30*time.Second, sessionService)).
+		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 10*time.Second, sessionService)).
 		Restricted(model.StatusModerator).
 		WithDescription("Обновление списка участников").
 		WithCategory(cmd.CategorySettings),

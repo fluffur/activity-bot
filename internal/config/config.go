@@ -18,9 +18,6 @@ type Config struct {
 	BotOwnerUsername   string `env:"BOT_OWNER_USERNAME"`
 	CommandsLink       string `env:"COMMANDS_LINK"`
 	ChannelID          int64  `env:"BOT_CHANNEL_ID"`
-	AppID              int    `env:"APP_ID"`
-	AppHash            string `env:"APP_HASH"`
-	SessionPath        string `env:"SESSION_PATH"`
 	DeepseekAPIKey     string `env:"DEEPSEEK_API_KEY"`
 	RedisADDR          string `env:"REDIS_ADDR" envDefault:"redis:6379"`
 	UniquePrefix       string `env:"UNIQUE_PREFIX" envDefault:"фм"`

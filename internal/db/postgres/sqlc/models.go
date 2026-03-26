@@ -137,19 +137,6 @@ type ChatMember struct {
 	Status     int16              `db:"status" json:"status"`
 }
 
-type ChatMemberNorm struct {
-	ChatID int64 `db:"chat_id" json:"chatId"`
-	UserID int64 `db:"user_id" json:"userId"`
-	NormID int64 `db:"norm_id" json:"normId"`
-}
-
-type ChatNorm struct {
-	ID     int64  `db:"id" json:"id"`
-	ChatID int64  `db:"chat_id" json:"chatId"`
-	Name   string `db:"name" json:"name"`
-	Value  int32  `db:"value" json:"value"`
-}
-
 type CommandPermission struct {
 	ChatID         int64  `db:"chat_id" json:"chatId"`
 	CommandKey     string `db:"command_key" json:"commandKey"`

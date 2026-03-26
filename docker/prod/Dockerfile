@@ -18,14 +18,11 @@ ENV GOARCH=amd64
 RUN --mount=type=cache,target=/root/.cache/go-build \
     go build -o bot cmd/bot/main.go
 
-FROM alpine:latest
-
-RUN apk add --no-cache ca-certificates tzdata
+FROM scratch
 
 WORKDIR /app
 
 COPY --from=builder /app/bot .
-
-RUN mkdir -p /app/data
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 CMD ["./bot"]
