@@ -336,15 +336,33 @@ func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 	}
 
 	required := c.requiredStatus
-	if c.chatService != nil {
+	if c.chatService != nil && chatID != 0 {
 		if s, err := c.chatService.GetCommandPermission(ctxWithTimeout, chatID, c.commands[0]); err == nil {
 			required = s
 		}
 	}
 
-	m, err := c.memberService.GetChatMember(ctxWithTimeout, chatID, ctx.EffectiveSender.Id())
-	if err != nil {
-		return nil
+	var m model.ChatMember
+	if chatID == 0 {
+		if required > model.StatusMember {
+			message := "Пожалуйста, выберите чат для управления через /manage"
+			_, err := ctx.EffectiveMessage.Reply(b, message, &gotgbot.SendMessageOpts{ParseMode: gotgbot.ParseModeHTML})
+			return err
+		}
+		m = model.ChatMember{
+			User: model.User{
+				ID:        ctx.EffectiveUser.Id,
+				Username:  ctx.EffectiveUser.Username,
+				FirstName: ctx.EffectiveUser.FirstName,
+				LastName:  ctx.EffectiveUser.LastName,
+			},
+			Status: model.StatusMember,
+		}
+	} else {
+		m, err = c.memberService.GetChatMember(ctxWithTimeout, chatID, ctx.EffectiveSender.Id())
+		if err != nil {
+			return nil
+		}
 	}
 
 	if m.Status < required {
@@ -418,9 +436,16 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		switch e.Type {
 		case "text_mention":
 			if e.User != nil {
-				m, err := c.ensureMember(cctx, chatID, e.User)
-				if err == nil {
-					addMember(&m)
+				if chatID == 0 {
+					mu, err := c.userService.EnsureUserExists(cctx, e.User.Id, e.User.Username, e.User.FirstName, e.User.LastName)
+					if err == nil {
+						addMember(&model.ChatMember{User: mu})
+					}
+				} else {
+					m, err := c.ensureMember(cctx, chatID, e.User)
+					if err == nil {
+						addMember(&m)
+					}
 				}
 			}
 		case "mention":
@@ -462,11 +487,19 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 		msg.ReplyToMessage.From != nil &&
 		!msg.ReplyToMessage.From.IsBot &&
 		!msg.ReplyToMessage.IsAutomaticForward {
-		m, err := c.ensureMember(cctx, chatID, msg.ReplyToMessage.From)
-		if err == nil {
-			addMember(&m)
+		if chatID == 0 {
+			u := msg.ReplyToMessage.From
+			mu, err := c.userService.EnsureUserExists(cctx, u.Id, u.Username, u.FirstName, u.LastName)
+			if err == nil {
+				addMember(&model.ChatMember{User: mu})
+			}
 		} else {
-			logger.L.Error("Failed to ensure reply member", "error", err)
+			m, err := c.ensureMember(cctx, chatID, msg.ReplyToMessage.From)
+			if err == nil {
+				addMember(&m)
+			} else {
+				logger.L.Error("Failed to ensure reply member", "error", err)
+			}
 		}
 	}
 	allowPrefixless := true
@@ -497,9 +530,17 @@ func (c *Command) parseArgs(b *gotgbot.Bot, ctx *ext.Context, cctx context.Conte
 	}
 
 	if c.fallbackToSender && len(members) == 0 {
-		m, err := c.ensureMember(cctx, chatID, ctx.EffectiveUser)
-		if err == nil {
-			addMember(&m)
+		if chatID == 0 {
+			u := ctx.EffectiveUser
+			mu, err := c.userService.EnsureUserExists(cctx, u.Id, u.Username, u.FirstName, u.LastName)
+			if err == nil {
+				addMember(&model.ChatMember{User: mu})
+			}
+		} else {
+			m, err := c.ensureMember(cctx, chatID, ctx.EffectiveUser)
+			if err == nil {
+				addMember(&m)
+			}
 		}
 	}
 
@@ -542,7 +583,11 @@ func (c *Command) getChatID(ctx context.Context, msg *gotgbot.Message) (int64, e
 	if msg.From == nil {
 		return 0, nil
 	}
-	return c.sessionService.GetActiveChat(ctx, msg.From.Id)
+	targetID, err := c.sessionService.GetActiveChat(ctx, msg.From.Id)
+	if err != nil {
+		return 0, nil
+	}
+	return targetID, nil
 }
 
 func (c *Command) findMembersByTitle(ctx context.Context, msg *gotgbot.Message, rest string) (string, []*model.ChatMember) {
@@ -604,7 +649,7 @@ func GetChatID(sessionService SessionService, ctx *ext.Context, cctx context.Con
 
 	targetID, err := sessionService.GetActiveChat(cctx, ctx.EffectiveUser.Id)
 	if err != nil {
-		return 0, err
+		return 0, nil
 	}
 
 	return targetID, nil
