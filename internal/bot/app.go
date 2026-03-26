@@ -74,7 +74,6 @@ func NewApp(cfg config.Config) (*App, error) {
 	gotdReady := make(chan struct{})
 	gotdClient := telegram.NewClient(cfg.AppID, cfg.AppHash, telegram.Options{
 		SessionStorage: &telegram.FileSessionStorage{Path: cfg.SessionPath},
-		NoUpdates:      true, // Disable updates to save memory
 	})
 
 	queries := db.New(pool)
