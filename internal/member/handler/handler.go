@@ -321,12 +321,11 @@ func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if len(graphemes) > 3 {
 		return ctx.Reply(b, "❌ Можно указать не более 3 значков на участника", nil)
 	}
-	emoji := graphemes[0]
-	if err := h.service.SetChatMemberEmoji(ctx.StdContext(), ctx.TargetChatID(), m.User.ID, emoji); err != nil {
+	if err := h.service.SetChatMemberEmoji(ctx.StdContext(), ctx.TargetChatID(), m.User.ID, emojis); err != nil {
 		return fmt.Errorf("failed to set chat member emoji: %w", err)
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Значок %s для %s успешно установлен", emoji, helpers.RoleLink(*m)))
+	return ctx.ReplyHTML(b, fmt.Sprintf("Значок %s для %s успешно установлен", emojis, helpers.RoleLink(*m)))
 }
 
 func (h *Handler) RemoveEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
