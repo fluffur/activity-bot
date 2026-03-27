@@ -36,13 +36,21 @@ WHERE cm.chat_id = @chat_id
     (length(@tag::text) < 2 AND lower(cm.tag::text) = lower(@tag::text))
         OR
     (length(@tag::text) >= 2 AND cm.tag ILIKE @tag::text || '%')
-    );
+    )
+ORDER BY cm.left_at IS NOT NULL, cm.left_at;
+;
 
 -- name: SetUserGender :exec
-UPDATE users SET gender = $2 WHERE id = $1;
+UPDATE users
+SET gender = $2
+WHERE id = $1;
 
 -- name: SetUserEmoji :exec
-UPDATE users SET emoji = $2 WHERE id = $1;
+UPDATE users
+SET emoji = $2
+WHERE id = $1;
 
 -- name: SetUserCustomEmojiID :exec
-UPDATE users SET custom_emoji_id = $2 WHERE id = $1;
+UPDATE users
+SET custom_emoji_id = $2
+WHERE id = $1;

@@ -102,6 +102,7 @@ WHERE cm.chat_id = $1
         OR
     (length($2::text) >= 2 AND cm.tag ILIKE $2::text || '%')
     )
+ORDER BY cm.left_at IS NOT NULL, cm.left_at
 `
 
 type GetUsersByCustomTitleParams struct {
@@ -153,7 +154,9 @@ func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCusto
 }
 
 const setUserCustomEmojiID = `-- name: SetUserCustomEmojiID :exec
-UPDATE users SET custom_emoji_id = $2 WHERE id = $1
+UPDATE users
+SET custom_emoji_id = $2
+WHERE id = $1
 `
 
 type SetUserCustomEmojiIDParams struct {
@@ -167,7 +170,9 @@ func (q *Queries) SetUserCustomEmojiID(ctx context.Context, arg SetUserCustomEmo
 }
 
 const setUserEmoji = `-- name: SetUserEmoji :exec
-UPDATE users SET emoji = $2 WHERE id = $1
+UPDATE users
+SET emoji = $2
+WHERE id = $1
 `
 
 type SetUserEmojiParams struct {
@@ -181,7 +186,9 @@ func (q *Queries) SetUserEmoji(ctx context.Context, arg SetUserEmojiParams) erro
 }
 
 const setUserGender = `-- name: SetUserGender :exec
-UPDATE users SET gender = $2 WHERE id = $1
+UPDATE users
+SET gender = $2
+WHERE id = $1
 `
 
 type SetUserGenderParams struct {
