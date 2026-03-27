@@ -9,11 +9,7 @@ import (
 	"github.com/rivo/uniseg"
 )
 
-func CustomEmoji(id int64, originalEmoji string) string {
-	return fmt.Sprintf(`<tg-emoji emoji-id="%d">%s</tg-emoji>`, id, originalEmoji)
-}
-
-func CustomEmojiStr(id string, originalEmoji string) string {
+func CustomEmoji(id string, originalEmoji string) string {
 	return fmt.Sprintf(`<tg-emoji emoji-id="%s">%s</tg-emoji>`, id, originalEmoji)
 }
 
@@ -52,31 +48,31 @@ func ParseEmojis(input string) []string {
 }
 
 func NewbieEmoji() string {
-	return CustomEmoji(5375247537693269646, "🐣")
+	return CustomEmoji("5235782484939012025", "🐣")
 }
 
 func TotalEmoji() string {
-	return CustomEmoji(5870753782874246579, "📝")
+	return CustomEmoji("5870753782874246579", "📝")
 }
 
 func RestEmoji() string {
-	return CustomEmoji(5235961361736956044, "💤")
+	return CustomEmoji("5235961361736956044", "💤")
 }
 
 func Line() string {
-	middleEmoji := CustomEmoji(5404333313919834615, "↔️")
+	middleEmoji := CustomEmoji("5404333313919834615", "↔️")
 	middleEmojis := ""
 	for range 7 {
 		middleEmojis += middleEmoji
 	}
-	return CustomEmoji(5404805970775792817, "⬅️") + middleEmojis + CustomEmoji(5404631702477757552, "➡️")
+	return CustomEmoji("5404805970775792817", "⬅️") + middleEmojis + CustomEmoji("5404631702477757552", "➡️")
 }
 
 const (
 	DangerEmojiGray  = "5416076321442777828"
 	SuccessEmojiGray = "5411197345968701560"
-	SuccessEmojiID   = 5411197345968701560
-	DangerEmojiID    = 5416076321442777828
+	SuccessEmojiID   = "5411197345968701560"
+	DangerEmojiID    = "5416076321442777828"
 )
 
 func SuccessEmoji() string {
@@ -88,5 +84,5 @@ func DangerEmoji() string {
 }
 
 func StatsEmoji() string {
-	return CustomEmoji(5425112292683435471, "📊")
+	return CustomEmoji("5258391025281408576", "📊")
 }

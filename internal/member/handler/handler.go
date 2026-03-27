@@ -294,7 +294,7 @@ func (h *Handler) ShipRandom(b *gotgbot.Bot, ctx *cmd.Context) error {
 	first := members[0]
 	second := members[1]
 
-	text := fmt.Sprintf("%s <b>Шипперим рандом</b>: %s + %s\n%s", helpers.CustomEmoji(5258276353949575281, "❤️"), helpers.RoleMentionEmoji(first), helpers.RoleMentionEmoji(second), phrase)
+	text := fmt.Sprintf("%s <b>Шипперим рандом</b>: %s + %s\n%s", helpers.CustomEmoji("5258276353949575281", "❤️"), helpers.RoleMentionEmoji(first), helpers.RoleMentionEmoji(second), phrase)
 
 	return ctx.ReplyHTML(b, text)
 }

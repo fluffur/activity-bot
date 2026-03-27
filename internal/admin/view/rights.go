@@ -75,7 +75,7 @@ func GetCommandsByCategoryKeyboard(category cmd.Category, commands []*cmd.Comman
 		}
 
 		rows = append(rows, []gotgbot.InlineKeyboardButton{
-			{Text: c.GetDescription(), CallbackData: "rights_edit:" + c.GetKey(), IconCustomEmojiId: helpers.StatusEmojiId(status)},
+			{Text: c.GetDescription(), CallbackData: "rights_edit:" + c.GetKey(), IconCustomEmojiId: helpers.StatusEmojiID(status)},
 		})
 	}
 
@@ -134,7 +134,7 @@ func GetEditRightsKeyboard(key string, currentStatus model.Status, commands []*c
 			Text:              s.Title(),
 			CallbackData:      fmt.Sprintf("rights_set:%s:%d", key, s),
 			Style:             style,
-			IconCustomEmojiId: helpers.StatusEmojiId(s),
+			IconCustomEmojiId: helpers.StatusEmojiID(s),
 		})
 		//if (i+1)%3 == 0 {
 		rows = append(rows, currentRow)

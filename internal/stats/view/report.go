@@ -18,7 +18,7 @@ func FormatStats(report []model.ChatMemberMessageCount, restMembers []model.Chat
 	if !topOnly {
 
 		if sections.NormWarn > 0 {
-			sb.WriteString(fmt.Sprintf("%s Прошли норму %d\n", helpers.CustomEmoji(5224694451338759997, "🌟"), sections.NormWarn))
+			sb.WriteString(fmt.Sprintf("%s Прошли норму %d\n", helpers.CustomEmoji("5870633910337015697", "✅"), sections.NormWarn))
 
 			sb.WriteString("<blockquote expandable>")
 			if len(sections.Passed) > 0 {
@@ -28,7 +28,7 @@ func FormatStats(report []model.ChatMemberMessageCount, restMembers []model.Chat
 			}
 			sb.WriteString("</blockquote>")
 
-			sb.WriteString(fmt.Sprintf("\n%s Не прошли норму️ %d (варн) \n", helpers.CustomEmoji(5224340348465073584, "⚠️"), sections.NormWarn))
+			sb.WriteString(fmt.Sprintf("\n%s Не прошли норму️ %d (варн) \n", helpers.CustomEmoji("5870948572526022116", "⚠️"), sections.NormWarn))
 			sb.WriteString("<blockquote expandable>")
 			if len(sections.FailedWarn) > 0 {
 				writeNumberedList(&sb, sections.FailedWarn)
@@ -39,7 +39,7 @@ func FormatStats(report []model.ChatMemberMessageCount, restMembers []model.Chat
 		}
 
 		if sections.NormBan > 0 {
-			sb.WriteString(fmt.Sprintf("\n%s Не прошли норму %d (бан) \n", helpers.DangerEmoji(), sections.NormBan))
+			sb.WriteString(fmt.Sprintf("\n%s Не прошли норму %d (бан) \n", helpers.CustomEmoji("5870657884844462243", "❌"), sections.NormBan))
 			sb.WriteString("<blockquote expandable>")
 			if len(sections.FailedBan) > 0 {
 				writeNumberedList(&sb, sections.FailedBan)
@@ -70,7 +70,7 @@ func FormatStats(report []model.ChatMemberMessageCount, restMembers []model.Chat
 
 	} else {
 
-		sb.WriteString(fmt.Sprintf("%s Топ участников\n", helpers.CustomEmoji(5224694451338759997, "🌟")))
+		sb.WriteString(fmt.Sprintf("%s Топ участников\n", helpers.CustomEmoji("5224694451338759997", "🌟")))
 
 		sb.WriteString("<blockquote expandable>")
 		if len(sections.Passed) > 0 {
@@ -128,7 +128,7 @@ func FormatFailedNorm(report []model.ChatMemberMessageCount, from, to *time.Time
 	sb.WriteString("⚠️ <b>Не выполнили норму:</b>\n")
 
 	if len(sections.FailedWarn) > 0 {
-		sb.WriteString(fmt.Sprintf("\n%s Меньше %d сообщений (варн):\n", helpers.CustomEmoji(5224340348465073584, "⚠️"), sections.NormWarn))
+		sb.WriteString(fmt.Sprintf("\n%s Меньше %d сообщений (варн):\n", helpers.CustomEmoji("5224340348465073584", "⚠️"), sections.NormWarn))
 		writeNumberedList(&sb, sections.FailedWarn)
 	}
 
@@ -213,13 +213,13 @@ func formatRestLine(r model.ChatMember) string {
 
 func formatPeriodHeader(from, to *time.Time) string {
 	if from != nil && to != nil {
-		return fmt.Sprintf("%s Отчет за период: %s — %s", helpers.StatsEmoji(), helpers.FormatToHumanDateTime(*from), helpers.FormatToHumanDateTime(*to))
+		return fmt.Sprintf("%s Отчет за период\n%s — %s", helpers.CustomEmoji("5870772616305839506", "📊"), helpers.FormatToHumanDateTime(*from), helpers.FormatToHumanDateTime(*to))
 	} else if from != nil {
-		return fmt.Sprintf("%s Отчет с %s", helpers.StatsEmoji(), helpers.FormatToHumanDateTime(*from))
+		return fmt.Sprintf("%s Отчет с %s", helpers.CustomEmoji("5870772616305839506", "📊"), helpers.FormatToHumanDateTime(*from))
 	} else if to != nil {
-		return fmt.Sprintf("%s Отчет до %s", helpers.StatsEmoji(), helpers.FormatToHumanDateTime(*to))
+		return fmt.Sprintf("%s Отчет до %s", helpers.CustomEmoji("5870772616305839506", "📊"), helpers.FormatToHumanDateTime(*to))
 	}
-	return "📊 Отчет за всё время"
+	return fmt.Sprintf("%s Отчет за всё время", helpers.CustomEmoji("5870772616305839506", "📊"))
 }
 
 func writeNumberedList(sb *strings.Builder, items []string) {

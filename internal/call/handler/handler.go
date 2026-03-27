@@ -426,7 +426,7 @@ func (h *Handler) getCallTypesKeyboard(currentTypes int32) gotgbot.InlineKeyboar
 		}
 		if currentTypes&t.bit > 0 {
 			btn.Style = "primary"
-			btn.IconCustomEmojiId = strconv.Itoa(helpers.SuccessEmojiID)
+			btn.IconCustomEmojiId = helpers.SuccessEmojiID
 		}
 
 		row = append(row, btn)

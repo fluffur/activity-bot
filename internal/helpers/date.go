@@ -38,27 +38,6 @@ func FormatToHumanDateTime(date time.Time) string {
 	return fmt.Sprintf("<tg-time unix=\"%d\">%s</tg-time>", date.Unix(), text)
 }
 
-func FormatToHumanDate(date time.Time) string {
-	date = date.Local()
-	now := time.Now()
-
-	months := [...]string{
-		"января", "февраля", "марта", "апреля", "мая", "июня",
-		"июля", "августа", "сентября", "октября", "ноября", "декабря",
-	}
-
-	var text string
-	if now.Year() == date.Year() && now.YearDay() == date.YearDay() {
-		text = "сегодня"
-	} else if now.Year() == date.Year() {
-		text = fmt.Sprintf("%d %s", date.Day(), months[date.Month()-1])
-	} else {
-		text = fmt.Sprintf("%d %s %d", date.Day(), months[date.Month()-1], date.Year())
-	}
-
-	return fmt.Sprintf("<tg-time unix=\"%d\">%s</tg-time>", date.Unix(), text)
-}
-
 func PluralizeDays(n int) string {
 	nAbs := n % 100
 	if nAbs >= 11 && nAbs <= 14 {
@@ -74,63 +53,61 @@ func PluralizeDays(n int) string {
 		return "дней"
 	}
 }
-
-func FormatLastSeen(t time.Time) string {
+func formatLastSeenHuman(t time.Time) string {
 	t = t.Local()
 	now := time.Now()
 
 	d := now.Sub(t)
 
-	var human string
-
 	if d < time.Hour {
 		minutes := int(d.Minutes())
 		if minutes <= 1 {
-			human = "только что"
-		} else {
-			human = fmt.Sprintf("%d %s назад",
-				minutes,
-				pluralRu(minutes, "минуту", "минуты", "минут"),
-			)
+			return "только что"
 		}
-	} else {
-
-		totalHours := int(d.Hours())
-
-		years := totalHours / (24 * 365)
-		months := (totalHours % (24 * 365)) / (24 * 30)
-		days := (totalHours % (24 * 30)) / 24
-		hours := totalHours % 24
-
-		var parts []string
-
-		if years > 0 {
-			parts = append(parts,
-				fmt.Sprintf("%d %s", years, pluralRu(years, "год", "года", "лет")),
-			)
-		}
-
-		if months > 0 {
-			parts = append(parts,
-				fmt.Sprintf("%d %s", months, pluralRu(months, "месяц", "месяца", "месяцев")),
-			)
-		}
-
-		if days > 0 && years == 0 {
-			parts = append(parts,
-				fmt.Sprintf("%d %s", days, pluralRu(days, "день", "дня", "дней")),
-			)
-		}
-
-		if hours > 0 && years == 0 && months == 0 {
-			parts = append(parts,
-				fmt.Sprintf("%d %s", hours, pluralRu(hours, "час", "часа", "часов")),
-			)
-		}
-
-		human = strings.Join(parts, " ") + " назад"
+		return fmt.Sprintf("%d %s назад",
+			minutes,
+			pluralRu(minutes, "минуту", "минуты", "минут"),
+		)
 	}
 
+	totalHours := int(d.Hours())
+
+	years := totalHours / (24 * 365)
+	months := (totalHours % (24 * 365)) / (24 * 30)
+	days := (totalHours % (24 * 30)) / 24
+	hours := totalHours % 24
+
+	var parts []string
+
+	if years > 0 {
+		parts = append(parts,
+			fmt.Sprintf("%d %s", years, pluralRu(years, "год", "года", "лет")),
+		)
+	}
+
+	if months > 0 {
+		parts = append(parts,
+			fmt.Sprintf("%d %s", months, pluralRu(months, "месяц", "месяца", "месяцев")),
+		)
+	}
+
+	if days > 0 && years == 0 {
+		parts = append(parts,
+			fmt.Sprintf("%d %s", days, pluralRu(days, "день", "дня", "дней")),
+		)
+	}
+
+	if hours > 0 && years == 0 && months == 0 {
+		parts = append(parts,
+			fmt.Sprintf("%d %s", hours, pluralRu(hours, "час", "часа", "часов")),
+		)
+	}
+
+	return strings.Join(parts, " ") + " назад"
+}
+
+func FormatLastSeen(t time.Time) string {
+	human := formatLastSeenHuman(t)
 	return fmt.Sprintf(
 		"<tg-time unix=\"%d\">%s</tg-time>",
 		t.Unix(),
@@ -138,6 +115,9 @@ func FormatLastSeen(t time.Time) string {
 	)
 }
 
+func FormatLastSeenPlain(t time.Time) string {
+	return formatLastSeenHuman(t)
+}
 func pluralRu(n int, one, few, many string) string {
 	n = n % 100
 	if n >= 11 && n <= 14 {

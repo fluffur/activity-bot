@@ -5,39 +5,41 @@ import (
 )
 
 func StatusEmoji(status model.Status) string {
-	customEmojis := []string{
-		CustomEmoji(5368832132158337100, "0️⃣"),
-		CustomEmoji(5366311523226496082, "1️⃣"),
-		CustomEmoji(5366536356174510823, "2️⃣"),
-		CustomEmoji(5366525906519076469, "3️⃣"),
-		CustomEmoji(5368367657215078446, "4️⃣"),
-		CustomEmoji(5368552151830244939, "5️⃣"),
-	}
-	if status < 0 || status > 5 {
-		return ""
-	}
-	return customEmojis[status]
+	return CustomEmoji(StatusEmojiID(status), StatusEmojiPlain(status))
 }
 
-func StatusEmojiId(status model.Status) string {
-	customEmojis := []string{
-		"5368832132158337100",
-		"5366311523226496082",
-		"5366536356174510823",
-		"5366525906519076469",
-		"5368367657215078446",
-		"5368552151830244939",
+func StatusEmojiID(status model.Status) string {
+	switch status {
+	case model.StatusMember:
+		return "5888465618117598264"
+	case model.StatusModerator:
+		return "5888965496476277736"
+	case model.StatusAdmin:
+		return "5888565441747492339"
+	case model.StatusSeniorAdmin:
+		return "5888782384840578820"
+	case model.StatusCoOwner:
+		return "5888985064347277672"
+	case model.StatusOwner:
+		return "5888510315842247017"
 	}
-	if status < 0 || status > 5 {
-		return ""
-	}
-	return customEmojis[status]
+	return ""
 }
 
 func StatusEmojiPlain(status model.Status) string {
-	emojis := []string{"0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"}
-	if status < 0 || status > 5 {
-		return ""
+	switch status {
+	case model.StatusMember:
+		return "0️⃣"
+	case model.StatusModerator:
+		return "1️⃣"
+	case model.StatusAdmin:
+		return "2️⃣"
+	case model.StatusSeniorAdmin:
+		return "3️⃣"
+	case model.StatusCoOwner:
+		return "4️⃣"
+	case model.StatusOwner:
+		return "5️⃣"
 	}
-	return emojis[status]
+	return ""
 }
