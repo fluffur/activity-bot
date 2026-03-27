@@ -100,9 +100,9 @@ func (h *Handler) ShowEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if u.Emoji == "" {
-		return ctx.ReplyHTML(b, "У пользователя еще нет emoji\n\nДобавить emoji: <code>!эмоджи 😘</code>")
+		return ctx.ReplyHTML(b, fmt.Sprintf("У пользователя %s еще нет эмоджи\n\nДобавить emoji: <code>!эмоджи 😘</code>", helpers.UserLink(*u)))
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Emoji пользователя: %s", u.Emoji))
+	return ctx.ReplyHTML(b, fmt.Sprintf("Эмоджи пользователя %s: %s", helpers.UserLink(*u), u.Emoji))
 
 }
