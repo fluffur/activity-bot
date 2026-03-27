@@ -102,7 +102,6 @@ WHERE cm.chat_id = $1
         OR
     (length($2::text) >= 2 AND cm.tag ILIKE $2::text || '%')
     )
-LIMIT 1
 `
 
 type GetUsersByCustomTitleParams struct {

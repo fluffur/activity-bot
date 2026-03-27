@@ -36,8 +36,7 @@ WHERE cm.chat_id = @chat_id
     (length(@tag::text) < 2 AND lower(cm.tag::text) = lower(@tag::text))
         OR
     (length(@tag::text) >= 2 AND cm.tag ILIKE @tag::text || '%')
-    )
-LIMIT 1;
+    );
 
 -- name: SetUserGender :exec
 UPDATE users SET gender = $2 WHERE id = $1;
