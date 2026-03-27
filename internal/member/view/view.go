@@ -14,7 +14,7 @@ func FormatRolesList(members []model.ChatMember) string {
 	sb.WriteString("<blockquote expandable>")
 
 	for i, m := range members {
-		sb.WriteString(fmt.Sprintf("%d. %s — %s\n", i+1, helpers.RoleEmojiLink(m), helpers.UserLink(m.User)))
+		sb.WriteString(fmt.Sprintf("%d. %s <code>@%s</code>\n", i+1, helpers.RoleEmojiLink(m), m.User.DisplayName()))
 	}
 	sb.WriteString("</blockquote>")
 	sb.WriteString("\nЧтобы изменить роль участника введите <code>!роль @участник название</code>")

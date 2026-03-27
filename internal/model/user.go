@@ -14,3 +14,14 @@ type User struct {
 	Emoji         string
 	CustomEmojiID string
 }
+
+func (u User) DisplayName() string {
+	if u.Username != "" {
+		return u.Username
+	}
+	name := u.FirstName
+	if u.LastName != "" {
+		name += " " + u.LastName
+	}
+	return name
+}
