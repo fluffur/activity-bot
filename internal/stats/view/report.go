@@ -49,14 +49,16 @@ func FormatStats(report []model.ChatMemberMessageCount, restMembers []model.Chat
 			sb.WriteString("</blockquote>")
 		}
 
-		sb.WriteString(fmt.Sprintf("\n%s Новички (%d %s)\n", helpers.NewbieEmoji(), newbieThresholdDays, helpers.PluralizeDays(int(newbieThresholdDays))))
-		sb.WriteString("<blockquote expandable>")
-		if len(sections.Newbies) > 0 {
-			writeNumberedList(&sb, sections.Newbies)
-		} else {
-			sb.WriteString("Список пуст\n")
+		if newbieThresholdDays > 0 {
+			sb.WriteString(fmt.Sprintf("\n%s Новички (%d %s)\n", helpers.NewbieEmoji(), newbieThresholdDays, helpers.PluralizeDays(int(newbieThresholdDays))))
+			sb.WriteString("<blockquote expandable>")
+			if len(sections.Newbies) > 0 {
+				writeNumberedList(&sb, sections.Newbies)
+			} else {
+				sb.WriteString("Список пуст\n")
+			}
+			sb.WriteString("</blockquote>")
 		}
-		sb.WriteString("</blockquote>")
 
 		sb.WriteString(fmt.Sprintf("\n%s Рест\n", helpers.RestEmoji()))
 		sb.WriteString("<blockquote expandable>")
