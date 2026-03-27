@@ -84,13 +84,13 @@ func FormatCallChunk(message string, members []model.ChatMember, mentionTypes in
 			emptyStr = "ㅤ"
 		}
 
-		emoji := userEmoji(m.User)
+		emoji := userEmoji(m)
 
 		if mentionTypes&MentionTypeEmoji > 0 && !hasCustomEmoji(emoji) {
 			parts = append(parts, emoji)
 		}
 		if mentionTypes&MentionTypeName > 0 {
-			parts = append(parts, m.User.FirstName)
+			parts = append(parts, m.User.DisplayName())
 		}
 		if mentionTypes&MentionTypeRole > 0 && m.Tag != "" {
 			parts = append(parts, m.Tag)
@@ -144,9 +144,12 @@ func FormatWelcomeCallMessage(message string) string {
 	return "Сообщение: " + message
 }
 
-func userEmoji(u model.User) string {
-	if u.Emoji != "" {
-		return u.Emoji
+func userEmoji(m model.ChatMember) string {
+	if m.Emoji != "" {
+		return m.Emoji
+	}
+	if m.User.Emoji != "" {
+		return m.User.Emoji
 	}
 
 	return callEmojis[rand.Intn(len(callEmojis))]
