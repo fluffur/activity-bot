@@ -1,5 +1,7 @@
 package model
 
+import "html"
+
 const (
 	GenderMale   = "male"
 	GenderFemale = "female"
@@ -17,11 +19,11 @@ type User struct {
 
 func (u User) DisplayName() string {
 	if u.Username != "" {
-		return u.Username
+		return html.EscapeString(u.Username)
 	}
 	name := u.FirstName
 	if u.LastName != "" {
 		name += " " + u.LastName
 	}
-	return name
+	return html.EscapeString(name)
 }

@@ -65,18 +65,25 @@ func (h *Handler) ShowGender(b *gotgbot.Bot, ctx *cmd.Context) error {
 }
 
 func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
+	u := ctx.FirstUser()
+	if u == nil {
+		return cmd.ErrNoUser
+	}
+	if u.ID != ctx.EffectiveSender.Id() {
+		return ctx.ReplyHTML(b, "Нельзя менять эмоджи других пользователей. Для эмоджи в рамках чата есть значки. Попробуйте через команду <code>значок</code>")
+	}
 	emojis := strings.TrimSpace(ctx.HTML())
 	graphemes := helpers.ParseEmojis(emojis)
 
 	if len(graphemes) > 3 {
-		return ctx.Reply(b, "❌ Нужно отправить не более 3 emojis", nil)
+		return ctx.Reply(b, "❌ Нужно отправить не более 3 эмоджи на пользователя", nil)
 	}
 
 	if err := h.service.SetEmoji(ctx.StdContext(), ctx.EffectiveSender.Id(), strings.Join(graphemes, "")); err != nil {
 		return fmt.Errorf("failed to set emoji: %w", err)
 	}
 	logger.L.Info("set emoji", "emoji", emojis)
-	return ctx.Reply(b, "Emoji установлено", nil)
+	return ctx.Reply(b, fmt.Sprintf("Эмоджи %s установлено для %s", emojis, helpers.UserLink(*u)), nil)
 }
 
 func (h *Handler) RemoveEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {

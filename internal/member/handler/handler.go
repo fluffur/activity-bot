@@ -318,8 +318,8 @@ func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 	emojis := ctx.HTML()
 	graphemes := helpers.ParseEmojis(emojis)
-	if len(graphemes) != 1 {
-		return ctx.ReplyHTML(b, "Нужно отправить ровно одно эмоджи")
+	if len(graphemes) > 3 {
+		return ctx.Reply(b, "❌ Можно указать не более 3 значков на участника", nil)
 	}
 	emoji := graphemes[0]
 	if err := h.service.SetChatMemberEmoji(ctx.StdContext(), ctx.TargetChatID(), m.User.ID, emoji); err != nil {
