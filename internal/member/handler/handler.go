@@ -316,9 +316,6 @@ func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 	if m == nil {
 		return cmd.ErrNoUser
 	}
-	if m.Status == 5 && m.User.ID != ctx.EffectiveSender.Id() {
-		return ctx.ReplyHTML(b, "Нельзя поменять значок владельцу")
-	}
 	emojis := ctx.HTML()
 	graphemes := helpers.ParseEmojis(emojis)
 	if len(graphemes) != 1 {
@@ -336,9 +333,6 @@ func (h *Handler) RemoveEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 	m := ctx.FirstMember()
 	if m == nil {
 		return cmd.ErrNoUser
-	}
-	if m.Status == 5 && m.User.ID != ctx.EffectiveSender.Id() {
-		return ctx.ReplyHTML(b, "Нельзя поменять значок владельцу")
 	}
 	if err := h.service.SetChatMemberEmoji(ctx.StdContext(), ctx.TargetChatID(), m.User.ID, ""); err != nil {
 		return fmt.Errorf("failed to set remove member emoji: %w", err)

@@ -516,7 +516,6 @@ func (a *App) RegisterHandlers() {
 	)
 
 	a.Dispatcher.AddHandler(cf.New(memberHandler.RemoveEmoji, "значок").
-		SetArgsCount(1).
 		FallbackToSender().WithGuards(groupGuard).
 		Restricted(model.StatusSeniorAdmin),
 	)
