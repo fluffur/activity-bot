@@ -252,16 +252,18 @@ func (r *MemberRepository) SetNewbies(ctx context.Context, chatID int64, users [
 	})
 }
 
-func (r *MemberRepository) FindByCustomTitle(ctx context.Context, chatID int64, tag string) (model.ChatMember, error) {
-	m, err := r.queries.FindChatMemberByCustomTitle(ctx, db.FindChatMemberByCustomTitleParams{
+func (r *MemberRepository) FindByTag(ctx context.Context, chatID int64, tag string) ([]model.ChatMember, error) {
+	m, err := r.queries.FindChatMembersByTag(ctx, db.FindChatMembersByTagParams{
 		ChatID: chatID,
 		Tag:    tag,
 	})
 	if err != nil {
-		return model.ChatMember{}, err
+		return nil, err
 	}
 
-	return mapChatMemberFull(m.ChatMember, m.User), nil
+	return mapMembers(m, func(row db.FindChatMembersByTagRow) model.ChatMember {
+		return mapChatMemberFull(row.ChatMember, row.User)
+	}), err
 }
 
 func (r *MemberRepository) GetByUsername(ctx context.Context, chatID int64, username string) (model.ChatMember, error) {

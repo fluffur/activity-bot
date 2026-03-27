@@ -21,10 +21,6 @@ func (s *Service) EnsureUserExists(ctx context.Context, id int64, username, firs
 	return s.repo.Ensure(ctx, id, username, firstName, lastName)
 }
 
-func (s *Service) GetByTag(ctx context.Context, chatID int64, tag string) ([]model.ChatMember, error) {
-	return s.repo.GetByTag(ctx, chatID, tag)
-}
-
 func (s *Service) SetGender(ctx context.Context, userID int64, gender string) error {
 	return s.repo.SetGender(ctx, userID, gender)
 }

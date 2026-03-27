@@ -81,17 +81,6 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []model.User) er
 	})
 }
 
-func (r *UserRepository) GetByTag(ctx context.Context, chatID int64, tag string) ([]model.ChatMember, error) {
-	u, err := r.queries.GetUsersByCustomTitle(ctx, db.GetUsersByCustomTitleParams{
-		Tag:    tag,
-		ChatID: chatID,
-	})
-
-	return mapMembers(u, func(row db.GetUsersByCustomTitleRow) model.ChatMember {
-		return mapChatMemberFull(row.ChatMember, row.User)
-	}), err
-}
-
 func (r *UserRepository) SetGender(ctx context.Context, userID int64, gender string) error {
 	return r.queries.SetUserGender(ctx, db.SetUserGenderParams{
 		ID:     userID,

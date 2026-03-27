@@ -158,7 +158,7 @@ WHERE cm.chat_id = @chat_id
         OR (@mode = 'any' AND COALESCE(m.msg_count, 0) < GREATEST(c.norm_warn, c.norm_ban))
     );
 
--- name: FindChatMemberByCustomTitle :one
+-- name: FindChatMembersByTag :many
 SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
@@ -166,9 +166,10 @@ WHERE cm.chat_id = @chat_id
   AND (
     (length(@tag::text) < 2 AND lower(cm.tag::text) = lower(@tag::text))
         OR
-    (length(@tag::text) >= 2 AND cm.tag ILIKE @tag::text || '%')
+    (length(@tag::text) >= 2 AND cm.tag ILIKE '%' || @tag::text || '%')
     )
-LIMIT 1;
+ORDER BY cm.left_at IS NOT NULL, cm.left_at;
+;
 
 -- name: GetChatMemberByUsername :one
 SELECT sqlc.embed(cm), sqlc.embed(u)

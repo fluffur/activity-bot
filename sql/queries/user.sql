@@ -27,19 +27,6 @@ ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
                                first_name = EXCLUDED.first_name,
                                last_name  = EXCLUDED.last_name;
 
--- name: GetUsersByCustomTitle :many
-SELECT sqlc.embed(cm), sqlc.embed(u)
-FROM chat_members cm
-         JOIN users u ON u.id = cm.user_id
-WHERE cm.chat_id = @chat_id
-  AND (
-    (length(@tag::text) < 2 AND lower(cm.tag::text) = lower(@tag::text))
-        OR
-    (length(@tag::text) >= 2 AND cm.tag ILIKE @tag::text || '%')
-    )
-ORDER BY cm.left_at IS NOT NULL, cm.left_at;
-;
-
 -- name: SetUserGender :exec
 UPDATE users
 SET gender = $2

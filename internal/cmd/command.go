@@ -619,7 +619,7 @@ func (c *Command) findMembersByTitle(ctx context.Context, msg *gotgbot.Message, 
 		return rest, nil
 	}
 
-	members, err := c.userService.GetByTag(ctx, chatID, title)
+	members, err := c.memberService.FindChatMembersByTag(ctx, chatID, title)
 	if err != nil || len(members) == 0 {
 		return rest, nil
 	}

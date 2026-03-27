@@ -92,67 +92,6 @@ func (q *Queries) GetUserByUsername(ctx context.Context, lower string) (User, er
 	return i, err
 }
 
-const getUsersByCustomTitle = `-- name: GetUsersByCustomTitle :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
-FROM chat_members cm
-         JOIN users u ON u.id = cm.user_id
-WHERE cm.chat_id = $1
-  AND (
-    (length($2::text) < 2 AND lower(cm.tag::text) = lower($2::text))
-        OR
-    (length($2::text) >= 2 AND cm.tag ILIKE $2::text || '%')
-    )
-ORDER BY cm.left_at IS NOT NULL, cm.left_at
-`
-
-type GetUsersByCustomTitleParams struct {
-	ChatID int64  `db:"chat_id" json:"chatId"`
-	Tag    string `db:"tag" json:"tag"`
-}
-
-type GetUsersByCustomTitleRow struct {
-	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
-	User       User       `db:"user" json:"user"`
-}
-
-func (q *Queries) GetUsersByCustomTitle(ctx context.Context, arg GetUsersByCustomTitleParams) ([]GetUsersByCustomTitleRow, error) {
-	rows, err := q.db.Query(ctx, getUsersByCustomTitle, arg.ChatID, arg.Tag)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []GetUsersByCustomTitleRow{}
-	for rows.Next() {
-		var i GetUsersByCustomTitleRow
-		if err := rows.Scan(
-			&i.ChatMember.ChatID,
-			&i.ChatMember.UserID,
-			&i.ChatMember.JoinedAt,
-			&i.ChatMember.RestUntil,
-			&i.ChatMember.Tag,
-			&i.ChatMember.LeftAt,
-			&i.ChatMember.RestReason,
-			&i.ChatMember.Emoji,
-			&i.ChatMember.Status,
-			&i.User.ID,
-			&i.User.Username,
-			&i.User.FirstName,
-			&i.User.LastName,
-			&i.User.CreatedAt,
-			&i.User.Gender,
-			&i.User.Emoji,
-			&i.User.CustomEmojiID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const setUserCustomEmojiID = `-- name: SetUserCustomEmojiID :exec
 UPDATE users
 SET custom_emoji_id = $2
