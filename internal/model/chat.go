@@ -73,6 +73,9 @@ func (s Status) Plural() string {
 	return "неизвестно кто"
 }
 
+func (s Status) PluralTitle() string {
+	return cases.Title(language.Und, cases.NoLower).String(s.Plural())
+}
 func (s Status) Title() string {
 	return cases.Title(language.Und, cases.NoLower).String(s.String())
 }

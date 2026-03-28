@@ -8,38 +8,12 @@ import (
 	"time"
 )
 
-func StatusTitle(status int16, count int) string {
+func StatusTitle(status model.Status, count int) string {
 	if count == 1 {
-		switch status {
-		case 1:
-			return "Модератор"
-		case 2:
-			return "Младший администратор"
-		case 3:
-			return "Старший администратор"
-		case 4:
-			return "Совладелец"
-		case 5:
-			return "Владелец"
-		default:
-			return "Неизвестный"
-		}
+		return status.Title()
 	}
 
-	switch status {
-	case 1:
-		return "Модераторы"
-	case 2:
-		return "Младшие администраторы"
-	case 3:
-		return "Старшие администраторы"
-	case 4:
-		return "Совладельцы"
-	case 5:
-		return "Владельцы"
-	default:
-		return "Неизвестные"
-	}
+	return status.PluralTitle()
 }
 func FormatAdminsList(admins []model.ChatMember) string {
 	var sb strings.Builder
@@ -53,17 +27,17 @@ func FormatAdminsList(admins []model.ChatMember) string {
 		categories[a.Status] = append(categories[a.Status], a)
 	}
 
-	order := [5]int16{5, 4, 3, 2, 1}
+	order := [5]model.Status{model.StatusOwner, model.StatusCoOwner, model.StatusSeniorAdmin, model.StatusAdmin, model.StatusModerator}
 	for _, status := range order {
-		members := categories[model.Status(status)]
+		members := categories[status]
 		if len(members) == 0 {
 			continue
 		}
 
-		sb.WriteString("\n" + helpers.StatusEmoji(model.Status(status)) + " " + StatusTitle(status, len(members)) + "\n")
+		sb.WriteString("\n" + helpers.StatusEmoji(status) + " " + StatusTitle(status, len(members)) + "\n")
 
-		for i, m := range members {
-			sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, helpers.RoleEmojiLink(m)))
+		for _, m := range members {
+			sb.WriteString(fmt.Sprintf("▸ %s\n", helpers.RoleEmojiLink(m)))
 		}
 	}
 
