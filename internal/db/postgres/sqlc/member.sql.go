@@ -270,7 +270,6 @@ const getChatMember = `-- name: GetChatMember :one
 SELECT chat_members.chat_id, chat_members.user_id, chat_members.joined_at, chat_members.rest_until, chat_members.tag, chat_members.left_at, chat_members.rest_reason, chat_members.emoji, chat_members.status, users.id, users.username, users.first_name, users.last_name, users.created_at, users.gender, users.emoji, users.custom_emoji_id
 FROM chat_members
          JOIN users ON users.id = user_id
-WHERE left_at IS NULL
   AND chat_id = $1
   AND user_id = $2
 `

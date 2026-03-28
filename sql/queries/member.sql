@@ -8,7 +8,6 @@ WHERE chat_id = $1
 SELECT sqlc.embed(chat_members), sqlc.embed(users)
 FROM chat_members
          JOIN users ON users.id = user_id
-WHERE left_at IS NULL
   AND chat_id = $1
   AND user_id = $2;
 
