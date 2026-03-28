@@ -56,7 +56,7 @@ func FormatProfile(m model.ChatMemberStats, full bool) string {
 	}
 	text := fmt.Sprintf(
 		`%s Информация о %s
-• Ранг: %s – %s
+• Ранг%s– %s
 %s 
 %s`,
 		helpers.CustomEmoji("5316727448644103237", "👤"),
