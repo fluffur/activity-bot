@@ -212,7 +212,7 @@ func (a *App) RegisterHandlers() {
 		FallbackToSender().
 		WithAmbiguityResolution("admin_is"),
 	)
-	a.Dispatcher.AddHandler(cf.New(adminHandler.SetStatus, "+админ", "+admin", "+mod").
+	a.Dispatcher.AddHandler(cf.New(adminHandler.SetStatus, "+админ", "+модер", "+admin", "+mod").
 		WithGuards(groupGuard).
 		Restricted(model.StatusCoOwner).
 		SetArgsCount(1).
