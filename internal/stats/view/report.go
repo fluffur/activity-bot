@@ -215,7 +215,7 @@ func formatRestLine(r model.ChatMember) string {
 
 func formatPeriodHeader(from, to *time.Time) string {
 	if from != nil && to != nil {
-		return fmt.Sprintf("%s Отчет за период\n%s — %s", helpers.CustomEmoji("5870772616305839506", "📊"), helpers.FormatToHumanDateTime(*from), helpers.FormatToHumanDateTime(*to))
+		return fmt.Sprintf("%s Отчет за период:\n%s — %s", helpers.CustomEmoji("5870772616305839506", "📊"), helpers.FormatToHumanDateTime(*from), helpers.FormatToHumanDateTime(*to))
 	} else if from != nil {
 		return fmt.Sprintf("%s Отчет с %s", helpers.CustomEmoji("5870772616305839506", "📊"), helpers.FormatToHumanDateTime(*from))
 	} else if to != nil {
