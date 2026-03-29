@@ -64,7 +64,7 @@ func formatLastSeenHuman(t time.Time) string {
 		if minutes <= 1 {
 			return "только что"
 		}
-		return fmt.Sprintf("%d %s назад",
+		return fmt.Sprintf("%d %s",
 			minutes,
 			pluralRu(minutes, "минуту", "минуты", "минут"),
 		)
