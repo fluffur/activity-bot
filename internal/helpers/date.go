@@ -103,7 +103,7 @@ func formatLastSeenHuman(t time.Time) string {
 		)
 	}
 
-	return strings.Join(parts, " ") + " назад"
+	return strings.Join(parts, " ")
 }
 
 func FormatLastSeen(t time.Time) string {
