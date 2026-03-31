@@ -14,6 +14,7 @@ const (
 	ArgTypeDate
 	ArgTypeAnyUser
 	ArgTypeOnlyUserSender
+	ArgTypeMentionedUser
 )
 
 type ArgRule struct {
@@ -27,20 +28,42 @@ type ArgRule struct {
 
 func AnyUserRule() ArgRule {
 	return ArgRule{
-		Name: "one_user",
+		Name: "any_user",
 		Type: ArgTypeAnyUser,
 		Min:  1,
 		Max:  1,
 	}
 }
 
-func OneNumberRule() ArgRule {
+func MentionedUserRule() ArgRule {
+	return ArgRule{
+		Name: "mentioned_user",
+		Type: ArgTypeMentionedUser,
+		Min:  1,
+		Max:  1,
+	}
+}
+
+func NumberRule() ArgRule {
 	return ArgRule{
 		Name: "one_number",
 		Type: ArgTypeNumber,
 		Min:  1,
 		Max:  1,
 	}
+}
+
+func (r ArgRule) SetRange(min int, max int) ArgRule {
+	r.Min = min
+	r.Max = max
+
+	return r
+}
+
+func (r ArgRule) SetVariadic(variadic bool) ArgRule {
+	r.Variadic = variadic
+
+	return r
 }
 
 func OneDateRule() ArgRule {
@@ -52,7 +75,7 @@ func OneDateRule() ArgRule {
 	}
 }
 
-func OneTextRule() ArgRule {
+func TextRule() ArgRule {
 	return ArgRule{
 		Name: "one_text",
 		Type: ArgTypeText,

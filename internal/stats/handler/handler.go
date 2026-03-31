@@ -427,18 +427,13 @@ func getCallKeyboard(c model.Chat) *gotgbot.InlineKeyboardMarkup {
 	}
 }
 
-func (h *Handler) ShowNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowNewbies(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 
-	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay), c.WeekStartTime)
-	if err != nil {
-		return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>")
-	}
-
-	report, err := h.service.GetChatMembersStats(ctx.StdContext(), ctx.TargetChatID(), from, to)
+	report, err := h.service.GetChatMembersStats(ctx.StdContext(), c.ID, nil, nil)
 	if err != nil {
 		return err
 	}

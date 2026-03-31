@@ -31,9 +31,10 @@ type Context struct {
 
 	chatMembers []model.ChatMember
 
-	dates   []time.Time
-	numbers []int
-	texts   []string
+	dates          []time.Time
+	numbers        []int
+	texts          []string
+	requiredStatus model.Status
 }
 
 func (c *Context) StdContext() context.Context {
@@ -49,6 +50,9 @@ func (c *Context) Reply(b *gotgbot.Bot, text string, opts *gotgbot.SendMessageOp
 func (c *Context) ReplyHTML(b *gotgbot.Bot, text string) error {
 	_, err := c.EffectiveMessage.Reply(b, text, &gotgbot.SendMessageOpts{
 		ParseMode: "HTML",
+		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
+			IsDisabled: true,
+		},
 	})
 
 	return err
@@ -133,6 +137,14 @@ func (c *Context) AnyUser() (*model.ChatMember, error) {
 		return c.senderChatMember, nil
 	}
 	return nil, ErrNoValue
+
+}
+
+func (c *Context) Sender() (*model.ChatMember, error) {
+	if c.senderChatMember == nil {
+		return c.senderChatMember, ErrNoValue
+	}
+	return c.senderChatMember, nil
 }
 
 func (c *Context) UserOrSender() (*model.ChatMember, error) {
@@ -153,4 +165,8 @@ func (c *Context) UserOrReply() (*model.ChatMember, error) {
 		return c.replyChatMember, nil
 	}
 	return nil, ErrNoValue
+}
+
+func (c *Context) RequiredStatus() model.Status {
+	return c.requiredStatus
 }

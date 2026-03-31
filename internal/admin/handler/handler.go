@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/admin/view"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
+	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
@@ -35,30 +36,35 @@ func New(service *admin.Service, memberService *member.Service, chatService *cha
 	return &Handler{service, memberService, chatService, dateParser, asyncClient, factory}
 }
 
-func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
-	chatMember := ctx.FirstMember()
-	if chatMember == nil {
-		return cmd.ErrNoUser
+func (h *Handler) IsAdmin(b *gotgbot.Bot, ctx *command.Context) error {
+	u, err := ctx.AnyUser()
+	if err != nil {
+		return err
 	}
-
-	return ctx.ReplyHTML(b, fmt.Sprintf("Ранг участника: %d", chatMember.Status))
+	return ctx.ReplyHTML(b, fmt.Sprintf("Ранг участника: %d", u.Status))
 }
 
-func (h *Handler) SetStatus(b *gotgbot.Bot, ctx *cmd.Context) error {
-	m := ctx.FirstMember()
-	if m == nil {
-		return ctx.Reply(b, "Вы забыли указать участника, которого хотите сделать админом, либо он был не найден в чате", nil)
+func (h *Handler) SetStatus(b *gotgbot.Bot, ctx *command.Context) error {
+	m, err := ctx.AnyUser()
+	if err != nil {
+		return err
+	}
+	sender, err := ctx.Sender()
+	if err != nil {
+		return err
+	}
+	if !sender.CanModerate(*m) {
+		return ctx.Reply(b, "Недостаточно прав для изменения статуса", nil)
 	}
 
-	var status model.Status = 3
-	if arg := ctx.FirstArgument(); arg != "" {
-		result, err := strconv.Atoi(arg)
-		if err != nil || result < 1 || result > 5 {
-			return ctx.ReplyHTML(b, "Некорреткно указан статус, нужно число в диапозоне от 1 до 5")
-		}
-		status = model.Status(result)
+	s, err := ctx.Number()
+	if err != nil {
+		return err
 	}
-
+	status := model.Status(s)
+	if status >= sender.Status {
+		return ctx.Reply(b, "Нельзя установить участнику статус равный своему или выше", nil)
+	}
 	if err := h.service.SetStatus(ctx.StdContext(), *m, status); err != nil {
 		if errors.Is(err, admin.ErrUserIsAlreadyAdmin) {
 			return ctx.Reply(b, "Участник %s ", nil)
@@ -75,14 +81,12 @@ func (h *Handler) SetStatus(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 }
 
-func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
-	m := ctx.FirstMember()
-
-	if m == nil {
-		return cmd.ErrNoUser
+func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *command.Context) error {
+	u, err := ctx.User()
+	if err != nil {
+		return err
 	}
-
-	if err := h.service.SetStatus(ctx.StdContext(), *m, 0); err != nil {
+	if err := h.service.SetStatus(ctx.StdContext(), *u, 0); err != nil {
 		if errors.Is(err, admin.ErrUserIsNotAdmin) {
 			return ctx.Reply(b, "Пользователь не является администратором", nil)
 		}
@@ -96,11 +100,15 @@ func (h *Handler) RemoveAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatAdminRemoved(*m))
+	return ctx.ReplyHTML(b, view.FormatAdminRemoved(*u))
 }
 
-func (h *Handler) ListAdmins(b *gotgbot.Bot, ctx *cmd.Context) error {
-	admins, err := h.service.GetAdminsEnsured(ctx.StdContext(), ctx.TargetChatID(), h.memberService.SyncChatMembers)
+func (h *Handler) ListAdmins(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	admins, err := h.service.GetAdminsEnsured(ctx.StdContext(), c.ID, h.memberService.SyncChatMembers)
 	if err != nil {
 		_ = ctx.Reply(b, "Не удалось получить список администраторов", nil)
 		return err

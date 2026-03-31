@@ -275,8 +275,13 @@ func (h *Handler) SetNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.Reply(b, "Новички установлены", nil)
 }
 
-func (h *Handler) ShipRandom(b *gotgbot.Bot, ctx *cmd.Context) error {
-	members, err := h.service.GetChatMembers(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShipRandom(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	members, err := h.service.GetChatMembers(ctx.StdContext(), c.ID)
 	if err != nil {
 		return err
 	}

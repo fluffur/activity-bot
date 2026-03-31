@@ -38,61 +38,49 @@ func New(service *rest.Service, userService *user.Service, memberService *member
 	return &Handler{service, userService, memberService, chatService, adminService, dateParser, sessionService, asyncClient}
 }
 
-func (h *Handler) Set(b *gotgbot.Bot, ctx *cmd.Context) error {
-	m := ctx.FirstMember()
-	if m == nil {
-		return cmd.ErrNoUser
-	}
-	mod, err := h.memberService.GetChatMember(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id())
+func (h *Handler) SetRest(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
-	firstArgument := ctx.FirstArgument()
-
-	date := time.Time{}
-	ok := false
-	if len(ctx.ParsedDates()) > 0 {
-		date = ctx.ParsedDates()[0]
-		ok = true
-	} else if firstArgument != "" {
-		date, ok = h.dateParser.Parse(firstArgument)
+	u, err := ctx.AnyUser()
+	if err != nil {
+		return err
+	}
+	sender, err := ctx.Sender()
+	if err != nil {
+		return err
+	}
+	date, err := ctx.Date()
+	if err != nil {
+		return err
+	}
+	reason := ctx.TextOrDefault("")
+	if sender.Status < ctx.RequiredStatus() {
+		return h.createRequest(b, ctx, u, date, reason)
 	}
 
-	if !ok {
-		return ctx.Reply(b, "Не понял формат. Примеры:\n+рест 12.01\n+рест 2 недели\n+рест месяц", nil)
-	}
-	requiredStatus := model.StatusModerator
-	if h.chatService != nil {
-		if s, err := h.chatService.GetCommandPermission(ctx.StdContext(), ctx.TargetChatID(), "rests"); err == nil {
-			requiredStatus = s
-		}
-	}
-
-	if mod.Status < requiredStatus {
-		return h.createRequest(b, ctx, m, date)
-	}
-
-	if err := h.service.SetMemberRestWithHistory(ctx.StdContext(), ctx.TargetChatID(), m.User.ID, ctx.EffectiveMessage.MessageId, date, ctx.SecondArgument()); err != nil {
+	if err := h.service.SetMemberRestWithHistory(ctx.StdContext(), c.ID, u.User.ID, ctx.EffectiveMessage.MessageId, date, reason); err != nil {
 		_ = ctx.Reply(b, "Не удалось создать рест", nil)
 		return err
 	}
 
-	text := view.FormatRestSet(*m, date, ctx.SecondArgument())
+	text := view.FormatRestSet(*u, date, reason)
 	return ctx.ReplyHTML(b, text)
 }
 
-func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *model.ChatMember, date time.Time) error {
+func (h *Handler) createRequest(b *gotgbot.Bot, ctx *command.Context, u *model.ChatMember, date time.Time, reason string) error {
 
 	kb := gotgbot.InlineKeyboardMarkup{
 		InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
 			{
-				{Text: "Одобрить", CallbackData: fmt.Sprintf("approve:%d", targetUser.User.ID), Style: "success", IconCustomEmojiId: helpers.SuccessEmojiGray},
-				{Text: "Отклонить", CallbackData: fmt.Sprintf("reject:%d", targetUser.User.ID), Style: "danger", IconCustomEmojiId: helpers.DangerEmojiGray},
+				{Text: "Одобрить", CallbackData: fmt.Sprintf("approve:%d", u.User.ID), Style: "success", IconCustomEmojiId: helpers.SuccessEmojiGray},
+				{Text: "Отклонить", CallbackData: fmt.Sprintf("reject:%d", u.User.ID), Style: "danger", IconCustomEmojiId: helpers.DangerEmojiGray},
 			},
 		},
 	}
 
-	msg, err := ctx.EffectiveMessage.Reply(b, view.FormatRestRequest(*targetUser, date, ctx.SecondArgument()), &gotgbot.SendMessageOpts{
+	msg, err := ctx.EffectiveMessage.Reply(b, view.FormatRestRequest(*u, date, reason), &gotgbot.SendMessageOpts{
 		ParseMode:   gotgbot.ParseModeHTML,
 		ReplyMarkup: kb,
 		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
@@ -104,7 +92,7 @@ func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *mo
 	}
 
 	slog.Info("rest requested", "message_id", msg.MessageId)
-	if err := h.service.CreateRestRequest(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID, msg.MessageId, date); err != nil {
+	if err := h.service.CreateRestRequest(ctx.StdContext(), u.ChatID, u.User.ID, msg.MessageId, date); err != nil {
 		_ = ctx.Reply(b, "Не удалось создать заявку", nil)
 
 		return err
@@ -113,13 +101,13 @@ func (h *Handler) createRequest(b *gotgbot.Bot, ctx *cmd.Context, targetUser *mo
 	return err
 }
 
-func (h *Handler) Show(b *gotgbot.Bot, ctx *cmd.Context) error {
-	m := ctx.FirstMember()
-	if m == nil {
-		return cmd.ErrNoUser
+func (h *Handler) ShowRest(b *gotgbot.Bot, ctx *command.Context) error {
+	u, err := ctx.AnyUser()
+	if err != nil {
+		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatRestShow(*m))
+	return ctx.ReplyHTML(b, view.FormatRestShow(*u))
 
 }
 
@@ -147,16 +135,16 @@ func (h *Handler) AllUserRests(b *gotgbot.Bot, ctx *command.Context) error {
 	return ctx.ReplyHTML(b, view.FormatRestRequests(requests))
 }
 
-func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
-	m := ctx.FirstMember()
-	if m == nil {
-		return cmd.ErrNoUser
-	}
-	mod, err := h.memberService.GetChatMember(ctx.StdContext(), ctx.TargetChatID(), ctx.EffectiveSender.Id())
+func (h *Handler) EndRest(b *gotgbot.Bot, ctx *command.Context) error {
+	m, err := ctx.AnyUser()
 	if err != nil {
 		return err
 	}
-	if m.User.ID != mod.User.ID && !mod.StatusGranted(model.StatusModerator) {
+	mod, err := ctx.Sender()
+	if err != nil {
+		return err
+	}
+	if m.User.ID != mod.User.ID && !mod.StatusGranted(ctx.RequiredStatus()) {
 		return ctx.Reply(b, "Вы можете удалить из реста только себя", nil)
 	}
 
@@ -165,7 +153,7 @@ func (h *Handler) End(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.ReplyHTML(b, view.FormatRestNotInRest(*m, isSelf))
 	}
 
-	if err := h.service.EndMemberRest(ctx.StdContext(), ctx.TargetChatID(), m.User.ID); err != nil {
+	if err := h.service.EndMemberRest(ctx.StdContext(), m.ChatID, m.User.ID); err != nil {
 		_ = ctx.Reply(b, "Не удалось удалить пользователя из реста", nil)
 		return err
 	}
@@ -302,17 +290,18 @@ func parseRequestCallbackData(callbackData string) (int64, error) {
 	return int64(fromID), nil
 }
 
-func (h *Handler) RemoveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
-	m := ctx.FirstMember()
-	if m == nil {
-		return cmd.ErrNoUser
+func (h *Handler) RemoveRestRequest(b *gotgbot.Bot, ctx *command.Context) error {
+	u, err := ctx.AnyUser()
+	if err != nil {
+		return err
 	}
-	number, err := strconv.Atoi(ctx.FirstArgument())
-	if err != nil || number < 1 {
-		return ctx.Reply(b, "Укажите корректный номер рест запроса", nil)
+	number, err := ctx.Number()
+	if err != nil {
+		_ = ctx.Reply(b, "Укажите корректный номер рест запроса", nil)
+		return err
 	}
 
-	requests, err := h.service.GetRequests(ctx.StdContext(), m.ChatID, m.User.ID)
+	requests, err := h.service.GetRequests(ctx.StdContext(), u.ChatID, u.User.ID)
 	if err != nil {
 		return err
 	}
@@ -322,7 +311,7 @@ func (h *Handler) RemoveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	request := requests[number-1]
 
-	if request.RestUntil.Equal(m.RestUntil) {
+	if request.RestUntil.Equal(u.RestUntil) {
 
 		if err := h.service.DeleteRestRequestAndEndRest(ctx.StdContext(), request.ChatID, request.UserID, request.ID); err != nil {
 			return err

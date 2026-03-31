@@ -37,8 +37,8 @@ func New(service *chat.Service, adminService *admin.Service, memberService *memb
 	return &Handler{service, adminService, memberService, sessionService, dateParser}
 }
 
-func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.service.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
@@ -46,37 +46,30 @@ func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.ReplyHTML(b, view.FormatNorm(c.NormWarn, c.NormBan))
 }
 
-func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
-	arg := ctx.FirstArgument()
-	fields := strings.Fields(arg)
-	if len(fields) == 0 {
-		return ctx.Reply(b, "❌ Нужно указать норму (и опционально действие: 'варн' или 'бан')", nil)
-	}
-
-	norm, err := strconv.Atoi(fields[0])
+func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
-		return ctx.Reply(b, "❌ Норма должна быть числом", nil)
+		return err
 	}
-
-	action := "варн"
-	if len(fields) > 1 {
-		action = strings.ToLower(fields[1])
+	norm, err := ctx.Number()
+	if err != nil {
+		return err
 	}
-
+	action := ctx.TextOrDefault("варн")
 	validActions := map[string]bool{
 		"варн": true,
 		"бан":  true,
 	}
 	if !validActions[action] {
-		return ctx.Reply(b, "❌ Неверное действие. Допустимые: 'варн', 'бан'", nil)
+		return ctx.Reply(b, fmt.Sprintf("❌ Неверное действие: '%s'. Допустимые: 'варн', 'бан'", action), nil)
 	}
 
 	if action == "варн" {
-		if err := h.service.SetWarnNorm(ctx.StdContext(), ctx.TargetChatID(), norm); err != nil {
+		if err := h.service.SetWarnNorm(ctx.StdContext(), c.ID, norm); err != nil {
 			return err
 		}
 	} else {
-		if err := h.service.SetBanNorm(ctx.StdContext(), ctx.TargetChatID(), norm); err != nil {
+		if err := h.service.SetBanNorm(ctx.StdContext(), c.ID, norm); err != nil {
 			return err
 		}
 	}
@@ -84,23 +77,39 @@ func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.Reply(b, view.FormatNormSet(norm, action), nil)
 }
 
-func (h *Handler) RemoveNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
-	action := ctx.FirstArgument()
+func (h *Handler) RemoveNorm(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	action := ctx.TextOrDefault("варн")
+	var oldNorm int32
+	var setFn func() error
 
-	if action == "варн" {
-		if err := h.service.SetWarnNorm(ctx.StdContext(), ctx.TargetChatID(), 0); err != nil {
-			return err
+	switch action {
+	case "варн":
+		oldNorm = c.NormWarn
+		setFn = func() error {
+			return h.service.SetWarnNorm(ctx.StdContext(), c.ID, 0)
 		}
-	} else if action == "бан" {
-		if err := h.service.SetBanNorm(ctx.StdContext(), ctx.TargetChatID(), 0); err != nil {
-			return err
+	case "бан":
+		oldNorm = c.NormBan
+		setFn = func() error {
+			return h.service.SetBanNorm(ctx.StdContext(), c.ID, 0)
 		}
-	} else {
+	default:
 		return ctx.Reply(b, "❌ Неверное действие. Допустимые: 'варн', 'бан'", nil)
 	}
 
-	return ctx.Reply(b, "Норма удалена", nil)
+	if oldNorm == 0 {
+		return ctx.Reply(b, fmt.Sprintf("❌ Норма на %s не была установлена", action), nil)
+	}
 
+	if err := setFn(); err != nil {
+		return err
+	}
+
+	return ctx.Reply(b, fmt.Sprintf("Норма %d (%s) удалена", oldNorm, action), nil)
 }
 
 func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *command.Context) error {

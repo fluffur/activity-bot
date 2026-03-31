@@ -83,22 +83,22 @@ func (a *App) RegisterHandlers() {
 		AddTriggers("+").
 		SetDescription("Настройка сообщения сбора").
 		SetCategory(cmd.CategoryCall).
-		SetDefaultStatus(model.StatusSeniorAdmin).
-		SetArgRules(command.OneTextRule()),
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetArgRules(command.TextRule()),
 	)
 	a.Dp.AddHandler(f.New("delete_call_message", callHandler.DeleteWelcomeCallMessage).
 		SetAliases("калл сообщение").AddTriggers("-").
-		SetDefaultStatus(model.StatusSeniorAdmin),
+		SetRequiredStatus(model.StatusSeniorAdmin),
 	)
 	a.Dp.AddHandler(f.New("show_newbie_treshold", chatHandler.ShowNewbieThreshold).
 		SetAliases("новички срок", "новички после").
-		SetDefaultStatus(model.StatusSeniorAdmin),
+		SetRequiredStatus(model.StatusSeniorAdmin),
 	)
 	a.Dp.AddHandler(f.New("set_newbie_treshold", chatHandler.SetNewbieThreshold).
 		SetAliases("новички срок", "новички после").
 		AddTriggers("+").
-		SetDefaultStatus(model.StatusSeniorAdmin).
-		SetArgRules(command.OneNumberRule()).
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetArgRules(command.NumberRule()).
 		SetDescription("Настройка срока новичка").
 		SetCategory(cmd.CategorySettings),
 	)
@@ -137,80 +137,62 @@ func (a *App) RegisterHandlers() {
 	)
 
 	a.Dp.AddHandler(f.New("failed_norm", statsHandler.ShowFailedNorm).
-		SetArgRules(command.OptionalDateRangeRule()))
-
-	a.Dp.AddHandler(cf.New(statsHandler.ShowNewbies, "newbies", "новички").
-		SetArgsCount(1).
-		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 2, 4*time.Second, sessionService)),
-	)
-	a.Dp.AddHandler(cf.New(chatHandler.ShowNorm, "norm", "норма какая", "а норма какая", "норма", "норма?", "quota", "какая норма", "а какая норма").
-		WithGuards(groupGuard),
-	)
-	a.Dp.AddHandler(cf.New(chatHandler.SetNorm, "norm", "норма", "quota").
-		AddTriggers("+").
-		WithGuards(groupGuard).
-		Restricted(model.StatusSeniorAdmin).
-		SetArgsCount(2).
-		WithDescription("Настройка нормы").
-		WithCategory(cmd.CategorySettings),
-	)
-	a.Dp.AddHandler(cf.New(chatHandler.RemoveNorm, "-norm", "-норма", "-quota").
-		AddTriggers("+").
-		WithGuards(groupGuard).
-		Restricted(model.StatusSeniorAdmin).
-		SetArgsCount(1),
-	)
-	a.Dp.AddHandler(cf.New(memberHandler.ShipRandom, "шипперим", "рандом шипперим").
-		AddTriggers("+").
-		WithGuards(groupGuard),
-	)
-	a.Dp.AddHandler(cf.New(restHandler.Show, "рест", "rest", "мой рест").
-		FallbackToSender().
-		WithGuards(groupGuard).
-		AddTriggers("+").
-		WithAmbiguityResolution("rest_show"),
-	)
-	a.Dp.AddHandler(cf.New(restHandler.Set, "рест", "rest", "установить рест").
-		FallbackToSender().
-		AddTriggers("+").
-		WithGuards(groupGuard).
-		SetArgsCount(2).
-		WithAmbiguityResolution("rest_set"),
-	)
-	a.Dp.AddHandler(cf.New(restHandler.RemoveRestRequest, "удалить рест").
-		FallbackToSender().
-		WithGuards(groupGuard).
-		SetArgsCount(1).Restricted(model.StatusAdmin).
-		WithDescription("Удаление запроса реста").
-		WithCategory(cmd.CategorySettings).
-		WithAmbiguityResolution("rest_remove"),
-	)
-	a.Dp.AddHandler(cf.New(restHandler.End, "-рест", "-rest", "снять рест").
-		FallbackToSender().
-		WithGuards(groupGuard).
-		WithAmbiguityResolution("rest_end"),
-	)
-	a.Dp.AddHandler(cf.New(adminHandler.ListAdmins,
-		"admins", "админы", "модеры", "mods",
-	).
-		WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 1, 10*time.Second, sessionService)),
+		SetArgRules(command.OptionalDateRangeRule()),
 	)
 
-	a.Dp.AddHandler(cf.New(adminHandler.IsAdmin, "админ", "admin", "is_admin", "адм", "модер", "mod", "is_mod").
-		WithGuards(groupGuard).
-		FallbackToSender().
-		WithAmbiguityResolution("admin_is"),
+	a.Dp.AddHandler(f.New("newbies", statsHandler.ShowNewbies).
+		SetAliases("новички"),
 	)
-	a.Dp.AddHandler(cf.New(adminHandler.SetStatus, "+админ", "+модер", "+admin", "+mod").
-		WithGuards(groupGuard).
-		Restricted(model.StatusCoOwner).
-		SetArgsCount(1).
-		WithAmbiguityResolution("admin_add"),
+
+	a.Dp.AddHandler(f.New("norm", chatHandler.ShowNorm).
+		SetAliases("норма какая", "а норма какая", "норма", "норма?", "quota", "какая норма", "а какая норма"),
 	)
-	a.Dp.AddHandler(cf.New(adminHandler.RemoveAdmin, "-админ", "-admin", "-mod").
-		WithGuards(groupGuard).
-		Restricted(model.StatusCoOwner).
-		WithAmbiguityResolution("admin_remove"),
+	a.Dp.AddHandler(f.New("set_norm", chatHandler.SetNorm).SetAliases("норма", "quota").
+		AddTriggers("+").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetArgRules(command.NumberRule(), command.TextRule().SetVariadic(true).SetRange(0, 1)),
+	)
+	a.Dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).SetAliases("норма", "quota").
+		AddTriggers("-").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)),
+	)
+	a.Dp.AddHandler(f.New("ship_random", memberHandler.ShipRandom).
+		SetAliases("рандом шипперим"))
+
+	a.Dp.AddHandler(f.New("set_rest", restHandler.SetRest).SetRequiredStatus(model.StatusModerator).
+		SetAliases("рест", "rest", "установить рест").
+		AddTriggers("+").
+		SetArgRules(command.AnyUserRule(), command.OneDateRule()),
+	)
+	a.Dp.AddHandler(f.New("rest", restHandler.ShowRest).
+		SetAliases("рест", "rest").
+		SetArgRules(command.AnyUserRule()),
+	)
+	a.Dp.AddHandler(f.New("remove_rest", restHandler.RemoveRestRequest).
+		SetAliases("удалить рест").
+		SetRequiredStatus(model.StatusAdmin).
+		SetArgRules(command.AnyUserRule(), command.NumberRule()),
+	)
+	a.Dp.AddHandler(f.New("end_rest", restHandler.EndRest).SetAliases("рест", "rest", "снять рест").
+		AddTriggers("-").
+		SetRequiredStatus(model.StatusModerator).
+		SetArgRules(command.AnyUserRule()),
+	)
+	a.Dp.AddHandler(f.New("admins", adminHandler.ListAdmins).
+		SetAliases("админы", "модеры", "mods"),
+	)
+
+	a.Dp.AddHandler(f.New("add_admin", adminHandler.SetStatus).SetAliases("админ", "admin", "mod").
+		SetArgRules(command.AnyUserRule(), command.NumberRule()).AddTriggers("+").
+		SetRequiredStatus(model.StatusCoOwner),
+	)
+	a.Dp.AddHandler(f.New("is_admin", adminHandler.IsAdmin).SetAliases("админ", "admin", "mod").
+		SetArgRules(command.AnyUserRule()),
+	)
+	a.Dp.AddHandler(f.New("remove_admin", adminHandler.RemoveAdmin).SetAliases("админ", "admin", "mod").
+		SetTriggers("-").SetArgRules(command.MentionedUserRule()).
+		SetRequiredStatus(model.StatusCoOwner),
 	)
 	a.Dp.AddHandler(cf.New(adminHandler.Unban, "unban", "-бан", "разбан", "разбанить").
 		WithGuards(groupGuard).

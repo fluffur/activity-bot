@@ -28,6 +28,7 @@ type ChatMemberProvider interface {
 
 type ChatProvider interface {
 	GetChat(ctx context.Context, chatID int64) (model.Chat, error)
+	GetCommandPermission(ctx context.Context, chatID int64, name string) (model.Status, error)
 }
 
 type SessionService interface {
@@ -51,8 +52,8 @@ type Command struct {
 	triggers    []string
 	aliases     []string
 
-	requireTrigger    bool
-	defaultUserStatus model.Status
+	requireTrigger bool
+	requiredStatus model.Status
 
 	userProvider       UserProvider
 	chatMemberProvider ChatMemberProvider
@@ -158,6 +159,11 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 		handlerCtx.chat = &chat
 		c.triggers = append(c.triggers, chat.CommandPrefix)
 		c.requireTrigger = !chat.AllowPrefixless
+		handlerCtx.requiredStatus = c.requiredStatus
+		if s, err := c.chatProvider.GetCommandPermission(stdCtx, chat.ID, c.name); err == nil {
+			c.requiredStatus = s
+			handlerCtx.requiredStatus = s
+		}
 	}
 
 	// command validation
@@ -252,6 +258,45 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 				return false
 			}
 
+		case ArgTypeMentionedUser:
+			replyToMessage := msg.ReplyToMessage
+			if isValidReply(replyToMessage) {
+				replyMember, err := c.resolveMember(stdCtx, handlerCtx.chat, replyToMessage.From.Id)
+				if err != nil {
+					logger.L.Error("resolve member failed", "error", err)
+					return false
+				}
+				handlerCtx.replyChatMember = replyMember
+			}
+
+			mentionMembers, memberOffsets, err := c.extractMembersFromEntities(stdCtx, handlerCtx.chat, text, entities)
+			if err != nil {
+				logger.L.Error("failed to extract users from entities", "error", err)
+				return false
+			}
+			handlerCtx.chatMembers = mentionMembers
+
+			rawArgsByteOffset := strings.Index(text, handlerCtx.RawArgs)
+			if rawArgsByteOffset < 0 {
+				rawArgsByteOffset = 0
+			}
+			for _, o := range memberOffsets {
+				start := o.Start - rawArgsByteOffset
+				end := o.End - rawArgsByteOffset
+				if start < 0 || end <= 0 {
+					continue
+				}
+				handlerCtx.usedOffsets = append(handlerCtx.usedOffsets, Offset{start, end})
+			}
+
+			totalUsers := handlerCtx.chatMembers
+			if replyUser := handlerCtx.replyChatMember; replyUser != nil {
+				totalUsers = append(totalUsers, *replyUser)
+			}
+
+			if len(totalUsers) < rule.Min {
+				return false
+			}
 		case ArgTypeNumber:
 			parsed := 0
 			for _, tok := range freeTokens(handlerCtx.RawArgs, handlerCtx.usedOffsets) {
@@ -342,14 +387,14 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	return true
 }
 
-func (c Command) SetDefaultStatus(status model.Status) Command {
-	c.defaultUserStatus = status
+func (c Command) SetRequiredStatus(status model.Status) Command {
+	c.requiredStatus = status
 
 	return c
 }
 
-func (c Command) DefaultStatus() model.Status {
-	return c.defaultUserStatus
+func (c Command) RequiredStatus() model.Status {
+	return c.requiredStatus
 }
 
 func (c Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
