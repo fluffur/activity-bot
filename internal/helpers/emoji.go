@@ -60,12 +60,13 @@ func RestEmoji() string {
 }
 
 func Line() string {
-	middleEmoji := CustomEmoji("5404333313919834615", "↔️")
-	middleEmojis := ""
-	for range 7 {
-		middleEmojis += middleEmoji
-	}
-	return CustomEmoji("5404805970775792817", "⬅️") + middleEmojis + CustomEmoji("5404631702477757552", "➡️")
+	return ""
+	//middleEmoji := CustomEmoji("5404333313919834615", "↔️")
+	//middleEmojis := ""
+	//for range 7 {
+	//	middleEmojis += middleEmoji
+	//}
+	//return CustomEmoji("5404805970775792817", "⬅️") + middleEmojis + CustomEmoji("5404631702477757552", "➡️")
 }
 
 const (
