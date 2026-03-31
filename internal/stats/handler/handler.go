@@ -3,6 +3,7 @@ package handler
 import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
+	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
@@ -32,23 +33,52 @@ func New(service *stats.Service, restService *rest.Service, memberService *membe
 	return &Handler{service, restService, memberService, userService, chatService, sessionService}
 }
 
-func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	dates := ctx.Dates()
+	var from, to time.Time
+	if len(dates) == 1 {
+		from = dates[0]
+	} else if len(dates) == 2 {
+		from, to = dates[0], dates[1]
+	} else {
+		now := time.Now().In(helpers.MoscowLocation)
+
+		var hour, minutes int
+		if _, err := fmt.Sscanf(c.WeekStartTime, "%d:%d", &hour, &minutes); err != nil {
+			return err
+		}
+
+		targetWeekday := time.Weekday(c.WeekStartDay)
+
+		diff := int(now.Weekday() - targetWeekday)
+		if diff < 0 {
+			diff += 7
+		}
+
+		from = time.Date(
+			now.Year(),
+			now.Month(),
+			now.Day()-diff,
+			hour,
+			minutes,
+			0,
+			0,
+			helpers.MoscowLocation,
+		)
+
+		to = from.AddDate(0, 0, 7)
+	}
+
+	report, err := h.service.GetChatMembersStats(ctx.StdContext(), c.ID, &from, &to)
 	if err != nil {
 		return err
 	}
 
-	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay), c.WeekStartTime)
-	if err != nil {
-		return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>\n\nИспользуйте: <code>01.02-10.02</code>, <code>10</code> (за последние 10 дней), <code>от вчера до сегодня</code> и т.д.")
-	}
-
-	report, err := h.service.GetChatMembersStats(ctx.StdContext(), ctx.TargetChatID(), from, to)
-	if err != nil {
-		return err
-	}
-
-	restMembers, err := h.restService.GetRestMembers(ctx.StdContext(), ctx.TargetChatID())
+	restMembers, err := h.restService.GetRestMembers(ctx.StdContext(), c.ID)
 	if err != nil {
 		return err
 	}
@@ -57,7 +87,7 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return ctx.ReplyHTML(b, "📭 <b>За выбранный период активности не найдено.</b>")
 	}
 
-	text := view.FormatStats(report, restMembers, c.NewbieThresholdDays, from, to)
+	text := view.FormatStats(report, restMembers, c.NewbieThresholdDays, &from, &to)
 
 	return ctx.Reply(b, text, &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,

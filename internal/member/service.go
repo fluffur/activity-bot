@@ -45,7 +45,7 @@ func (s *Service) GetMemberTitle(ctx context.Context, chatID int64, userID int64
 }
 
 func (s *Service) GetChatMember(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error) {
-	return s.repo.Get(ctx, chatID, userID)
+	return s.repo.GetChatMember(ctx, chatID, userID)
 }
 
 func (s *Service) GetChatMembers(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
@@ -77,7 +77,7 @@ func (s *Service) UpdateChatMembers(ctx context.Context, chatID int64, members [
 }
 
 func (s *Service) ProcessLeftMember(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error) {
-	member, err := s.repo.Get(ctx, chatID, userID)
+	member, err := s.repo.GetChatMember(ctx, chatID, userID)
 	if err != nil {
 		return model.ChatMember{}, err
 	}

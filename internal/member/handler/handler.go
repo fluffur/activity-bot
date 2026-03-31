@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/call/view"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
+	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
@@ -338,4 +339,9 @@ func (h *Handler) RemoveEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	return ctx.ReplyHTML(b, fmt.Sprintf("Значок %s для %s успешно удалён", "", helpers.RoleLink(*m)))
+}
+
+func (h *Handler) Test(b *gotgbot.Bot, ctx *command.Context) error {
+	return nil
+
 }

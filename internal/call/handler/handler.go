@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/call/view"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
+	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
@@ -446,17 +447,29 @@ func (h *Handler) getCallTypesKeyboard(currentTypes int32) gotgbot.InlineKeyboar
 	}
 }
 
-func (h *Handler) SetWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
-	message := ctx.FirstArgument()
-	if err := h.service.SetWelcomeCallMessage(ctx.StdContext(), ctx.TargetChatID(), message); err != nil {
+func (h *Handler) SetWelcomeCallMessage(b *gotgbot.Bot, ctx *command.Context) error {
+	message := ctx.RawArgsHTML
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	if err := h.service.SetWelcomeCallMessage(ctx.StdContext(), c.ID, message); err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, view.FormatWelcomeCallMessageSet(), nil)
+	return ctx.ReplyHTML(b, view.FormatWelcomeCallMessageSet())
 }
 
-func (h *Handler) DeleteWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.SetWelcomeCallMessage(ctx.StdContext(), ctx.TargetChatID(), ""); err != nil {
+func (h *Handler) DeleteWelcomeCallMessage(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	if c.WelcomeCallMessage == "" {
+		return ctx.Reply(b, "Сообщение ещё не было установлено", nil)
+	}
+
+	if err := h.service.SetWelcomeCallMessage(ctx.StdContext(), c.ID, ""); err != nil {
 		return err
 	}
 
@@ -479,11 +492,12 @@ func (h *Handler) DisableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.Reply(b, view.FormatCallOnJoinDisabled(), nil)
 }
 
-func (h *Handler) ShowWelcomeCallMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowWelcomeCallMessage(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
+
 	return ctx.Reply(b, view.FormatWelcomeCallMessage(c.WelcomeCallMessage), nil)
 }
 

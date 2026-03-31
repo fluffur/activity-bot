@@ -1,6 +1,7 @@
 package session
 
 import (
+	"activity-bot/internal/model"
 	"context"
 )
 
@@ -18,6 +19,10 @@ func (s *Service) SetActiveChat(ctx context.Context, userID int64, chatID int64)
 
 func (s *Service) GetActiveChat(ctx context.Context, userID int64) (int64, error) {
 	return s.repo.GetSession(ctx, userID)
+}
+
+func (s *Service) GetChat(ctx context.Context, userID int64) (model.Chat, error) {
+	return s.repo.GetChat(ctx, userID)
 }
 
 func (s *Service) ClearSession(ctx context.Context, userID int64) error {

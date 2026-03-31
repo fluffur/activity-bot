@@ -69,7 +69,7 @@ func (s *Service) SetStatus(ctx context.Context, m model.ChatMember, status mode
 }
 
 func (s *Service) CheckStatus(ctx context.Context, chatID, userID int64, status model.Status) (bool, error) {
-	m, err := s.memberRepo.Get(ctx, chatID, userID)
+	m, err := s.memberRepo.GetChatMember(ctx, chatID, userID)
 	if err != nil {
 		return false, err
 	}

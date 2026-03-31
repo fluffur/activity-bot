@@ -19,6 +19,43 @@ func (q *Queries) DeletePMSession(ctx context.Context, userID int64) error {
 	return err
 }
 
+const getChatPMSession = `-- name: GetChatPMSession :one
+SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled
+FROM user_pm_sessions
+JOIN chats c ON c.id = target_chat_id
+WHERE user_id = $1 LIMIT 1
+`
+
+type GetChatPMSessionRow struct {
+	Chat Chat `db:"chat" json:"chat"`
+}
+
+func (q *Queries) GetChatPMSession(ctx context.Context, userID int64) (GetChatPMSessionRow, error) {
+	row := q.db.QueryRow(ctx, getChatPMSession, userID)
+	var i GetChatPMSessionRow
+	err := row.Scan(
+		&i.Chat.ID,
+		&i.Chat.NormWarn,
+		&i.Chat.NewbieThresholdDays,
+		&i.Chat.AiSystemPrompt,
+		&i.Chat.MaxLadder,
+		&i.Chat.CallOnJoin,
+		&i.Chat.WelcomeCallMessage,
+		&i.Chat.WeekStartDay,
+		&i.Chat.MaxWarns,
+		&i.Chat.NormBan,
+		&i.Chat.CommandPrefix,
+		&i.Chat.AllowPrefixless,
+		&i.Chat.MentionsPerMessage,
+		&i.Chat.MentionTypes,
+		&i.Chat.Title,
+		&i.Chat.TagsEnabled,
+		&i.Chat.WeekStartTime,
+		&i.Chat.BroadcastEnabled,
+	)
+	return i, err
+}
+
 const getPMSession = `-- name: GetPMSession :one
 SELECT target_chat_id
 FROM user_pm_sessions

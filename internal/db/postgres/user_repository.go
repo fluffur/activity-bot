@@ -40,7 +40,7 @@ func (r *UserRepository) Ensure(ctx context.Context, id int64, username, firstNa
 	return mapUser(u), nil
 }
 
-func (r *UserRepository) Get(ctx context.Context, id int64) (model.User, error) {
+func (r *UserRepository) GetUser(ctx context.Context, id int64) (model.User, error) {
 	u, err := r.queries.GetUser(ctx, id)
 	if err != nil {
 		return model.User{}, err

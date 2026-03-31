@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"activity-bot/internal/cmd"
+	"activity-bot/internal/command"
 	"activity-bot/internal/help/view"
 	"fmt"
 
@@ -17,7 +17,7 @@ func New(ownerUsername string, commandsLink string) *Handler {
 	return &Handler{ownerUsername, commandsLink}
 }
 
-func (h *Handler) Start(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) Start(b *gotgbot.Bot, ctx *command.Context) error {
 	return ctx.Reply(b, view.FormatStartMessage(h.commandsLink), &gotgbot.SendMessageOpts{
 		ParseMode: gotgbot.ParseModeHTML,
 		ReplyMarkup: gotgbot.InlineKeyboardMarkup{
@@ -30,7 +30,7 @@ func (h *Handler) Start(b *gotgbot.Bot, ctx *cmd.Context) error {
 	})
 }
 
-func (h *Handler) Help(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) Help(b *gotgbot.Bot, ctx *command.Context) error {
 	return ctx.Reply(b, view.FormatHelpText(h.ownerUsername, h.commandsLink), &gotgbot.SendMessageOpts{
 		ParseMode:   gotgbot.ParseModeHTML,
 		ReplyMarkup: getKb(b),

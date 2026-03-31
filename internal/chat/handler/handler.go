@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chat/view"
 	"activity-bot/internal/cmd"
+	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
@@ -102,26 +103,35 @@ func (h *Handler) RemoveNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 }
 
-func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *cmd.Context) error {
-	threshold, err := h.service.GetNewbieThreshold(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, view.FormatNewbieThreshold(threshold), nil)
+	return ctx.Reply(b, view.FormatNewbieThreshold(c.NewbieThresholdDays), nil)
 }
 
-func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *cmd.Context) error {
-	days, ok := h.dateParser.ParseDuration(ctx.FirstArgument())
-	if !ok {
-		return ctx.Reply(b, "Не удалось распознать срок. Используйте формат: 3 дня, неделя, 14 дней или просто число.", nil)
+func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *command.Context) error {
+	date, err := ctx.Date()
+	if err != nil {
+		return err
+	}
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	duration := time.Until(date)
+	days := int32(duration.Hours() / 24)
+	if days < 0 {
+		return ctx.Reply(b, "Дата не может быть в прошлом!", nil)
 	}
 
-	if err := h.service.SetNewbieThreshold(ctx.StdContext(), ctx.TargetChatID(), int(days.Hours()/24)); err != nil {
+	if err := h.service.SetNewbieThreshold(ctx.StdContext(), c.ID, days); err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, view.FormatNewbieThresholdSet(int(days.Hours()/24)), nil)
+	return ctx.Reply(b, view.FormatNewbieThresholdSet(days), nil)
 }
 
 func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *cmd.Context) error {
