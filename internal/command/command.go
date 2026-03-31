@@ -205,97 +205,28 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 			if isValidReply(msg.ReplyToMessage) {
 				return false
 			}
-
-			mentionMembers, _, err := c.extractMembersFromEntities(stdCtx, handlerCtx.chat, text, entities)
+			members, _, err := c.extractMembersFromEntities(stdCtx, handlerCtx.chat, text, entities)
 			if err != nil {
 				logger.L.Error("failed to extract users", "error", err)
 				return false
 			}
-			if len(mentionMembers) > 0 {
+			if len(members) > 0 {
 				return false
 			}
-		case ArgTypeAnyUser:
-			replyToMessage := msg.ReplyToMessage
-			if isValidReply(replyToMessage) {
-				replyMember, err := c.resolveMember(stdCtx, handlerCtx.chat, replyToMessage.From.Id)
-				if err != nil {
-					logger.L.Error("resolve member failed", "error", err)
+
+		case ArgTypeAnyUser, ArgTypeMentionedUser:
+			if err := c.resolveUsers(stdCtx, &handlerCtx, msg, text, entities); err != nil {
+				return false
+			}
+
+			if rule.Type == ArgTypeMentionedUser {
+				totalUsers := handlerCtx.chatMembers
+				if replyUser := handlerCtx.replyChatMember; replyUser != nil {
+					totalUsers = append(totalUsers, *replyUser)
+				}
+				if len(totalUsers) < rule.Min {
 					return false
 				}
-				handlerCtx.replyChatMember = replyMember
-			}
-
-			mentionMembers, memberOffsets, err := c.extractMembersFromEntities(stdCtx, handlerCtx.chat, text, entities)
-			if err != nil {
-				logger.L.Error("failed to extract users from entities", "error", err)
-				return false
-			}
-			handlerCtx.chatMembers = mentionMembers
-
-			rawArgsByteOffset := strings.Index(text, handlerCtx.RawArgs)
-			if rawArgsByteOffset < 0 {
-				rawArgsByteOffset = 0
-			}
-			for _, o := range memberOffsets {
-				start := o.Start - rawArgsByteOffset
-				end := o.End - rawArgsByteOffset
-				if start < 0 || end <= 0 {
-					continue
-				}
-				handlerCtx.usedOffsets = append(handlerCtx.usedOffsets, Offset{start, end})
-			}
-
-			//totalUsers := handlerCtx.chatMembers
-			//if replyUser := handlerCtx.replyChatMember; replyUser != nil {
-			//	totalUsers = append(totalUsers, *replyUser)
-			//}
-			//
-			//if len(totalUsers) < rule.Min {
-			//	return false
-			//}
-
-			if rule.Max != MaxAny && len(mentionMembers) > rule.Max {
-				return false
-			}
-
-		case ArgTypeMentionedUser:
-			replyToMessage := msg.ReplyToMessage
-			if isValidReply(replyToMessage) {
-				replyMember, err := c.resolveMember(stdCtx, handlerCtx.chat, replyToMessage.From.Id)
-				if err != nil {
-					logger.L.Error("resolve member failed", "error", err)
-					return false
-				}
-				handlerCtx.replyChatMember = replyMember
-			}
-
-			mentionMembers, memberOffsets, err := c.extractMembersFromEntities(stdCtx, handlerCtx.chat, text, entities)
-			if err != nil {
-				logger.L.Error("failed to extract users from entities", "error", err)
-				return false
-			}
-			handlerCtx.chatMembers = mentionMembers
-
-			rawArgsByteOffset := strings.Index(text, handlerCtx.RawArgs)
-			if rawArgsByteOffset < 0 {
-				rawArgsByteOffset = 0
-			}
-			for _, o := range memberOffsets {
-				start := o.Start - rawArgsByteOffset
-				end := o.End - rawArgsByteOffset
-				if start < 0 || end <= 0 {
-					continue
-				}
-				handlerCtx.usedOffsets = append(handlerCtx.usedOffsets, Offset{start, end})
-			}
-
-			totalUsers := handlerCtx.chatMembers
-			if replyUser := handlerCtx.replyChatMember; replyUser != nil {
-				totalUsers = append(totalUsers, *replyUser)
-			}
-
-			if len(totalUsers) < rule.Min {
-				return false
 			}
 		case ArgTypeNumber:
 			parsed := 0
@@ -385,6 +316,41 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	ctx.Data["handlerCtx"] = handlerCtx
 
 	return true
+}
+
+func (c Command) resolveUsers(ctx context.Context, handlerCtx *Context, msg *gotgbot.Message, text string, entities []gotgbot.MessageEntity) error {
+	// reply user
+	if isValidReply(msg.ReplyToMessage) {
+		replyMember, err := c.resolveMember(ctx, handlerCtx.chat, msg.ReplyToMessage.From.Id)
+		if err != nil {
+			logger.L.Error("resolve member failed", "error", err)
+			return err
+		}
+		handlerCtx.replyChatMember = replyMember
+	}
+
+	// mentioned users
+	mentionMembers, memberOffsets, err := c.extractMembersFromEntities(ctx, handlerCtx.chat, text, entities)
+	if err != nil {
+		logger.L.Error("failed to extract users from entities", "error", err)
+		return err
+	}
+	handlerCtx.chatMembers = mentionMembers
+
+	rawArgsByteOffset := strings.Index(text, handlerCtx.RawArgs)
+	if rawArgsByteOffset < 0 {
+		rawArgsByteOffset = 0
+	}
+	for _, o := range memberOffsets {
+		start := o.Start - rawArgsByteOffset
+		end := o.End - rawArgsByteOffset
+		if start < 0 || end <= 0 {
+			continue
+		}
+		handlerCtx.usedOffsets = append(handlerCtx.usedOffsets, Offset{start, end})
+	}
+
+	return nil
 }
 
 func (c Command) SetRequiredStatus(status model.Status) Command {
