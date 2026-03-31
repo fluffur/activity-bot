@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/cmd"
+	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
@@ -13,7 +14,6 @@ import (
 	"activity-bot/internal/user"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -123,15 +123,22 @@ func (h *Handler) Show(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 }
 
-func (h *Handler) AllUserRests(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
-	log.Println(ctx.Users())
-	if targetUser == nil {
+func (h *Handler) AllUserRests(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	u, err := ctx.AnyUser()
+	if err != nil {
+		return err
+	}
+	if u == nil {
 		return cmd.ErrNoUser
 	}
 	var requests []model.ApprovedRestRequest
 
-	requests, err := h.service.GetRequests(ctx.StdContext(), ctx.TargetChatID(), targetUser.ID)
+	requests, err = h.service.GetRequests(ctx.StdContext(), c.ID, u.User.ID)
 	if err != nil {
 		_ = ctx.Reply(b, "Не удалось получить список рестов", nil)
 		return err

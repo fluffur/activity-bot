@@ -33,46 +33,73 @@ func New(service *stats.Service, restService *rest.Service, memberService *membe
 	return &Handler{service, restService, memberService, userService, chatService, sessionService}
 }
 
+func ResolveRange(
+	dates []time.Time,
+	now time.Time,
+	weekStartDay int16,
+	weekStartTime string,
+	loc *time.Location,
+) (time.Time, time.Time, error) {
+
+	if len(dates) == 1 {
+		parsed := dates[0]
+		dur := parsed.Sub(now)
+
+		from := now.Add(-dur)
+		to := now
+		return from, to, nil
+	}
+
+	if len(dates) == 2 {
+		return dates[0], dates[1], nil
+	}
+
+	var hour, minutes int
+	if _, err := fmt.Sscanf(weekStartTime, "%d:%d", &hour, &minutes); err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+
+	targetWeekday := time.Weekday(weekStartDay)
+
+	diff := int(now.Weekday() - targetWeekday)
+	if diff < 0 {
+		diff += 7
+	}
+
+	from := time.Date(
+		now.Year(),
+		now.Month(),
+		now.Day()-diff,
+		hour,
+		minutes,
+		0,
+		0,
+		loc,
+	)
+
+	to := from.AddDate(0, 0, 7)
+
+	return from, to, nil
+}
+
 func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *command.Context) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
-	dates := ctx.Dates()
-	var from, to time.Time
-	if len(dates) == 1 {
-		from = dates[0]
-	} else if len(dates) == 2 {
-		from, to = dates[0], dates[1]
-	} else {
-		now := time.Now().In(helpers.MoscowLocation)
+	now := time.Now().In(helpers.MoscowLocation)
 
-		var hour, minutes int
-		if _, err := fmt.Sscanf(c.WeekStartTime, "%d:%d", &hour, &minutes); err != nil {
-			return err
-		}
+	from, to, err := ResolveRange(
+		ctx.Dates(),
+		now,
+		c.WeekStartDay,
+		c.WeekStartTime,
+		helpers.MoscowLocation,
+	)
 
-		targetWeekday := time.Weekday(c.WeekStartDay)
-
-		diff := int(now.Weekday() - targetWeekday)
-		if diff < 0 {
-			diff += 7
-		}
-
-		from = time.Date(
-			now.Year(),
-			now.Month(),
-			now.Day()-diff,
-			hour,
-			minutes,
-			0,
-			0,
-			helpers.MoscowLocation,
-		)
-
-		to = from.AddDate(0, 0, 7)
+	if err != nil {
+		return err
 	}
-
 	report, err := h.service.GetChatMembersStats(ctx.StdContext(), c.ID, &from, &to)
 	if err != nil {
 		return err
@@ -98,18 +125,23 @@ func (h *Handler) ShowStats(b *gotgbot.Bot, ctx *command.Context) error {
 	})
 }
 
-func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 
-	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay), c.WeekStartTime)
-	if err != nil {
-		from, to = stats.ResolvePeriod(stats.PeriodWeek, time.Now(), c.WeekStartDay, c.WeekStartTime)
-	}
+	now := time.Now().In(helpers.MoscowLocation)
 
-	buf, err := h.service.GetChatActivityGraph(ctx.StdContext(), ctx.TargetChatID(), from, to)
+	from, to, err := ResolveRange(
+		ctx.Dates(),
+		now,
+		c.WeekStartDay,
+		c.WeekStartTime,
+		helpers.MoscowLocation,
+	)
+
+	buf, err := h.service.GetChatActivityGraph(ctx.StdContext(), c.ID, &from, &to)
 	if err != nil {
 		return err
 	}
@@ -123,11 +155,11 @@ func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error 
 	}
 
 	caption := fmt.Sprintf("%s <b>Активность чата</b>", helpers.StatsEmoji())
-	if from != nil && to != nil {
+	if !from.IsZero() && !to.IsZero() {
 		caption += fmt.Sprintf(
 			"\n%s — %s",
-			helpers.FormatToHumanDateTime(*from),
-			helpers.FormatToHumanDateTime(*to),
+			helpers.FormatToHumanDateTime(from),
+			helpers.FormatToHumanDateTime(to),
 		)
 	}
 
@@ -148,17 +180,26 @@ func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *cmd.Context) error 
 	return err
 }
 
-func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *cmd.Context) error {
-	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.TargetChatID(), ctx.EffectiveSender.Id())
-}
-
-func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *cmd.Context) error {
-	u := ctx.FirstUser()
-	if u == nil {
-		return ctx.ReplyHTML(b, fmt.Sprintf("%s Участник не найден", helpers.DangerEmoji()))
+func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
 	}
 
-	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, ctx.TargetChatID(), u.ID)
+	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, c.ID, ctx.EffectiveSender.Id())
+}
+
+func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	u, err := ctx.UserOrReply()
+	if err != nil {
+		return err
+	}
+
+	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, c.ID, u.User.ID)
 }
 
 func (h *Handler) WhoAreUser(
@@ -273,8 +314,13 @@ func (h *Handler) CallbackAllActivity(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return nil
 }
 
-func (h *Handler) ListInactive(b *gotgbot.Bot, ctx *cmd.Context) error {
-	members, err := h.service.GetInactiveMembers(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ListInactive(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	members, err := h.service.GetInactiveMembers(ctx.StdContext(), c.ID)
 	if err != nil {
 		return err
 	}
@@ -301,8 +347,13 @@ func (h *Handler) ListInactive(b *gotgbot.Bot, ctx *cmd.Context) error {
 	})
 }
 
-func (h *Handler) ShowRestList(b *gotgbot.Bot, ctx *cmd.Context) error {
-	restMembers, err := h.restService.GetRestMembers(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowRestList(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	restMembers, err := h.restService.GetRestMembers(ctx.StdContext(), c.ID)
 	if err != nil {
 		return err
 	}
@@ -310,23 +361,24 @@ func (h *Handler) ShowRestList(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.ReplyHTML(b, view.FormatRestList(restMembers))
 }
 
-func (h *Handler) ShowFailedNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowFailedNorm(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 
-	from, to, err := h.resolvePeriod(ctx, time.Weekday(c.WeekStartDay), c.WeekStartTime)
+	now := time.Now().In(helpers.MoscowLocation)
+	from, to, err := ResolveRange(ctx.Dates(), now, c.WeekStartDay, c.WeekStartTime, now.Location())
 	if err != nil {
 		return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>")
 	}
 
-	report, err := h.service.GetChatMembersStats(ctx.StdContext(), ctx.TargetChatID(), from, to)
+	report, err := h.service.GetChatMembersStats(ctx.StdContext(), c.ID, &from, &to)
 	if err != nil {
 		return err
 	}
 
-	text := view.FormatFailedNorm(report, from, to)
+	text := view.FormatFailedNorm(report, &from, &to)
 
 	if len(report) == 0 {
 		return ctx.ReplyHTML(b, text)

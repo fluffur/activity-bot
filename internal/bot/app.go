@@ -35,7 +35,7 @@ type App struct {
 	Rdb         *redis.Client
 	Deepseek    *deepseek.Client
 	Bot         *gotgbot.Bot
-	DP          *ext.Dispatcher
+	Dp          *ext.Dispatcher
 	Updater     *ext.Updater
 	AsyncClient *asynq.Client
 	AsyncServer *asynq.Server
@@ -119,7 +119,7 @@ func NewApp(cfg config.Config) (*App, error) {
 		Rdb:      rdb,
 		Deepseek: deepseek.NewClient(cfg.DeepseekAPIKey),
 		Bot:      b,
-		DP:       dp,
+		Dp:       dp,
 		Updater: ext.NewUpdater(dp, &ext.UpdaterOpts{
 			Logger: logger.L,
 		}),

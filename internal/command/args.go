@@ -12,7 +12,8 @@ const (
 	ArgTypeText ArgType = iota
 	ArgTypeNumber
 	ArgTypeDate
-	ArgTypeUser
+	ArgTypeAnyUser
+	ArgTypeOnlyUserSender
 )
 
 type ArgRule struct {
@@ -24,10 +25,10 @@ type ArgRule struct {
 	Variadic bool
 }
 
-func OneUserRule() ArgRule {
+func AnyUserRule() ArgRule {
 	return ArgRule{
 		Name: "one_user",
-		Type: ArgTypeUser,
+		Type: ArgTypeAnyUser,
 		Min:  1,
 		Max:  1,
 	}
@@ -57,5 +58,14 @@ func OneTextRule() ArgRule {
 		Type: ArgTypeText,
 		Min:  1,
 		Max:  1,
+	}
+}
+
+func OptionalDateRangeRule() ArgRule {
+	return ArgRule{
+		Name: "period",
+		Type: ArgTypeDate,
+		Min:  0,
+		Max:  2,
 	}
 }

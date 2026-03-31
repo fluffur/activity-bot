@@ -195,7 +195,20 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 
 	for _, rule := range c.argRules {
 		switch rule.Type {
-		case ArgTypeUser:
+		case ArgTypeOnlyUserSender:
+			if isValidReply(msg.ReplyToMessage) {
+				return false
+			}
+
+			mentionMembers, _, err := c.extractMembersFromEntities(stdCtx, handlerCtx.chat, text, entities)
+			if err != nil {
+				logger.L.Error("failed to extract users", "error", err)
+				return false
+			}
+			if len(mentionMembers) > 0 {
+				return false
+			}
+		case ArgTypeAnyUser:
 			replyToMessage := msg.ReplyToMessage
 			if isValidReply(replyToMessage) {
 				replyMember, err := c.resolveMember(stdCtx, handlerCtx.chat, replyToMessage.From.Id)
@@ -221,19 +234,19 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 				start := o.Start - rawArgsByteOffset
 				end := o.End - rawArgsByteOffset
 				if start < 0 || end <= 0 {
-					continue // entity is not inside RawArgs
+					continue
 				}
 				handlerCtx.usedOffsets = append(handlerCtx.usedOffsets, Offset{start, end})
 			}
 
-			totalUsers := handlerCtx.chatMembers
-			if replyUser := handlerCtx.replyChatMember; replyUser != nil {
-				totalUsers = append(totalUsers, *replyUser)
-			}
-
-			if len(totalUsers) < rule.Min {
-				return false
-			}
+			//totalUsers := handlerCtx.chatMembers
+			//if replyUser := handlerCtx.replyChatMember; replyUser != nil {
+			//	totalUsers = append(totalUsers, *replyUser)
+			//}
+			//
+			//if len(totalUsers) < rule.Min {
+			//	return false
+			//}
 
 			if rule.Max != MaxAny && len(mentionMembers) > rule.Max {
 				return false
