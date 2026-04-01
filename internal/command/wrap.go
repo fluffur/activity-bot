@@ -19,9 +19,8 @@ func (c Command) WrapCallback(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Con
 			return nil
 		}
 
-		handlerCtx := &Context{Context: ctx}
+		handlerCtx := &Context{Context: ctx, stdContext: stdCtx}
 
-		// Resolve chat (same logic as CheckUpdate).
 		if c.scope == ScopeChat {
 			chat, err := c.getChat(ctx, stdCtx)
 			if err != nil {
@@ -75,7 +74,7 @@ func (c Command) WrapEvent(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Contex
 			return nil
 		}
 
-		handlerCtx := &Context{Context: ctx}
+		handlerCtx := &Context{Context: ctx, stdContext: stdCtx}
 
 		if c.scope == ScopeChat {
 			chat, err := c.getChat(ctx, stdCtx)

@@ -14,7 +14,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"strings"
 	"time"
 
@@ -301,14 +300,18 @@ func (h *Handler) ShowWarns(b *gotgbot.Bot, ctx *command.Context) error {
 	return ctx.ReplyHTML(b, sb.String())
 }
 
-func (h *Handler) Warnlist(b *gotgbot.Bot, ctx *cmd.Context) error {
-	warns, err := h.service.GetWarnsByChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) WarnList(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	warns, err := h.service.GetWarnsByChat(ctx.StdContext(), c.ID)
 	if err != nil {
 		_ = ctx.Reply(b, "Не удалось получить список предупреждений", nil)
 		return err
 	}
 
-	maxWarns, err := h.service.GetMaxWarns(ctx.StdContext(), ctx.TargetChatID())
+	maxWarns, err := h.service.GetMaxWarns(ctx.StdContext(), c.ID)
 	if err != nil {
 		return err
 	}
@@ -360,21 +363,25 @@ func (h *Handler) Warn(b *gotgbot.Bot, ctx *command.Context) error {
 	return ctx.ReplyHTML(b, view.FormatWarnInfo(*m, count, maxWarns, until, reason, banned))
 }
 
-func (h *Handler) ShowMaxWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
-	maxWarns, err := h.service.GetMaxWarns(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowMaxWarns(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
-	return ctx.Reply(b, fmt.Sprintf("Текущий лимит предупреждений: %d", maxWarns), nil)
+	return ctx.Reply(b, fmt.Sprintf("Текущий лимит предупреждений: %d", c.MaxWarns), nil)
 }
 
-func (h *Handler) SetMaxWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
-	maxWarns, err := strconv.Atoi(ctx.FirstArgument())
-	if err != nil || maxWarns <= 0 {
+func (h *Handler) SetMaxWarns(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	maxWarns := ctx.NumberOrDefault(3)
+	if maxWarns <= 0 {
 		return ctx.Reply(b, "Лимит предупреждений должен быть положительным числом", nil)
 	}
 
-	if err := h.service.SetMaxWarns(ctx.StdContext(), ctx.TargetChatID(), maxWarns); err != nil {
+	if err := h.service.SetMaxWarns(ctx.StdContext(), c.ID, maxWarns); err != nil {
 		_ = ctx.Reply(b, "Не удалось обновить лимит предупреждений", nil)
 		return err
 	}
@@ -472,7 +479,7 @@ func (h *Handler) ToggleRights(b *gotgbot.Bot, ctx *command.Context) error {
 	)
 }
 
-func (h *Handler) UpdateChats(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) UpdateChats(b *gotgbot.Bot, ctx *command.Context) error {
 	chats, err := h.chatService.GetChatsWithoutTitle(ctx.StdContext())
 	if err != nil {
 		return err
@@ -497,18 +504,18 @@ func (h *Handler) UpdateChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 	return ctx.Reply(b, "Чаты обновлены", nil)
 }
-func (h *Handler) ClearWarns(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstMember()
-	if targetUser == nil {
-		return cmd.ErrNoUser
+func (h *Handler) ClearWarns(b *gotgbot.Bot, ctx *command.Context) error {
+	u, err := ctx.User()
+	if err != nil {
+		return err
 	}
 
-	if err := h.service.ClearWarns(ctx.StdContext(), ctx.TargetChatID(), targetUser.User.ID); err != nil {
+	if err := h.service.ClearWarns(ctx.StdContext(), u.ChatID, u.User.ID); err != nil {
 		_ = ctx.Reply(b, "Не удалось очистить предупреждения", nil)
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatWarnsCleared(*targetUser))
+	return ctx.ReplyHTML(b, view.FormatWarnsCleared(*u))
 }
 
 func (h *Handler) FakeLeave(b *gotgbot.Bot, ctx *cmd.Context) error {

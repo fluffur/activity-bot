@@ -16,7 +16,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 	"sync"
 	"time"
 
@@ -57,7 +56,7 @@ func New(service *call.Service, memberService *member.Service, chatService *chat
 
 func (h *Handler) callMembers(
 	b *gotgbot.Bot,
-	ctx *cmd.Context,
+	ctx *command.Context,
 	getMembers func() ([]model.ChatMember, error),
 	emptyMsg string,
 ) error {
@@ -76,8 +75,8 @@ func (h *Handler) callMembers(
 
 func (h *Handler) adminCallback(
 	b *gotgbot.Bot,
-	ctx *cmd.Context,
-	handler func(*gotgbot.Bot, *cmd.Context) error,
+	ctx *command.Context,
+	handler func(*gotgbot.Bot, *command.Context) error,
 ) error {
 
 	m, err := h.memberService.GetChatMember(
@@ -101,39 +100,45 @@ func (h *Handler) adminCallback(
 	return handler(b, ctx)
 }
 
-func (h *Handler) Call(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) Call(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
 	return h.callMembers(
 		b,
 		ctx,
 		func() ([]model.ChatMember, error) {
-			return h.memberService.GetChatMembers(ctx.StdContext(), ctx.TargetChatID())
+			return h.memberService.GetChatMembers(ctx.StdContext(), c.ID)
 		},
 		"Не найдено пользователей для созыва, скорее всего бот был добавлен недавно и понадобится время, чтобы он успел познакомиться со всеми участниками!",
 	)
 }
 
-func (h *Handler) CallInactive(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) CallInactive(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
 	return h.callMembers(
 		b,
 		ctx,
 		func() ([]model.ChatMember, error) {
-			return h.service.GetInactiveMembers(ctx.StdContext(), ctx.TargetChatID())
+			return h.service.GetInactiveMembers(ctx.StdContext(), c.ID)
 		},
 		"Нет участников, не писавших более суток",
 	)
 }
 
-func (h *Handler) CallNoNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
-	chatID := ctx.TargetChatID()
-
-	c, err := h.chatService.GetChat(ctx.StdContext(), chatID)
+func (h *Handler) CallNoNorm(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 
 	from, to := stats.ResolvePeriod(
 		stats.PeriodWeek,
-		time.Now(),
+		time.Now().In(helpers.MoscowLocation),
 		c.WeekStartDay,
 		c.WeekStartTime,
 	)
@@ -142,16 +147,14 @@ func (h *Handler) CallNoNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 		b,
 		ctx,
 		func() ([]model.ChatMember, error) {
-			return h.memberService.GetNoNormMembers(ctx.StdContext(), chatID, from, to)
+			return h.memberService.GetNoNormMembers(ctx.StdContext(), c.ID, from, to)
 		},
 		fmt.Sprintf("%s Все участники выполнили норму!", helpers.SuccessEmoji()),
 	)
 }
 
-func (h *Handler) CallNoNormWarn(b *gotgbot.Bot, ctx *cmd.Context) error {
-	chatID := ctx.TargetChatID()
-
-	c, err := h.chatService.GetChat(ctx.StdContext(), chatID)
+func (h *Handler) CallNoNormWarn(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
@@ -167,27 +170,54 @@ func (h *Handler) CallNoNormWarn(b *gotgbot.Bot, ctx *cmd.Context) error {
 		b,
 		ctx,
 		func() ([]model.ChatMember, error) {
-			return h.memberService.GetNoNormWarnMembers(ctx.StdContext(), chatID, from, to)
+			return h.memberService.GetNoNormWarnMembers(ctx.StdContext(), c.ID, from, to)
 		},
 		fmt.Sprintf("%s Все участники выполнили норму предупреждения!", helpers.SuccessEmoji()),
 	)
 }
 
-func (h *Handler) CallInactiveCallback(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) CallNoNormBan(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	from, to := stats.ResolvePeriod(
+		stats.PeriodWeek,
+		time.Now(),
+		c.WeekStartDay,
+		c.WeekStartTime,
+	)
+
+	return h.callMembers(
+		b,
+		ctx,
+		func() ([]model.ChatMember, error) {
+			return h.memberService.GetNoNormBanMembers(ctx.StdContext(), c.ID, from, to)
+		},
+		fmt.Sprintf("%s Все участники выполнили норму бана!", helpers.SuccessEmoji()),
+	)
+}
+
+func (h *Handler) CallInactiveCallback(b *gotgbot.Bot, ctx *command.Context) error {
 	return h.adminCallback(b, ctx, h.CallInactive)
 }
 
-func (h *Handler) CallNoNormCallback(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) CallNoNormCallback(b *gotgbot.Bot, ctx *command.Context) error {
 	return h.adminCallback(b, ctx, h.CallNoNorm)
 }
 
-func (h *Handler) CallNoNormWarnCallback(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) CallNoNormWarnCallback(b *gotgbot.Bot, ctx *command.Context) error {
 	return h.adminCallback(b, ctx, h.CallNoNormWarn)
 }
 
-func (h *Handler) handleCall(b *gotgbot.Bot, ctx *cmd.Context, members []model.ChatMember) error {
+func (h *Handler) handleCall(b *gotgbot.Bot, ctx *command.Context, members []model.ChatMember) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
 
-	return h.doCall(ctx.StdContext(), b, ctx.TargetChatID(), ctx.EffectiveMessage, ctx.HTML(), members)
+	return h.doCall(ctx.StdContext(), b, c.ID, ctx.EffectiveMessage, ctx.RawArgsHTML, members)
 }
 
 func (h *Handler) doCall(
@@ -291,18 +321,19 @@ func (h *Handler) doCall(
 	return nil
 }
 
-func (h *Handler) SetMentionsPerMessage(b *gotgbot.Bot, ctx *cmd.Context) error {
-
-	countStr := ctx.FirstArgument()
-
-	count, err := strconv.Atoi(countStr)
-	if err != nil || count <= 0 || count > 100 {
-		return ctx.Reply(b, "Укажите число от 1 до 100", nil)
+func (h *Handler) SetMentionsPerMessage(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	count := ctx.NumberOrDefault(5)
+	if count <= 0 || count > 5 {
+		return ctx.Reply(b, "Укажите число от 1 до 5", nil)
 	}
 
 	if err := h.service.SetMentionsPerMessage(
 		ctx.StdContext(),
-		ctx.TargetChatID(),
+		c.ID,
 		int32(count),
 	); err != nil {
 		return err
@@ -315,11 +346,23 @@ func (h *Handler) SetMentionsPerMessage(b *gotgbot.Bot, ctx *cmd.Context) error 
 	)
 }
 
-func (h *Handler) ShowCallTypes(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) ShowMentionsPerMessage(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	return ctx.Reply(
+		b,
+		fmt.Sprintf("Лимит упоминаний в одном сообщении: %d", c.MentionsPerMessage),
+		nil,
+	)
+}
+
+func (h *Handler) ShowCallTypes(b *gotgbot.Bot, ctx *command.Context) error {
 	if ctx.CallbackQuery != nil {
 		_, _ = ctx.CallbackQuery.Answer(b, nil)
 	}
-	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
@@ -333,33 +376,15 @@ func (h *Handler) ShowCallTypes(b *gotgbot.Bot, ctx *cmd.Context) error {
 	)
 }
 
-func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *command.Context) error {
 
-	chatID := ctx.TargetChatID()
-
-	m, err := h.memberService.GetChatMember(
-		ctx.StdContext(),
-		chatID,
-		ctx.EffectiveSender.Id(),
-	)
+	c, err := ctx.Chat()
 	if err != nil {
-		return err
-	}
-
-	if !m.StatusGranted(model.StatusSeniorAdmin) {
-		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text: "У вас нет прав администратора для выполнения действия",
-		})
 		return err
 	}
 
 	var bit int32
 	if _, err := fmt.Sscanf(ctx.CallbackQuery.Data, "call_type:%d", &bit); err != nil {
-		return err
-	}
-
-	c, err := h.chatService.GetChat(ctx.StdContext(), chatID)
-	if err != nil {
 		return err
 	}
 
@@ -380,7 +405,7 @@ func (h *Handler) CallbackCallType(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return err
 	}
 
-	if err := h.service.SetMentionTypes(ctx.StdContext(), chatID, newTypes); err != nil {
+	if err := h.service.SetMentionTypes(ctx.StdContext(), c.ID, newTypes); err != nil {
 		return err
 	}
 

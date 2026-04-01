@@ -153,7 +153,7 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	if c.scope == ScopeChat {
 		chat, err := c.getChat(ctx, stdCtx)
 		if err != nil {
-			logger.L.Error("get chat failed", "error", err)
+			logger.L.Warn("get chat failed", "error", err)
 			return false
 		}
 		handlerCtx.chat = &chat

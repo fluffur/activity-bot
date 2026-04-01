@@ -27,6 +27,7 @@ func mapChat(c db.Chat) model.Chat {
 		NormBan:             c.NormBan.Int32,
 		NewbieThresholdDays: c.NewbieThresholdDays,
 		AISystemPrompt:      c.AiSystemPrompt.String,
+		MaxWarns:            c.MaxWarns,
 		MaxLadder:           c.MaxLadder,
 		WelcomeCallMessage:  c.WelcomeCallMessage.String,
 		CallOnJoin:          c.CallOnJoin,

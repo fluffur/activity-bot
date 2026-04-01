@@ -1,11 +1,22 @@
 package helpers
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
+
+var weekdayMap = map[string]int{
+	"пн": 1, "понедельник": 1,
+	"вт": 2, "вторник": 2,
+	"ср": 3, "среда": 3,
+	"чт": 4, "четверг": 4,
+	"пт": 5, "пятница": 5,
+	"сб": 6, "суббота": 6,
+	"вс": 7, "воскресенье": 7,
+}
 
 var monthNames = map[string]time.Month{
 	"января":   time.January,
@@ -34,6 +45,9 @@ func NewDateParser() *DateParser {
 
 func (p *DateParser) Parse(arg string) (time.Time, bool) {
 	arg = strings.TrimSpace(strings.ToLower(arg))
+	if t, ok := p.parseWeekday(arg); ok {
+		return t, true
+	}
 
 	switch arg {
 	case "сегодня":
@@ -61,6 +75,68 @@ func (p *DateParser) Parse(arg string) (time.Time, bool) {
 	}
 
 	return time.Time{}, false
+}
+
+func (p *DateParser) parseWeekday(arg string) (time.Time, bool) {
+	parts := strings.Fields(arg)
+	if len(parts) == 0 {
+		return time.Time{}, false
+	}
+
+	day, ok := weekdayMap[parts[0]]
+	if !ok {
+		return time.Time{}, false
+	}
+
+	now := p.now()
+
+	var targetWD time.Weekday
+	if day == 7 {
+		targetWD = time.Sunday
+	} else {
+		targetWD = time.Weekday(day)
+	}
+
+	diff := int(targetWD - now.Weekday())
+	if diff <= 0 {
+		diff += 7
+	}
+
+	targetDate := now.AddDate(0, 0, diff)
+
+	hour, minutes := 0, 0
+	if len(parts) > 1 {
+		if h, m, ok := parseTime(parts[1]); ok {
+			hour = h
+			minutes = m
+		}
+	}
+
+	return time.Date(
+		targetDate.Year(),
+		targetDate.Month(),
+		targetDate.Day(),
+		hour,
+		minutes,
+		0,
+		0,
+		targetDate.Location(),
+	), true
+}
+
+func parseTime(arg string) (int, int, bool) {
+	var h, m int
+	if _, err := fmt.Sscanf(arg, "%d:%d", &h, &m); err == nil {
+		if h >= 0 && h <= 23 && m >= 0 && m <= 59 {
+			return h, m, true
+		}
+	}
+	if _, err := fmt.Sscanf(arg, "%d", &h); err == nil {
+		if h >= 0 && h <= 23 {
+			return h, 0, true
+		}
+	}
+	return 0, 0, false
 }
 
 func (p *DateParser) ParseRange(args []string) (*time.Time, *time.Time, bool) {
