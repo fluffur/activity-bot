@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"activity-bot/internal/chat"
+	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
@@ -205,7 +206,7 @@ type Command struct {
 	ambiguityPrefix  string
 	requiredStatus   model.Status
 	description      string
-	category         Category
+	category         command.Category
 }
 
 func New(commands []string, triggers []string, response Response, userService *user.Service, chatService *chat.Service, memberService *member.Service, sessionService interface {
@@ -270,7 +271,7 @@ func (c *Command) WithDescription(desc string) *Command {
 	return c
 }
 
-func (c *Command) WithCategory(cat Category) *Command {
+func (c *Command) WithCategory(cat command.Category) *Command {
 	c.category = cat
 	return c
 }
@@ -290,7 +291,7 @@ func (c *Command) GetDescription() string {
 	return c.description
 }
 
-func (c *Command) GetCategory() Category {
+func (c *Command) GetCategory() command.Category {
 	return c.category
 }
 

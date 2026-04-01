@@ -1,7 +1,6 @@
 package command
 
 import (
-	"activity-bot/internal/cmd"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/model"
@@ -43,10 +42,10 @@ const (
 )
 
 type Command struct {
-	name     string
-	scope    Scope
-	response Response
-
+	name        string
+	scope       Scope
+	response    Response
+	category    Category
 	argRules    []ArgRule
 	description string
 	triggers    []string
@@ -63,11 +62,11 @@ type Command struct {
 	dateParser *helpers.DateParser
 }
 
-func NewCommand(name string, response Response) Command {
-	return Command{name: name, response: response, dateParser: helpers.NewDateParser()}
+func NewCommand(name string, response Response) *Command {
+	return &Command{name: name, response: response, dateParser: helpers.NewDateParser()}
 }
 
-func (c Command) SetProviders(userProvider UserProvider, memberProvider ChatMemberProvider, chatProvider ChatProvider, sessionService SessionService) Command {
+func (c *Command) SetProviders(userProvider UserProvider, memberProvider ChatMemberProvider, chatProvider ChatProvider, sessionService SessionService) *Command {
 	c.userProvider = userProvider
 	c.chatProvider = chatProvider
 	c.sessionService = sessionService
@@ -76,57 +75,63 @@ func (c Command) SetProviders(userProvider UserProvider, memberProvider ChatMemb
 	return c
 }
 
-func (c Command) SetCategory(category cmd.Category) Command {
+func (c *Command) SetCategory(category Category) *Command {
+	c.category = category
+
 	return c
 }
 
-func (c Command) SetScope(scope Scope) Command {
+func (c *Command) Category() Category {
+	return c.category
+}
+
+func (c *Command) SetScope(scope Scope) *Command {
 	c.scope = scope
 
 	return c
 }
 
-func (c Command) SetArgRules(rules ...ArgRule) Command {
+func (c *Command) SetArgRules(rules ...ArgRule) *Command {
 	c.argRules = rules
 
 	return c
 }
 
-func (c Command) Name() string {
+func (c *Command) Name() string {
 	return c.name
 }
 
-func (c Command) Description() string {
+func (c *Command) Description() string {
 	return c.description
 }
 
-func (c Command) SetDescription(description string) Command {
+func (c *Command) SetDescription(description string) *Command {
 	c.description = description
 
 	return c
 }
 
-func (c Command) Triggers() []string {
+func (c *Command) Triggers() []string {
 	return c.triggers
 }
 
-func (c Command) SetTriggers(triggers ...string) Command {
+func (c *Command) SetTriggers(triggers ...string) *Command {
 	c.triggers = triggers
 
 	return c
 }
 
-func (c Command) AddTriggers(triggers ...string) Command {
+func (c *Command) AddTriggers(triggers ...string) *Command {
 	c.triggers = append(c.triggers, triggers...)
 
 	return c
 }
 
-func (c Command) Aliases() []string {
+func (c *Command) Aliases() []string {
 	return c.aliases
 }
 
-func (c Command) SetAliases(aliases ...string) Command {
+func (c *Command) SetAliases(aliases ...string) *Command {
 	c.aliases = aliases
 
 	return c
@@ -138,7 +143,7 @@ const (
 	EntityTypeUrl         = "url"
 )
 
-func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
+func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	stdCtx := context.Background()
 	handlerCtx := Context{stdContext: stdCtx}
 
@@ -318,7 +323,7 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	return true
 }
 
-func (c Command) resolveUsers(ctx context.Context, handlerCtx *Context, msg *gotgbot.Message, text string, entities []gotgbot.MessageEntity) error {
+func (c *Command) resolveUsers(ctx context.Context, handlerCtx *Context, msg *gotgbot.Message, text string, entities []gotgbot.MessageEntity) error {
 	// reply user
 	if isValidReply(msg.ReplyToMessage) {
 		replyMember, err := c.resolveMember(ctx, handlerCtx.chat, msg.ReplyToMessage.From.Id)
@@ -353,17 +358,17 @@ func (c Command) resolveUsers(ctx context.Context, handlerCtx *Context, msg *got
 	return nil
 }
 
-func (c Command) SetRequiredStatus(status model.Status) Command {
+func (c *Command) SetRequiredStatus(status model.Status) *Command {
 	c.requiredStatus = status
 
 	return c
 }
 
-func (c Command) RequiredStatus() model.Status {
+func (c *Command) RequiredStatus() model.Status {
 	return c.requiredStatus
 }
 
-func (c Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
+func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 	raw, ok := ctx.Data["handlerCtx"]
 	if !ok {
 		return errors.New("no handlerCtx")
@@ -374,7 +379,7 @@ func (c Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 	return c.response(b, &handlerCtx)
 }
 
-func (c Command) resolveMember(ctx context.Context, chat *model.Chat, userID int64) (*model.ChatMember, error) {
+func (c *Command) resolveMember(ctx context.Context, chat *model.Chat, userID int64) (*model.ChatMember, error) {
 	if c.scope == ScopeChat {
 		if chat == nil {
 			return nil, errors.New("chat cannot be nil")
@@ -397,7 +402,7 @@ func (c Command) resolveMember(ctx context.Context, chat *model.Chat, userID int
 	}, nil
 }
 
-func (c Command) findTrigger(text string) string {
+func (c *Command) findTrigger(text string) string {
 	for _, t := range c.triggers {
 		if strings.HasPrefix(text, t) {
 			return t
@@ -406,7 +411,7 @@ func (c Command) findTrigger(text string) string {
 	return ""
 }
 
-func (c Command) findAlias(text, trigger, botUsername string) string {
+func (c *Command) findAlias(text, trigger, botUsername string) string {
 	text = strings.ToLower(strings.TrimSpace(strings.TrimPrefix(text, trigger)))
 	allCommands := append(c.aliases, c.name)
 	for _, alias := range allCommands {
@@ -442,7 +447,7 @@ func isValidReply(replyToMessage *gotgbot.Message) bool {
 		!replyToMessage.IsAutomaticForward
 }
 
-func (c Command) getChat(ctx *ext.Context, stdCtx context.Context) (model.Chat, error) {
+func (c *Command) getChat(ctx *ext.Context, stdCtx context.Context) (model.Chat, error) {
 	msg := ctx.EffectiveMessage
 
 	if ctx.EffectiveChat.Type == gotgbot.ChatTypePrivate {
@@ -461,7 +466,7 @@ func (c Command) getChat(ctx *ext.Context, stdCtx context.Context) (model.Chat, 
 
 }
 
-func (c Command) extractMembersFromEntities(
+func (c *Command) extractMembersFromEntities(
 	ctx context.Context,
 	chat *model.Chat,
 	text string,
@@ -515,7 +520,7 @@ func (c Command) extractMembersFromEntities(
 	return members, offsets, nil
 }
 
-func (c Command) resolveMemberByUsername(
+func (c *Command) resolveMemberByUsername(
 	ctx context.Context,
 	chat *model.Chat,
 	username string,

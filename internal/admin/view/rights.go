@@ -1,7 +1,7 @@
 package view
 
 import (
-	"activity-bot/internal/cmd"
+	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"fmt"
@@ -15,11 +15,11 @@ func FormatCategories() string {
 }
 
 func GetCategoriesKeyboard() gotgbot.InlineKeyboardMarkup {
-	categories := []cmd.Category{
-		cmd.CategoryStats,
-		cmd.CategoryModeration,
-		cmd.CategoryCall,
-		cmd.CategorySettings,
+	categories := []command.Category{
+		command.CategoryStats,
+		command.CategoryModeration,
+		command.CategoryCall,
+		command.CategorySettings,
 	}
 
 	var rows [][]gotgbot.InlineKeyboardButton
@@ -31,21 +31,21 @@ func GetCategoriesKeyboard() gotgbot.InlineKeyboardMarkup {
 	return gotgbot.InlineKeyboardMarkup{InlineKeyboard: rows}
 }
 
-func FormatCommandsByCategory(category cmd.Category, commands []*cmd.Command, perms map[string]model.Status) string {
+func FormatCommandsByCategory(category command.Category, commands []*command.Command, perms map[string]model.Status) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("Категория: %s\n\n", category))
 
 	for _, c := range commands {
-		if c.GetCategory() != category {
+		if c.Category() != category {
 			continue
 		}
 
-		status := c.GetDefaultStatus()
-		if s, ok := perms[c.GetKey()]; ok {
+		status := c.RequiredStatus()
+		if s, ok := perms[c.Name()]; ok {
 			status = s
 		}
 
-		aliases := c.GetAliases()
+		aliases := c.Aliases()
 		formattedAliases := make([]string, len(aliases))
 		for i, a := range aliases {
 			formattedAliases[i] = "<code>" + a + "</code>"
@@ -53,7 +53,7 @@ func FormatCommandsByCategory(category cmd.Category, commands []*cmd.Command, pe
 
 		sb.WriteString(fmt.Sprintf("%s %s (%s)\n",
 			helpers.StatusEmoji(status),
-			c.GetDescription(),
+			c.Description(),
 			strings.Join(formattedAliases, ", "),
 		))
 	}
@@ -62,20 +62,20 @@ func FormatCommandsByCategory(category cmd.Category, commands []*cmd.Command, pe
 	return sb.String()
 }
 
-func GetCommandsByCategoryKeyboard(category cmd.Category, commands []*cmd.Command, perms map[string]model.Status) gotgbot.InlineKeyboardMarkup {
+func GetCommandsByCategoryKeyboard(category command.Category, commands []*command.Command, perms map[string]model.Status) gotgbot.InlineKeyboardMarkup {
 	var rows [][]gotgbot.InlineKeyboardButton
 	for _, c := range commands {
-		if c.GetCategory() != category {
+		if c.Category() != category {
 			continue
 		}
 
-		status := c.GetDefaultStatus()
-		if s, ok := perms[c.GetKey()]; ok {
+		status := c.RequiredStatus()
+		if s, ok := perms[c.Name()]; ok {
 			status = s
 		}
 
 		rows = append(rows, []gotgbot.InlineKeyboardButton{
-			{Text: c.GetDescription(), CallbackData: "rights_edit:" + c.GetKey(), IconCustomEmojiId: helpers.StatusEmojiID(status)},
+			{Text: c.Description(), CallbackData: "rights_edit:" + c.Name(), IconCustomEmojiId: helpers.StatusEmojiID(status)},
 		})
 	}
 
@@ -86,10 +86,10 @@ func GetCommandsByCategoryKeyboard(category cmd.Category, commands []*cmd.Comman
 	return gotgbot.InlineKeyboardMarkup{InlineKeyboard: rows}
 }
 
-func FormatEditCommandRights(key string, currentStatus model.Status, commands []*cmd.Command) string {
-	var config *cmd.Command
+func FormatEditCommandRights(key string, currentStatus model.Status, commands []*command.Command) string {
+	var config *command.Command
 	for _, c := range commands {
-		if c.GetKey() == key {
+		if c.Name() == key {
 			config = c
 			break
 		}
@@ -99,21 +99,21 @@ func FormatEditCommandRights(key string, currentStatus model.Status, commands []
 		return "Ошибка: команда не найдена"
 	}
 
-	aliases := config.GetAliases()
+	aliases := config.Aliases()
 	formattedAliases := make([]string, len(aliases))
 	for i, a := range aliases {
 		formattedAliases[i] = "<code>" + a + "</code>"
 	}
 
 	return fmt.Sprintf("⚙️ %s\nАлиасы: %s\n\nТекущий уровень: %s %s\n\nВыберите новый уровень доступа:",
-		config.GetDescription(),
+		config.Description(),
 		strings.Join(formattedAliases, ", "),
 		helpers.StatusEmoji(currentStatus),
 		currentStatus.String(),
 	)
 }
 
-func GetEditRightsKeyboard(key string, currentStatus model.Status, commands []*cmd.Command) gotgbot.InlineKeyboardMarkup {
+func GetEditRightsKeyboard(key string, currentStatus model.Status, commands []*command.Command) gotgbot.InlineKeyboardMarkup {
 	statuses := []model.Status{
 		model.StatusMember,
 		model.StatusModerator,
@@ -147,8 +147,8 @@ func GetEditRightsKeyboard(key string, currentStatus model.Status, commands []*c
 
 	var backCategory string
 	for _, c := range commands {
-		if c.GetKey() == key {
-			backCategory = string(c.GetCategory())
+		if c.Name() == key {
+			backCategory = string(c.Category())
 			break
 		}
 	}

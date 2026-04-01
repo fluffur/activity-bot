@@ -10,7 +10,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-func (c Command) WrapCallback(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
+func (c *Command) WrapCallback(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 		stdCtx := context.Background()
 
@@ -66,7 +66,7 @@ func (c Command) WrapCallback(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Con
 	}
 }
 
-func (c Command) WrapEvent(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
+func (c *Command) WrapEvent(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 		stdCtx := context.Background()
 		msg := ctx.Message

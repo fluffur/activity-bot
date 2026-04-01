@@ -1,4 +1,4 @@
-package cmd
+package command
 
 import (
 	"activity-bot/internal/model"
@@ -15,8 +15,8 @@ const (
 
 func GetDefaultStatus(commands []*Command, key string) model.Status {
 	for _, cmd := range commands {
-		if cmd.GetKey() == key {
-			return cmd.GetDefaultStatus()
+		if cmd.Name() == key {
+			return cmd.RequiredStatus()
 		}
 	}
 	return model.StatusAdmin

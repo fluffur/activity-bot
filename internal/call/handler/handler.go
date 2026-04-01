@@ -501,16 +501,26 @@ func (h *Handler) DeleteWelcomeCallMessage(b *gotgbot.Bot, ctx *command.Context)
 	return ctx.ReplyHTML(b, "Сообщение удалено")
 }
 
-func (h *Handler) EnableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.EnableCallOnJoin(ctx.StdContext(), ctx.TargetChatID()); err != nil {
+func (h *Handler) EnableCallOnJoin(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.EnableCallOnJoin(ctx.StdContext(), c.ID); err != nil {
 		return err
 	}
 
 	return ctx.Reply(b, view.FormatCallOnJoinEnabled(), nil)
 }
 
-func (h *Handler) DisableCallOnJoin(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.DisableCallOnJoin(ctx.StdContext(), ctx.TargetChatID()); err != nil {
+func (h *Handler) DisableCallOnJoin(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.DisableCallOnJoin(ctx.StdContext(), c.ID); err != nil {
 		return err
 	}
 

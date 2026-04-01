@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"activity-bot/internal/cmd"
+	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/model"
@@ -20,14 +20,10 @@ func New(service *user.Service) *Handler {
 	return &Handler{service}
 }
 
-func (h *Handler) SetGender(b *gotgbot.Bot, ctx *cmd.Context) error {
-	arg := strings.ToLower(ctx.FirstArgument())
-	if arg == "" {
-		return ctx.Reply(b, "Укажите пол: м (мужской) или ж (женский)", nil)
-	}
+func (h *Handler) SetGender(b *gotgbot.Bot, ctx *command.Context) error {
+	gender := ctx.TextOrDefault("м")
 
-	var gender string
-	switch arg {
+	switch gender {
 	case "м", "муж", "мужской", "male", "m":
 		gender = model.GenderMale
 	case "ж", "жен", "женский", "female", "f":
@@ -49,30 +45,30 @@ func (h *Handler) SetGender(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.Reply(b, fmt.Sprintf("Пол установлен: %s", genderName), nil)
 }
 
-func (h *Handler) ShowGender(b *gotgbot.Bot, ctx *cmd.Context) error {
-	u := ctx.FirstUser()
-	if u == nil {
-		return cmd.ErrNoUser
+func (h *Handler) ShowGender(b *gotgbot.Bot, ctx *command.Context) error {
+	u, err := ctx.AnyUser()
+	if err != nil {
+		return err
 	}
 	gender := "неизвестен"
-	if u.Gender == model.GenderFemale {
+	if u.User.Gender == model.GenderFemale {
 		gender = "женский"
-	} else if u.Gender == model.GenderMale {
+	} else if u.User.Gender == model.GenderMale {
 		gender = "мужской"
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Пол %s: %s", helpers.LinkWithContent(*u, u.FirstName), gender))
+	return ctx.ReplyHTML(b, fmt.Sprintf("Пол %s: %s", helpers.LinkWithContent(u.User, u.User.FirstName), gender))
 }
 
-func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
-	u := ctx.FirstUser()
-	if u == nil {
-		return cmd.ErrNoUser
+func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *command.Context) error {
+	u, err := ctx.AnyUser()
+	if err != nil {
+		return err
 	}
-	if u.ID != ctx.EffectiveSender.Id() {
+	if u.User.ID != ctx.EffectiveSender.Id() {
 		return ctx.ReplyHTML(b, "Нельзя менять эмоджи других пользователей. Для эмоджи в рамках чата есть значки. Попробуйте через команду <code>значок</code>")
 	}
-	emojis := strings.TrimSpace(ctx.HTML())
+	emojis := strings.TrimSpace(ctx.RawArgsHTML)
 	graphemes := helpers.ParseEmojis(emojis)
 
 	if len(graphemes) > 3 {
@@ -83,26 +79,26 @@ func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
 		return fmt.Errorf("failed to set emoji: %w", err)
 	}
 	logger.L.Info("set emoji", "emoji", emojis)
-	return ctx.Reply(b, fmt.Sprintf("Эмоджи %s установлено для %s", emojis, helpers.UserLink(*u)), nil)
+	return ctx.ReplyHTML(b, fmt.Sprintf("Эмоджи %s установлено для %s", emojis, helpers.UserLink(u.User)))
 }
 
-func (h *Handler) RemoveEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) RemoveEmoji(b *gotgbot.Bot, ctx *command.Context) error {
 	if err := h.service.SetEmoji(ctx.StdContext(), ctx.EffectiveSender.Id(), ""); err != nil {
 		return fmt.Errorf("failed to set emoji: %w", err)
 	}
 	return ctx.Reply(b, "Emoji удалено", nil)
 }
 
-func (h *Handler) ShowEmoji(b *gotgbot.Bot, ctx *cmd.Context) error {
-	u := ctx.FirstUser()
-	if u == nil {
-		return cmd.ErrNoUser
+func (h *Handler) ShowEmoji(b *gotgbot.Bot, ctx *command.Context) error {
+	u, err := ctx.AnyUser()
+	if err != nil {
+		return err
 	}
 
 	if u.Emoji == "" {
-		return ctx.ReplyHTML(b, fmt.Sprintf("У пользователя %s еще нет эмоджи\n\nДобавить emoji: <code>!эмоджи 😘</code>", helpers.UserLink(*u)))
+		return ctx.ReplyHTML(b, fmt.Sprintf("У пользователя %s еще нет эмоджи\n\nДобавить emoji: <code>!эмоджи 😘</code>", helpers.UserLink(u.User)))
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Эмоджи пользователя %s: %s", helpers.UserLink(*u), u.Emoji))
+	return ctx.ReplyHTML(b, fmt.Sprintf("Эмоджи пользователя %s: %s", helpers.UserLink(u.User), u.Emoji))
 
 }

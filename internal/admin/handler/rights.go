@@ -2,7 +2,7 @@ package handler
 
 import (
 	"activity-bot/internal/admin/view"
-	"activity-bot/internal/cmd"
+	"activity-bot/internal/command"
 	"activity-bot/internal/model"
 	"strconv"
 	"strings"
@@ -10,14 +10,18 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2"
 )
 
-func (h *Handler) ManageRights(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) ManageRights(b *gotgbot.Bot, ctx *command.Context) error {
 	return ctx.Reply(b, view.FormatCategories(), &gotgbot.SendMessageOpts{
 		ReplyMarkup: view.GetCategoriesKeyboard(),
 		ParseMode:   gotgbot.ParseModeHTML,
 	})
 }
 
-func (h *Handler) CallbackManageRights(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) CallbackManageRights(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
 	data := ctx.CallbackQuery.Data
 	parts := strings.Split(data, ":")
 	action := parts[0]
@@ -34,8 +38,8 @@ func (h *Handler) CallbackManageRights(b *gotgbot.Bot, ctx *cmd.Context) error {
 		if len(parts) < 2 {
 			return nil
 		}
-		category := cmd.Category(parts[1])
-		perms, err := h.chatService.GetCommandPermissions(ctx.StdContext(), ctx.TargetChatID())
+		category := command.Category(parts[1])
+		perms, err := h.chatService.GetCommandPermissions(ctx.StdContext(), c.ID)
 		if err != nil {
 			return err
 		}
@@ -52,10 +56,10 @@ func (h *Handler) CallbackManageRights(b *gotgbot.Bot, ctx *cmd.Context) error {
 			return nil
 		}
 		key := parts[1]
-		status, err := h.chatService.GetCommandPermission(ctx.StdContext(), ctx.TargetChatID(), key)
+		status, err := h.chatService.GetCommandPermission(ctx.StdContext(), c.ID, key)
 		configCmds := h.factory.ConfigurableCommands()
 		if err != nil {
-			status = cmd.GetDefaultStatus(configCmds, key)
+			status = command.GetDefaultStatus(configCmds, key)
 		}
 
 		_, _, err = ctx.CallbackQuery.Message.EditText(b, view.FormatEditCommandRights(key, status, configCmds), &gotgbot.EditMessageTextOpts{
@@ -72,21 +76,21 @@ func (h *Handler) CallbackManageRights(b *gotgbot.Bot, ctx *cmd.Context) error {
 		statusInt, _ := strconv.Atoi(parts[2])
 		status := model.Status(statusInt)
 
-		err := h.chatService.SetCommandPermission(ctx.StdContext(), ctx.TargetChatID(), key, status)
+		err := h.chatService.SetCommandPermission(ctx.StdContext(), c.ID, key, status)
 		if err != nil {
 			return err
 		}
 
-		var category cmd.Category
+		var category command.Category
 		configCmds := h.factory.ConfigurableCommands()
 		for _, c := range configCmds {
-			if c.GetKey() == key {
-				category = c.GetCategory()
+			if c.Name() == key {
+				category = c.Category()
 				break
 			}
 		}
 
-		perms, err := h.chatService.GetCommandPermissions(ctx.StdContext(), ctx.TargetChatID())
+		perms, err := h.chatService.GetCommandPermissions(ctx.StdContext(), c.ID)
 		if err != nil {
 			return err
 		}

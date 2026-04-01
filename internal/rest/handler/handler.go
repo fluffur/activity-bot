@@ -162,9 +162,12 @@ func (h *Handler) EndRest(b *gotgbot.Bot, ctx *command.Context) error {
 	return ctx.ReplyHTML(b, view.FormatRestEnded(*m, isSelf))
 }
 
-func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
-	chatID := ctx.TargetChatID()
-
+func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	chatID := c.ID
 	fromID, err := parseRequestCallbackData(ctx.CallbackQuery.Data)
 	restRequest, err := h.service.GetRestRequest(ctx.StdContext(), chatID, fromID, ctx.EffectiveMessage.MessageId)
 	if err != nil {
@@ -215,10 +218,14 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return err
 }
 
-func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *command.Context) error {
 	cctx := ctx.StdContext()
 
-	chatID := ctx.TargetChatID()
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	chatID := c.ID
 
 	fromID, err := parseRequestCallbackData(ctx.CallbackQuery.Data)
 	restRequest, err := h.service.GetRestRequest(cctx, chatID, fromID, ctx.EffectiveMessage.MessageId)

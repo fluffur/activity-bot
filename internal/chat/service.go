@@ -47,7 +47,6 @@ func (s *Service) SetNewbieThreshold(ctx context.Context, chatID int64, threshol
 func (s *Service) GetNewbieThreshold(ctx context.Context, chatID int64) (int, error) {
 	return s.repo.GetNewbieThreshold(ctx, chatID)
 }
-
 func (s *Service) SetMaxLadder(ctx context.Context, chatID int64, maxLadder int32) error {
 	return s.repo.SetMaxLadder(ctx, chatID, maxLadder)
 }

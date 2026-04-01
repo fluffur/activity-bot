@@ -28,10 +28,10 @@ type Handler struct {
 	chatService   *chat.Service
 	dateParser    *helpers.DateParser
 	asyncClient   *asynq.Client
-	factory       *cmd.Factory
+	factory       *command.Factory
 }
 
-func New(service *admin.Service, memberService *member.Service, chatService *chat.Service, dateParser *helpers.DateParser, asyncClient *asynq.Client, factory *cmd.Factory) *Handler {
+func New(service *admin.Service, memberService *member.Service, chatService *chat.Service, dateParser *helpers.DateParser, asyncClient *asynq.Client, factory *command.Factory) *Handler {
 	return &Handler{service, memberService, chatService, dateParser, asyncClient, factory}
 }
 
@@ -518,13 +518,13 @@ func (h *Handler) ClearWarns(b *gotgbot.Bot, ctx *command.Context) error {
 	return ctx.ReplyHTML(b, view.FormatWarnsCleared(*u))
 }
 
-func (h *Handler) FakeLeave(b *gotgbot.Bot, ctx *cmd.Context) error {
-	m := ctx.FirstMember()
+func (h *Handler) FakeLeave(b *gotgbot.Bot, ctx *command.Context) error {
+	m, err := ctx.AnyUser()
 	if m == nil {
 		return cmd.ErrNoUser
 	}
 	u := m.User
-	_, err := b.SendMessage(ctx.TargetChatID(), fmt.Sprintf("🕊 %s %s нас...",
+	_, err = b.SendMessage(m.ChatID, fmt.Sprintf("🕊 %s %s нас...",
 		helpers.RoleEmojiLink(*m),
 		helpers.Gendered(u.Gender, "покинул", "покинула"),
 	), &gotgbot.SendMessageOpts{
@@ -536,47 +536,15 @@ func (h *Handler) FakeLeave(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return err
 }
 
-func (h *Handler) DemoteTgAdmin(b *gotgbot.Bot, ctx *cmd.Context) error {
-	targetUser := ctx.FirstUser()
-	if targetUser == nil {
-		return cmd.ErrNoUser
-	}
-
-	if _, err := b.PromoteChatMember(ctx.TargetChatID(), targetUser.ID, nil); err != nil {
+func (h *Handler) DemoteTgAdmin(b *gotgbot.Bot, ctx *command.Context) error {
+	u, err := ctx.User()
+	if err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, "Пользователь разжалован", nil)
-}
-
-func parseUntil(
-	parser *helpers.DateParser,
-	arg string,
-	defaultDuration time.Duration,
-	allowForever bool,
-) *time.Time {
-	if allowForever && arg == "навсегда" {
-		return nil
+	if _, err := b.PromoteChatMember(u.ChatID, u.User.ID, nil); err != nil {
+		return err
 	}
 
-	if t, ok := parser.Parse(arg); ok {
-		return &t
-	}
-
-	if defaultDuration > 0 {
-		t := time.Now().Add(defaultDuration)
-		return &t
-	}
-
-	return nil
-}
-
-func getReason(firstArgument, secondArgument string, until *time.Time) string {
-	if secondArgument != "" {
-		return secondArgument
-	}
-	if until != nil {
-		return ""
-	}
-	return firstArgument
+	return ctx.Reply(b, fmt.Sprintf("Участник %s %s", helpers.RoleEmojiLink(*u), helpers.Gendered(u.User.Gender, "разжалован", "разжалована")), nil)
 }

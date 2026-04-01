@@ -2,7 +2,7 @@ package handler
 
 import (
 	"activity-bot/internal/chat"
-	"activity-bot/internal/cmd"
+	"activity-bot/internal/command"
 	"activity-bot/internal/member"
 	"activity-bot/internal/message"
 
@@ -21,8 +21,8 @@ func New(service *message.Service, memberService *member.Service, chatService *c
 	return &Handler{service, memberService, chatService, deepseekClient}
 }
 
-func (h *Handler) Bot(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.chatService.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) Bot(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
@@ -35,7 +35,7 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *cmd.Context) error {
 			},
 			{
 				Role:    deepseek.ChatMessageRoleUser,
-				Content: ctx.FirstArgument(),
+				Content: ctx.TextOrDefault(""),
 			},
 		},
 	}
@@ -55,7 +55,7 @@ func (h *Handler) Bot(b *gotgbot.Bot, ctx *cmd.Context) error {
 	})
 }
 
-func (h *Handler) Message(_ *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) Message(_ *gotgbot.Bot, ctx *command.Context) error {
 	if ctx.EffectiveMessage.ChatOwnerLeft != nil || ctx.EffectiveMessage.LeftChatMember != nil || len(ctx.EffectiveMessage.NewChatMembers) > 0 {
 		return nil
 	}

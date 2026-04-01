@@ -4,7 +4,6 @@ import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chat/view"
-	"activity-bot/internal/cmd"
 	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
@@ -260,22 +259,32 @@ func (h *Handler) SetPrefix(b *gotgbot.Bot, ctx *command.Context) error {
 	return ctx.Reply(b, view.FormatPrefixSet(prefix), nil)
 }
 
-func (h *Handler) EnablePrefixes(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.SetAllowPrefixless(ctx.StdContext(), ctx.TargetChatID(), true); err != nil {
+func (h *Handler) DisablePrefixOnly(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.SetAllowPrefixless(ctx.StdContext(), c.ID, true); err != nil {
 		return err
 	}
 	return ctx.ReplyHTML(b, view.FormatPrefixlessToggle(true))
 }
 
-func (h *Handler) DisablePrefixes(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.SetAllowPrefixless(ctx.StdContext(), ctx.TargetChatID(), false); err != nil {
+func (h *Handler) EnablePrefixOnly(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
 		return err
 	}
+	if err := h.service.SetAllowPrefixless(ctx.StdContext(), c.ID, false); err != nil {
+		return err
+	}
+
 	return ctx.ReplyHTML(b, view.FormatPrefixlessToggle(false))
 }
 
-func (h *Handler) ShowPrefixes(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.service.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowPrefixlessStatus(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
