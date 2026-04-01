@@ -14,8 +14,8 @@ type ChatMemberStatusProvider interface {
 
 type Moderator interface {
 	Kick(chatID, userID int64) error
-	Ban(chatID, userID int64, untilDate *time.Time) error
-	Mute(chatID, userID int64, untilDate *time.Time) error
+	Ban(chatID, userID int64, untilDate time.Time) error
+	Mute(chatID, userID int64, untilDate time.Time) error
 	Unban(chatID, userID int64) error
 	Unmute(chatID, userID int64) error
 }
@@ -23,6 +23,8 @@ type Moderator interface {
 var (
 	ErrUserIsNotAdmin     = errors.New("user is not admin")
 	ErrUserIsAlreadyAdmin = errors.New("user is already admin")
+	ErrUserIsNotPermitted = errors.New("user is not permitted")
+	ErrUserStatusInvalid  = errors.New("user status invalid")
 	ErrUserIsCreator      = errors.New("user is creator")
 	ErrUserIsProtected    = errors.New("user is protected (admin or creator)")
 	ErrInvalidRange       = errors.New("invalid range")
@@ -49,7 +51,13 @@ func (s *Service) OwnerID() int64 {
 	return s.ownerID
 }
 
-func (s *Service) SetStatus(ctx context.Context, m model.ChatMember, status model.Status) error {
+func (s *Service) SetStatus(ctx context.Context, sender model.ChatMember, m model.ChatMember, status model.Status) error {
+	if !sender.CanModerate(m) {
+		return ErrUserIsNotPermitted
+	}
+	if status >= sender.Status {
+		return ErrUserStatusInvalid
+	}
 	if m.Status == status {
 		return ErrUserIsAlreadyAdmin
 	}
@@ -120,14 +128,13 @@ func (s *Service) Kick(ctx context.Context, m model.ChatMember, mod model.ChatMe
 		return err
 	}
 
-	return s.repo.CreateModerationAction(ctx, "kick", m.ChatID, m.User.ID, mod.User.ID, reason, nil)
+	return s.repo.CreateModerationAction(ctx, "kick", m.ChatID, m.User.ID, mod.User.ID, reason, time.Time{})
 }
 
-func (s *Service) Ban(ctx context.Context, m model.ChatMember, mod model.ChatMember, until *time.Time, reason string) error {
+func (s *Service) Ban(ctx context.Context, m model.ChatMember, mod model.ChatMember, until time.Time, reason string) error {
 	if !mod.CanModerate(m) {
 		return ErrUserIsProtected
 	}
-
 	if err := s.moderator.Ban(m.ChatID, m.User.ID, until); err != nil {
 		return err
 	}
@@ -135,12 +142,12 @@ func (s *Service) Ban(ctx context.Context, m model.ChatMember, mod model.ChatMem
 	return s.repo.CreateModerationAction(ctx, "ban", m.ChatID, m.User.ID, mod.User.ID, reason, until)
 }
 
-func (s *Service) Mute(ctx context.Context, m model.ChatMember, mod model.ChatMember, until *time.Time, reason string) error {
+func (s *Service) Mute(ctx context.Context, m model.ChatMember, mod model.ChatMember, until time.Time, reason string) error {
 	if !mod.CanModerate(m) {
 		return ErrUserIsProtected
 	}
 
-	if until != nil {
+	if !until.IsZero() {
 		now := time.Now()
 		duration := until.Sub(now)
 
@@ -156,7 +163,7 @@ func (s *Service) Mute(ctx context.Context, m model.ChatMember, mod model.ChatMe
 	return s.repo.CreateModerationAction(ctx, "mute", m.ChatID, m.User.ID, mod.User.ID, reason, until)
 }
 
-func (s *Service) Warn(ctx context.Context, m model.ChatMember, mod model.ChatMember, reason string, until *time.Time) (int, bool, error) {
+func (s *Service) Warn(ctx context.Context, m model.ChatMember, mod model.ChatMember, reason string, until time.Time) (int, bool, error) {
 	if !mod.CanModerate(m) {
 		return 0, false, ErrUserIsProtected
 	}
@@ -175,10 +182,10 @@ func (s *Service) Warn(ctx context.Context, m model.ChatMember, mod model.ChatMe
 	}
 
 	if int(count) >= maxWarns {
-		if err := s.moderator.Ban(m.ChatID, m.User.ID, nil); err != nil {
+		if err := s.moderator.Ban(m.ChatID, m.User.ID, time.Time{}); err != nil {
 			return int(count), true, err
 		}
-		_ = s.repo.CreateModerationAction(ctx, "ban", m.ChatID, m.User.ID, mod.User.ID, "Превышен лимит предупреждений", nil)
+		_ = s.repo.CreateModerationAction(ctx, "ban", m.ChatID, m.User.ID, mod.User.ID, "Превышен лимит предупреждений", time.Time{})
 		_ = s.repo.ClearWarns(ctx, m.ChatID, m.User.ID)
 		return int(count), true, nil
 	}

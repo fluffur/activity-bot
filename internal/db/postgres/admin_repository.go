@@ -37,22 +37,17 @@ func (r *AdminRepository) GetAdmins(ctx context.Context, chatID int64) ([]model.
 	}), nil
 }
 
-func (r *AdminRepository) CreateModerationAction(ctx context.Context, actionType string, chatID, userID, modID int64, reason string, until *time.Time) error {
-	var expiresAt pgtype.Timestamptz
-	if until != nil {
-		expiresAt = pgtype.Timestamptz{
-			Time:  *until,
-			Valid: true,
-		}
-	}
-
+func (r *AdminRepository) CreateModerationAction(ctx context.Context, actionType string, chatID, userID, modID int64, reason string, until time.Time) error {
 	return r.queries.CreateModerationAction(ctx, db.CreateModerationActionParams{
 		Type:        db.ModerationType(actionType),
 		ChatID:      chatID,
 		UserID:      userID,
 		ModeratorID: modID,
 		Reason:      pgtype.Text{String: reason, Valid: reason != ""},
-		ExpiresAt:   expiresAt,
+		ExpiresAt: pgtype.Timestamptz{
+			Time:  until,
+			Valid: !until.IsZero(),
+		},
 	})
 }
 

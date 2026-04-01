@@ -87,7 +87,8 @@ func (a *App) RegisterHandlers() {
 		SetArgRules(command.TextRule()),
 	)
 	a.Dp.AddHandler(f.New("delete_call_message", callHandler.DeleteWelcomeCallMessage).
-		SetAliases("калл сообщение").AddTriggers("-").
+		SetAliases("калл сообщение").
+		AddTriggers("-").
 		SetRequiredStatus(model.StatusSeniorAdmin),
 	)
 	a.Dp.AddHandler(f.New("show_newbie_treshold", chatHandler.ShowNewbieThreshold).
@@ -194,70 +195,64 @@ func (a *App) RegisterHandlers() {
 		SetTriggers("-").SetArgRules(command.MentionedUserRule()).
 		SetRequiredStatus(model.StatusCoOwner),
 	)
-	a.Dp.AddHandler(cf.New(adminHandler.Unban, "unban", "-бан", "разбан", "разбанить").
-		WithGuards(groupGuard).
-		Restricted(model.StatusSeniorAdmin).
-		WithDescription("Разбан участника").
-		WithCategory(cmd.CategoryModeration).
-		WithAmbiguityResolution("admin_unban"),
+	a.Dp.AddHandler(f.New("unban", adminHandler.Unban).
+		SetAliases("unban", "-бан", "разбан", "разбанить").
+		SetArgRules(command.MentionedUserRule()).
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Разбан участника").
+		SetCategory(cmd.CategoryModeration),
 	)
-	a.Dp.AddHandler(cf.New(adminHandler.Unmute, "unmute", "размут", "размутить", "-мут").
-		WithGuards(groupGuard).
-		Restricted(model.StatusAdmin).
-		WithDescription("Размут участника").
-		WithCategory(cmd.CategoryModeration).
-		WithAmbiguityResolution("admin_unmute"),
+	a.Dp.AddHandler(f.New("unmute", adminHandler.Unmute).
+		SetAliases("unmute", "размут", "размутить", "-мут").
+		SetArgRules(command.MentionedUserRule()).
+		SetRequiredStatus(model.StatusAdmin).
+		SetDescription("Размут участника").
+		SetCategory(cmd.CategoryModeration),
 	)
-	a.Dp.AddHandler(cf.New(adminHandler.Unwarn, "unwarn", "снять пред", "-варн", "-пред").
-		WithGuards(groupGuard).
-		Restricted(model.StatusAdmin).
-		WithDescription("Снять предупреждение").
-		WithCategory(cmd.CategoryModeration).
-		WithAmbiguityResolution("admin_unwarn"),
+	a.Dp.AddHandler(f.New("unwarn", adminHandler.Unwarn).
+		SetAliases("снять пред", "-варн", "-пред").
+		SetArgRules(command.MentionedUserRule()).
+		SetRequiredStatus(model.StatusAdmin).
+		SetDescription("Снять предупреждение").
+		SetCategory(cmd.CategoryModeration),
 	)
 
-	a.Dp.AddHandler(cf.New(adminHandler.Kick, "kick", "кик", "выгнать").
-		AddTriggers("+").
-		SetArgsCount(1).
-		WithGuards(groupGuard).
-		Restricted(model.StatusSeniorAdmin).
-		WithDescription("Кик участника").
-		WithCategory(cmd.CategoryModeration).
-		WithAmbiguityResolution("admin_kick"),
+	a.Dp.AddHandler(f.New("kick", adminHandler.Kick).
+		SetAliases("кик", "выгнать").
+		SetArgRules(command.MentionedUserRule(), command.TextRule().SetVariadic(true).SetRange(0, 1)).
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Кик участника").
+		SetCategory(cmd.CategoryModeration),
 	)
-	a.Dp.AddHandler(cf.New(adminHandler.Ban, "ban", "бан").
-		AddTriggers("+").
-		WithGuards(groupGuard).
-		Restricted(model.StatusSeniorAdmin).
-		SetArgsCount(2).
-		WithDescription("Бан участника").
-		WithCategory(cmd.CategoryModeration).
-		WithAmbiguityResolution("admin_ban"),
+	a.Dp.AddHandler(f.New("ban", adminHandler.Ban).SetAliases("бан").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetArgRules(command.MentionedUserRule(), command.TextRule()).
+		SetDescription("Бан участника").
+		SetCategory(cmd.CategoryModeration),
 	)
-	a.Dp.AddHandler(cf.New(adminHandler.Mute, "mute", "мут").
-		AddTriggers("+").
-		WithGuards(groupGuard).
-		Restricted(model.StatusAdmin).
-		SetArgsCount(2).
-		WithDescription("Мут участника").
-		WithCategory(cmd.CategoryModeration).
-		WithAmbiguityResolution("admin_mute"),
+	a.Dp.AddHandler(f.New("mute", adminHandler.Mute).SetAliases("мут").
+		SetRequiredStatus(model.StatusAdmin).
+		SetArgRules(
+			command.MentionedUserRule(),
+			command.OneDateRule().SetRange(0, 1),
+			command.TextRule().SetVariadic(true).SetRange(0, 1),
+		).
+		SetDescription("Мут участника").
+		SetCategory(cmd.CategoryModeration),
 	)
-	a.Dp.AddHandler(cf.New(adminHandler.ShowWarns, "warns", "варны", "преды").
-		FallbackToSender().
-		WithGuards(groupGuard).
-		WithAmbiguityResolution("admin_warns"),
+	a.Dp.AddHandler(f.New("warns", adminHandler.ShowWarns).
+		SetArgRules(command.AnyUserRule()).
+		SetAliases("варны", "преды"),
 	)
 	a.Dp.AddHandler(cf.New(adminHandler.Warnlist, "warnlist", "варнлист", "предывсе").
 		WithGuards(groupGuard),
 	)
-	a.Dp.AddHandler(cf.New(adminHandler.Warn, "warn", "варн", "пред").
-		AddTriggers("+").SetArgsCount(2).
-		WithGuards(groupGuard).
-		Restricted(model.StatusAdmin).
-		WithDescription("Предупреждение").
-		WithCategory(cmd.CategoryModeration).
-		WithAmbiguityResolution("admin_warn"),
+	a.Dp.AddHandler(f.New("warn", adminHandler.Warn).
+		SetAliases("варн", "пред").
+		SetArgRules(command.MentionedUserRule(), command.TextRule().SetVariadic(true).SetRange(0, 1)).
+		SetRequiredStatus(model.StatusAdmin).
+		SetDescription("Предупреждение").
+		SetCategory(cmd.CategoryModeration),
 	)
 	a.Dp.AddHandler(cf.New(adminHandler.ClearWarns, "clear_warns", "очистить преды", "очистить варны").
 		WithGuards(groupGuard).
@@ -275,8 +270,8 @@ func (a *App) RegisterHandlers() {
 		WithGuards(groupGuard).
 		Restricted(model.StatusCoOwner),
 	)
-	a.Dp.AddHandler(cf.New(adminHandler.ToggleRights, "права", "rights").
-		WithGuards(groupGuard, developerGuard).SetArgsCount(1).FallbackToSender(),
+	a.Dp.AddHandler(f.New("rights", adminHandler.ToggleRights).
+		SetAliases("права", "rights").SetArgRules(command.AnyUserRule(), command.NumberRule()),
 	)
 	a.Dp.AddHandler(cf.New(adminHandler.UpdateChats, "update_chats").
 		WithGuards(groupGuard, developerGuard),

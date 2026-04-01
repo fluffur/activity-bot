@@ -9,7 +9,7 @@ import (
 type Repository interface {
 	SetStatus(ctx context.Context, chatID int64, userID int64, status int16) error
 	GetAdmins(ctx context.Context, chatID int64) ([]model.ChatMember, error)
-	CreateModerationAction(ctx context.Context, actionType string, chatID, userID, modID int64, reason string, until *time.Time) error
+	CreateModerationAction(ctx context.Context, actionType string, chatID, userID, modID int64, reason string, until time.Time) error
 	GetWarnsCount(ctx context.Context, chatID, userID int64) (int64, error)
 	ClearWarns(ctx context.Context, chatID, userID int64) error
 	GetChatMaxWarns(ctx context.Context, chatID int64) (int, error)
