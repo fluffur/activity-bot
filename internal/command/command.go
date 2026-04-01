@@ -172,7 +172,7 @@ func (c Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 		return false
 	}
 
-	alias := c.findAlias(text, trigger)
+	alias := c.findAlias(text, trigger, b.User.Username)
 	if alias == "" {
 		return false
 	}
@@ -406,12 +406,20 @@ func (c Command) findTrigger(text string) string {
 	return ""
 }
 
-func (c Command) findAlias(text, trigger string) string {
+func (c Command) findAlias(text, trigger, botUsername string) string {
 	text = strings.ToLower(strings.TrimSpace(strings.TrimPrefix(text, trigger)))
 	allCommands := append(c.aliases, c.name)
 	for _, alias := range allCommands {
 		if strings.HasPrefix(text, alias) {
 			remaining := strings.TrimPrefix(text, alias)
+
+			if strings.HasPrefix(remaining, "@") {
+				atPart := strings.SplitN(remaining, " ", 2)[0]
+				if atPart != "@"+strings.ToLower(botUsername) {
+					continue
+				}
+				remaining = strings.TrimPrefix(remaining, atPart)
+			}
 
 			if len(remaining) == 0 || isDelimiter(rune(remaining[0])) {
 				return alias
