@@ -6,6 +6,8 @@ services:
     restart: unless-stopped
     volumes:
       - .:/app
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
     depends_on:
       db:
         condition: service_healthy
@@ -44,3 +46,5 @@ services:
 volumes:
   pgdata:
   redisdata:
+  go-mod-cache:
+  go-build-cache:

@@ -7,10 +7,13 @@ import (
 type Category string
 
 const (
+	CategoryGeneral    Category = "Общие"
+	CategoryProfile    Category = "Профиль"
 	CategoryModeration Category = "Модерация"
-	CategoryCall       Category = "Рассылки"
+	CategoryCall       Category = "Каллы"
 	CategorySettings   Category = "Настройки"
 	CategoryStats      Category = "Статистика"
+	CategoryAdmin      Category = "Администрирование"
 )
 
 func GetDefaultStatus(commands []*Command, key string) model.Status {

@@ -50,7 +50,7 @@ func (a *App) RegisterHandlers() {
 
 	dateParser := helpers.NewDateParser()
 
-	f := command.NewCommandFactory(a.UserService, a.MemberService, a.ChatService, sessionService, "фм", "!", "/", ".")
+	f := command.NewCommandFactory(a.UserService, a.MemberService, a.ChatService, sessionService, a.Config.BotOwnerID, "фм", "!", "/", ".")
 
 	helpHandler := helpH.New(a.Config.BotOwnerUsername, a.Config.CommandsLink)
 	statsHandler := statsH.New(statsService, restService, a.MemberService, a.UserService, a.ChatService, sessionService)
@@ -265,7 +265,9 @@ func (a *App) RegisterHandlers() {
 		SetRequiredStatus(model.StatusCoOwner),
 	)
 	a.Dp.AddHandler(f.New("rights", adminHandler.ToggleRights).
-		SetAliases("права", "rights").SetArgRules(command.AnyUserRule(), command.NumberRule()),
+		SetAliases("права", "rights").
+		SetDevCommand(true).
+		SetArgRules(command.AnyUserRule(), command.NumberRule()),
 	)
 	a.Dp.AddHandler(f.New("update_chats", adminHandler.UpdateChats))
 	a.Dp.AddHandler(f.New("update_chat", memberHandler.UpdateMembersList).
@@ -303,7 +305,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dp.AddHandler(handlers.NewCallback(
 		callbackquery.Prefix("call_type:"),
-		f.New("call_type", callHandler.CallbackCallType).WrapCallback()),
+		f.New("call_type", callHandler.CallbackCallType).SetRequiredStatus(model.StatusCoOwner).WrapCallback()),
 	)
 
 	a.Dp.AddHandler(f.New("set_call_limit", callHandler.SetMentionsPerMessage).
@@ -505,7 +507,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dp.AddHandler(
 		handlers.NewCallback(callbackquery.Prefix("rights_"),
-			f.New("manage_rights_callback", adminHandler.CallbackManageRights).WrapCallback()))
+			f.New("manage_rights_callback", adminHandler.CallbackManageRights).SetRequiredStatus(model.StatusCoOwner).WrapCallback()))
 
 	a.Dp.AddHandler(
 		handlers.NewCallback(callbackquery.Prefix("approve:"),

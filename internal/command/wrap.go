@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/logger"
 	"activity-bot/internal/model"
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -37,6 +38,12 @@ func (c *Command) WrapCallback(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Co
 			} else {
 				handlerCtx.senderChatMember = sender
 			}
+		}
+		if c.requiredStatus > 0 && handlerCtx.senderChatMember != nil || !handlerCtx.senderChatMember.StatusGranted(c.requiredStatus) {
+			_, err := cq.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+				Text: fmt.Sprintf("[%d/%d] Недостаточно прав для выполнения команды", handlerCtx.senderChatMember.Status, c.requiredStatus),
+			})
+			return err
 		}
 
 		data := cq.Data

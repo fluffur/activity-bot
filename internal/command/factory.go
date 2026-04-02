@@ -7,20 +7,23 @@ type Factory struct {
 	sessionService  SessionService
 	defaultTriggers []string
 	commands        []*Command
+	devID           int64
 }
 
-func NewCommandFactory(up UserProvider, mp ChatMemberProvider, cp ChatProvider, ss SessionService, triggers ...string) *Factory {
+func NewCommandFactory(up UserProvider, mp ChatMemberProvider, cp ChatProvider, ss SessionService, devID int64, triggers ...string) *Factory {
 	return &Factory{
 		userProvider:    up,
 		memberProvider:  mp,
 		chatProvider:    cp,
 		sessionService:  ss,
 		defaultTriggers: triggers,
+		devID:           devID,
 	}
 }
 
 func (f *Factory) New(name string, response Response) *Command {
 	cmd := NewCommand(name, response).
+		SetDevID(f.devID).
 		SetTriggers(f.defaultTriggers...).
 		SetProviders(f.userProvider, f.memberProvider, f.chatProvider, f.sessionService)
 	f.commands = append(f.commands, cmd)

@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/logger"
 	"activity-bot/internal/model"
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 	"unicode"
@@ -51,6 +52,9 @@ type Command struct {
 	triggers    []string
 	aliases     []string
 
+	isDevCommand bool
+	devID        int64
+
 	requireTrigger bool
 	requiredStatus model.Status
 
@@ -95,6 +99,26 @@ func (c *Command) SetArgRules(rules ...ArgRule) *Command {
 	c.argRules = rules
 
 	return c
+}
+
+func (c *Command) IsDevCommand() bool {
+	return c.isDevCommand
+}
+
+func (c *Command) SetDevCommand(isDevCommand bool) *Command {
+	c.isDevCommand = isDevCommand
+
+	return c
+}
+
+func (c *Command) SetDevID(devID int64) *Command {
+	c.devID = devID
+
+	return c
+}
+
+func (c *Command) DevID() int64 {
+	return c.devID
 }
 
 func (c *Command) Name() string {
@@ -376,6 +400,15 @@ func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 
 	handlerCtx := raw.(Context)
 	handlerCtx.Context = ctx
+
+	sender, err := handlerCtx.Sender()
+	if err != nil {
+		return err
+	}
+
+	if (!c.isDevCommand || sender.User.ID != c.devID) && !sender.StatusGranted(handlerCtx.requiredStatus) {
+		return handlerCtx.Reply(b, fmt.Sprintf("[%d/%d] Недостаточно прав для выполнения команды", sender.Status, handlerCtx.requiredStatus), nil)
+	}
 	return c.response(b, &handlerCtx)
 }
 
