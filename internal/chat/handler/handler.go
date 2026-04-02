@@ -4,7 +4,7 @@ import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chat/view"
-	"activity-bot/internal/cmd"
+	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
@@ -36,8 +36,8 @@ func New(service *chat.Service, adminService *admin.Service, memberService *memb
 	return &Handler{service, adminService, memberService, sessionService, dateParser}
 }
 
-func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.service.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
@@ -45,37 +45,30 @@ func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.ReplyHTML(b, view.FormatNorm(c.NormWarn, c.NormBan))
 }
 
-func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
-	arg := ctx.FirstArgument()
-	fields := strings.Fields(arg)
-	if len(fields) == 0 {
-		return ctx.Reply(b, "❌ Нужно указать норму (и опционально действие: 'варн' или 'бан')", nil)
-	}
-
-	norm, err := strconv.Atoi(fields[0])
+func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
-		return ctx.Reply(b, "❌ Норма должна быть числом", nil)
+		return err
 	}
-
-	action := "варн"
-	if len(fields) > 1 {
-		action = strings.ToLower(fields[1])
+	norm, err := ctx.Number()
+	if err != nil {
+		return err
 	}
-
+	action := ctx.TextOrDefault("варн")
 	validActions := map[string]bool{
 		"варн": true,
 		"бан":  true,
 	}
 	if !validActions[action] {
-		return ctx.Reply(b, "❌ Неверное действие. Допустимые: 'варн', 'бан'", nil)
+		return ctx.Reply(b, fmt.Sprintf("❌ Неверное действие: '%s'. Допустимые: 'варн', 'бан'", action), nil)
 	}
 
 	if action == "варн" {
-		if err := h.service.SetWarnNorm(ctx.StdContext(), ctx.TargetChatID(), norm); err != nil {
+		if err := h.service.SetWarnNorm(ctx.StdContext(), c.ID, norm); err != nil {
 			return err
 		}
 	} else {
-		if err := h.service.SetBanNorm(ctx.StdContext(), ctx.TargetChatID(), norm); err != nil {
+		if err := h.service.SetBanNorm(ctx.StdContext(), c.ID, norm); err != nil {
 			return err
 		}
 	}
@@ -83,57 +76,87 @@ func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.Reply(b, view.FormatNormSet(norm, action), nil)
 }
 
-func (h *Handler) RemoveNorm(b *gotgbot.Bot, ctx *cmd.Context) error {
-	action := ctx.FirstArgument()
+func (h *Handler) RemoveNorm(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	action := ctx.TextOrDefault("варн")
+	var oldNorm int32
+	var setFn func() error
 
-	if action == "варн" {
-		if err := h.service.SetWarnNorm(ctx.StdContext(), ctx.TargetChatID(), 0); err != nil {
-			return err
+	switch action {
+	case "варн":
+		oldNorm = c.NormWarn
+		setFn = func() error {
+			return h.service.SetWarnNorm(ctx.StdContext(), c.ID, 0)
 		}
-	} else if action == "бан" {
-		if err := h.service.SetBanNorm(ctx.StdContext(), ctx.TargetChatID(), 0); err != nil {
-			return err
+	case "бан":
+		oldNorm = c.NormBan
+		setFn = func() error {
+			return h.service.SetBanNorm(ctx.StdContext(), c.ID, 0)
 		}
-	} else {
+	default:
 		return ctx.Reply(b, "❌ Неверное действие. Допустимые: 'варн', 'бан'", nil)
 	}
 
-	return ctx.Reply(b, "Норма удалена", nil)
+	if oldNorm == 0 {
+		return ctx.Reply(b, fmt.Sprintf("❌ Норма на %s не была установлена", action), nil)
+	}
 
+	if err := setFn(); err != nil {
+		return err
+	}
+
+	return ctx.Reply(b, fmt.Sprintf("Норма %d (%s) удалена", oldNorm, action), nil)
 }
 
-func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *cmd.Context) error {
-	threshold, err := h.service.GetNewbieThreshold(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, view.FormatNewbieThreshold(threshold), nil)
+	return ctx.Reply(b, view.FormatNewbieThreshold(c.NewbieThresholdDays), nil)
 }
 
-func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *cmd.Context) error {
-	days, ok := h.dateParser.ParseDuration(ctx.FirstArgument())
-	if !ok {
-		return ctx.Reply(b, "Не удалось распознать срок. Используйте формат: 3 дня, неделя, 14 дней или просто число.", nil)
+func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *command.Context) error {
+	date, err := ctx.Date()
+	if err != nil {
+		return err
+	}
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	duration := time.Until(date)
+	days := int32(duration.Hours() / 24)
+	if days < 0 {
+		return ctx.Reply(b, "Дата не может быть в прошлом!", nil)
 	}
 
-	if err := h.service.SetNewbieThreshold(ctx.StdContext(), ctx.TargetChatID(), int(days.Hours()/24)); err != nil {
+	if err := h.service.SetNewbieThreshold(ctx.StdContext(), c.ID, days); err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, view.FormatNewbieThresholdSet(int(days.Hours()/24)), nil)
+	return ctx.Reply(b, view.FormatNewbieThresholdSet(days), nil)
 }
 
-func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.SetChatPrompt(ctx.StdContext(), ctx.TargetChatID(), ctx.FirstArgument()); err != nil {
+func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.SetChatPrompt(ctx.StdContext(), c.ID, ctx.RawArgsHTML); err != nil {
 		return err
 	}
 
 	return ctx.Reply(b, "Промпт установлен успешно", nil)
 }
 
-func (h *Handler) ShowPrompt(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.service.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowPrompt(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
@@ -141,8 +164,8 @@ func (h *Handler) ShowPrompt(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.Reply(b, view.FormatPrompt(c.AISystemPrompt), nil)
 }
 
-func (h *Handler) ShowWeekStart(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.service.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowWeekStart(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
@@ -150,58 +173,28 @@ func (h *Handler) ShowWeekStart(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.ReplyHTML(b, view.FormatWeekStart(int(c.WeekStartDay), c.WeekStartTime))
 }
 
-func (h *Handler) ManageWeekStart(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.service.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) SetWeekStart(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 
-	newDay := int(c.WeekStartDay)
-	newTime := c.WeekStartTime
-	daySet := false
-	timeSet := false
-
-	if len(ctx.ParsedDates()) > 0 {
-		d := ctx.ParsedDates()[0]
-		wd := d.Weekday()
-		if wd == time.Sunday {
-			newDay = 7
-		} else {
-			newDay = int(wd)
-		}
-		newTime = d.Format("15:04")
-		daySet = true
-		timeSet = true
-	}
-
-	args := strings.Fields(ctx.FirstArgument())
-
-	for _, arg := range args {
-		if day, ok := parseWeekStartDay(arg); ok && !daySet {
-			newDay = day
-			daySet = true
-			continue
-		}
-
-		if hour, minute, ok := parseTime(arg); ok && !timeSet {
-			newTime = fmt.Sprintf("%02d:%02d", hour, minute)
-			timeSet = true
-			continue
-		}
-	}
-
-	if !daySet && !timeSet {
-		return ctx.Reply(b, "❌ Не удалось распознать день недели или время. Используйте пн/вт/... или ЧЧ:ММ.", nil)
-	}
-
-	if err := h.service.SetWeekStartDay(ctx.StdContext(), ctx.TargetChatID(), newDay); err != nil {
+	date, err := ctx.Date()
+	if err != nil {
 		return err
 	}
-	if err := h.service.SetWeekStartTime(ctx.StdContext(), ctx.TargetChatID(), newTime); err != nil {
+	weekday := date.Weekday()
+	hour := date.Hour()
+	minute := date.Minute()
+	if err := h.service.SetWeekStartDay(ctx.StdContext(), c.ID, int(weekday)); err != nil {
+		return err
+	}
+	newTime := fmt.Sprintf("%0.2d:%0.2d", hour, minute)
+	if err := h.service.SetWeekStartTime(ctx.StdContext(), c.ID, newTime); err != nil {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatWeekStartSet(newDay, newTime))
+	return ctx.ReplyHTML(b, view.FormatWeekStartSet(int(weekday), newTime))
 }
 
 func parseTime(arg string) (int, int, bool) {
@@ -240,8 +233,8 @@ func parseWeekStartDay(arg string) (int, bool) {
 	}
 }
 
-func (h *Handler) ShowPrefix(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.service.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowPrefix(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
@@ -249,53 +242,63 @@ func (h *Handler) ShowPrefix(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.Reply(b, view.FormatPrefix(c.CommandPrefix), nil)
 }
 
-func (h *Handler) SetPrefix(b *gotgbot.Bot, ctx *cmd.Context) error {
-	prefix := strings.TrimSpace(ctx.FirstArgument())
+func (h *Handler) SetPrefix(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	prefix := ctx.TextOrDefault("")
 	if prefix == "" {
 		return ctx.Reply(b, "❌ Укажите префикс", nil)
 	}
 
-	if err := h.service.SetCommandPrefix(ctx.StdContext(), ctx.TargetChatID(), prefix); err != nil {
+	if err := h.service.SetCommandPrefix(ctx.StdContext(), c.ID, prefix); err != nil {
 		return err
 	}
 
 	return ctx.Reply(b, view.FormatPrefixSet(prefix), nil)
 }
 
-func (h *Handler) EnablePrefixes(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.SetAllowPrefixless(ctx.StdContext(), ctx.TargetChatID(), true); err != nil {
+func (h *Handler) DisablePrefixOnly(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.SetAllowPrefixless(ctx.StdContext(), c.ID, true); err != nil {
 		return err
 	}
 	return ctx.ReplyHTML(b, view.FormatPrefixlessToggle(true))
 }
 
-func (h *Handler) DisablePrefixes(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.SetAllowPrefixless(ctx.StdContext(), ctx.TargetChatID(), false); err != nil {
+func (h *Handler) EnablePrefixOnly(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
 		return err
 	}
+	if err := h.service.SetAllowPrefixless(ctx.StdContext(), c.ID, false); err != nil {
+		return err
+	}
+
 	return ctx.ReplyHTML(b, view.FormatPrefixlessToggle(false))
 }
 
-func (h *Handler) ShowPrefixes(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.service.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowPrefixlessStatus(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 	return ctx.ReplyHTML(b, view.FormatPrefixlessStatus(c.AllowPrefixless))
 }
 
-func (h *Handler) Manage(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if ctx.EffectiveChat.Type != "private" {
-		return ctx.Reply(b, "❌ Команда доступна только в ЛС бота", nil)
-	}
-
+func (h *Handler) Manage(b *gotgbot.Bot, ctx *command.Context) error {
 	chatIDs, err := h.service.GetUserManagedChats(ctx.StdContext(), ctx.EffectiveUser.Id, h.adminService.OwnerID())
 	if err != nil {
 		return err
 	}
 
 	if len(chatIDs) == 0 {
-		return ctx.Reply(b, "❌ У вас нет доступных чатов для управления", nil)
+		return h.SendDM(b, ctx, "❌ У вас нет доступных чатов для управления", nil)
 	}
 
 	chats := make([]chatInfo, 0)
@@ -309,12 +312,28 @@ func (h *Handler) Manage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	}
 
 	if len(chats) == 0 {
-		return ctx.Reply(b, "❌ Не удалось получить информацию о ваших чатах", nil)
+		return h.SendDM(b, ctx, "❌ Не удалось получить информацию о ваших чатах", nil)
 	}
 
-	return ctx.Reply(b, "Выберите чат для управления:", &gotgbot.SendMessageOpts{
-		ReplyMarkup: h.getManageKeyboard(chats, 1),
-	})
+	return h.SendDM(b, ctx, "Выберите чат для управления:", h.getManageKeyboard(chats, 1))
+}
+
+func (h *Handler) SendDM(b *gotgbot.Bot, ctx *command.Context, text string, replyMarkup gotgbot.ReplyMarkup) error {
+	opts := &gotgbot.SendMessageOpts{
+		MessageThreadId: ctx.EffectiveMessage.MessageThreadId,
+	}
+	if replyMarkup != nil {
+		opts.ReplyMarkup = replyMarkup
+	}
+	_, err := b.SendMessage(ctx.EffectiveSender.Id(), text, opts)
+	if err != nil {
+		return ctx.Reply(b, "Не удалось отправить сообщение в лс", nil)
+	}
+	if ctx.EffectiveChat.Type != gotgbot.ChatTypePrivate {
+		return ctx.Reply(b, "Ответ отправлен в лс", nil)
+	}
+	return nil
+
 }
 
 func (h *Handler) getManageKeyboard(chats []chatInfo, page int) gotgbot.InlineKeyboardMarkup {
@@ -364,7 +383,7 @@ func (h *Handler) getManageKeyboard(chats []chatInfo, page int) gotgbot.InlineKe
 	return gotgbot.InlineKeyboardMarkup{InlineKeyboard: buttons}
 }
 
-func (h *Handler) CallbackManagePage(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) CallbackManagePage(b *gotgbot.Bot, ctx *command.Context) error {
 	data := ctx.CallbackQuery.Data
 	pageStr := strings.TrimPrefix(data, "manage_page:")
 	page, err := strconv.Atoi(pageStr)
@@ -406,17 +425,21 @@ func (h *Handler) CallbackManagePage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return err
 }
 
-func (h *Handler) OnNewChatTitle(_ *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) OnNewChatTitle(_ *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
 	newTitle := ctx.EffectiveMessage.NewChatTitle
 	if newTitle == "" {
 		return nil
 	}
 
-	_, err := h.service.EnsureChatExists(ctx.StdContext(), ctx.TargetChatID(), newTitle)
+	_, err = h.service.EnsureChatExists(ctx.StdContext(), c.ID, newTitle)
 	return err
 }
 
-func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *command.Context) error {
 	data := ctx.CallbackQuery.Data
 	chatIDStr := strings.TrimPrefix(data, "manage:")
 	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
@@ -461,7 +484,7 @@ func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return err
 }
 
-func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) UserChats(b *gotgbot.Bot, ctx *command.Context) error {
 	chats, err := h.service.ListChatsWithoutNorm(
 		ctx.StdContext(),
 		ctx.EffectiveSender.Id(),
@@ -580,24 +603,34 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return nil
 }
 
-func (h *Handler) EnableTags(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.EnableTags(ctx.StdContext(), ctx.TargetChatID(), true); err != nil {
+func (h *Handler) EnableTags(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.EnableTags(ctx.StdContext(), c.ID, true); err != nil {
 		return err
 	}
 
 	return ctx.Reply(b, "Поддержка тегов в чате включена. Теперь при установке роли админка не выдается", nil)
 }
 
-func (h *Handler) DisableTags(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if err := h.service.EnableTags(ctx.StdContext(), ctx.TargetChatID(), false); err != nil {
+func (h *Handler) DisableTags(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.EnableTags(ctx.StdContext(), c.ID, false); err != nil {
 		return err
 	}
 
 	return ctx.Reply(b, "Поддержка тегов в чате выключена. Теперь при установке роли выдается админка с минимальными правами", nil)
 }
 
-func (h *Handler) ShowTags(b *gotgbot.Bot, ctx *cmd.Context) error {
-	c, err := h.service.GetChat(ctx.StdContext(), ctx.TargetChatID())
+func (h *Handler) ShowTags(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}

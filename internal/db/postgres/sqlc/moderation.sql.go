@@ -73,7 +73,7 @@ func (q *Queries) DeleteModerationActionsForUser(ctx context.Context, arg Delete
 }
 
 const getActiveWarns = `-- name: GetActiveWarns :many
-SELECT um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user AS moderator_user, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member AS moderator_chat_member, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, ma.id, ma.type, ma.chat_id, ma.user_id, ma.moderator_id, ma.reason, ma.created_at, ma.revoked_at, ma.expires_at
+SELECT um.id, um.username, um.first_name, um.last_name, um.created_at, um.gender, um.emoji, um.custom_emoji_id, cmm.chat_id, cmm.user_id, cmm.joined_at, cmm.rest_until, cmm.tag, cmm.left_at, cmm.rest_reason, cmm.emoji, cmm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, ma.id, ma.type, ma.chat_id, ma.user_id, ma.moderator_id, ma.reason, ma.created_at, ma.revoked_at, ma.expires_at
 FROM moderation_actions ma
          JOIN chat_members cmm ON cmm.user_id = ma.moderator_id AND cmm.chat_id = ma.chat_id
          JOIN users um ON um.id = ma.moderator_id

@@ -23,16 +23,16 @@ func (m *TelegramModerator) Kick(chatID, userID int64) error {
 	return err
 }
 
-func (m *TelegramModerator) Ban(chatID, userID int64, untilDate *time.Time) error {
+func (m *TelegramModerator) Ban(chatID, userID int64, untilDate time.Time) error {
 	opts := &gotgbot.BanChatMemberOpts{}
-	if untilDate != nil {
+	if !untilDate.IsZero() {
 		opts.UntilDate = untilDate.Unix()
 	}
 	_, err := m.bot.BanChatMember(chatID, userID, opts)
 	return err
 }
 
-func (m *TelegramModerator) Mute(chatID, userID int64, untilDate *time.Time) error {
+func (m *TelegramModerator) Mute(chatID, userID int64, untilDate time.Time) error {
 	permissions := gotgbot.ChatPermissions{
 		CanSendMessages:       false,
 		CanSendAudios:         false,
@@ -46,7 +46,7 @@ func (m *TelegramModerator) Mute(chatID, userID int64, untilDate *time.Time) err
 		CanAddWebPagePreviews: false,
 	}
 	opts := &gotgbot.RestrictChatMemberOpts{}
-	if untilDate != nil {
+	if !untilDate.IsZero() {
 		opts.UntilDate = untilDate.Unix()
 	}
 	_, err := m.bot.RestrictChatMember(chatID, userID, permissions, opts)

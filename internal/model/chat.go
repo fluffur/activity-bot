@@ -24,6 +24,7 @@ type Chat struct {
 	MentionTypes        int32
 	TagsEnabled         bool
 	WeekStartTime       string
+	MaxWarns            int32
 }
 
 type Status int16

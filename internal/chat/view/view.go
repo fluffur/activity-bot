@@ -25,15 +25,15 @@ func FormatNormSet(norm int, action string) string {
 	return fmt.Sprintf("Установлена новая норма чата: %d на %s", norm, action)
 }
 
-func FormatNewbieThreshold(days int) string {
+func FormatNewbieThreshold(days int32) string {
 	if days == 0 {
 		return fmt.Sprintf("Срок для новичков ещё не указан")
 	}
-	return fmt.Sprintf("Участники считаются новичками первые %d %s", days, helpers.PluralizeDays(days))
+	return fmt.Sprintf("Участники считаются новичками первые %d %s", days, helpers.PluralizeDays(int(days)))
 }
 
-func FormatNewbieThresholdSet(days int) string {
-	return fmt.Sprintf("Теперь участники считаются новичками первые %d %s", days, helpers.PluralizeDays(days))
+func FormatNewbieThresholdSet(days int32) string {
+	return fmt.Sprintf("Теперь участники считаются новичками первые %d %s", days, helpers.PluralizeDays(int(days)))
 }
 
 func FormatPrompt(prompt string) string {

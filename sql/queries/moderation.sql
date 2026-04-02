@@ -10,7 +10,7 @@ WHERE chat_id = $1
   AND type = 'warn';
 
 -- name: GetActiveWarns :many
-SELECT sqlc.embed(um) AS moderator_user, sqlc.embed(cmm) AS moderator_chat_member, sqlc.embed(u), sqlc.embed(cm), ma.*
+SELECT sqlc.embed(um), sqlc.embed(cmm), sqlc.embed(u), sqlc.embed(cm), ma.*
 FROM moderation_actions ma
          JOIN chat_members cmm ON cmm.user_id = ma.moderator_id AND cmm.chat_id = ma.chat_id
          JOIN users um ON um.id = ma.moderator_id

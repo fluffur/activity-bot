@@ -35,7 +35,7 @@ type App struct {
 	Rdb         *redis.Client
 	Deepseek    *deepseek.Client
 	Bot         *gotgbot.Bot
-	Dispatcher  *ext.Dispatcher
+	Dp          *ext.Dispatcher
 	Updater     *ext.Updater
 	AsyncClient *asynq.Client
 	AsyncServer *asynq.Server
@@ -114,12 +114,12 @@ func NewApp(cfg config.Config) (*App, error) {
 		MaxRoutines: ext.DefaultMaxRoutines,
 	})
 	return &App{
-		Config:     cfg,
-		Pool:       pool,
-		Rdb:        rdb,
-		Deepseek:   deepseek.NewClient(cfg.DeepseekAPIKey),
-		Bot:        b,
-		Dispatcher: dp,
+		Config:   cfg,
+		Pool:     pool,
+		Rdb:      rdb,
+		Deepseek: deepseek.NewClient(cfg.DeepseekAPIKey),
+		Bot:      b,
+		Dp:       dp,
 		Updater: ext.NewUpdater(dp, &ext.UpdaterOpts{
 			Logger: logger.L,
 		}),

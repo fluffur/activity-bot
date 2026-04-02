@@ -59,7 +59,7 @@ func FormatAdminRemoved(user model.ChatMember) string {
 	)
 }
 
-func FormatModerationAction(user model.ChatMember, action string, until *time.Time, reason string) string {
+func FormatModerationAction(user model.ChatMember, action string, until time.Time, reason string) string {
 	var actionText string
 	switch action {
 	case "ban":
@@ -75,8 +75,8 @@ func FormatModerationAction(user model.ChatMember, action string, until *time.Ti
 	text := fmt.Sprintf("%s %s", helpers.RoleEmojiLink(user), actionText)
 
 	if action != "kick" {
-		if until != nil {
-			text += fmt.Sprintf(" до %s", helpers.FormatToHumanDateTime(*until))
+		if !until.IsZero() {
+			text += fmt.Sprintf(" до %s", helpers.FormatToHumanDateTime(until))
 		} else {
 			text += " навсегда"
 		}
@@ -89,11 +89,11 @@ func FormatModerationAction(user model.ChatMember, action string, until *time.Ti
 	return text
 }
 
-func FormatWarnInfo(user model.ChatMember, count, maxWarns int, until *time.Time, reason string, banned bool) string {
+func FormatWarnInfo(user model.ChatMember, count, maxWarns int, until time.Time, reason string, banned bool) string {
 	text := fmt.Sprintf("Участнику %s выдано предупреждение (%d/%d)", helpers.RoleEmojiLink(user), count, maxWarns)
 
-	if until != nil {
-		text += fmt.Sprintf(" до %s", helpers.FormatToHumanDateTime(*until))
+	if !until.IsZero() {
+		text += fmt.Sprintf(" до %s", helpers.FormatToHumanDateTime(until))
 	}
 
 	if reason != "" {
@@ -163,7 +163,7 @@ func FormatUnmuteInfo(user model.ChatMember) string {
 	)
 }
 
-func FormatDirectModerationAction(user model.ChatMember, chatTitle string, action string, until *time.Time, reason string) string {
+func FormatDirectModerationAction(user model.ChatMember, chatTitle string, action string, until time.Time, reason string) string {
 	var actionText string
 	switch action {
 	case "ban":
@@ -177,8 +177,8 @@ func FormatDirectModerationAction(user model.ChatMember, chatTitle string, actio
 	text := fmt.Sprintf("Вы были %s в чате <b>%s</b>", actionText, chatTitle)
 
 	if action == "ban" {
-		if until != nil {
-			text += fmt.Sprintf(" до %s", helpers.FormatToHumanDateTime(*until))
+		if !until.IsZero() {
+			text += fmt.Sprintf(" до %s", helpers.FormatToHumanDateTime(until))
 		} else {
 			text += " навсегда"
 		}

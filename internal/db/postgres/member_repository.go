@@ -176,7 +176,7 @@ func (r *MemberRepository) UpsertChatMembers(ctx context.Context, chatID int64, 
 	})
 }
 
-func (r *MemberRepository) Get(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error) {
+func (r *MemberRepository) GetChatMember(ctx context.Context, chatID int64, userID int64) (model.ChatMember, error) {
 	m, err := r.queries.GetChatMember(ctx, db.GetChatMemberParams{
 		ChatID: chatID,
 		UserID: userID,

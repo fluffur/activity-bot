@@ -2,12 +2,11 @@ package handler
 
 import (
 	"activity-bot/internal/chat"
-	"activity-bot/internal/cmd"
+	"activity-bot/internal/command"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/hibiken/asynq"
@@ -24,8 +23,7 @@ func New(memberService *member.Service, chatService *chat.Service, asyncClient *
 	return &Handler{memberService, chatService, asyncClient, channelID}
 }
 
-func (h *Handler) Post(b *gotgbot.Bot, ctx *cmd.Context) error {
-	log.Println("post", ctx.EffectiveChat.Id, h.channelID)
+func (h *Handler) Post(b *gotgbot.Bot, ctx *command.Context) error {
 	if ctx.EffectiveChat.Id != h.channelID {
 		return nil
 	}
@@ -55,7 +53,7 @@ func (h *Handler) Post(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return nil
 }
 
-func (h *Handler) Unsubscribe(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) Unsubscribe(b *gotgbot.Bot, ctx *command.Context) error {
 
 	m, err := h.memberService.GetChatMember(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
 	if err != nil {
@@ -80,9 +78,12 @@ func (h *Handler) Unsubscribe(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return ctx.Reply(b, "Рассылка отключена ❌", nil)
 }
 
-func (h *Handler) Subscribe(b *gotgbot.Bot, ctx *cmd.Context) error {
-	chatID := ctx.EffectiveChat.Id
-	if err := h.chatService.EnableBroadcast(ctx.StdContext(), chatID); err != nil {
+func (h *Handler) Subscribe(b *gotgbot.Bot, ctx *command.Context) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	if err := h.chatService.EnableBroadcast(ctx.StdContext(), c.ID); err != nil {
 		return err
 	}
 	return ctx.Reply(b, "Рассылка включена", nil)

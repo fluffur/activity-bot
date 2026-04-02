@@ -40,14 +40,13 @@ func (s *Service) SetChatPrompt(ctx context.Context, chatID int64, prompt string
 	return s.repo.SetChatPrompt(ctx, chatID, prompt)
 }
 
-func (s *Service) SetNewbieThreshold(ctx context.Context, chatID int64, threshold int) error {
-	return s.repo.SetNewbieThreshold(ctx, chatID, int32(threshold))
+func (s *Service) SetNewbieThreshold(ctx context.Context, chatID int64, threshold int32) error {
+	return s.repo.SetNewbieThreshold(ctx, chatID, threshold)
 }
 
 func (s *Service) GetNewbieThreshold(ctx context.Context, chatID int64) (int, error) {
 	return s.repo.GetNewbieThreshold(ctx, chatID)
 }
-
 func (s *Service) SetMaxLadder(ctx context.Context, chatID int64, maxLadder int32) error {
 	return s.repo.SetMaxLadder(ctx, chatID, maxLadder)
 }
