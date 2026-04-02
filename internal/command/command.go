@@ -24,6 +24,7 @@ type UserProvider interface {
 type ChatMemberProvider interface {
 	GetChatMember(ctx context.Context, chatID, userId int64) (model.ChatMember, error)
 	GetChatMemberByUsername(ctx context.Context, chatID int64, username string) (model.ChatMember, error)
+	FindChatMembersByTag(ctx context.Context, chatID int64, tag string) ([]model.ChatMember, error)
 }
 
 type ChatProvider interface {
@@ -259,6 +260,37 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 		case ArgTypeAnyUser, ArgTypeMentionedUser:
 			if err := c.resolveUsers(stdCtx, &handlerCtx, msg, text, entities); err != nil {
 				return false
+			}
+
+			if c.scope == ScopeChat && handlerCtx.chat != nil && len(handlerCtx.chatMembers) == 0 && handlerCtx.replyChatMember == nil {
+				toks := freeTokens(handlerCtx.RawArgs, handlerCtx.usedOffsets)
+				matched := false
+				for i := 0; i < len(toks) && !matched; {
+					for width := 3; width >= 1; width-- {
+						if i+width > len(toks) {
+							continue
+						}
+						words := make([]string, width)
+						for k := 0; k < width; k++ {
+							words[k] = toks[i+k].text
+						}
+						tag := strings.Join(words, " ")
+						if len([]rune(tag)) <= 16 {
+							members, err := c.chatMemberProvider.FindChatMembersByTag(stdCtx, handlerCtx.chat.ID, tag)
+							if err == nil && len(members) > 0 {
+								handlerCtx.chatMembers = append(handlerCtx.chatMembers, members...)
+								for k := 0; k < width; k++ {
+									handlerCtx.usedOffsets = append(handlerCtx.usedOffsets, Offset{toks[i+k].start, toks[i+k].end})
+								}
+								matched = true
+								break
+							}
+						}
+					}
+					if !matched {
+						i++
+					}
+				}
 			}
 
 			if rule.Type == ArgTypeMentionedUser {

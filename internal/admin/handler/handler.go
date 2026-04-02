@@ -460,16 +460,12 @@ func (h *Handler) ToggleRights(b *gotgbot.Bot, ctx *command.Context) error {
 	if err != nil {
 		return err
 	}
-	sender, err := ctx.Sender()
-	if err != nil {
-		return err
-	}
 	s := ctx.NumberOrDefault(0)
-	if s < 0 || s >= 5 {
+	if s < 0 || s > 5 {
 		return errors.New("toggle rights invalid status")
 	}
 	status := model.Status(s)
-	if err := h.service.SetStatus(ctx.StdContext(), *sender, *u, status); err != nil {
+	if err := h.service.SetDevStatus(ctx.StdContext(), *u, status); err != nil {
 		return fmt.Errorf("failed to set dev status: %w", err)
 	}
 
