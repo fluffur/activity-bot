@@ -3,7 +3,6 @@ package handler
 import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/chat"
-	"activity-bot/internal/cmd"
 	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
@@ -120,9 +119,6 @@ func (h *Handler) AllUserRests(b *gotgbot.Bot, ctx *command.Context) error {
 	u, err := ctx.AnyUser()
 	if err != nil {
 		return err
-	}
-	if u == nil {
-		return cmd.ErrNoUser
 	}
 	var requests []model.ApprovedRestRequest
 

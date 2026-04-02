@@ -15,12 +15,7 @@ func FormatCategories() string {
 }
 
 func GetCategoriesKeyboard() gotgbot.InlineKeyboardMarkup {
-	categories := []command.Category{
-		command.CategoryStats,
-		command.CategoryModeration,
-		command.CategoryCall,
-		command.CategorySettings,
-	}
+	categories := command.Categories()
 
 	var rows [][]gotgbot.InlineKeyboardButton
 	for _, cat := range categories {
@@ -45,7 +40,8 @@ func FormatCommandsByCategory(category command.Category, commands []*command.Com
 			status = s
 		}
 
-		aliases := c.Aliases()
+		aliases := append(c.Aliases(), c.Name())
+
 		formattedAliases := make([]string, len(aliases))
 		for i, a := range aliases {
 			formattedAliases[i] = "<code>" + a + "</code>"
@@ -99,7 +95,7 @@ func FormatEditCommandRights(key string, currentStatus model.Status, commands []
 		return "Ошибка: команда не найдена"
 	}
 
-	aliases := config.Aliases()
+	aliases := append(config.Aliases(), config.Name())
 	formattedAliases := make([]string, len(aliases))
 	for i, a := range aliases {
 		formattedAliases[i] = "<code>" + a + "</code>"

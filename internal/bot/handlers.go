@@ -6,7 +6,6 @@ import (
 	callH "activity-bot/internal/call/handler"
 	channelH "activity-bot/internal/channel/handler"
 	chatH "activity-bot/internal/chat/handler"
-	"activity-bot/internal/cmd"
 	"activity-bot/internal/command"
 	"activity-bot/internal/db/postgres"
 	db "activity-bot/internal/db/postgres/sqlc"
@@ -69,11 +68,12 @@ func (a *App) RegisterHandlers() {
 	//groupGuard := guard.OnlyGroups(sessionService)
 	//rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 2, 10*time.Second, sessionService)
 
-	a.Dp.AddHandler(f.New("start", helpHandler.Start).SetScope(command.ScopeUser))
-	a.Dp.AddHandler(f.New("help", helpHandler.Help).SetScope(command.ScopeUser))
-	a.Dp.AddHandler(f.New("show_call_message", callHandler.ShowWelcomeCallMessage).
-		SetAliases("калл сообщение").
-		SetProviders(a.UserService, a.MemberService, a.ChatService, sessionService),
+	a.Dp.AddHandler(f.New("start", helpHandler.Start).
+		SetScope(command.ScopeUser),
+	)
+
+	a.Dp.AddHandler(f.New("help", helpHandler.Help).
+		SetScope(command.ScopeUser),
 	)
 	a.Dp.AddHandler(f.New("set_call_message", callHandler.SetWelcomeCallMessage).
 		SetAliases("калл сообщение").
@@ -83,12 +83,7 @@ func (a *App) RegisterHandlers() {
 		SetRequiredStatus(model.StatusSeniorAdmin).
 		SetArgRules(command.TextRule()),
 	)
-	a.Dp.AddHandler(f.New("delete_call_message", callHandler.DeleteWelcomeCallMessage).
-		SetAliases("калл сообщение").
-		AddTriggers("-").
-		SetRequiredStatus(model.StatusSeniorAdmin),
-	)
-	a.Dp.AddHandler(f.New("show_newbie_treshold", chatHandler.ShowNewbieThreshold).
+	a.Dp.AddHandler(f.New("show_newbie_treshold", chatHandler.ShowNewbieThreshold).SetDescription("Порог новичка").SetCategory(command.CategorySettings).
 		SetAliases("новички срок", "новички после").
 		SetRequiredStatus(model.StatusSeniorAdmin),
 	)
@@ -107,88 +102,88 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Отчёт в чате").
 		SetCategory(command.CategoryStats),
 	)
-	a.Dp.AddHandler(f.New("stats_graph", statsHandler.ShowChatActivityGraph).
+	a.Dp.AddHandler(f.New("stats_graph", statsHandler.ShowChatActivityGraph).SetDescription("График активности чата").SetCategory(command.CategoryStats).
 		SetAliases("график").
 		SetArgRules(command.OptionalDateRangeRule()),
 	//WithGuards(groupGuard, rateLimiterGuard),
 	)
 
-	a.Dp.AddHandler(f.New("who_am_i", statsHandler.WhoAmI).
+	a.Dp.AddHandler(f.New("who_am_i", statsHandler.WhoAmI).SetDescription("Мой профиль").SetCategory(command.CategoryProfile).
 		SetAliases("ктоя", "кто я", "профиль").SetArgRules(command.ArgRule{
 		Name: "only_sender",
 		Type: command.ArgTypeOnlyUserSender,
 	}))
 
-	a.Dp.AddHandler(f.New("who_are_you", statsHandler.WhoAreYou).
+	a.Dp.AddHandler(f.New("who_are_you", statsHandler.WhoAreYou).SetDescription("Профиль пользователя").SetCategory(command.CategoryProfile).
 		SetAliases("ктоты", "кто ты", "профиль").
 		SetArgRules(command.AnyUserRule()))
 
-	a.Dp.AddHandler(f.New("inactive", statsHandler.ListInactive).
+	a.Dp.AddHandler(f.New("inactive", statsHandler.ListInactive).SetDescription("Список неактивных").SetCategory(command.CategoryStats).
 		SetAliases("инактив", "неактив"))
 
-	a.Dp.AddHandler(f.New("rests", statsHandler.ShowRestList).
+	a.Dp.AddHandler(f.New("rests", statsHandler.ShowRestList).SetDescription("Список действующих рестов").SetCategory(command.CategoryStats).
 		SetAliases("ресты"),
 	)
 
-	a.Dp.AddHandler(f.New("all_rests", restHandler.AllUserRests).
+	a.Dp.AddHandler(f.New("all_rests", restHandler.AllUserRests).SetDescription("История рестов").SetCategory(command.CategoryProfile).
 		SetAliases("все ресты").SetArgRules(command.AnyUserRule()),
 	)
 
-	a.Dp.AddHandler(f.New("failed_norm", statsHandler.ShowFailedNorm).
+	a.Dp.AddHandler(f.New("failed_norm", statsHandler.ShowFailedNorm).SetDescription("Не выполнившие норму").SetCategory(command.CategoryStats).
 		SetArgRules(command.OptionalDateRangeRule()),
 	)
 
-	a.Dp.AddHandler(f.New("newbies", statsHandler.ShowNewbies).
+	a.Dp.AddHandler(f.New("newbies", statsHandler.ShowNewbies).SetDescription("Список новичков").SetCategory(command.CategoryStats).
 		SetAliases("новички"),
 	)
 
-	a.Dp.AddHandler(f.New("norm", chatHandler.ShowNorm).
+	a.Dp.AddHandler(f.New("norm", chatHandler.ShowNorm).SetDescription("Норма сообщений").SetCategory(command.CategorySettings).
 		SetAliases("норма какая", "а норма какая", "норма", "норма?", "quota", "какая норма", "а какая норма"),
 	)
-	a.Dp.AddHandler(f.New("set_norm", chatHandler.SetNorm).SetAliases("норма", "quota").
+	a.Dp.AddHandler(f.New("set_norm", chatHandler.SetNorm).SetDescription("Установка нормы").SetCategory(command.CategorySettings).SetAliases("норма", "quota").
 		AddTriggers("+").
 		SetRequiredStatus(model.StatusSeniorAdmin).
 		SetArgRules(command.NumberRule(), command.TextRule().SetVariadic(true).SetRange(0, 1)),
 	)
-	a.Dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).SetAliases("норма", "quota").
+	a.Dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).SetDescription("Удалить норму").SetCategory(command.CategorySettings).SetAliases("норма", "quota").
 		AddTriggers("-").
 		SetRequiredStatus(model.StatusSeniorAdmin).
 		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)),
 	)
-	a.Dp.AddHandler(f.New("ship_random", memberHandler.ShipRandom).
+	a.Dp.AddHandler(f.New("ship_random", memberHandler.ShipRandom).SetDescription("Случайный шипперинг").SetCategory(command.CategoryGeneral).
 		SetAliases("рандом шипперим"))
 
-	a.Dp.AddHandler(f.New("set_rest", restHandler.SetRest).SetRequiredStatus(model.StatusModerator).
+	a.Dp.AddHandler(f.New("set_rest", restHandler.SetRest).SetDescription("Выдать рест").SetCategory(command.CategoryModeration).SetRequiredStatus(model.StatusModerator).
 		SetAliases("рест", "rest", "установить рест").
 		AddTriggers("+").
 		SetArgRules(command.AnyUserRule(), command.OneDateRule()),
 	)
-	a.Dp.AddHandler(f.New("rest", restHandler.ShowRest).
+	a.Dp.AddHandler(f.New("rest", restHandler.ShowRest).SetDescription("Информация о ресте").SetCategory(command.CategoryProfile).
 		SetAliases("рест", "rest").
 		SetArgRules(command.AnyUserRule()),
 	)
-	a.Dp.AddHandler(f.New("remove_rest", restHandler.RemoveRestRequest).
+	a.Dp.AddHandler(f.New("remove_rest", restHandler.RemoveRestRequest).SetDescription("Удалить рест").SetCategory(command.CategoryModeration).
 		SetAliases("удалить рест").
 		SetRequiredStatus(model.StatusAdmin).
 		SetArgRules(command.AnyUserRule(), command.NumberRule()),
 	)
-	a.Dp.AddHandler(f.New("end_rest", restHandler.EndRest).SetAliases("рест", "rest", "снять рест").
+	a.Dp.AddHandler(f.New("end_rest", restHandler.EndRest).SetDescription("Досрочно снять рест").SetCategory(command.CategoryModeration).SetAliases("рест", "rest", "снять рест").
 		AddTriggers("-").
 		SetRequiredStatus(model.StatusModerator).
 		SetArgRules(command.AnyUserRule()),
 	)
-	a.Dp.AddHandler(f.New("admins", adminHandler.ListAdmins).
+	a.Dp.AddHandler(f.New("admins", adminHandler.ListAdmins).SetDescription("Список администрации").SetCategory(command.CategoryGeneral).
 		SetAliases("админы", "модеры", "mods"),
 	)
 
-	a.Dp.AddHandler(f.New("add_admin", adminHandler.SetStatus).SetAliases("админ", "admin", "mod").
+	a.Dp.AddHandler(f.New("add_admin", adminHandler.SetStatus).SetDescription("Назначить администратора").SetCategory(command.CategoryAdmin).SetAliases("админ", "admin", "mod").
 		SetArgRules(command.AnyUserRule(), command.NumberRule()).AddTriggers("+").
 		SetRequiredStatus(model.StatusCoOwner),
 	)
-	a.Dp.AddHandler(f.New("is_admin", adminHandler.IsAdmin).SetAliases("админ", "admin", "mod").
+	a.Dp.AddHandler(f.New("is_admin", adminHandler.IsAdmin).SetDescription("Проверка прав администратора").SetCategory(command.CategoryAdmin).SetAliases("админ", "admin", "mod").
 		SetArgRules(command.AnyUserRule()),
 	)
-	a.Dp.AddHandler(f.New("remove_admin", adminHandler.RemoveAdmin).SetAliases("админ", "admin", "mod").
+	a.Dp.AddHandler(f.New("remove_admin", adminHandler.RemoveAdmin).SetDescription("Снять администратора").SetCategory(command.CategoryAdmin).SetAliases("админ", "admin", "mod").
 		SetTriggers("-").SetArgRules(command.MentionedUserRule()).
 		SetRequiredStatus(model.StatusCoOwner),
 	)
@@ -237,11 +232,11 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Мут участника").
 		SetCategory(command.CategoryModeration),
 	)
-	a.Dp.AddHandler(f.New("warns", adminHandler.ShowWarns).
+	a.Dp.AddHandler(f.New("warns", adminHandler.ShowWarns).SetDescription("Список предупреждений").SetCategory(command.CategoryProfile).
 		SetArgRules(command.AnyUserRule()).
 		SetAliases("варны", "преды"),
 	)
-	a.Dp.AddHandler(f.New("warnlist", adminHandler.WarnList).SetAliases("варнлист", "предывсе"))
+	a.Dp.AddHandler(f.New("warnlist", adminHandler.WarnList).SetDescription("Предупреждения в чате").SetCategory(command.CategoryModeration).SetAliases("варнлист", "предывсе"))
 	a.Dp.AddHandler(f.New("warn", adminHandler.Warn).
 		SetAliases("варн", "пред").
 		SetArgRules(command.MentionedUserRule(), command.TextRule().SetVariadic(true).SetRange(0, 1)).
@@ -255,22 +250,22 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Очистить предупреждения").
 		SetCategory(command.CategoryModeration),
 	)
-	a.Dp.AddHandler(f.New("max_warns", adminHandler.ShowMaxWarns).
+	a.Dp.AddHandler(f.New("max_warns", adminHandler.ShowMaxWarns).SetDescription("Максимальное количество предупреждений").SetCategory(command.CategorySettings).
 		SetAliases("макс преды", "макс варны").
 		SetCategory(command.CategoryModeration))
-	a.Dp.AddHandler(f.New("set_max_warns", adminHandler.SetMaxWarns).
+	a.Dp.AddHandler(f.New("set_max_warns", adminHandler.SetMaxWarns).SetDescription("Установить лимит предупреждений").SetCategory(command.CategorySettings).
 		SetAliases("max_warns", "макс преды", "макс варны").
 		AddTriggers("+").
 		SetArgRules(command.NumberRule()).
 		SetRequiredStatus(model.StatusCoOwner),
 	)
-	a.Dp.AddHandler(f.New("rights", adminHandler.ToggleRights).
+	a.Dp.AddHandler(f.New("rights", adminHandler.ToggleRights).SetDescription("Управление правами").SetCategory(command.CategoryAdmin).
 		SetAliases("права", "rights").
 		SetDevCommand(true).
 		SetArgRules(command.AnyUserRule(), command.NumberRule()),
 	)
-	a.Dp.AddHandler(f.New("update_chats", adminHandler.UpdateChats))
-	a.Dp.AddHandler(f.New("update_chat", memberHandler.UpdateMembersList).
+	a.Dp.AddHandler(f.New("update_chats", adminHandler.UpdateChats).SetDescription("Обновить кэш чатов").SetCategory(command.CategoryAdmin))
+	a.Dp.AddHandler(f.New("update_chat", memberHandler.UpdateMembersList).SetDescription("Обновление списка участников").SetCategory(command.CategorySettings).
 		SetAliases("обновить чат", "update").
 		SetRequiredStatus(model.StatusModerator).
 		SetDescription("Обновление списка участников").
@@ -282,7 +277,7 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Список ролей (тегов) участников").
 		SetCategory(command.CategoryStats),
 	)
-	a.Dp.AddHandler(f.New("role", memberHandler.ShowRole).
+	a.Dp.AddHandler(f.New("role", memberHandler.ShowRole).SetDescription("Посмотреть роль").SetCategory(command.CategoryProfile).
 		SetAliases("роль", "title", "какая роль", "роль у", "роль кого"),
 	)
 	a.Dp.AddHandler(f.New("set_role", memberHandler.SetRole).
@@ -304,18 +299,67 @@ func (a *App) RegisterHandlers() {
 		SetAliases("калл тип", "калл стиль"),
 	)
 	a.Dp.AddHandler(handlers.NewCallback(
+		callbackquery.Equal("call_type"),
+		f.New("call_type_callback", callHandler.ShowCallTypes).WrapCallback()),
+	)
+	a.Dp.AddHandler(handlers.NewCallback(
 		callbackquery.Prefix("call_type:"),
-		f.New("call_type", callHandler.CallbackCallType).SetRequiredStatus(model.StatusCoOwner).WrapCallback()),
+		f.New("call_type", callHandler.CallbackCallType).SetRequiredStatus(model.StatusCoOwner).WrapCallback(),
+	))
+	a.Dp.AddHandler(f.New("show_call_message", callHandler.ShowWelcomeCallMessage).
+		SetAliases("калл сообщение").
+		SetProviders(a.UserService, a.MemberService, a.ChatService, sessionService).
+		SetDescription("Показать сообщение сбора").
+		SetCategory(command.CategoryCall),
+	)
+
+	a.Dp.AddHandler(f.New("delete_call_message", callHandler.DeleteWelcomeCallMessage).
+		SetAliases("калл сообщение", "удалить калл сообщение").
+		AddTriggers("-").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Удалить сообщение сбора").
+		SetCategory(command.CategoryCall),
+	)
+
+	a.Dp.AddHandler(f.New("call_no_norm_warn", callHandler.CallNoNormWarn).
+		SetAliases("калл без нормы варн").
+		SetRequiredStatus(model.StatusModerator).
+		SetDescription("Сбор без нормы с предупреждением").
+		SetCategory(command.CategoryCall),
+	)
+
+	a.Dp.AddHandler(f.New("call_no_norm_ban", callHandler.CallNoNormBan).
+		SetAliases("калл без нормы бан").
+		SetRequiredStatus(model.StatusModerator).
+		SetDescription("Сбор без нормы с баном").
+		SetCategory(command.CategoryCall),
+	)
+
+	a.Dp.AddHandler(f.New("call_type", callHandler.ShowCallTypes).
+		SetAliases("калл тип").
+		SetDescription("Показать типы сбора").
+		SetCategory(command.CategoryCall),
 	)
 
 	a.Dp.AddHandler(f.New("set_call_limit", callHandler.SetMentionsPerMessage).
 		SetAliases("калл лимит").
 		SetArgRules(command.NumberRule()).
-		SetRequiredStatus(model.StatusCoOwner),
+		SetRequiredStatus(model.StatusCoOwner).
+		SetDescription("Лимит упоминаний в call").
+		SetCategory(command.CategoryCall),
 	)
 
 	a.Dp.AddHandler(f.New("show_call_limit", callHandler.SetMentionsPerMessage).
-		SetAliases("калл лимит"),
+		SetAliases("калл лимит").
+		SetDescription("Показать лимит call").
+		SetCategory(command.CategoryCall),
+	)
+
+	a.Dp.AddHandler(f.New("call_disable", callHandler.DisableCallOnJoin).
+		SetAliases("отключить call").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Отключить call при входе").
+		SetCategory(command.CategoryCall),
 	)
 
 	a.Dp.AddHandler(f.New("call_inactive", callHandler.CallInactive).
@@ -343,29 +387,41 @@ func (a *App) RegisterHandlers() {
 	)
 	callConversation := handlers.NewConversation(
 		[]ext.Handler{
-			handlers.NewCallback(callbackquery.Equal("call_inactive"), callHandler.StartCallInactiveConversation),
-			handlers.NewCallback(callbackquery.Equal("call_no_norm_warn"), callHandler.StartCallNoNormWarnConversation),
-			handlers.NewCallback(callbackquery.Equal("call_no_norm_ban"), callHandler.StartCallNoNormBanConversation),
-			handlers.NewCallback(callbackquery.Equal("call_no_norm"), callHandler.StartCallNoNormConversation),
+			handlers.NewCallback(callbackquery.Equal("call_inactive"), f.New("start_call_inactive_convo", callHandler.StartCallInactiveConversation).
+				SetRequiredStatus(model.StatusModerator).WrapCallback()),
+			handlers.NewCallback(callbackquery.Equal("call_no_norm_warn"),
+				f.New("start_call_no_norm_convo", callHandler.StartCallNoNormWarnConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
+			handlers.NewCallback(callbackquery.Equal("call_no_norm_ban"),
+				f.New("start_call_no_norm_ban_convo", callHandler.StartCallNoNormBanConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
+			handlers.NewCallback(callbackquery.Equal("call_no_norm"),
+				f.New("start_call_no_norm_convo", callHandler.StartCallNoNormConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
 		},
 		map[string][]ext.Handler{
 			callH.CallStateInactive: {
-				handlers.NewMessage(message.Text, callHandler.HandleCallInactiveMessage),
+				handlers.NewMessage(message.Text,
+					f.New("handle_call_inactive_message", callHandler.HandleCallInactiveMessage).WrapEvent()),
 			},
 			callH.CallStateNoNorm: {
-				handlers.NewMessage(message.Text, callHandler.HandleCallNoNormMessage),
+				handlers.NewMessage(message.Text,
+					f.New("call_no_norm_msg", callHandler.HandleCallNoNormMessage).SetRequiredStatus(model.StatusModerator).WrapEvent()),
 			},
 			callH.CallStateNoNormWarn: {
-				handlers.NewMessage(message.Text, callHandler.HandleCallNoNormWarnMessage),
+				handlers.NewMessage(message.Text, f.New("call_no_norm_warn", callHandler.HandleCallNoNormWarnMessage).
+					SetRequiredStatus(model.StatusModerator).
+					WrapEvent()),
 			},
 			callH.CallStateNoNormBan: {
-				handlers.NewMessage(message.Text, callHandler.HandleCallNoNormBanMessage),
+				handlers.NewMessage(message.Text, f.New("call_no_norm_ban", callHandler.HandleCallNoNormBanMessage).
+					SetRequiredStatus(model.StatusModerator).
+					WrapEvent()),
 			},
 		},
 		&handlers.ConversationOpts{
 			Exits: []ext.Handler{
-				handlers.NewCallback(callbackquery.Prefix("call_cancel"), callHandler.CancelCallConversation),
-				handlers.NewCallback(callbackquery.Prefix("call_nomsg:"), callHandler.NoMessageCallConversation),
+				handlers.NewCallback(callbackquery.Prefix("call_cancel"),
+					f.New("cancel_call_convo", callHandler.CancelCallConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
+				handlers.NewCallback(callbackquery.Prefix("call_nomsg:"),
+					f.New("no_msg_call_convo", callHandler.NoMessageCallConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
 			},
 			StateStorage: conversation.NewInMemoryStorage(conversation.KeyStrategySenderAndChat),
 			AllowReEntry: true,
@@ -380,13 +436,13 @@ func (a *App) RegisterHandlers() {
 		SetCategory(command.CategoryCall),
 	)
 
-	a.Dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt))
+	a.Dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).SetDescription("Системный ИИ промпт").SetCategory(command.CategorySettings))
 
 	a.Dp.AddHandler(
-		handlers.NewMessage(cmd.NewChatTitle,
+		handlers.NewMessage(command.NewChatTitle,
 			f.New("chat_title_change", chatHandler.OnNewChatTitle).WrapEvent()),
 	)
-	a.Dp.AddHandler(f.New("manage", chatHandler.Manage).
+	a.Dp.AddHandler(f.New("manage", chatHandler.Manage).SetDescription("Управление чатом").SetCategory(command.CategorySettings).
 		SetAliases("управление").
 		SetScope(command.ScopeUser),
 	)
@@ -411,10 +467,11 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Отключение тегов").
 		SetCategory(command.CategorySettings),
 	)
-	a.Dp.AddHandler(f.New("tags", chatHandler.ShowTags).
+	a.Dp.AddHandler(f.New("tags", chatHandler.ShowTags).SetDescription("Список тегов").
+		SetCategory(command.CategoryGeneral).
 		SetAliases("tags", "теги", "тэги"))
 
-	a.Dp.AddHandler(f.New("chats", chatHandler.UserChats).
+	a.Dp.AddHandler(f.New("chats", chatHandler.UserChats).SetDescription("Список активных чатов").SetCategory(command.CategoryAdmin).
 		SetAliases("чаты", "нормы", "чаты без нормы"))
 
 	a.Dp.AddHandler(f.New("set_prompt", chatHandler.SetPrompt).SetAliases("промпт").
@@ -424,7 +481,7 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Настройка промпта для ИИ").
 		SetCategory(command.CategorySettings),
 	)
-	a.Dp.AddHandler(f.New("week_start", chatHandler.ShowWeekStart).
+	a.Dp.AddHandler(f.New("week_start", chatHandler.ShowWeekStart).SetDescription("Начало недели для нормы").SetCategory(command.CategorySettings).
 		SetAliases("начало недели", "чистка", "время чистки", "конец чистки"))
 
 	a.Dp.AddHandler(f.New("set_week_start", chatHandler.SetWeekStart).
@@ -447,17 +504,63 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Кастомные префиксы").
 		SetCategory(command.CategorySettings),
 	)
-	a.Dp.AddHandler(f.New("prefix_only", chatHandler.ShowPrefixlessStatus).
-		SetAliases("префиксы", "prefixes"),
-	)
-	a.Dp.AddHandler(f.New("enable_prefix_only", chatHandler.EnablePrefixOnly).
-		SetAliases("с префикса", "с префиксами", "-prefixless", "+префиксы").
-		SetRequiredStatus(model.StatusSeniorAdmin),
+	a.Dp.AddHandler(f.New("show_newbie_treshold", chatHandler.ShowNewbieThreshold).SetDescription("Порог новичка").SetCategory(command.CategorySettings).
+		SetAliases("новички срок").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Показать срок новичка").
+		SetCategory(command.CategorySettings),
 	)
 
-	a.Dp.AddHandler(f.New("disable_prefix_only", chatHandler.DisablePrefixOnly).
-		SetAliases("без префикса", "без префиксов", "+prefixless", "-префиксы").
-		SetRequiredStatus(model.StatusSeniorAdmin),
+	a.Dp.AddHandler(f.New("norm", chatHandler.ShowNorm).SetDescription("Норма сообщений").SetCategory(command.CategorySettings).
+		SetAliases("норма").
+		SetDescription("Показать норму сообщений").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.Dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).SetDescription("Удалить норму").SetCategory(command.CategorySettings).
+		SetAliases("норма").
+		AddTriggers("-").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Удалить норму").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.Dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).SetDescription("Системный ИИ промпт").SetCategory(command.CategorySettings).
+		SetDescription("Показать текущий AI-промпт").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.Dp.AddHandler(f.New("week_start", chatHandler.ShowWeekStart).SetDescription("Начало недели для нормы").SetCategory(command.CategorySettings).
+		SetAliases("начало недели").
+		SetDescription("Показать начало недели").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.Dp.AddHandler(f.New("custom_prefix", chatHandler.ShowPrefix).
+		SetAliases("префикс").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Показать префиксы команд").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.Dp.AddHandler(f.New("prefix_only", chatHandler.ShowPrefixlessStatus).
+		SetAliases("префиксы").
+		SetDescription("Статус обязательного префикса").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.Dp.AddHandler(f.New("enable_prefix_only", chatHandler.EnablePrefixOnly).
+		SetAliases("+префиксы").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Включить обязательный префикс").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.Dp.AddHandler(f.New("a", chatHandler.DisablePrefixOnly).
+		SetAliases("-префиксы").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Отключить обязательный префикс").
+		SetCategory(command.CategorySettings),
 	)
 	a.Dp.AddHandler(f.New("enable_call_on_join", callHandler.EnableCallOnJoin).
 		SetAliases("call_enable", "включить call", "включить колл", "включить калл").
@@ -465,37 +568,34 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Включить призыв при входе").
 		SetCategory(command.CategoryCall),
 	)
-	a.Dp.AddHandler(f.New("call_disable", callHandler.DisableCallOnJoin).
-		SetAliases("отключить call", "отключить колл", "отключить калл").
-		SetRequiredStatus(model.StatusSeniorAdmin),
-	)
-	a.Dp.AddHandler(f.New("ask_ai", messageHandler.Bot).SetAliases("крис").
+
+	a.Dp.AddHandler(f.New("ask_ai", messageHandler.Bot).SetDescription("Вопрос к ИИ").SetCategory(command.CategoryGeneral).SetAliases("крис").
 		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)),
 	)
 
-	a.Dp.AddHandler(f.New("demote", adminHandler.DemoteTgAdmin).
+	a.Dp.AddHandler(f.New("demote", adminHandler.DemoteTgAdmin).SetDescription("Разжаловать администратора в Telegram").SetCategory(command.CategoryAdmin).
 		SetAliases("разжаловать").
 		SetArgRules(command.MentionedUserRule()).
 		SetRequiredStatus(model.StatusSeniorAdmin))
 
-	a.Dp.AddHandler(f.New("fake_leave", adminHandler.FakeLeave).
+	a.Dp.AddHandler(f.New("fake_leave", adminHandler.FakeLeave).SetDescription("Сымитировать выход из чата").SetCategory(command.CategoryGeneral).
 		SetAliases("фейклив", "фейк лив").SetArgRules(command.AnyUserRule()))
 
-	a.Dp.AddHandler(f.New("set_gender", userHandler.SetGender).
+	a.Dp.AddHandler(f.New("set_gender", userHandler.SetGender).SetDescription("Установить пол").SetCategory(command.CategoryProfile).
 		SetAliases("пол", "установить пол").
 		SetArgRules(command.TextRule()),
 	)
-	a.Dp.AddHandler(f.New("gender", userHandler.ShowGender).
+	a.Dp.AddHandler(f.New("gender", userHandler.ShowGender).SetDescription("Посмотреть пол").SetCategory(command.CategoryProfile).
 		SetAliases("пол").
 		SetArgRules(command.AnyUserRule()))
-	a.Dp.AddHandler(f.New("set_emoji", userHandler.SetEmoji).
+	a.Dp.AddHandler(f.New("set_emoji", userHandler.SetEmoji).SetDescription("Установить эмодзи").SetCategory(command.CategoryProfile).
 		SetAliases("эмоджи", "эмодзи").
 		SetArgRules(command.AnyUserRule(), command.TextRule().SetVariadic(true).SetRange(0, 1)))
 
-	a.Dp.AddHandler(f.New("emoji", userHandler.ShowEmoji).SetAliases("эмоджи", "эмодзи").
+	a.Dp.AddHandler(f.New("emoji", userHandler.ShowEmoji).SetDescription("Посмотреть эмодзи").SetCategory(command.CategoryProfile).SetAliases("эмоджи", "эмодзи").
 		SetArgRules(command.AnyUserRule()),
 	)
-	a.Dp.AddHandler(f.New("remove_emoji", userHandler.RemoveEmoji).
+	a.Dp.AddHandler(f.New("remove_emoji", userHandler.RemoveEmoji).SetDescription("Удалить эмодзи").SetCategory(command.CategoryProfile).
 		SetAliases("-эмоджи", "-эмодзи").
 		SetArgRules(command.AnyUserRule()))
 
@@ -523,7 +623,7 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Настройка значка участника").
 		SetCategory(command.CategoryStats),
 	)
-	a.Dp.AddHandler(f.New("member_emoji", memberHandler.ShowEmoji).
+	a.Dp.AddHandler(f.New("member_emoji", memberHandler.ShowEmoji).SetDescription("Посмотреть значок участника").SetCategory(command.CategoryProfile).
 		SetAliases("значок").
 		SetArgRules(command.AnyUserRule()),
 	)
@@ -544,14 +644,23 @@ func (a *App) RegisterHandlers() {
 		handlers.NewMessage(message.NewChatMembers,
 			f.New("new_members", memberHandler.OnJoinMember).WrapEvent()))
 	a.Dp.AddHandler(
-		f.New("subscribe", channelHandler.Subscribe).
+		f.New("subscribe", channelHandler.Subscribe).SetDescription("Подписка на канал").SetCategory(command.CategorySettings).
 			SetRequiredStatus(model.StatusSeniorAdmin).
 			SetDescription("Подписка на канал").
 			SetCategory(command.CategoryStats))
 	a.Dp.AddHandler(
 		handlers.NewCallback(callbackquery.Prefix("unsubscribe"),
-			f.New("unsubscribe", channelHandler.Unsubscribe).WrapCallback()))
+			f.New("unsubscribe", channelHandler.Unsubscribe).SetDescription("Отписка от канала").SetCategory(command.CategorySettings).WrapCallback()))
 	a.Dp.AddHandler(
 		handlers.NewMessage(filter.OnlyGroups, f.New("message", messageHandler.Message).WrapEvent()))
 
+	a.Dp.AddHandler(
+		handlers.NewCallback(callbackquery.Prefix("profile_graph:"),
+			f.New("profile_graph", statsHandler.CallbackProfileGraph).WrapCallback()),
+	)
+
+	a.Dp.AddHandler(
+		handlers.NewCallback(callbackquery.Prefix(""),
+			f.New("callback_all_activity", statsHandler.CallbackAllActivity).WrapCallback(),
+		))
 }

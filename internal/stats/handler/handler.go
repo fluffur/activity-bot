@@ -2,7 +2,6 @@ package handler
 
 import (
 	"activity-bot/internal/chat"
-	"activity-bot/internal/cmd"
 	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
@@ -241,7 +240,7 @@ func (h *Handler) WhoAreUser(
 	return err
 }
 
-func (h *Handler) CallbackProfileGraph(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) CallbackProfileGraph(b *gotgbot.Bot, ctx *command.Context) error {
 	var userID int64
 	if _, err := fmt.Sscanf(ctx.CallbackQuery.Data, "profile_graph:%d", &userID); err != nil {
 		return err
@@ -249,9 +248,12 @@ func (h *Handler) CallbackProfileGraph(b *gotgbot.Bot, ctx *cmd.Context) error {
 
 	_, _ = ctx.CallbackQuery.Answer(b, nil)
 
-	chatID := ctx.TargetChatID()
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
 
-	buf, err := h.service.GetMessageActivityGraph(ctx.StdContext(), chatID, userID)
+	buf, err := h.service.GetMessageActivityGraph(ctx.StdContext(), c.ID, userID)
 	if err != nil || buf == nil {
 		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 			Text: "Недостаточно данных для графика",
@@ -273,14 +275,17 @@ func (h *Handler) CallbackProfileGraph(b *gotgbot.Bot, ctx *cmd.Context) error {
 	return err
 }
 
-func (h *Handler) CallbackAllActivity(b *gotgbot.Bot, ctx *cmd.Context) error {
+func (h *Handler) CallbackAllActivity(b *gotgbot.Bot, ctx *command.Context) error {
 	var userID int64
 	if _, err := fmt.Sscanf(ctx.CallbackQuery.Data, "profile_activity:%d", &userID); err != nil {
 		return err
 	}
-	chatID := ctx.TargetChatID()
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
 
-	m, err := h.service.GetChatMemberStats(ctx.StdContext(), chatID, userID)
+	m, err := h.service.GetChatMemberStats(ctx.StdContext(), c.ID, userID)
 	if err != nil {
 		return err
 	}
@@ -439,44 +444,4 @@ func (h *Handler) ShowNewbies(b *gotgbot.Bot, ctx *command.Context) error {
 	}
 
 	return ctx.ReplyHTML(b, view.FormatNewbies(report))
-}
-
-func (h *Handler) resolvePeriod(ctx *cmd.Context, weekStartDay time.Weekday, weekStartTime string) (*time.Time, *time.Time, error) {
-	if len(ctx.ParsedDates()) > 0 {
-		dates := ctx.ParsedDates()
-		if len(dates) >= 2 {
-			from := dates[0]
-			to := dates[1]
-			if from.After(to) {
-				from, to = to, from
-			}
-			to = time.Date(to.Year(), to.Month(), to.Day(), 23, 59, 59, 0, to.Location())
-			return &from, &to, nil
-		}
-		from := dates[0]
-		return &from, nil, nil
-	}
-
-	period := "неделя"
-	if len(ctx.Args()) > 0 {
-		period = ctx.FirstArgument()
-	}
-
-	switch period {
-	case "неделя", "":
-		from, to := stats.ResolvePeriod(stats.PeriodWeek, time.Now(), int16(weekStartDay), weekStartTime)
-		return from, to, nil
-	case "месяц":
-		from, to := stats.ResolvePeriod(stats.PeriodMonth, time.Now(), int16(weekStartDay), weekStartTime)
-		return from, to, nil
-	case "всё", "все", "всего", "вся":
-		return nil, nil, nil
-	default:
-		dp := helpers.NewDateParser()
-		f, t, ok := dp.ParseRange(ctx.Args())
-		if ok {
-			return f, t, nil
-		}
-		return nil, nil, fmt.Errorf("invalid format")
-	}
 }

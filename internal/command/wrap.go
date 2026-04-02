@@ -39,7 +39,7 @@ func (c *Command) WrapCallback(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Co
 				handlerCtx.senderChatMember = sender
 			}
 		}
-		if c.requiredStatus > 0 && handlerCtx.senderChatMember != nil || !handlerCtx.senderChatMember.StatusGranted(c.requiredStatus) {
+		if c.requiredStatus > 0 && handlerCtx.senderChatMember != nil && !handlerCtx.senderChatMember.StatusGranted(c.requiredStatus) {
 			_, err := cq.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 				Text: fmt.Sprintf("[%d/%d] Недостаточно прав для выполнения команды", handlerCtx.senderChatMember.Status, c.requiredStatus),
 			})

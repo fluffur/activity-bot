@@ -6,7 +6,6 @@ import (
 	service "activity-bot/internal/call"
 	"activity-bot/internal/call/view"
 	"activity-bot/internal/chat"
-	"activity-bot/internal/cmd"
 	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
@@ -251,29 +250,6 @@ func (h *Handler) OnBotPromote(_ *gotgbot.Bot, ctx *command.Context) error {
 	}
 	slog.Info("updated chat members on bot join", "chat_id", ctx.EffectiveChat.Id, "count", count)
 	return nil
-}
-
-func (h *Handler) SetOnlyNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if len(ctx.Users()) == 0 {
-		return ctx.Reply(b, "Укажите хотя бы одного участника", nil)
-	}
-	if err := h.service.SetOnlyNewbies(ctx.StdContext(), ctx.TargetChatID(), ctx.Users()); err != nil {
-		_ = ctx.Reply(b, "Не удалось установить олдов", nil)
-		return err
-	}
-
-	return ctx.Reply(b, "Олды установлены", nil)
-}
-
-func (h *Handler) SetNewbies(b *gotgbot.Bot, ctx *cmd.Context) error {
-	if len(ctx.Users()) == 0 {
-		return ctx.Reply(b, "Укажите хотя бы одного участника", nil)
-	}
-	if err := h.service.SetNewbies(ctx.StdContext(), ctx.TargetChatID(), ctx.Users()); err != nil {
-		return err
-	}
-
-	return ctx.Reply(b, "Новички установлены", nil)
 }
 
 func (h *Handler) ShipRandom(b *gotgbot.Bot, ctx *command.Context) error {

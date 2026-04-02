@@ -4,7 +4,6 @@ import (
 	"activity-bot/internal/admin"
 	"activity-bot/internal/admin/view"
 	"activity-bot/internal/chat"
-	"activity-bot/internal/cmd"
 	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
@@ -442,7 +441,7 @@ func (h *Handler) Unmute(b *gotgbot.Bot, ctx *command.Context) error {
 func (h *Handler) Unwarn(b *gotgbot.Bot, ctx *command.Context) error {
 	u, err := ctx.User()
 	if u == nil {
-		return cmd.ErrNoUser
+		return err
 	}
 
 	count, err := h.service.Unwarn(ctx.StdContext(), u.ChatID, u.User.ID)
@@ -520,8 +519,8 @@ func (h *Handler) ClearWarns(b *gotgbot.Bot, ctx *command.Context) error {
 
 func (h *Handler) FakeLeave(b *gotgbot.Bot, ctx *command.Context) error {
 	m, err := ctx.AnyUser()
-	if m == nil {
-		return cmd.ErrNoUser
+	if err != nil {
+		return err
 	}
 	u := m.User
 	_, err = b.SendMessage(m.ChatID, fmt.Sprintf("🕊 %s %s нас...",

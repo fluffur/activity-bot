@@ -215,8 +215,8 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	handlerCtx.senderChatMember = senderMember
 
 	// args validation
-	textNoPrefix := strings.TrimSpace(strings.TrimPrefix(text, trigger))
-	textNoCommand := strings.TrimSpace(strings.TrimPrefix(textNoPrefix, alias))
+	textNoPrefix := strings.TrimSpace(trimPrefixIgnoreCase(text, trigger))
+	textNoCommand := strings.TrimSpace(trimPrefixIgnoreCase(textNoPrefix, alias))
 	if len(c.argRules) == 0 && textNoCommand != "" {
 		return false
 	}
@@ -437,29 +437,51 @@ func (c *Command) resolveMember(ctx context.Context, chat *model.Chat, userID in
 
 func (c *Command) findTrigger(text string) string {
 	for _, t := range c.triggers {
-		if strings.HasPrefix(text, t) {
+		if hasPrefixIgnoreCase(text, t) {
 			return t
 		}
 	}
 	return ""
 }
 
+func hasPrefixIgnoreCase(s, prefix string) bool {
+	sRunes := []rune(s)
+	prefixRunes := []rune(prefix)
+	if len(prefixRunes) > len(sRunes) {
+		return false
+	}
+	return strings.EqualFold(string(sRunes[:len(prefixRunes)]), prefix)
+}
+
+func trimPrefixIgnoreCase(s, prefix string) string {
+	sRunes := []rune(s)
+	prefixRunes := []rune(prefix)
+	if len(prefixRunes) > len(sRunes) {
+		return s
+	}
+	if strings.EqualFold(string(sRunes[:len(prefixRunes)]), prefix) {
+		return string(sRunes[len(prefixRunes):])
+	}
+	return s
+}
+
 func (c *Command) findAlias(text, trigger, botUsername string) string {
-	text = strings.ToLower(strings.TrimSpace(strings.TrimPrefix(text, trigger)))
+	text = strings.TrimSpace(trimPrefixIgnoreCase(text, trigger))
 	allCommands := append(c.aliases, c.name)
 	for _, alias := range allCommands {
-		if strings.HasPrefix(text, alias) {
-			remaining := strings.TrimPrefix(text, alias)
+		if hasPrefixIgnoreCase(text, alias) {
+			remaining := trimPrefixIgnoreCase(text, alias)
 
 			if strings.HasPrefix(remaining, "@") {
 				atPart := strings.SplitN(remaining, " ", 2)[0]
-				if atPart != "@"+strings.ToLower(botUsername) {
+				if !strings.EqualFold(atPart, "@"+botUsername) {
 					continue
 				}
 				remaining = strings.TrimPrefix(remaining, atPart)
 			}
 
-			if len(remaining) == 0 || isDelimiter(rune(remaining[0])) {
+			remainingRunes := []rune(remaining)
+			if len(remainingRunes) == 0 || isDelimiter(remainingRunes[0]) {
 				return alias
 			}
 		}

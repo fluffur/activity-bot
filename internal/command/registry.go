@@ -16,6 +16,18 @@ const (
 	CategoryAdmin      Category = "Администрирование"
 )
 
+func Categories() []Category {
+	return []Category{
+		CategoryGeneral,
+		CategoryProfile,
+		CategoryModeration,
+		CategoryCall,
+		CategorySettings,
+		CategoryStats,
+		CategoryAdmin,
+	}
+}
+
 func GetDefaultStatus(commands []*Command, key string) model.Status {
 	for _, cmd := range commands {
 		if cmd.Name() == key {

@@ -5,7 +5,6 @@ import (
 	"activity-bot/internal/call"
 	"activity-bot/internal/call/view"
 	"activity-bot/internal/chat"
-	"activity-bot/internal/cmd"
 	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
@@ -20,7 +19,6 @@ import (
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
 	"golang.org/x/time/rate"
 )
@@ -275,7 +273,7 @@ func (h *Handler) doCall(
 					{
 						{
 							Text:         "⚙️ Настроить стили созыва",
-							CallbackData: "call_style",
+							CallbackData: "call_type",
 						},
 					},
 				},
@@ -538,21 +536,19 @@ func (h *Handler) ShowWelcomeCallMessage(b *gotgbot.Bot, ctx *command.Context) e
 
 func (h *Handler) startCallConversation(
 	b *gotgbot.Bot,
-	ctx *ext.Context,
+	ctx *command.Context,
 	nextState string,
 ) error {
-	stdCtx := context.Background()
-
-	chatID, err := cmd.GetChatID(h.sessionService, ctx, stdCtx)
-	if err != nil {
-		chatID = ctx.EffectiveChat.Id
-	}
-	m, err := h.memberService.GetChatMember(stdCtx, chatID, ctx.EffectiveSender.Id())
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
-
-	if !m.StatusGranted(model.StatusModerator) {
+	chatID := c.ID
+	m, err := ctx.Sender()
+	if err != nil {
+		return err
+	}
+	if !m.StatusGranted(ctx.RequiredStatus()) {
 		if ctx.CallbackQuery != nil {
 			_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 				Text:      "Требуются права администратора",
@@ -628,32 +624,32 @@ func (h *Handler) startCallConversation(
 	return handlers.NextConversationState(nextState)
 }
 
-func (h *Handler) StartCallInactiveConversation(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) StartCallInactiveConversation(b *gotgbot.Bot, ctx *command.Context) error {
 	return h.startCallConversation(b, ctx, CallStateInactive)
 }
 
-func (h *Handler) StartCallNoNormConversation(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) StartCallNoNormConversation(b *gotgbot.Bot, ctx *command.Context) error {
 	return h.startCallConversation(b, ctx, CallStateNoNorm)
 }
 
-func (h *Handler) StartCallNoNormWarnConversation(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) StartCallNoNormWarnConversation(b *gotgbot.Bot, ctx *command.Context) error {
 	return h.startCallConversation(b, ctx, CallStateNoNormWarn)
 }
 
-func (h *Handler) StartCallNoNormBanConversation(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) StartCallNoNormBanConversation(b *gotgbot.Bot, ctx *command.Context) error {
 	return h.startCallConversation(b, ctx, CallStateNoNormBan)
 }
 
 func (h *Handler) handleCallWithMessage(
 	b *gotgbot.Bot,
-	ctx *ext.Context,
+	ctx *command.Context,
 	getMembers func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error),
 ) error {
-	stdCtx := context.Background()
+	stdCtx := ctx.StdContext()
 
-	chatID, err := cmd.GetChatID(h.sessionService, ctx, stdCtx)
+	c, err := ctx.Chat()
 	if err != nil {
-		chatID = ctx.EffectiveChat.Id
+		return err
 	}
 
 	if ctx.EffectiveSender != nil {
@@ -661,32 +657,32 @@ func (h *Handler) handleCallWithMessage(
 
 		var promptID int64
 		h.mu.Lock()
-		if byUser, ok := h.promptMessages[chatID]; ok {
+		if byUser, ok := h.promptMessages[c.ID]; ok {
 			if mid, ok2 := byUser[uid]; ok2 {
 				promptID = mid
 				delete(byUser, uid)
 				if len(byUser) == 0 {
-					delete(h.promptMessages, chatID)
+					delete(h.promptMessages, c.ID)
 				}
 			}
 		}
 		h.mu.Unlock()
 
 		if promptID != 0 {
-			m := &gotgbot.Message{MessageId: promptID, Chat: gotgbot.Chat{Id: chatID}}
+			m := &gotgbot.Message{MessageId: promptID, Chat: gotgbot.Chat{Id: c.ID}}
 			if _, ok, errEdit := m.EditReplyMarkup(b, nil); errEdit != nil || !ok {
 				logger.L.Warn(
 					"failed to clear stored call prompt keyboard",
 					"error", errEdit,
 					"edited", ok,
-					"chat_id", chatID,
+					"chat_id", c.ID,
 					"message_id", promptID,
 				)
 			}
 		}
 	}
 
-	members, err := getMembers(stdCtx, chatID)
+	members, err := getMembers(stdCtx, c.ID)
 	if err != nil {
 		return err
 	}
@@ -701,20 +697,20 @@ func (h *Handler) handleCallWithMessage(
 
 	html := ctx.EffectiveMessage.OriginalHTML()
 
-	if err := h.doCall(stdCtx, b, chatID, ctx.EffectiveMessage, html, members); err != nil {
+	if err := h.doCall(stdCtx, b, c.ID, ctx.EffectiveMessage, html, members); err != nil {
 		return err
 	}
 
 	return handlers.EndConversation()
 }
 
-func (h *Handler) HandleCallInactiveMessage(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) HandleCallInactiveMessage(b *gotgbot.Bot, ctx *command.Context) error {
 	return h.handleCallWithMessage(b, ctx, func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
 		return h.service.GetInactiveMembers(stdCtx, chatID)
 	})
 }
 
-func (h *Handler) HandleCallNoNormMessage(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) HandleCallNoNormMessage(b *gotgbot.Bot, ctx *command.Context) error {
 	return h.handleCallWithMessage(
 		b,
 		ctx,
@@ -736,7 +732,7 @@ func (h *Handler) HandleCallNoNormMessage(b *gotgbot.Bot, ctx *ext.Context) erro
 	)
 }
 
-func (h *Handler) HandleCallNoNormWarnMessage(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) HandleCallNoNormWarnMessage(b *gotgbot.Bot, ctx *command.Context) error {
 	return h.handleCallWithMessage(
 		b,
 		ctx,
@@ -758,7 +754,7 @@ func (h *Handler) HandleCallNoNormWarnMessage(b *gotgbot.Bot, ctx *ext.Context) 
 	)
 }
 
-func (h *Handler) HandleCallNoNormBanMessage(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) HandleCallNoNormBanMessage(b *gotgbot.Bot, ctx *command.Context) error {
 	return h.handleCallWithMessage(
 		b,
 		ctx,
@@ -780,7 +776,7 @@ func (h *Handler) HandleCallNoNormBanMessage(b *gotgbot.Bot, ctx *ext.Context) e
 	)
 }
 
-func (h *Handler) CancelCallConversation(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) CancelCallConversation(b *gotgbot.Bot, ctx *command.Context) error {
 	if ctx.CallbackQuery != nil && ctx.CallbackQuery.Message != nil {
 		if _, _, err := ctx.CallbackQuery.Message.EditText(
 			b,
@@ -798,12 +794,12 @@ func (h *Handler) CancelCallConversation(b *gotgbot.Bot, ctx *ext.Context) error
 	return handlers.EndConversation()
 }
 
-func (h *Handler) NoMessageCallConversation(b *gotgbot.Bot, ctx *ext.Context) error {
+func (h *Handler) NoMessageCallConversation(b *gotgbot.Bot, ctx *command.Context) error {
 	stdCtx := context.Background()
 
-	chatID, err := cmd.GetChatID(h.sessionService, ctx, stdCtx)
+	c, err := ctx.Chat()
 	if err != nil {
-		chatID = ctx.EffectiveChat.Id
+		return err
 	}
 
 	state := ""
@@ -818,9 +814,9 @@ func (h *Handler) NoMessageCallConversation(b *gotgbot.Bot, ctx *ext.Context) er
 	var members []model.ChatMember
 	switch state {
 	case CallStateInactive:
-		members, err = h.service.GetInactiveMembers(stdCtx, chatID)
+		members, err = h.service.GetInactiveMembers(stdCtx, c.ID)
 	case CallStateNoNorm:
-		c, gErr := h.chatService.GetChat(stdCtx, chatID)
+		c, gErr := h.chatService.GetChat(stdCtx, c.ID)
 		if gErr != nil {
 			return gErr
 		}
@@ -830,9 +826,9 @@ func (h *Handler) NoMessageCallConversation(b *gotgbot.Bot, ctx *ext.Context) er
 			c.WeekStartDay,
 			c.WeekStartTime,
 		)
-		members, err = h.memberService.GetNoNormMembers(stdCtx, chatID, from, to)
+		members, err = h.memberService.GetNoNormMembers(stdCtx, c.ID, from, to)
 	case CallStateNoNormWarn, CallStateNoNormBan:
-		c, gErr := h.chatService.GetChat(stdCtx, chatID)
+		c, gErr := h.chatService.GetChat(stdCtx, c.ID)
 		if gErr != nil {
 			return gErr
 		}
@@ -842,7 +838,7 @@ func (h *Handler) NoMessageCallConversation(b *gotgbot.Bot, ctx *ext.Context) er
 			c.WeekStartDay,
 			c.WeekStartTime,
 		)
-		members, err = h.memberService.GetNoNormWarnMembers(stdCtx, chatID, from, to)
+		members, err = h.memberService.GetNoNormWarnMembers(stdCtx, c.ID, from, to)
 	default:
 		return handlers.EndConversation()
 	}
@@ -861,7 +857,7 @@ func (h *Handler) NoMessageCallConversation(b *gotgbot.Bot, ctx *ext.Context) er
 		return handlers.EndConversation()
 	}
 
-	if err := h.doCall(stdCtx, b, chatID, ctx.EffectiveMessage, "", members); err != nil {
+	if err := h.doCall(stdCtx, b, c.ID, ctx.EffectiveMessage, "", members); err != nil {
 		return err
 	}
 
