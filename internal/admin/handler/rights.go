@@ -81,26 +81,20 @@ func (h *Handler) CallbackManageRights(b *gotgbot.Bot, ctx *command.Context) err
 			return err
 		}
 
-		var category command.Category
 		configCmds := h.factory.ConfigurableCommands()
-		for _, c := range configCmds {
-			if c.Name() == key {
-				category = c.Category()
-				break
-			}
-		}
 
-		perms, err := h.chatService.GetCommandPermissions(ctx.StdContext(), c.ID)
-		if err != nil {
-			return err
-		}
-		_, _, err = ctx.CallbackQuery.Message.EditText(b, view.FormatCommandsByCategory(category, configCmds, perms), &gotgbot.EditMessageTextOpts{
+		//perms, err := h.chatService.GetCommandPermissions(ctx.StdContext(), c.ID)
+		//if err != nil {
+		//	return err
+		//}
+		_, _, err = ctx.CallbackQuery.Message.EditText(b, view.FormatEditCommandRights(key, status, configCmds), &gotgbot.EditMessageTextOpts{
 			ParseMode:   gotgbot.ParseModeHTML,
-			ReplyMarkup: view.GetCommandsByCategoryKeyboard(category, configCmds, perms),
+			ReplyMarkup: view.GetEditRightsKeyboard(key, status, configCmds),
 		})
 		if err == nil {
 			_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{Text: "Права обновлены"})
 		}
+		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{Text: "Права с этим уровнем уже установлены"})
 		return err
 	}
 

@@ -101,7 +101,7 @@ func FormatEditCommandRights(key string, currentStatus model.Status, commands []
 		formattedAliases[i] = "<code>" + a + "</code>"
 	}
 
-	return fmt.Sprintf("⚙️ %s\nАлиасы: %s\n\nТекущий уровень: %s %s\n\nВыберите новый уровень доступа:",
+	return fmt.Sprintf("⚙️ %s\nСинонимы: %s\n\nТекущий уровень: %s %s\n\nВыберите новый уровень доступа:",
 		config.Description(),
 		strings.Join(formattedAliases, ", "),
 		helpers.StatusEmoji(currentStatus),
