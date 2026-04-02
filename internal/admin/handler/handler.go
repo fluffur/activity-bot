@@ -456,7 +456,7 @@ func (h *Handler) Unwarn(b *gotgbot.Bot, ctx *command.Context) error {
 }
 
 func (h *Handler) ToggleRights(b *gotgbot.Bot, ctx *command.Context) error {
-	u, err := ctx.User()
+	u, err := ctx.AnyUser()
 	if err != nil {
 		return err
 	}
