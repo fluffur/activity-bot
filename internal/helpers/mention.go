@@ -62,7 +62,9 @@ func MemberDisplayName(cm model.ChatMember) string {
 
 func RoleMentionEmoji(cm model.ChatMember) string {
 	var emoji string
-	if cm.User.Emoji != "" {
+	if cm.Emoji != "" {
+		emoji = cm.Emoji + " "
+	} else if cm.User.Emoji != "" {
 		emoji = cm.User.Emoji + " "
 	}
 	return emoji + Mention(cm.User.ID, MemberDisplayName(cm))
