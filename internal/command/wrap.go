@@ -31,14 +31,26 @@ func (c *Command) WrapCallback(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Co
 			}
 		}
 
-		if ctx.EffectiveUser != nil {
-			sender, err := c.resolveMember(stdCtx, handlerCtx.chat, ctx.EffectiveUser.Id)
+		var senderMember *model.ChatMember
+		if ctx.Data != nil && ctx.Data["_cached_sender"] != nil {
+			if cached, ok := ctx.Data["_cached_sender"].(*model.ChatMember); ok {
+				senderMember = cached
+			}
+		}
+		if senderMember == nil && ctx.EffectiveUser != nil {
+			member, err := c.resolveMember(stdCtx, handlerCtx.chat, ctx.EffectiveUser.Id)
 			if err != nil {
 				logger.L.Warn("WrapCallback: resolve sender failed", "error", err)
 			} else {
-				handlerCtx.senderChatMember = sender
+				senderMember = member
+				if ctx.Data == nil {
+					ctx.Data = make(map[string]interface{})
+				}
+				ctx.Data["_cached_sender"] = senderMember
 			}
 		}
+		handlerCtx.senderChatMember = senderMember
+
 		if c.requiredStatus > 0 && handlerCtx.senderChatMember != nil && !handlerCtx.senderChatMember.StatusGranted(c.requiredStatus) {
 			_, err := cq.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 				Text: fmt.Sprintf("[%d/%d] Недостаточно прав для выполнения команды", handlerCtx.senderChatMember.Status, c.requiredStatus),
@@ -91,6 +103,26 @@ func (c *Command) WrapEvent(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Conte
 				handlerCtx.chat = &chat
 			}
 		}
+
+		var senderMember *model.ChatMember
+		if ctx.Data != nil && ctx.Data["_cached_sender"] != nil {
+			if cached, ok := ctx.Data["_cached_sender"].(*model.ChatMember); ok {
+				senderMember = cached
+			}
+		}
+		if senderMember == nil && ctx.EffectiveUser != nil {
+			member, err := c.resolveMember(stdCtx, handlerCtx.chat, ctx.EffectiveUser.Id)
+			if err != nil {
+				logger.L.Warn("WrapEvent: resolve sender failed", "error", err)
+			} else {
+				senderMember = member
+				if ctx.Data == nil {
+					ctx.Data = make(map[string]interface{})
+				}
+				ctx.Data["_cached_sender"] = senderMember
+			}
+		}
+		handlerCtx.senderChatMember = senderMember
 
 		var eventUsers []gotgbot.User
 		switch {

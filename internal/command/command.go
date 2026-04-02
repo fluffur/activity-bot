@@ -560,7 +560,7 @@ func (c *Command) getChat(ctx *ext.Context, stdCtx context.Context) (model.Chat,
 	var err error
 
 	if ctx.EffectiveChat.Type == gotgbot.ChatTypePrivate {
-		chat, err = c.sessionService.GetChat(stdCtx, msg.From.Id)
+		chat, err = c.sessionService.GetChat(stdCtx, ctx.EffectiveSender.Id())
 		if err != nil {
 			return model.Chat{}, errors.Wrap(err, "failed to get chat from private messages")
 		}

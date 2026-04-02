@@ -453,7 +453,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.Dp.AddHandler(
 		handlers.NewCallback(callbackquery.Prefix("manage:"),
-			f.New("set_manage", chatHandler.CallbackManage).WrapCallback()),
+			f.New("set_manage", chatHandler.CallbackManage).SetScope(command.ScopeUser).WrapCallback()),
 	)
 
 	a.Dp.AddHandler(
