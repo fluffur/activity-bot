@@ -279,9 +279,6 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Список ролей (тегов) участников").
 		SetCategory(command.CategoryStats),
 	)
-	a.Dp.AddHandler(f.New("role", memberHandler.ShowRole).SetDescription("Посмотреть роль").SetCategory(command.CategoryProfile).
-		SetAliases("роль", "title", "какая роль", "роль у", "роль кого"),
-	)
 	a.Dp.AddHandler(f.New("set_role", memberHandler.SetRole).
 		SetAliases("роль", "title").
 		AddTriggers("+").
@@ -290,6 +287,12 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Присвоение ролей участникам").
 		SetCategory(command.CategoryStats),
 	)
+	a.Dp.AddHandler(f.New("role", memberHandler.ShowRole).SetDescription("Посмотреть роль").
+		SetArgRules(command.AnyUserRule()).
+		SetCategory(command.CategoryProfile).
+		SetAliases("роль", "title", "какая роль", "роль у", "роль кого"),
+	)
+
 	a.Dp.AddHandler(f.New("move_admins", memberHandler.RestoreRoles).
 		SetAliases("перенести админки").
 		SetRequiredStatus(model.StatusModerator).
