@@ -207,10 +207,23 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	}
 
 	// sender
-	senderMember, err := c.resolveMember(stdCtx, handlerCtx.chat, msg.From.Id)
-	if err != nil {
-		logger.L.Error("get chat member failed", "error", err)
-		return false
+	var senderMember *model.ChatMember
+	if ctx.Data != nil && ctx.Data["_cached_sender"] != nil {
+		if cached, ok := ctx.Data["_cached_sender"].(*model.ChatMember); ok {
+			senderMember = cached
+		}
+	}
+	if senderMember == nil {
+		member, err := c.resolveMember(stdCtx, handlerCtx.chat, msg.From.Id)
+		if err != nil {
+			logger.L.Error("get chat member failed", "error", err)
+			return false
+		}
+		senderMember = member
+		if ctx.Data == nil {
+			ctx.Data = make(map[string]interface{})
+		}
+		ctx.Data["_cached_sender"] = senderMember
 	}
 	handlerCtx.senderChatMember = senderMember
 
@@ -503,22 +516,34 @@ func isValidReply(replyToMessage *gotgbot.Message) bool {
 }
 
 func (c *Command) getChat(ctx *ext.Context, stdCtx context.Context) (model.Chat, error) {
+	if ctx.Data != nil {
+		if cached, ok := ctx.Data["_cached_chat"].(model.Chat); ok {
+			return cached, nil
+		}
+	}
+
 	msg := ctx.EffectiveMessage
 
+	var chat model.Chat
+	var err error
+
 	if ctx.EffectiveChat.Type == gotgbot.ChatTypePrivate {
-		chat, err := c.sessionService.GetChat(stdCtx, msg.From.Id)
+		chat, err = c.sessionService.GetChat(stdCtx, msg.From.Id)
 		if err != nil {
 			return model.Chat{}, errors.Wrap(err, "failed to get chat from private messages")
 		}
-		return chat, nil
+	} else {
+		chat, err = c.chatProvider.GetChat(stdCtx, msg.Chat.Id)
+		if err != nil {
+			return model.Chat{}, errors.Wrap(err, "failed to get chat from group")
+		}
 	}
 
-	chat, err := c.chatProvider.GetChat(stdCtx, msg.Chat.Id)
-	if err != nil {
-		return model.Chat{}, errors.Wrap(err, "failed to get chat from group")
+	if ctx.Data == nil {
+		ctx.Data = make(map[string]interface{})
 	}
+	ctx.Data["_cached_chat"] = chat
 	return chat, nil
-
 }
 
 func (c *Command) extractMembersFromEntities(
