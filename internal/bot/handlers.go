@@ -137,7 +137,9 @@ func (a *App) RegisterHandlers() {
 		SetAliases("новички"),
 	)
 
-	a.Dp.AddHandler(f.New("norm", chatHandler.ShowNorm).SetDescription("Норма сообщений").SetCategory(command.CategorySettings).
+	a.Dp.AddHandler(f.New("norm", chatHandler.ShowNorm).
+		SetDescription("Посмотреть норму сообщений").
+		SetCategory(command.CategorySettings).
 		SetAliases("норма какая", "а норма какая", "норма", "норма?", "quota", "какая норма", "а какая норма"),
 	)
 	a.Dp.AddHandler(f.New("set_norm", chatHandler.SetNorm).SetDescription("Установка нормы").SetCategory(command.CategorySettings).SetAliases("норма", "quota").
@@ -508,12 +510,6 @@ func (a *App) RegisterHandlers() {
 		SetAliases("новички срок").
 		SetRequiredStatus(model.StatusSeniorAdmin).
 		SetDescription("Показать срок новичка").
-		SetCategory(command.CategorySettings),
-	)
-
-	a.Dp.AddHandler(f.New("norm", chatHandler.ShowNorm).SetDescription("Норма сообщений").SetCategory(command.CategorySettings).
-		SetAliases("норма").
-		SetDescription("Показать норму сообщений").
 		SetCategory(command.CategorySettings),
 	)
 
