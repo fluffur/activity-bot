@@ -4,7 +4,6 @@ import (
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
-	"activity-bot/internal/norm"
 )
 
 func mapUser(u db.User) model.User {
@@ -128,13 +127,6 @@ func mapApprovedRestRequest(rr db.RestRequest, cm db.ChatMember, u db.User) mode
 	return model.ApprovedRestRequest{
 		RestRequest: mapRestRequest(rr),
 		ChatMember:  mapChatMemberFull(cm, u),
-	}
-}
-
-func mapChatNorm(n db.ChatNorm) norm.ChatNorm {
-	return norm.ChatNorm{
-		Name:  n.Name,
-		Value: n.Value,
 	}
 }
 

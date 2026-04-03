@@ -22,7 +22,10 @@ import (
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
+	"github.com/celestix/gotgproto"
+	"github.com/celestix/gotgproto/sessionMaker"
 	"github.com/cohesion-org/deepseek-go"
+	"github.com/glebarez/sqlite"
 	"github.com/gotd/td/telegram"
 	"github.com/hibiken/asynq"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -73,6 +76,12 @@ func NewApp(cfg config.Config) (*App, error) {
 	)
 
 	gotdReady := make(chan struct{})
+	newClient, err := gotgproto.NewClient(cfg.AppID, cfg.AppHash, gotgproto.ClientTypeBot(cfg.BotToken), &gotgproto.ClientOpts{
+		Session: sessionMaker.SqlSession(sqlite.Open("activity_bot")),
+	})
+	if err != nil {
+		return nil, err
+	}
 	gotdClient := telegram.NewClient(cfg.AppID, cfg.AppHash, telegram.Options{
 		SessionStorage: &telegram.FileSessionStorage{Path: cfg.SessionPath},
 		NoUpdates:      true, // Disable updates to save memory

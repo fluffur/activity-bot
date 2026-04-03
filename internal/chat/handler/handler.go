@@ -446,16 +446,18 @@ func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *command.Context) error {
 	if err != nil {
 		return err
 	}
-	m, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, ctx.EffectiveUser.Id)
-	if err != nil {
-		return err
-	}
-	if !m.StatusGranted(model.StatusModerator) && h.adminService.OwnerID() != m.User.ID {
-		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text:      "У вас больше нет прав администратора в этом чате",
-			ShowAlert: true,
-		})
-		return err
+	if h.adminService.OwnerID() != ctx.EffectiveSender.Id() {
+		m, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, ctx.EffectiveUser.Id)
+		if err != nil {
+			return err
+		}
+		if !m.StatusGranted(ctx.RequiredStatus()) {
+			_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+				Text:      "У вас больше нет прав администратора в этом чате",
+				ShowAlert: true,
+			})
+			return err
+		}
 	}
 
 	if err := h.sessionService.SetActiveChat(ctx.StdContext(), ctx.EffectiveUser.Id, chatID); err != nil {

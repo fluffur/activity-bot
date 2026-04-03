@@ -47,6 +47,7 @@ SELECT c.*
 FROM chats c
 WHERE c.id < 0
   AND c.title <> ''
+  AND c.bot_removed_at IS NULL
 ORDER BY (SELECT COUNT(*)
           FROM messages m
           WHERE m.chat_id = c.id) DESC;
@@ -182,10 +183,16 @@ WHERE chat_id = $1;
 -- name: GetCommandPermission :one
 SELECT *
 FROM command_permissions
-WHERE chat_id = $1 AND command_key = $2;
+WHERE chat_id = $1
+  AND command_key = $2;
 
 -- name: SetCommandPermission :exec
 INSERT INTO command_permissions (chat_id, command_key, required_status)
 VALUES ($1, $2, $3)
 ON CONFLICT (chat_id, command_key) DO UPDATE
-SET required_status = EXCLUDED.required_status;
+    SET required_status = EXCLUDED.required_status;
+
+-- name: SetChatDeletedBotAt :exec
+UPDATE chats
+SET bot_removed_at = $1
+WHERE id = $2;

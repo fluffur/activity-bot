@@ -3,6 +3,7 @@ package chat
 import (
 	"activity-bot/internal/model"
 	"context"
+	"time"
 )
 
 type Repository interface {
@@ -35,4 +36,5 @@ type Repository interface {
 	GetCommandPermissions(ctx context.Context, chatID int64) (map[string]model.Status, error)
 	GetCommandPermission(ctx context.Context, chatID int64, key string) (model.Status, error)
 	SetCommandPermission(ctx context.Context, chatID int64, key string, status model.Status) error
+	SetBotDeletedAt(ctx context.Context, chatID int64, time time.Time) error
 }

@@ -489,7 +489,10 @@ func (h *Handler) UpdateChats(b *gotgbot.Bot, ctx *command.Context) error {
 
 		ch, err := b.GetChat(c.ID, nil)
 		if err != nil {
-			slog.Error("failed to get chat", "chat", c, "err", err)
+			slog.Warn("failed to get chat, removing from list...", "chat", c, "err", err)
+			if err := h.chatService.SetBotDeleted(ctx.StdContext(), c.ID, time.Now()); err != nil {
+				return err
+			}
 			continue
 		}
 		logger.L.Info("found chat title", "title", ch.Title, "id", ch.Id)

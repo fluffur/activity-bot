@@ -105,24 +105,25 @@ type BotDeveloper struct {
 }
 
 type Chat struct {
-	ID                  int64       `db:"id" json:"id"`
-	NormWarn            pgtype.Int4 `db:"norm_warn" json:"normWarn"`
-	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
-	AiSystemPrompt      pgtype.Text `db:"ai_system_prompt" json:"aiSystemPrompt"`
-	MaxLadder           int32       `db:"max_ladder" json:"maxLadder"`
-	CallOnJoin          bool        `db:"call_on_join" json:"callOnJoin"`
-	WelcomeCallMessage  pgtype.Text `db:"welcome_call_message" json:"welcomeCallMessage"`
-	WeekStartDay        int16       `db:"week_start_day" json:"weekStartDay"`
-	MaxWarns            int32       `db:"max_warns" json:"maxWarns"`
-	NormBan             pgtype.Int4 `db:"norm_ban" json:"normBan"`
-	CommandPrefix       pgtype.Text `db:"command_prefix" json:"commandPrefix"`
-	AllowPrefixless     bool        `db:"allow_prefixless" json:"allowPrefixless"`
-	MentionsPerMessage  int32       `db:"mentions_per_message" json:"mentionsPerMessage"`
-	MentionTypes        int32       `db:"mention_types" json:"mentionTypes"`
-	Title               string      `db:"title" json:"title"`
-	TagsEnabled         bool        `db:"tags_enabled" json:"tagsEnabled"`
-	WeekStartTime       pgtype.Time `db:"week_start_time" json:"weekStartTime"`
-	BroadcastEnabled    bool        `db:"broadcast_enabled" json:"broadcastEnabled"`
+	ID                  int64              `db:"id" json:"id"`
+	NormWarn            pgtype.Int4        `db:"norm_warn" json:"normWarn"`
+	NewbieThresholdDays int32              `db:"newbie_threshold_days" json:"newbieThresholdDays"`
+	AiSystemPrompt      pgtype.Text        `db:"ai_system_prompt" json:"aiSystemPrompt"`
+	MaxLadder           int32              `db:"max_ladder" json:"maxLadder"`
+	CallOnJoin          bool               `db:"call_on_join" json:"callOnJoin"`
+	WelcomeCallMessage  pgtype.Text        `db:"welcome_call_message" json:"welcomeCallMessage"`
+	WeekStartDay        int16              `db:"week_start_day" json:"weekStartDay"`
+	MaxWarns            int32              `db:"max_warns" json:"maxWarns"`
+	NormBan             pgtype.Int4        `db:"norm_ban" json:"normBan"`
+	CommandPrefix       pgtype.Text        `db:"command_prefix" json:"commandPrefix"`
+	AllowPrefixless     bool               `db:"allow_prefixless" json:"allowPrefixless"`
+	MentionsPerMessage  int32              `db:"mentions_per_message" json:"mentionsPerMessage"`
+	MentionTypes        int32              `db:"mention_types" json:"mentionTypes"`
+	Title               string             `db:"title" json:"title"`
+	TagsEnabled         bool               `db:"tags_enabled" json:"tagsEnabled"`
+	WeekStartTime       pgtype.Time        `db:"week_start_time" json:"weekStartTime"`
+	BroadcastEnabled    bool               `db:"broadcast_enabled" json:"broadcastEnabled"`
+	BotRemovedAt        pgtype.Timestamptz `db:"bot_removed_at" json:"botRemovedAt"`
 }
 
 type ChatMember struct {
@@ -135,19 +136,6 @@ type ChatMember struct {
 	RestReason pgtype.Text        `db:"rest_reason" json:"restReason"`
 	Emoji      pgtype.Text        `db:"emoji" json:"emoji"`
 	Status     int16              `db:"status" json:"status"`
-}
-
-type ChatMemberNorm struct {
-	ChatID int64 `db:"chat_id" json:"chatId"`
-	UserID int64 `db:"user_id" json:"userId"`
-	NormID int64 `db:"norm_id" json:"normId"`
-}
-
-type ChatNorm struct {
-	ID     int64  `db:"id" json:"id"`
-	ChatID int64  `db:"chat_id" json:"chatId"`
-	Name   string `db:"name" json:"name"`
-	Value  int32  `db:"value" json:"value"`
 }
 
 type CommandPermission struct {

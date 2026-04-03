@@ -3,6 +3,7 @@ package chat
 import (
 	"activity-bot/internal/model"
 	"context"
+	"time"
 )
 
 type Service struct {
@@ -125,4 +126,8 @@ func (s *Service) GetCommandPermission(ctx context.Context, chatID int64, key st
 
 func (s *Service) SetCommandPermission(ctx context.Context, chatID int64, key string, status model.Status) error {
 	return s.repo.SetCommandPermission(ctx, chatID, key, status)
+}
+
+func (s *Service) SetBotDeleted(stdContext context.Context, chatID int64, time time.Time) error {
+	return s.repo.SetBotDeletedAt(stdContext, chatID, time)
 }
