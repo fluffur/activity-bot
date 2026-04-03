@@ -44,15 +44,14 @@ const (
 )
 
 type Command struct {
-	name        string
-	scope       Scope
-	response    Response
-	category    Category
-	argRules    []ArgRule
-	description string
-	triggers    []string
-	aliases     []string
-
+	name         string
+	scope        Scope
+	response     Response
+	category     Category
+	argRules     []ArgRule
+	description  string
+	triggers     []string
+	aliases      []string
 	isDevCommand bool
 	devID        int64
 

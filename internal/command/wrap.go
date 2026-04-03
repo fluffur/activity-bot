@@ -11,7 +11,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-func (c *Command) WrapCallback(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
+func (c *Command) WrapCallback() func(b *gotgbot.Bot, ctx *ext.Context) error {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 		stdCtx := context.Background()
 
@@ -64,18 +64,6 @@ func (c *Command) WrapCallback(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Co
 		}
 		handlerCtx.texts = strings.Fields(handlerCtx.RawArgs)
 
-		for _, g := range guards {
-			if ok, msg := g.Check(b, handlerCtx); !ok {
-				if msg != "" {
-					_, _ = cq.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-						Text:      msg,
-						ShowAlert: true,
-					})
-				}
-				return nil
-			}
-		}
-
 		if err := c.response(b, handlerCtx); err != nil {
 			return err
 		}
@@ -85,7 +73,7 @@ func (c *Command) WrapCallback(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Co
 	}
 }
 
-func (c *Command) WrapEvent(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Context) error {
+func (c *Command) WrapEvent() func(b *gotgbot.Bot, ctx *ext.Context) error {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 		stdCtx := context.Background()
 		msg := ctx.Message
@@ -148,17 +136,6 @@ func (c *Command) WrapEvent(guards ...Guard) func(b *gotgbot.Bot, ctx *ext.Conte
 				}
 			}
 			handlerCtx.chatMembers = append(handlerCtx.chatMembers, *m)
-		}
-
-		for _, g := range guards {
-			if ok, msg := g.Check(b, handlerCtx); !ok {
-				if msg != "" && ctx.EffectiveMessage != nil {
-					_, _ = ctx.EffectiveMessage.Reply(b, msg, &gotgbot.SendMessageOpts{
-						ParseMode: gotgbot.ParseModeHTML,
-					})
-				}
-				return nil
-			}
 		}
 
 		return c.response(b, handlerCtx)
