@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -142,8 +143,17 @@ func (a *App) Run(ctx context.Context) error {
 
 	a.RegisterHandlers()
 	go func() {
-		if err := a.startGotd(ctx); err != nil {
-			slog.Error("gotd start failed", "error", err)
+		var readyOnce sync.Once
+		for {
+			if err := a.startGotd(ctx, &readyOnce); err != nil {
+				slog.Error("gotd start failed, reconnecting in 10s", "error", err)
+			}
+
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(10 * time.Second):
+			}
 		}
 	}()
 
@@ -283,7 +293,7 @@ func (a *App) setupBot() error {
 	return err
 }
 
-func (a *App) startGotd(ctx context.Context) error {
+func (a *App) startGotd(ctx context.Context, readyOnce *sync.Once) error {
 	return a.GotdClient.Run(ctx, func(ctx context.Context) error {
 		status, err := a.GotdClient.Auth().Status(ctx)
 		if err != nil {
@@ -294,7 +304,9 @@ func (a *App) startGotd(ctx context.Context) error {
 				return err
 			}
 		}
-		close(a.GotdReady)
+		readyOnce.Do(func() {
+			close(a.GotdReady)
+		})
 		slog.Info("Gotd client has been started")
 		<-ctx.Done()
 		return nil
