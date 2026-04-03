@@ -266,10 +266,13 @@ func (a *App) RegisterHandlers() {
 		SetDevCommand(true).
 		SetArgRules(command.AnyUserRule(), command.NumberRule()),
 	)
-	a.Dp.AddHandler(f.New("update_chats", adminHandler.UpdateChats).SetDescription("Обновить кэш чатов").SetCategory(command.CategoryAdmin))
+	a.Dp.AddHandler(f.New("update_chats", adminHandler.UpdateChats).
+		SetDescription("Обновить кэш чатов").
+		SetCategory(command.CategoryAdmin).
+		SetDevCommand(true))
 	a.Dp.AddHandler(f.New("update_chat", memberHandler.UpdateMembersList).SetDescription("Обновление списка участников").SetCategory(command.CategorySettings).
 		SetAliases("обновить чат", "update").
-		SetRequiredStatus(model.StatusModerator).
+		SetRequiredStatus(model.StatusMember).
 		SetDescription("Обновление списка участников").
 		SetCategory(command.CategorySettings),
 	)
