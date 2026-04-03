@@ -92,6 +92,8 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *command.Context) error {
 			return ctx.Reply(b, "Я не могу менять роль создателя чата", nil)
 		}
 
+		_ = ctx.Reply(b, fmt.Sprintf("Не удалось установить роль: %s", err.Error()), nil)
+
 		return fmt.Errorf("failed to set member title: %w", err)
 	}
 
@@ -248,6 +250,11 @@ func (h *Handler) OnBotPromote(_ *gotgbot.Bot, ctx *command.Context) error {
 	if err := h.chatService.SetTitle(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveChat.Title); err != nil {
 		return err
 	}
+
+	if err := h.chatService.SetBotDeleted(ctx.StdContext(), ctx.EffectiveChat.Id, time.Time{}); err != nil {
+		return err
+	}
+
 	slog.Info("updated chat members on bot join", "chat_id", ctx.EffectiveChat.Id, "count", count)
 	return nil
 }
