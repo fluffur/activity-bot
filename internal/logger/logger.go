@@ -15,7 +15,7 @@ func Init(debug bool) {
 			AddSource: true,
 		})
 	} else {
-		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			Level:     slog.LevelInfo,
 			AddSource: true,
 		})
