@@ -6,16 +6,14 @@ import (
 	"errors"
 	"time"
 
-	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
+	"github.com/celestix/gotgproto/ext"
 )
 
 var ErrNoValue = errors.New("no value found")
 
-type Response func(b *gotgbot.Bot, ctx *Context) error
+type Response func(ctx *Context, u *ext.Update) error
 
 type Context struct {
-	stdContext context.Context
 	*ext.Context
 	RawArgs     string
 	RawArgsHTML string
@@ -38,24 +36,7 @@ type Context struct {
 }
 
 func (c *Context) StdContext() context.Context {
-	return c.stdContext
-}
-
-func (c *Context) Reply(b *gotgbot.Bot, text string, opts *gotgbot.SendMessageOpts) error {
-	_, err := c.EffectiveMessage.Reply(b, text, opts)
-
-	return err
-}
-
-func (c *Context) ReplyHTML(b *gotgbot.Bot, text string) error {
-	_, err := c.EffectiveMessage.Reply(b, text, &gotgbot.SendMessageOpts{
-		ParseMode: "HTML",
-		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-			IsDisabled: true,
-		},
-	})
-
-	return err
+	return c.Context.Context
 }
 
 func (c *Context) Chat() (model.Chat, error) {

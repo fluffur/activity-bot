@@ -24,7 +24,7 @@ func NewCommandFactory(up UserProvider, mp ChatMemberProvider, cp ChatProvider, 
 func (f *Factory) New(name string, response Response) *Command {
 	cmd := NewCommand(name, response).
 		SetDevID(f.devID).
-		SetTriggers(f.defaultTriggers...).
+		SetPrefixes(f.defaultTriggers...).
 		SetProviders(f.userProvider, f.memberProvider, f.chatProvider, f.sessionService)
 	f.commands = append(f.commands, cmd)
 

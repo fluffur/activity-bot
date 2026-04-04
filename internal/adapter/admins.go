@@ -6,29 +6,21 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gotd/td/telegram"
+	"github.com/celestix/gotgproto"
 	"github.com/gotd/td/tg"
 )
 
 type TelegramChatMembersProvider struct {
-	client *telegram.Client
-	ready  chan struct{}
+	client *gotgproto.Client
 }
 
-func NewTelegramChatMembersProvider(client *telegram.Client, ready chan struct{}) *TelegramChatMembersProvider {
+func NewTelegramChatMembersProvider(client *gotgproto.Client) *TelegramChatMembersProvider {
 	return &TelegramChatMembersProvider{
 		client: client,
-		ready:  ready,
 	}
 }
 
 func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID int64) ([]model.ChatMemberUpdate, error) {
-	select {
-	case <-p.ready:
-	case <-time.After(time.Second * 15):
-		return nil, errors.New("telegram client not ready")
-	}
-
 	var result []model.ChatMemberUpdate
 
 	peerID := chatID

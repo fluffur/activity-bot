@@ -1,6 +1,10 @@
 package model
 
-import "html"
+import (
+	"html"
+
+	"github.com/gotd/td/tg"
+)
 
 const (
 	GenderMale   = "male"
@@ -26,4 +30,10 @@ func (u User) DisplayName() string {
 		name += " " + u.LastName
 	}
 	return html.EscapeString(name)
+}
+
+func (u User) AsInput() *tg.InputUser {
+	return &tg.InputUser{
+		UserID: u.ID,
+	}
 }

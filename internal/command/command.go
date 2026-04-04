@@ -2,7 +2,6 @@ package command
 
 import (
 	"activity-bot/internal/helpers"
-	"activity-bot/internal/logger"
 	"activity-bot/internal/model"
 	"context"
 	"fmt"
@@ -11,9 +10,10 @@ import (
 	"unicode"
 	"unicode/utf16"
 
-	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
+	"github.com/celestix/gotgproto/ext"
+	"github.com/celestix/gotgproto/types"
 	"github.com/go-faster/errors"
+	"github.com/gotd/td/tg"
 )
 
 type UserProvider interface {
@@ -29,6 +29,7 @@ type ChatMemberProvider interface {
 
 type ChatProvider interface {
 	GetChat(ctx context.Context, chatID int64) (model.Chat, error)
+	EnsureChatExists(ctx context.Context, chatID int64, title string) (model.Chat, error)
 	GetCommandPermission(ctx context.Context, chatID int64, name string) (model.Status, error)
 }
 
@@ -50,12 +51,12 @@ type Command struct {
 	category     Category
 	argRules     []ArgRule
 	description  string
-	triggers     []string
+	prefixes     []string
 	aliases      []string
 	isDevCommand bool
 	devID        int64
 
-	requireTrigger bool
+	requirePrefix  bool
 	requiredStatus model.Status
 
 	userProvider       UserProvider
@@ -136,17 +137,17 @@ func (c *Command) SetDescription(description string) *Command {
 }
 
 func (c *Command) Triggers() []string {
-	return c.triggers
+	return c.prefixes
 }
 
-func (c *Command) SetTriggers(triggers ...string) *Command {
-	c.triggers = triggers
+func (c *Command) SetPrefixes(prefixes ...string) *Command {
+	c.prefixes = prefixes
 
 	return c
 }
 
-func (c *Command) AddTriggers(triggers ...string) *Command {
-	c.triggers = append(c.triggers, triggers...)
+func (c *Command) AddPrefixes(prefixes ...string) *Command {
+	c.prefixes = append(c.prefixes, prefixes...)
 
 	return c
 }
@@ -161,104 +162,73 @@ func (c *Command) SetAliases(aliases ...string) *Command {
 	return c
 }
 
-const (
-	EntityTypeMention     = "mention"
-	EntityTypeTextMention = "text_mention"
-	EntityTypeUrl         = "url"
-)
-
-func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
-	stdCtx := context.Background()
-	handlerCtx := Context{stdContext: stdCtx}
-
-	msg := ctx.Message
-	if msg == nil || msg.ForwardOrigin != nil || msg.GetText() == "" {
-		return false
+func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
+	handlerCtx := Context{Context: ctx}
+	m := u.EffectiveMessage
+	if m == nil || m.Text == "" {
+		return nil
 	}
 
-	text := msg.GetText()
-	entities := msg.GetEntities()
+	text := m.Text
+	entities := m.Entities
 
 	if c.scope == ScopeChat {
-		chat, err := c.getChat(ctx, stdCtx)
+		chat, err := c.getChat(ctx, u)
 		if err != nil {
-			logger.L.Warn("get chat failed", "error", err)
-			return false
+			return errors.Wrap(err, "get chat failed")
 		}
 		handlerCtx.chat = &chat
-		c.triggers = append(c.triggers, chat.CommandPrefix)
-		c.requireTrigger = !chat.AllowPrefixless
+		c.prefixes = append(c.prefixes, chat.CommandPrefix)
+		c.requirePrefix = !chat.AllowPrefixless
 		handlerCtx.requiredStatus = c.requiredStatus
-		if s, err := c.chatProvider.GetCommandPermission(stdCtx, chat.ID, c.name); err == nil {
+		if s, err := c.chatProvider.GetCommandPermission(ctx.Context, chat.ID, c.name); err == nil {
 			c.requiredStatus = s
 			handlerCtx.requiredStatus = s
 		}
 	}
 
 	// command validation
-	trigger := c.findTrigger(text)
-	if c.requireTrigger && trigger == "" {
-		return false
+	prefix := c.findPrefix(text)
+	if c.requirePrefix && prefix == "" {
+		return nil
 	}
-
-	alias := c.findAlias(text, trigger, b.User.Username)
+	alias := c.findAlias(text, prefix, ctx.Self.Username)
 	if alias == "" {
-		return false
+		return nil
 	}
 
 	// sender
-	var senderMember *model.ChatMember
-	if ctx.Data != nil && ctx.Data["_cached_sender"] != nil {
-		if cached, ok := ctx.Data["_cached_sender"].(*model.ChatMember); ok {
-			senderMember = cached
-		}
+	member, err := c.resolveMember(ctx.Context, handlerCtx.chat, u.EffectiveUser().GetID())
+	if err != nil {
+		return errors.Wrap(err, "resolve sender failed")
 	}
-	if senderMember == nil {
-		member, err := c.resolveMember(stdCtx, handlerCtx.chat, msg.From.Id)
-		if err != nil {
-			logger.L.Error("get chat member failed", "error", err)
-			return false
-		}
-		senderMember = member
-		if ctx.Data == nil {
-			ctx.Data = make(map[string]interface{})
-		}
-		ctx.Data["_cached_sender"] = senderMember
-	}
-	handlerCtx.senderChatMember = senderMember
+	handlerCtx.senderChatMember = member
 
 	// args validation
-	textNoPrefix := strings.TrimSpace(trimPrefixIgnoreCase(text, trigger))
-	textNoCommand := strings.TrimSpace(trimPrefixIgnoreCase(textNoPrefix, alias))
+	textNoPrefix := strings.TrimSpace(trimPrefixIgnoreCase(text, prefix))
+	textNoCommand := strings.TrimSpace(trimPrefixIgnoreCase(trimPrefixIgnoreCase(textNoPrefix, alias), "@"+ctx.Self.Username))
+
 	if len(c.argRules) == 0 && textNoCommand != "" {
-		return false
+		return nil
 	}
 	handlerCtx.RawArgs = textNoCommand
-	runeOffset := len([]rune(text)) - len([]rune(textNoCommand))
-	html := msg.OriginalHTML()
-	if html == "" {
-		html = msg.OriginalCaptionHTML()
-	}
-	handlerCtx.RawArgsHTML = sliceHTMLByTextOffset(html, runeOffset)
-
 	for _, rule := range c.argRules {
 		switch rule.Type {
 		case ArgTypeOnlyUserSender:
-			if isValidReply(msg.ReplyToMessage) {
-				return false
+			if isValidReply(m.ReplyToMessage) {
+				return nil
 			}
-			members, _, err := c.extractMembersFromEntities(stdCtx, handlerCtx.chat, text, entities)
+			members, _, err := c.extractMembersFromEntities(ctx.Context, handlerCtx.chat, text, entities)
 			if err != nil {
-				logger.L.Error("failed to extract users", "error", err)
-				return false
+				return errors.Wrap(err, "failed to extract users")
 			}
 			if len(members) > 0 {
-				return false
+				return nil
 			}
 
 		case ArgTypeAnyUser, ArgTypeMentionedUser:
-			if err := c.resolveUsers(stdCtx, &handlerCtx, msg, text, entities); err != nil {
-				return false
+			if err := c.resolveUsers(ctx.Context, &handlerCtx, m, text, entities); err != nil {
+				return nil
 			}
 
 			if c.scope == ScopeChat && handlerCtx.chat != nil && len(handlerCtx.chatMembers) == 0 && handlerCtx.replyChatMember == nil {
@@ -275,7 +245,7 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 						}
 						tag := strings.Join(words, " ")
 						if len([]rune(tag)) <= 16 {
-							members, err := c.chatMemberProvider.FindChatMembersByTag(stdCtx, handlerCtx.chat.ID, tag)
+							members, err := c.chatMemberProvider.FindChatMembersByTag(ctx.Context, handlerCtx.chat.ID, tag)
 							if err == nil && len(members) > 0 {
 								handlerCtx.chatMembers = append(handlerCtx.chatMembers, members...)
 								for k := 0; k < width; k++ {
@@ -298,7 +268,7 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 					totalUsers = append(totalUsers, *replyUser)
 				}
 				if len(totalUsers) < rule.Min {
-					return false
+					return nil
 				}
 			}
 		case ArgTypeNumber:
@@ -316,7 +286,7 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 				}
 			}
 			if parsed < rule.Min {
-				return false
+				return nil
 			}
 
 		case ArgTypeDate:
@@ -354,7 +324,7 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 				}
 			}
 			if parsed < rule.Min {
-				return false
+				return nil
 			}
 
 		case ArgTypeText:
@@ -365,7 +335,7 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 				}
 				joined := strings.Join(parts, " ")
 				if joined == "" && rule.Min > 0 {
-					return false
+					return nil
 				}
 				if joined != "" {
 					handlerCtx.texts = append(handlerCtx.texts, joined)
@@ -381,23 +351,34 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 					}
 				}
 				if parsed < rule.Min {
-					return false
+					return nil
 				}
 			}
 		}
 	}
-	ctx.Data["handlerCtx"] = handlerCtx
 
-	return true
+	if !handlerCtx.senderChatMember.StatusGranted(c.RequiredStatus()) {
+		_, err = ctx.Reply(u, ext.ReplyTextString(fmt.Sprintf("Требуются права: %s", c.RequiredStatus())), nil)
+		return err
+	}
+
+	return c.response(&handlerCtx, u)
 }
 
-func (c *Command) resolveUsers(ctx context.Context, handlerCtx *Context, msg *gotgbot.Message, text string, entities []gotgbot.MessageEntity) error {
+func (c *Command) resolveUsers(ctx context.Context, handlerCtx *Context, msg *types.Message, text string, entities []tg.MessageEntityClass) error {
 	// reply user
 	if isValidReply(msg.ReplyToMessage) {
-		replyMember, err := c.resolveMember(ctx, handlerCtx.chat, msg.ReplyToMessage.From.Id)
+		fromID, ok := msg.ReplyToMessage.GetFromID()
+		if !ok {
+			return errors.New("replyToMessage must have a FromID")
+		}
+		fromUser, ok := fromID.(*tg.PeerUser)
+		if !ok {
+			return errors.New("replyToMessage must have a FromUser")
+		}
+		replyMember, err := c.resolveMember(ctx, handlerCtx.chat, fromUser.GetUserID())
 		if err != nil {
-			logger.L.Error("resolve member failed", "error", err)
-			return err
+			return errors.Wrap(err, "resolve reply failed")
 		}
 		handlerCtx.replyChatMember = replyMember
 	}
@@ -405,8 +386,7 @@ func (c *Command) resolveUsers(ctx context.Context, handlerCtx *Context, msg *go
 	// mentioned users
 	mentionMembers, memberOffsets, err := c.extractMembersFromEntities(ctx, handlerCtx.chat, text, entities)
 	if err != nil {
-		logger.L.Error("failed to extract users from entities", "error", err)
-		return err
+		return errors.Wrap(err, "extract members failed")
 	}
 	handlerCtx.chatMembers = mentionMembers
 
@@ -436,26 +416,6 @@ func (c *Command) RequiredStatus() model.Status {
 	return c.requiredStatus
 }
 
-func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
-	raw, ok := ctx.Data["handlerCtx"]
-	if !ok {
-		return errors.New("no handlerCtx")
-	}
-
-	handlerCtx := raw.(Context)
-	handlerCtx.Context = ctx
-
-	sender, err := handlerCtx.Sender()
-	if err != nil {
-		return err
-	}
-
-	if (!c.isDevCommand || sender.User.ID != c.devID) && !sender.StatusGranted(handlerCtx.requiredStatus) {
-		return handlerCtx.Reply(b, fmt.Sprintf("[%d/%d] Недостаточно прав для выполнения команды", sender.Status, handlerCtx.requiredStatus), nil)
-	}
-	return c.response(b, &handlerCtx)
-}
-
 func (c *Command) resolveMember(ctx context.Context, chat *model.Chat, userID int64) (*model.ChatMember, error) {
 	if c.scope == ScopeChat {
 		if chat == nil {
@@ -479,8 +439,8 @@ func (c *Command) resolveMember(ctx context.Context, chat *model.Chat, userID in
 	}, nil
 }
 
-func (c *Command) findTrigger(text string) string {
-	for _, t := range c.triggers {
+func (c *Command) findPrefix(text string) string {
+	for _, t := range c.prefixes {
 		if hasPrefixIgnoreCase(text, t) {
 			return t
 		}
@@ -538,42 +498,31 @@ func isDelimiter(r rune) bool {
 		strings.ContainsRune(".,!?;:()[]{}<>/\\\"'`", r)
 }
 
-func isValidReply(replyToMessage *gotgbot.Message) bool {
-	return replyToMessage != nil &&
-		replyToMessage.ForumTopicCreated == nil &&
-		replyToMessage.From != nil &&
-		!replyToMessage.From.IsBot &&
-		!replyToMessage.IsAutomaticForward
+func isValidReply(replyToMessage *types.Message) bool {
+	return replyToMessage != nil && !replyToMessage.IsService
 }
 
-func (c *Command) getChat(ctx *ext.Context, stdCtx context.Context) (model.Chat, error) {
-	if ctx.Data != nil {
-		if cached, ok := ctx.Data["_cached_chat"].(model.Chat); ok {
-			return cached, nil
-		}
-	}
-
-	msg := ctx.EffectiveMessage
-
+func (c *Command) getChat(ctx *ext.Context, u *ext.Update) (model.Chat, error) {
 	var chat model.Chat
 	var err error
 
-	if ctx.EffectiveChat.Type == gotgbot.ChatTypePrivate {
-		chat, err = c.sessionService.GetChat(stdCtx, ctx.EffectiveSender.Id())
+	if u.EffectiveChat().IsAUser() {
+		chat, err = c.sessionService.GetChat(ctx.Context, u.EffectiveUser().GetID())
 		if err != nil {
 			return model.Chat{}, errors.Wrap(err, "failed to get chat from private messages")
 		}
 	} else {
-		chat, err = c.chatProvider.GetChat(stdCtx, msg.Chat.Id)
+		ch := u.GetChannel()
+		title := ch.GetTitle()
+		if title == "" {
+			title = u.GetChat().GetTitle()
+		}
+		chat, err = c.chatProvider.EnsureChatExists(ctx.Context, u.EffectiveChat().GetID(), title)
 		if err != nil {
 			return model.Chat{}, errors.Wrap(err, "failed to get chat from group")
 		}
 	}
 
-	if ctx.Data == nil {
-		ctx.Data = make(map[string]interface{})
-	}
-	ctx.Data["_cached_chat"] = chat
 	return chat, nil
 }
 
@@ -581,7 +530,7 @@ func (c *Command) extractMembersFromEntities(
 	ctx context.Context,
 	chat *model.Chat,
 	text string,
-	entities []gotgbot.MessageEntity,
+	entities []tg.MessageEntityClass,
 ) ([]model.ChatMember, []Offset, error) {
 
 	var members []model.ChatMember
@@ -590,23 +539,22 @@ func (c *Command) extractMembersFromEntities(
 	for _, entity := range entities {
 		extracted := extractEntity(text, entity)
 
-		// Convert UTF-16 entity offset/length to byte offset in text.
 		encoded := utf16.Encode([]rune(text))
-		byteStart := len(string(utf16.Decode(encoded[:entity.Offset])))
-		byteEnd := byteStart + len(string(utf16.Decode(encoded[entity.Offset:entity.Offset+entity.Length])))
+		byteStart := len(string(utf16.Decode(encoded[:entity.GetOffset()])))
+		byteEnd := byteStart + len(string(utf16.Decode(encoded[entity.GetOffset():entity.GetOffset()+entity.GetLength()])))
 		entityOffset := Offset{byteStart, byteEnd}
 
-		switch entity.Type {
+		switch e := entity.(type) {
 
-		case EntityTypeTextMention:
-			member, err := c.resolveMember(ctx, chat, entity.User.Id)
+		case *tg.MessageEntityMentionName:
+			member, err := c.resolveMember(ctx, chat, e.UserID)
 			if err != nil {
 				return nil, nil, err
 			}
 			members = append(members, *member)
 			offsets = append(offsets, entityOffset)
 
-		case EntityTypeMention:
+		case *tg.MessageEntityMention:
 			username := parseUsernameFromMention(extracted)
 
 			member, err := c.resolveMemberByUsername(ctx, chat, username)
@@ -616,7 +564,7 @@ func (c *Command) extractMembersFromEntities(
 			members = append(members, *member)
 			offsets = append(offsets, entityOffset)
 
-		case EntityTypeUrl:
+		case *tg.MessageEntityTextURL:
 			username := parseUsernameFromUrl(extracted)
 
 			member, err := c.resolveMemberByUsername(ctx, chat, username)
@@ -659,9 +607,9 @@ func (c *Command) resolveMemberByUsername(
 	}, nil
 }
 
-func extractEntity(text string, e gotgbot.MessageEntity) string {
+func extractEntity(text string, e tg.MessageEntityClass) string {
 	encoded := utf16.Encode([]rune(text))
-	slice := encoded[e.Offset : e.Offset+e.Length]
+	slice := encoded[e.GetOffset() : e.GetOffset()+e.GetLength()]
 	return string(utf16.Decode(slice))
 }
 

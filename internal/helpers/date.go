@@ -35,7 +35,7 @@ func FormatToHumanDateTime(date time.Time) string {
 		text = fmt.Sprintf("%d %s %d", date.Day(), months[date.Month()-1], date.Year())
 	}
 
-	return fmt.Sprintf("<tg-time unix=\"%d\">%s</tg-time>", date.Unix(), text)
+	return text
 }
 
 func PluralizeDays(n int) string {

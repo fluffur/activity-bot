@@ -3,8 +3,10 @@ package helpers
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
+	"github.com/gotd/td/telegram/message/entity"
 	"github.com/makeworld-the-better-one/go-isemoji"
 	"github.com/rivo/uniseg"
 )
@@ -86,4 +88,33 @@ func DangerEmoji() string {
 
 func StatsEmoji() string {
 	return CustomEmoji("5258391025281408576", "📊")
+}
+
+func WriteCustomEmoji(eb *entity.Builder, id string, originalEmoji string) {
+	docID, _ := strconv.ParseInt(id, 10, 64)
+	eb.CustomEmoji(originalEmoji, docID)
+}
+
+func WriteNewbieEmoji(eb *entity.Builder) {
+	WriteCustomEmoji(eb, "5235782484939012025", "🐣")
+}
+
+func WriteTotalEmoji(eb *entity.Builder) {
+	WriteCustomEmoji(eb, "5870753782874246579", "📝")
+}
+
+func WriteRestEmoji(eb *entity.Builder) {
+	WriteCustomEmoji(eb, "5235961361736956044", "💤")
+}
+
+func WriteSuccessEmoji(eb *entity.Builder) {
+	WriteCustomEmoji(eb, SuccessEmojiID, "✅")
+}
+
+func WriteDangerEmoji(eb *entity.Builder) {
+	WriteCustomEmoji(eb, DangerEmojiID, "❌")
+}
+
+func WriteStatsEmoji(eb *entity.Builder) {
+	WriteCustomEmoji(eb, "5258391025281408576", "📊")
 }

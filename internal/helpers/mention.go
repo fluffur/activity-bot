@@ -3,6 +3,8 @@ package helpers
 import (
 	"activity-bot/internal/model"
 	"fmt"
+	"github.com/gotd/td/telegram/message/entity"
+	"github.com/gotd/td/tg"
 	"html"
 	"strings"
 )
@@ -80,4 +82,22 @@ func Mention(id int64, value string) string {
 
 func TelegramChannelLink(username string) string {
 	return fmt.Sprintf("https://t.me/%s", username)
+}
+
+func WriteMention(eb *entity.Builder, id int64, value string) {
+	if value == "" {
+		value = "—"
+	}
+	eb.MentionName(value, &tg.InputUser{UserID: id})
+}
+
+func WriteRoleEmojiLink(eb *entity.Builder, cm model.ChatMember) {
+	if cm.Emoji != "" {
+		WriteCustomEmoji(eb, cm.Emoji, "")
+		eb.Plain(" ")
+	} else if cm.User.Emoji != "" {
+		WriteCustomEmoji(eb, cm.User.Emoji, "")
+		eb.Plain(" ")
+	}
+	eb.MentionName(MemberDisplayName(cm), cm.User.AsInput())
 }
