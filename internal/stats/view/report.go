@@ -247,25 +247,9 @@ func WritePeriodHeader(eb *entity.Builder, from, to *time.Time) {
 	helpers.WriteCustomEmoji(eb, "5870772616305839506", "📊")
 	if from != nil && to != nil {
 		eb.Plain(" Отчет за период:\n")
-		eb.FormattedDate("from",
-			false,
-			true,
-			false,
-			true,
-			false,
-			true,
-			int(from.Unix()),
-		)
+		helpers.FormattedDate(eb, *from)
 		eb.Plain("\n")
-		eb.FormattedDate("to",
-			false,
-			true,
-			false,
-			true,
-			false,
-			true,
-			int(to.Unix()),
-		)
+		helpers.FormattedDate(eb, *to)
 
 	} else if from != nil {
 		eb.Plain(fmt.Sprintf(" Отчет с %s", helpers.FormatToHumanDateTime(*from)))

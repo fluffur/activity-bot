@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/gotd/td/telegram/message/entity"
 )
 
 var MoscowLocation *time.Location
@@ -155,4 +157,16 @@ func MicrosecondsToTime(micros int64) string {
 	h := seconds / 3600
 	m := (seconds % 3600) / 60
 	return fmt.Sprintf("%02d:%02d", h, m)
+}
+
+func FormattedDate(eb *entity.Builder, date time.Time) {
+	eb.FormattedDate("default",
+		false,
+		true,
+		false,
+		true,
+		false,
+		true,
+		int(date.Unix()),
+	)
 }

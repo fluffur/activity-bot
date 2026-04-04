@@ -77,11 +77,11 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Отчёт в чате").
 		SetCategory(command.CategoryStats),
 	)
-	//a.dp.AddHandler(f.New("stats_graph", statsHandler.ShowChatActivityGraph).SetDescription("График активности чата").SetCategory(command.CategoryStats).
-	//	SetAliases("график").
-	//	SetArgRules(command.OptionalDateRangeRule()),
-	////WithGuards(groupGuard, rateLimiterGuard),
-	//)
+	a.dp.AddHandler(f.New("stats_graph", statsHandler.ShowChatActivityGraph).SetDescription("График активности чата").SetCategory(command.CategoryStats).
+		SetAliases("график").
+		SetArgRules(command.OptionalDateRangeRule()),
+	//WithGuards(groupGuard, rateLimiterGuard),
+	)
 	//
 	//a.dp.AddHandler(f.New("who_am_i", statsHandler.WhoAmI).SetDescription("Мой профиль").SetCategory(command.CategoryProfile).
 	//	SetAliases("ктоя", "кто я", "профиль").SetArgRules(command.ArgRule{

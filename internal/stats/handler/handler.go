@@ -16,6 +16,8 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/entity"
 	"github.com/gotd/td/telegram/message/styling"
+	"github.com/gotd/td/telegram/uploader"
+	"github.com/gotd/td/tg"
 )
 
 type Handler struct {
@@ -121,61 +123,62 @@ func (h *Handler) ShowStats(ctx *command.Context, u *ext.Update) error {
 	return err
 }
 
-//
-//func (h *Handler) ShowChatActivityGraph(b *gotgbot.Bot, ctx *command.Context) error {
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//
-//	now := time.Now().In(helpers.MoscowLocation)
-//
-//	from, to, err := ResolveRange(
-//		ctx.Dates(),
-//		now,
-//		c.WeekStartDay,
-//		c.WeekStartTime,
-//		helpers.MoscowLocation,
-//	)
-//
-//	buf, err := h.service.GetChatActivityGraph(ctx.StdContext(), c.ID, &from, &to)
-//	if err != nil {
-//		return err
-//	}
-//
-//	if buf == nil {
-//		return ctx.Reply(
-//			b,
-//			"📉 Недостаточно данных для построения графика",
-//			nil,
-//		)
-//	}
-//
-//	caption := fmt.Sprintf("%s <b>Активность чата</b>", helpers.StatsEmoji())
-//	if !from.IsZero() && !to.IsZero() {
-//		caption += fmt.Sprintf(
-//			"\n%s — %s",
-//			helpers.FormatToHumanDateTime(from),
-//			helpers.FormatToHumanDateTime(to),
-//		)
-//	}
-//
-//	_, err = b.SendPhoto(
-//		ctx.EffectiveChat.Id,
-//		gotgbot.InputFileByReader("chat_activity.png", buf),
-//		&gotgbot.SendPhotoOpts{
-//			Caption: caption,
-//			ReplyParameters: &gotgbot.ReplyParameters{
-//				MessageId:                ctx.EffectiveMessage.MessageId,
-//				ChatId:                   ctx.EffectiveChat.Id,
-//				AllowSendingWithoutReply: true,
-//			},
-//			ParseMode: gotgbot.ParseModeHTML,
-//		},
-//	)
-//
-//	return err
-//}
+func (h *Handler) ShowChatActivityGraph(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	now := time.Now().In(helpers.MoscowLocation)
+
+	from, to, err := ResolveRange(
+		ctx.Dates(),
+		now,
+		c.WeekStartDay,
+		c.WeekStartTime,
+		helpers.MoscowLocation,
+	)
+	if err != nil {
+		return err
+	}
+
+	buf, err := h.service.GetChatActivityGraph(ctx.StdContext(), c.ID, &from, &to)
+	if err != nil {
+		return err
+	}
+
+	if buf == nil {
+		_, err := ctx.Reply(u, ext.ReplyTextString("Недостаточно данных для построения графика"), nil)
+		return err
+	}
+
+	eb := &entity.Builder{}
+	helpers.WriteStatsEmoji(eb)
+	eb.Plain(" Активность чата\n")
+	if !from.IsZero() {
+		helpers.FormattedDate(eb, from)
+		eb.Plain(" — ")
+		helpers.FormattedDate(eb, to)
+	}
+	caption, entities := eb.Raw()
+	f, err := uploader.NewUploader(ctx.Raw).FromBytes(ctx, "graph.png", buf.Bytes())
+	if err != nil {
+		panic(err)
+	}
+	_, err = ctx.SendMedia(
+		u.EffectiveChat().GetID(),
+		&tg.MessagesSendMediaRequest{
+			Message:  caption,
+			Entities: entities,
+			Media: &tg.InputMediaUploadedPhoto{
+				File: f,
+			},
+		},
+	)
+
+	return err
+}
+
 //
 //func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *command.Context) error {
 //	c, err := ctx.Chat()
