@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/go-faster/errors"
 	"github.com/gotd/td/tg"
@@ -15,8 +16,15 @@ func (f HandlerFunc) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	return f(ctx, u)
 }
 
-func (c *Command) WrapCallback() HandlerFunc {
+func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 	return func(ctx *ext.Context, u *ext.Update) error {
+		if u.CallbackQuery == nil {
+			return nil
+		}
+		if filter != nil && !filter(u.CallbackQuery) {
+			return nil
+		}
+
 		cb := u.CallbackQuery
 		if cb == nil {
 			return nil
@@ -38,7 +46,6 @@ func (c *Command) WrapCallback() HandlerFunc {
 			}
 			handlerCtx.requiredStatus = c.requiredStatus
 		}
-
 		senderID := u.EffectiveUser().GetID()
 		member, err := c.resolveMember(ctx.Context, handlerCtx.chat, senderID)
 		if err != nil {
@@ -62,7 +69,6 @@ func (c *Command) WrapCallback() HandlerFunc {
 		}
 
 		handlerCtx.texts = strings.Fields(handlerCtx.RawArgs)
-
 		err = c.response(&handlerCtx, u)
 
 		_, _ = ctx.AnswerCallback(nil)

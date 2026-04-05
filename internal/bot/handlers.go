@@ -9,6 +9,8 @@ import (
 	"activity-bot/internal/session"
 	"activity-bot/internal/stats"
 	statsH "activity-bot/internal/stats/handler"
+
+	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
 )
 
 func (a *App) RegisterHandlers() {
@@ -97,7 +99,10 @@ func (a *App) RegisterHandlers() {
 		SetAliases("ктоты", "кто ты", "профиль").
 		SetArgRules(command.MentionedUserRule()))
 
-	a.dp.AddHandler(f.New("callback_all_activity", statsHandler.CallbackAllActivity).WrapCallback())
+	a.dp.AddHandler(f.New("callback_all_activity", statsHandler.CallbackAllActivity).
+		WrapCallback(filters.CallbackQuery.Prefix("profile_activity:")))
+	a.dp.AddHandler(f.New("profile_graph", statsHandler.CallbackProfileGraph).
+		WrapCallback(filters.CallbackQuery.Prefix("profile_graph:")))
 
 	a.dp.AddHandler(f.New("inactive", statsHandler.ListInactive).
 		SetDescription("Список неактивных").
@@ -120,10 +125,12 @@ func (a *App) RegisterHandlers() {
 		SetCategory(command.CategoryStats).
 		SetArgRules(command.OptionalDateRangeRule()),
 	)
-	//
-	//a.dp.AddHandler(f.New("newbies", statsHandler.ShowNewbies).SetDescription("Список новичков").SetCategory(command.CategoryStats).
-	//	SetAliases("новички"),
-	//)
+
+	a.dp.AddHandler(f.New("newbies", statsHandler.ShowNewbies).
+		SetDescription("Список новичков").
+		SetCategory(command.CategoryStats).
+		SetAliases("новички"),
+	)
 	//
 	//a.dp.AddHandler(f.New("norm", chatHandler.ShowNorm).
 	//	SetDescription("Посмотреть норму сообщений").

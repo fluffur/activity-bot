@@ -166,7 +166,7 @@ func (h *Handler) ShowChatActivityGraph(ctx *command.Context, u *ext.Update) err
 	caption, entities := eb.Raw()
 	f, err := uploader.NewUploader(ctx.Raw).FromBytes(ctx, "graph.png", buf.Bytes())
 	if err != nil {
-		panic(err)
+		return err
 	}
 	_, err = ctx.SendMedia(
 		u.EffectiveChat().GetID(),
@@ -235,40 +235,70 @@ func (h *Handler) WhoAreUser(ctx *command.Context, u *ext.Update, userID int64) 
 	return err
 }
 
-//func (h *Handler) CallbackProfileGraph(b *gotgbot.Bot, ctx *command.Context) error {
-//	var userID int64
-//	if _, err := fmt.Sscanf(ctx.CallbackQuery.Data, "profile_graph:%d", &userID); err != nil {
-//		return err
-//	}
-//
-//	_, _ = ctx.CallbackQuery.Answer(b, nil)
-//
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//
-//	buf, err := h.service.GetMessageActivityGraph(ctx.StdContext(), c.ID, userID)
-//	if err != nil || buf == nil {
-//		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-//			Text: "Недостаточно данных для графика",
-//		})
-//		return err
-//	}
-//
-//	media := gotgbot.InputMediaPhoto{
-//		Media:     gotgbot.InputFileByReader("activity.png", buf),
-//		Caption:   ctx.EffectiveMessage.OriginalHTML(),
-//		ParseMode: gotgbot.ParseModeHTML,
-//	}
-//
-//	_, _, err = ctx.CallbackQuery.Message.EditMedia(
-//		b,
-//		media,
-//		&gotgbot.EditMessageMediaOpts{},
-//	)
-//	return err
-//}
+func (h *Handler) CallbackProfileGraph(ctx *command.Context, u *ext.Update) error {
+	var userID int64
+	cq := u.CallbackQuery
+	if cq == nil {
+		return nil
+	}
+	data, ok := cq.GetData()
+	if !ok {
+		return nil
+	}
+	if _, err := fmt.Sscanf(string(data), "profile_graph:%d", &userID); err != nil {
+		return fmt.Errorf("failed to scan callback: %w", err)
+
+	}
+	_, _ = ctx.AnswerCallback(nil)
+
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	buf, err := h.service.GetMessageActivityGraph(ctx.StdContext(), c.ID, userID)
+	if err != nil || buf == nil {
+		_, err = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			Message: "Недостаточно данных для графика",
+		})
+		return err
+	}
+	f, err := uploader.NewUploader(ctx.Raw).FromBytes(ctx, "graph.png", buf.Bytes())
+	if err != nil {
+		return fmt.Errorf("failed to create graph: %w", err)
+	}
+
+	msgID := cq.GetMsgID()
+	messages, err := ctx.GetMessages(u.EffectiveChat().GetID(), []tg.InputMessageClass{&tg.InputMessageID{ID: msgID}})
+	if err != nil || len(messages) == 0 {
+		return err
+	}
+	m, ok := messages[0].(*tg.Message)
+	if !ok {
+		return fmt.Errorf("unexpected type %T", messages[0])
+	}
+	var entities []tg.MessageEntityClass
+
+	if e, ok := m.GetEntities(); ok {
+		entities = e
+	}
+	_, err = ctx.EditMessage(
+		u.EffectiveChat().GetID(),
+		&tg.MessagesEditMessageRequest{
+			ID:          msgID,
+			Message:     m.GetMessage(),
+			Entities:    entities,
+			InvertMedia: false,
+			Media: &tg.InputMediaUploadedPhoto{
+				File: f,
+			},
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to edit message: %w", err)
+	}
+	return nil
+}
 
 func (h *Handler) CallbackAllActivity(ctx *command.Context, u *ext.Update) error {
 	cq := u.CallbackQuery
@@ -446,20 +476,20 @@ func getCallKeyboard(c model.Chat) tg.ReplyMarkupClass {
 	}
 }
 
-//func (h *Handler) ShowNewbies(b *gotgbot.Bot, ctx *command.Context) error {
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//
-//	report, err := h.service.GetChatMembersStats(ctx.StdContext(), c.ID, nil, nil)
-//	if err != nil {
-//		return err
-//	}
-//
-//	_, err = ctx.Reply(ctx.Context, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-//		view.WriteNewbies(eb, report)
-//		return nil
-//	})), nil)
-//	return err
-//}
+func (h *Handler) ShowNewbies(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	report, err := h.service.GetChatMembersStats(ctx.StdContext(), c.ID, nil, nil)
+	if err != nil {
+		return err
+	}
+
+	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
+		view.WriteNewbies(eb, report)
+		return nil
+	})), nil)
+	return err
+}
