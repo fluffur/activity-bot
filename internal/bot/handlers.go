@@ -13,8 +13,6 @@ import (
 	"activity-bot/internal/stats"
 	statsH "activity-bot/internal/stats/handler"
 
-	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/callbackquery"
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
 )
 
@@ -92,22 +90,29 @@ func (a *App) RegisterHandlers() {
 		SetRequiredStatus(model.StatusSeniorAdmin).
 		SetArgRules(command.NumberRule(), command.TextRule().SetVariadic(true).SetRange(0, 1)),
 	)
-	a.dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).SetDescription("Удалить норму").SetCategory(command.CategorySettings).SetAliases("норма", "quota").
+	a.dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).
+		SetDescription("Удалить норму").
+		SetCategory(command.CategorySettings).
+		SetAliases("норма", "quota").
 		AddPrefixes("-").
 		SetRequiredStatus(model.StatusSeniorAdmin).
 		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)),
 	)
 
-	a.dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).SetDescription("Системный ИИ промпт").SetCategory(command.CategorySettings))
-
+	a.dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).
+		SetDescription("Системный ИИ промпт").
+		SetCategory(command.CategorySettings))
 	a.dp.AddHandler(
-		handlers.NewMessage(command.NewChatTitle,
-			f.New("chat_title_change", chatHandler.OnNewChatTitle).WrapEvent()),
+		f.New("chat_title_change", chatHandler.OnNewChatTitle).WrapEvent(),
 	)
-	a.dp.AddHandler(f.New("manage", chatHandler.Manage).SetDescription("Управление чатом").SetCategory(command.CategorySettings).
+
+	a.dp.AddHandler(f.New("manage", chatHandler.Manage).
+		SetDescription("Управление чатом").
+		SetCategory(command.CategorySettings).
 		SetAliases("управление").
 		SetScope(command.ScopeUser),
 	)
+
 	a.dp.AddHandler(
 		f.New("set_manage", chatHandler.CallbackManage).
 			SetScope(command.ScopeUser).
@@ -115,8 +120,8 @@ func (a *App) RegisterHandlers() {
 	)
 
 	a.dp.AddHandler(
-		handlers.NewCallback(callbackquery.Prefix("manage_page:"),
-			f.New("manage_page", chatHandler.CallbackManagePage).WrapCallback()),
+		f.New("manage_page", chatHandler.CallbackManagePage).
+			WrapCallback(filters.CallbackQuery.Prefix("manage_page:")),
 	)
 
 	a.dp.AddHandler(f.New("enable_tags", chatHandler.EnableTags).
@@ -219,12 +224,12 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Отключить обязательный префикс").
 		SetCategory(command.CategorySettings),
 	)
-	a.dp.AddHandler(f.New("enable_call_on_join", callHandler.EnableCallOnJoin).
-		SetAliases("call_enable", "включить call", "включить колл", "включить калл").
-		SetRequiredStatus(model.StatusSeniorAdmin).
-		SetDescription("Включить призыв при входе").
-		SetCategory(command.CategoryCall),
-	)
+	//a.dp.AddHandler(f.New("enable_call_on_join", callHandler.EnableCallOnJoin).
+	//	SetAliases("call_enable", "включить call", "включить колл", "включить калл").
+	//	SetRequiredStatus(model.StatusSeniorAdmin).
+	//	SetDescription("Включить призыв при входе").
+	//	SetCategory(command.CategoryCall),
+	//)
 
 	a.dp.AddHandler(f.New("stats", statsHandler.ShowStats).
 		SetAliases("отчёт", "отчет", "стата").

@@ -163,7 +163,7 @@ func (h *Handler) ShowChatActivityGraph(ctx *command.Context, u *ext.Update) err
 		eb.Plain(" — ")
 		helpers.FormattedDate(eb, to)
 	}
-	caption, entities := eb.Raw()
+	caption, entities := eb.Complete()
 	f, err := uploader.NewUploader(ctx.Raw).FromBytes(ctx, "graph.png", buf.Bytes())
 	if err != nil {
 		return err
@@ -325,7 +325,7 @@ func (h *Handler) CallbackAllActivity(ctx *command.Context, u *ext.Update) error
 
 	eb := &entity.Builder{}
 	view.WriteProfile(eb, m, true)
-	text, entities := eb.Raw()
+	text, entities := eb.Complete()
 
 	_, err = ctx.EditMessage(c.ID, &tg.MessagesEditMessageRequest{
 		Message:     text,

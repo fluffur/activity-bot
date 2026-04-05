@@ -482,31 +482,18 @@ func (h *Handler) CallbackManage(ctx *command.Context, u *ext.Update) error {
 	}
 
 	title := "Chat"
-	chats, err := ctx.Raw.MessagesGetChats(ctx, []int64{chatID})
-	if err == nil && len(chats.GetChats()) > 0 {
-		c := chats.GetChats()[0]
-		switch ch := c.(type) {
-		case *tg.Chat:
-			title = ch.Title
-		case *tg.Channel:
-			title = ch.Title
-		case *tg.ChatForbidden:
-			title = ch.Title
-		case *tg.ChannelForbidden:
-			title = ch.Title
-		}
+	ch, err := h.service.GetChat(ctx.StdContext(), chatID)
+	if err != nil {
+		return err
 	}
-
+	title = ch.Title
 	_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
 		Message: "Выбран чат: " + title,
 	})
 
 	_, err = ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
 		ID:      u.CallbackQuery.GetMsgID(),
-		Message: "Теперь вы управляете чатом: **" + title + "**\nВсе команды настроек теперь будут применяться к этому чату.",
-		Entities: []tg.MessageEntityClass{
-			&tg.MessageEntityBold{Offset: 27, Length: int(len(title))},
-		},
+		Message: "Теперь вы управляете чатом: " + title + "\nВсе команды настроек теперь будут применяться к этому чату.",
 	})
 	return err
 }
