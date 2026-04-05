@@ -83,10 +83,6 @@ func (a *App) RegisterHandlers() {
 		SetRequiredStatus(model.StatusSeniorAdmin).
 		SetArgRules(command.TextRule()),
 	)
-	a.Dp.AddHandler(f.New("show_newbie_treshold", chatHandler.ShowNewbieThreshold).SetDescription("Порог новичка").SetCategory(command.CategorySettings).
-		SetAliases("новички срок", "новички после").
-		SetRequiredStatus(model.StatusSeniorAdmin),
-	)
 	a.Dp.AddHandler(f.New("set_newbie_treshold", chatHandler.SetNewbieThreshold).
 		SetAliases("новички срок", "новички после").
 		AddTriggers("+").
@@ -95,6 +91,11 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Настройка срока новичка").
 		SetCategory(command.CategorySettings),
 	)
+	a.Dp.AddHandler(f.New("show_newbie_treshold", chatHandler.ShowNewbieThreshold).SetDescription("Порог новичка").SetCategory(command.CategorySettings).
+		SetAliases("новички срок", "новички после").
+		SetRequiredStatus(model.StatusSeniorAdmin),
+	)
+
 	a.Dp.AddHandler(f.New("stats", statsHandler.ShowStats).
 		SetAliases("отчёт", "отчет", "стата").
 		SetArgRules(command.OptionalDateRangeRule()).
