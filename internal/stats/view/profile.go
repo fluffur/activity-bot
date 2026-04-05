@@ -5,9 +5,11 @@ import (
 	"activity-bot/internal/model"
 	"fmt"
 	"time"
+
+	"github.com/gotd/td/telegram/message/entity"
 )
 
-func FormatProfile(m model.ChatMemberStats, full bool) string {
+func WriteProfile(eb *entity.Builder, m model.ChatMemberStats, full bool) {
 	now := time.Now().UTC()
 
 	isNewbie := false
@@ -20,87 +22,109 @@ func FormatProfile(m model.ChatMemberStats, full bool) string {
 
 	status := m.ChatMember.Status.String()
 
-	var activityBlock string
+	helpers.WriteCustomEmoji(eb, "5316727448644103237", "👤")
+	eb.Plain(" Информация о ")
+	helpers.WriteRoleEmojiLink(eb, m.ChatMember)
+	eb.Plain("\n")
+
+	eb.Plain("• Ранг ")
+	helpers.WriteStatusEmoji(eb, m.ChatMember.Status)
+	eb.Plain("– ")
+	eb.Plain(status)
+	eb.Plain("\n")
+
+	if m.ChatMember.LeftAt.IsZero() {
+		eb.Plain(fmt.Sprintf("• В чате c %s (%s)",
+			helpers.FormatToHumanDateTime(m.ChatMember.JoinedAt),
+			helpers.FormatLastSeenPlain(m.ChatMember.JoinedAt),
+		))
+	} else {
+		eb.Plain(fmt.Sprintf("❌ %s чат (%s — %s)",
+			helpers.Gendered(m.ChatMember.User.Gender, "Покинул", "Покинула"),
+			helpers.FormatToHumanDateTime(m.ChatMember.JoinedAt),
+			helpers.FormatToHumanDateTime(m.ChatMember.LeftAt),
+		))
+	}
 
 	if full {
-		activityBlock = fmt.Sprintf(`%s
-%s Актив<blockquote>▸ сегодня: <code>%d</code>
-▸ эта неделя: <code>%d</code>
-▸ этот месяц: <code>%d</code>
-▸ всего: <code>%d</code></blockquote>
-%s
-%s За последние<blockquote>▸ сутки: <code>%d</code> 
-▸ 7 дней: <code>%d</code>
-▸ 30 дней: <code>%d</code></blockquote>
-%s`,
-			helpers.Line(),
-			helpers.StatsEmoji(),
+		eb.Plain("\n\n")
+
+		helpers.WriteStatsEmoji(eb)
+		eb.Plain(" Актив\n")
+
+		token := eb.Token()
+		eb.Plain(fmt.Sprintf(
+			"▸ сегодня: %d\n▸ эта неделя: %d\n▸ этот месяц: %d\n▸ всего: %d\n",
 			m.DayCount,
 			m.WeekCount,
 			m.MonthCount,
 			m.AllTime,
-			helpers.Line(),
-			helpers.CustomEmoji("5258419835922030550", "⏰"),
+		))
+		token.Apply(eb, entity.Blockquote(true))
+
+		eb.Plain("\n")
+		helpers.WriteCustomEmoji(eb, "5258419835922030550", "⏰")
+		eb.Plain(" За последние\n")
+
+		token = eb.Token()
+		eb.Plain(fmt.Sprintf(
+			"▸ сутки: %d\n▸ 7 дней: %d\n▸ 30 дней: %d\n",
 			m.DayRollingCount,
 			m.WeekRollingCount,
 			m.MonthRollingCount,
-			helpers.Line(),
-		)
+		))
+		token.Apply(eb, entity.Blockquote(true))
 	}
 
-	var info string
-	if m.ChatMember.LeftAt.IsZero() {
-		info = fmt.Sprintf("• В чате c %s (%s)", helpers.FormatToHumanDateTime(m.ChatMember.JoinedAt), helpers.FormatLastSeenPlain(m.ChatMember.JoinedAt))
-	} else {
-		info = fmt.Sprintf("❌ %s чат (%s — %s)", helpers.Gendered(m.ChatMember.User.Gender, "Покинул", "Покинула"), helpers.FormatToHumanDateTime(m.ChatMember.JoinedAt), helpers.FormatToHumanDateTime(m.ChatMember.LeftAt))
-	}
-	text := fmt.Sprintf(
-		`%s Информация о %s
-• Ранг%s– %s
-%s 
-%s`,
-		helpers.CustomEmoji("5316727448644103237", "👤"),
-		helpers.RoleEmojiLink(m.ChatMember),
-		helpers.StatusEmoji(m.ChatMember.Status),
-		status,
-		info,
-		activityBlock,
-	)
 	isRestActive := m.ChatMember.RestUntil.After(time.Now())
 
 	if m.Chat.NormWarn > 0 || m.Chat.NormBan > 0 {
-		normStatus := getNormStatusEmoji(m.WeekCount, int64(m.Chat.NormWarn), int64(m.Chat.NormBan), isRestActive, isNewbie)
-		text += fmt.Sprintf("\n%s", normStatus)
+		eb.Plain("\n")
+		writeNormStatus(eb, m.WeekCount, int64(m.Chat.NormWarn), int64(m.Chat.NormBan), isRestActive, isNewbie)
 	}
 
 	daysSinceRestEnd := int(now.Sub(m.ChatMember.RestUntil).Hours() / 24)
 
 	if isRestActive && m.ChatMember.LeftAt.IsZero() {
-		text += fmt.Sprintf(
-			"<blockquote>%s Рест до %s</blockquote>",
-			helpers.RestEmoji(),
-			helpers.FormatToHumanDateTime(m.ChatMember.RestUntil),
-		)
-	} else if daysSinceRestEnd >= 0 && daysSinceRestEnd <= 3 {
-		text += fmt.Sprintf(
-			"\n<blockquote>%s Последний рест был завершен %s</blockquote>",
-			helpers.RestEmoji(),
-			helpers.FormatToHumanDateTime(m.ChatMember.RestUntil),
-		)
-	}
+		eb.Plain("\n")
+		token := eb.Token()
+		helpers.WriteRestEmoji(eb)
+		eb.Plain(" Рест до ")
+		eb.Plain(helpers.FormatToHumanDateTime(m.ChatMember.RestUntil))
+		token.Apply(eb, entity.Blockquote(true))
 
-	return text
+	} else if daysSinceRestEnd >= 0 && daysSinceRestEnd <= 3 {
+		eb.Plain("\n")
+		token := eb.Token()
+		helpers.WriteRestEmoji(eb)
+		eb.Plain(" Последний рест был завершен ")
+		eb.Plain(helpers.FormatToHumanDateTime(m.ChatMember.RestUntil))
+		token.Apply(eb, entity.Blockquote(true))
+	}
 }
 
-func getNormStatusEmoji(weekCount, normWarn, normBan int64, isRestActive, isNewbie bool) string {
+func writeNormStatus(eb *entity.Builder, weekCount, normWarn, normBan int64, isRestActive, isNewbie bool) {
 	if isRestActive || isNewbie {
-		return fmt.Sprintf("%s Освобождение от нормы", helpers.CustomEmoji("5456648248968121823", "🕊"))
+		helpers.WriteCustomEmoji(eb, "5456648248968121823", "🕊")
+		eb.Plain(" Освобождение от нормы")
+		return
 	}
+	eb.Plain("\n")
+
 	if normBan > 0 && weekCount < normBan {
-		return fmt.Sprintf("%s Норма не набрана (%d/%d), <b>бан</b>", helpers.CustomEmoji("5260342697075416641", "🚫"), weekCount, normBan)
+		helpers.WriteCustomEmoji(eb, "5260342697075416641", "🚫")
+		eb.Plain(fmt.Sprintf(" Норма не набрана (%d/%d), ", weekCount, normBan))
+		eb.Bold("бан")
+		return
 	}
+
 	if normWarn > 0 && weekCount < normWarn {
-		return fmt.Sprintf("%s Норма не набрана (%d/%d), <b>варн</b>", helpers.CustomEmoji("5258474669769497337", "⚠️"), weekCount, normWarn)
+		helpers.WriteCustomEmoji(eb, "5258474669769497337", "⚠️")
+		eb.Plain(fmt.Sprintf(" Норма не набрана (%d/%d), ", weekCount, normWarn))
+		eb.Bold("варн")
+		return
 	}
-	return fmt.Sprintf("%s Норма набрана", helpers.CustomEmoji("5260416304224936047", "✅"))
+
+	helpers.WriteCustomEmoji(eb, "5260416304224936047", "✅")
+	eb.Plain(" Норма набрана")
 }

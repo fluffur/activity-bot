@@ -2,6 +2,9 @@ package helpers
 
 import (
 	"activity-bot/internal/model"
+	"strconv"
+
+	"github.com/gotd/td/telegram/message/entity"
 )
 
 func StatusEmoji(status model.Status) string {
@@ -42,4 +45,9 @@ func StatusEmojiPlain(status model.Status) string {
 		return "5️⃣"
 	}
 	return ""
+}
+
+func WriteStatusEmoji(eb *entity.Builder, status model.Status) {
+	id, _ := strconv.ParseInt(StatusEmojiID(status), 10, 64)
+	eb.CustomEmoji(StatusEmojiPlain(status), id)
 }

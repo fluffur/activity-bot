@@ -179,68 +179,59 @@ func (h *Handler) ShowChatActivityGraph(ctx *command.Context, u *ext.Update) err
 	return err
 }
 
-//
-//func (h *Handler) WhoAmI(b *gotgbot.Bot, ctx *command.Context) error {
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//
-//	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, c.ID, ctx.EffectiveSender.Id())
-//}
-//
-//func (h *Handler) WhoAreYou(b *gotgbot.Bot, ctx *command.Context) error {
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//	u, err := ctx.UserOrReply()
-//	if err != nil {
-//		return err
-//	}
-//
-//	return h.WhoAreUser(b, ctx.StdContext(), ctx.Context, c.ID, u.User.ID)
-//}
-//
-//func (h *Handler) WhoAreUser(
-//	b *gotgbot.Bot,
-//	ctx context.Context,
-//	tgCtx *ext.Context,
-//	dataChatID int64,
-//	userID int64,
-//) error {
-//
-//	m, err := h.service.GetChatMemberStats(ctx, dataChatID, userID)
-//	if err != nil {
-//		return err
-//	}
-//
-//	text := view.FormatProfile(m, false)
-//
-//	kb := gotgbot.InlineKeyboardMarkup{
-//		InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
-//			{
-//				{
-//					Text:              "Вся активность",
-//					CallbackData:      fmt.Sprintf("profile_activity:%d", userID),
-//					IconCustomEmojiId: "5425112292683435471",
-//					Style:             "primary",
-//				},
-//			},
-//		},
-//	}
-//
-//	_, err = tgCtx.EffectiveMessage.Reply(b, text, &gotgbot.SendMessageOpts{
-//		ParseMode:   gotgbot.ParseModeHTML,
-//		ReplyMarkup: kb,
-//		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-//			IsDisabled: true,
-//		},
-//	})
-//
-//	return err
-//}
-//
+func (h *Handler) WhoAmI(ctx *command.Context, u *ext.Update) error {
+	return h.WhoAreUser(ctx, u, u.EffectiveUser().GetID())
+}
+
+func (h *Handler) WhoAreYou(ctx *command.Context, upd *ext.Update) error {
+	u, err := ctx.UserOrReply()
+	if err != nil {
+		return err
+	}
+
+	return h.WhoAreUser(ctx, upd, u.User.ID)
+}
+
+func (h *Handler) WhoAreUser(ctx *command.Context, u *ext.Update, userID int64) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	m, err := h.service.GetChatMemberStats(ctx, c.ID, userID)
+	if err != nil {
+		return err
+	}
+
+	//text := view.FormatProfile(m, false)
+
+	kb := &tg.ReplyInlineMarkup{
+		Rows: []tg.KeyboardButtonRow{
+			{Buttons: []tg.KeyboardButtonClass{
+				&tg.KeyboardButtonCallback{
+					Text: "Вся активность",
+					Data: []byte(fmt.Sprintf("profile_activity:%d", userID)),
+					Style: tg.KeyboardButtonStyle{
+						BgPrimary: true,
+						Icon:      5425112292683435471,
+					},
+				},
+			},
+			},
+		},
+	}
+
+	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
+		view.WriteProfile(eb, m, false)
+		return nil
+	})), &ext.ReplyOpts{
+		NoWebpage: true,
+		Markup:    kb,
+	})
+
+	return err
+}
+
 //func (h *Handler) CallbackProfileGraph(b *gotgbot.Bot, ctx *command.Context) error {
 //	var userID int64
 //	if _, err := fmt.Sscanf(ctx.CallbackQuery.Data, "profile_graph:%d", &userID); err != nil {

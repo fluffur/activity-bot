@@ -215,7 +215,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	for _, rule := range c.argRules {
 		switch rule.Type {
 		case ArgTypeOnlyUserSender:
-			if isValidReply(m.ReplyToMessage) {
+			if _, ok := getReplyToMessageID(m); ok {
 				return nil
 			}
 			members, _, err := c.extractMembersFromEntities(ctx.Context, handlerCtx.chat, text, entities)
@@ -227,10 +227,9 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 			}
 
 		case ArgTypeAnyUser, ArgTypeMentionedUser:
-			if err := c.resolveUsers(ctx.Context, &handlerCtx, m, text, entities); err != nil {
+			if err := c.resolveUsers(ctx, &handlerCtx, m, text, entities); err != nil {
 				return nil
 			}
-
 			if c.scope == ScopeChat && handlerCtx.chat != nil && len(handlerCtx.chatMembers) == 0 && handlerCtx.replyChatMember == nil {
 				toks := freeTokens(handlerCtx.RawArgs, handlerCtx.usedOffsets)
 				matched := false
@@ -365,13 +364,22 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	return c.response(&handlerCtx, u)
 }
 
-func (c *Command) resolveUsers(ctx context.Context, handlerCtx *Context, msg *types.Message, text string, entities []tg.MessageEntityClass) error {
+func (c *Command) resolveUsers(ctx *ext.Context, handlerCtx *Context, msg *types.Message, text string, entities []tg.MessageEntityClass) error {
 	// reply user
-	if isValidReply(msg.ReplyToMessage) {
-		fromID, ok := msg.ReplyToMessage.GetFromID()
-		if !ok {
-			return errors.New("replyToMessage must have a FromID")
+	if msgID, ok := getReplyToMessageID(msg); ok {
+		messages, err := ctx.GetMessages(handlerCtx.chat.ID, []tg.InputMessageClass{&tg.InputMessageID{ID: msgID}})
+		if err != nil {
+			return err
 		}
+		if len(messages) == 0 {
+			return errors.New("no reply message")
+		}
+		reply, ok := messages[0].(*tg.Message)
+		if !ok {
+			return nil
+		}
+
+		fromID := reply.FromID
 		fromUser, ok := fromID.(*tg.PeerUser)
 		if !ok {
 			return errors.New("replyToMessage must have a FromUser")
@@ -498,8 +506,17 @@ func isDelimiter(r rune) bool {
 		strings.ContainsRune(".,!?;:()[]{}<>/\\\"'`", r)
 }
 
-func isValidReply(replyToMessage *types.Message) bool {
-	return replyToMessage != nil && !replyToMessage.IsService
+func getReplyToMessageID(msg *types.Message) (int, bool) {
+	replyTo, ok := msg.GetReplyTo()
+	if !ok {
+		return 0, false
+	}
+	header, ok := replyTo.(*tg.MessageReplyHeader)
+	if !ok {
+		return 0, false
+	}
+
+	return header.GetReplyToMsgID()
 }
 
 func (c *Command) getChat(ctx *ext.Context, u *ext.Update) (model.Chat, error) {

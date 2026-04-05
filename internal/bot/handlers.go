@@ -82,17 +82,21 @@ func (a *App) RegisterHandlers() {
 		SetArgRules(command.OptionalDateRangeRule()),
 	//WithGuards(groupGuard, rateLimiterGuard),
 	)
-	//
-	//a.dp.AddHandler(f.New("who_am_i", statsHandler.WhoAmI).SetDescription("Мой профиль").SetCategory(command.CategoryProfile).
-	//	SetAliases("ктоя", "кто я", "профиль").SetArgRules(command.ArgRule{
-	//	Name: "only_sender",
-	//	Type: command.ArgTypeOnlyUserSender,
-	//}))
-	//
-	//a.dp.AddHandler(f.New("who_are_you", statsHandler.WhoAreYou).SetDescription("Профиль пользователя").SetCategory(command.CategoryProfile).
-	//	SetAliases("ктоты", "кто ты", "профиль").
-	//	SetArgRules(command.AnyUserRule()))
-	//
+
+	a.dp.AddHandler(f.New("who_am_i", statsHandler.WhoAmI).
+		SetDescription("Мой профиль").
+		SetCategory(command.CategoryProfile).
+		SetAliases("ктоя", "кто я", "профиль").SetArgRules(command.ArgRule{
+		Name: "only_sender",
+		Type: command.ArgTypeOnlyUserSender,
+	}))
+
+	a.dp.AddHandler(f.New("who_are_you", statsHandler.WhoAreYou).
+		SetDescription("Профиль пользователя").
+		SetCategory(command.CategoryProfile).
+		SetAliases("ктоты", "кто ты", "профиль").
+		SetArgRules(command.MentionedUserRule()))
+
 	//a.dp.AddHandler(f.New("inactive", statsHandler.ListInactive).SetDescription("Список неактивных").SetCategory(command.CategoryStats).
 	//	SetAliases("инактив", "неактив"))
 	//
