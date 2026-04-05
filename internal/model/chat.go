@@ -89,6 +89,7 @@ type ChatMember struct {
 	Tag        string
 	Status     Status
 	Emoji      string
+	Emojis     Emojis
 	JoinedAt   time.Time
 	LeftAt     time.Time
 }

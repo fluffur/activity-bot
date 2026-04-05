@@ -94,10 +94,10 @@ func WriteMention(eb *entity.Builder, id int64, value string) {
 
 func WriteRoleEmojiLink(eb *entity.Builder, cm model.ChatMember) {
 	if cm.Emoji != "" {
-		WriteCustomEmoji(eb, cm.Emoji, "")
+		WriteEmoji(eb, cm.Emoji, cm.Emojis)
 		eb.Plain(" ")
 	} else if cm.User.Emoji != "" {
-		WriteCustomEmoji(eb, cm.User.Emoji, "")
+		WriteEmoji(eb, cm.User.Emoji, cm.User.Emojis)
 		eb.Plain(" ")
 	}
 	eb.TextURL(MemberDisplayName(cm), UserLink(cm.User))

@@ -56,6 +56,7 @@ func mapChatMember(m db.ChatMember) model.ChatMember {
 		Tag:        m.Tag.String,
 		Status:     model.Status(m.Status),
 		Emoji:      m.Emoji.String,
+		Emojis:     m.EmojiJson,
 		JoinedAt:   m.JoinedAt.Time,
 		LeftAt:     m.LeftAt.Time,
 	}

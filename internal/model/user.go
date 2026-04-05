@@ -18,6 +18,7 @@ type User struct {
 	Username      string
 	Gender        string
 	Emoji         string
+	Emojis        Emojis
 	CustomEmojiID string
 }
 
@@ -37,3 +38,10 @@ func (u User) AsInput() *tg.InputUser {
 		UserID: u.ID,
 	}
 }
+
+type Emoji struct {
+	ID   int64  `json:"id"`
+	Char string `json:"char"`
+}
+
+type Emojis []Emoji

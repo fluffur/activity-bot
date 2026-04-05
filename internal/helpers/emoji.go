@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"activity-bot/internal/model"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -117,4 +118,14 @@ func WriteDangerEmoji(eb *entity.Builder) {
 
 func WriteStatsEmoji(eb *entity.Builder) {
 	WriteCustomEmoji(eb, "5258391025281408576", "📊")
+}
+
+func WriteEmoji(eb *entity.Builder, emoji string, emojis model.Emojis) {
+	if len(emojis) == 0 {
+		eb.Plain(emoji)
+	}
+
+	for _, e := range emojis {
+		eb.CustomEmoji(e.Char, e.ID)
+	}
 }

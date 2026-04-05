@@ -8,6 +8,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 
+	"activity-bot/internal/model"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -135,7 +136,7 @@ type ChatMember struct {
 	RestReason pgtype.Text        `db:"rest_reason" json:"restReason"`
 	Emoji      pgtype.Text        `db:"emoji" json:"emoji"`
 	Status     int16              `db:"status" json:"status"`
-	EmojiJson  []byte             `db:"emoji_json" json:"emojiJson"`
+	EmojiJson  model.Emojis       `db:"emoji_json" json:"emojiJson"`
 }
 
 type ChatMemberNorm struct {
@@ -198,7 +199,7 @@ type User struct {
 	Gender        string             `db:"gender" json:"gender"`
 	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
 	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
-	EmojiJson     []byte             `db:"emoji_json" json:"emojiJson"`
+	EmojiJson     model.Emojis       `db:"emoji_json" json:"emojiJson"`
 }
 
 type UserPmSession struct {
