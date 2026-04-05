@@ -1,10 +1,13 @@
 package bot
 
 import (
+	chatH "activity-bot/internal/chat/handler"
 	"activity-bot/internal/command"
 	"activity-bot/internal/db/postgres"
 	db "activity-bot/internal/db/postgres/sqlc"
 	helpH "activity-bot/internal/help/handler"
+	"activity-bot/internal/helpers"
+	"activity-bot/internal/model"
 	"activity-bot/internal/rest"
 	"activity-bot/internal/session"
 	"activity-bot/internal/stats"
@@ -18,7 +21,6 @@ func (a *App) RegisterHandlers() {
 
 	statsRepository := postgres.NewStatsRepository(queries)
 	restRepository := postgres.NewRestRepository(queries, a.Pool)
-	//chatRepository := postgres.NewChatRepository(queries)
 	//messageRepository := postgres.NewMessageRepository(queries)
 	sessionRepository := postgres.NewSessionRepository(queries)
 
@@ -26,16 +28,16 @@ func (a *App) RegisterHandlers() {
 	restService := rest.NewService(restRepository)
 	//messageService := msg.NewService(messageRepository)
 
-	//callService := call.NewService(chatRepository, a.MemberService, statsService)
+	//callService := call.NewService(postgres.NewChatRepository(queries), a.MemberService, statsService)
 	sessionService := session.NewService(sessionRepository)
 
-	//dateParser := helpers.NewDateParser()
+	dateParser := helpers.NewDateParser()
 
 	f := command.NewCommandFactory(a.UserService, a.MemberService, a.ChatService, sessionService, a.Config.BotOwnerID, "фм", "!", "/", ".")
 
 	helpHandler := helpH.New(a.Config.BotOwnerUsername, a.Config.CommandsLink)
 	statsHandler := statsH.New(statsService, restService, a.MemberService, a.UserService, a.ChatService, sessionService)
-	//chatHandler := chatH.New(a.ChatService, a.AdminService, a.MemberService, sessionService, dateParser)
+	chatHandler := chatH.New(a.ChatService, a.AdminService, a.MemberService, sessionService, dateParser)
 	//restHandler := restH.New(restService, a.UserService, a.MemberService, a.ChatService, a.AdminService, dateParser, sessionService, a.AsyncClient)
 	//
 	//adminHandler := adminH.New(a.AdminService, a.MemberService, a.ChatService, dateParser, a.AsyncClient, f)
@@ -60,18 +62,20 @@ func (a *App) RegisterHandlers() {
 	//	SetRequiredStatus(model.StatusSeniorAdmin).
 	//	SetArgRules(command.TextRule()),
 	//)
-	//a.dp.AddHandler(f.New("show_newbie_treshold", chatHandler.ShowNewbieThreshold).SetDescription("Порог новичка").SetCategory(command.CategorySettings).
+	//a.dp.AddHandler(f.New("show_newbie_treshold", chatHandler.ShowNewbieThreshold).
+	//	SetDescription("Порог новичка").
+	//	SetCategory(command.CategorySettings).
 	//	SetAliases("новички срок", "новички после").
 	//	SetRequiredStatus(model.StatusSeniorAdmin),
 	//)
-	//a.dp.AddHandler(f.New("set_newbie_treshold", chatHandler.SetNewbieThreshold).
-	//	SetAliases("новички срок", "новички после").
-	//	AddPrefixes("+").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetArgRules(command.NumberRule()).
-	//	SetDescription("Настройка срока новичка").
-	//	SetCategory(command.CategorySettings),
-	//)
+	a.dp.AddHandler(f.New("set_newbie_treshold", chatHandler.SetNewbieThreshold).
+		SetAliases("новички срок", "новички после").
+		AddPrefixes("+").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetArgRules(command.NumberRule()).
+		SetDescription("Настройка срока новичка").
+		SetCategory(command.CategorySettings),
+	)
 	a.dp.AddHandler(f.New("stats", statsHandler.ShowStats).
 		SetAliases("отчёт", "отчет", "стата").
 		SetArgRules(command.OptionalDateRangeRule()).
@@ -114,11 +118,7 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(f.New("rests", statsHandler.ShowRestList).SetDescription("Список действующих рестов").SetCategory(command.CategoryStats).
 		SetAliases("ресты"),
 	)
-	//
-	//a.dp.AddHandler(f.New("all_rests", restHandler.AllUserRests).SetDescription("История рестов").SetCategory(command.CategoryProfile).
-	//	SetAliases("все ресты").SetArgRules(command.AnyUserRule()),
-	//)
-	//
+
 	a.dp.AddHandler(f.New("failed_norm", statsHandler.ShowFailedNorm).
 		SetAliases("без нормы").
 		SetDescription("Не выполнившие норму").
@@ -150,6 +150,13 @@ func (a *App) RegisterHandlers() {
 	//a.dp.AddHandler(f.New("ship_random", memberHandler.ShipRandom).SetDescription("Случайный шипперинг").SetCategory(command.CategoryGeneral).
 	//	SetAliases("рандом шипперим"))
 	//
+
+	//a.dp.AddHandler(f.New("all_rests", restHandler.AllUserRests).
+	//	SetDescription("История рестов").
+	//	SetCategory(command.CategoryProfile).
+	//	SetAliases("все ресты").SetArgRules(command.AnyUserRule()),
+	//)
+
 	//a.dp.AddHandler(f.New("set_rest", restHandler.SetRest).SetDescription("Выдать рест").SetCategory(command.CategoryModeration).SetRequiredStatus(model.StatusModerator).
 	//	SetAliases("рест", "rest", "установить рест").
 	//	AddPrefixes("+").
@@ -651,9 +658,5 @@ func (a *App) RegisterHandlers() {
 	//a.dp.AddHandler(
 	//	handlers.NewMessage(filter.OnlyGroups, f.New("message", messageHandler.Message).WrapEvent()))
 	//
-	//a.dp.AddHandler(
-	//	handlers.NewCallback(callbackquery.Prefix("profile_graph:"),
-	//		f.New("profile_graph", statsHandler.CallbackProfileGraph).WrapCallback()),
-	//)
-	//
+
 }

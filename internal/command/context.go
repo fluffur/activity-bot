@@ -9,6 +9,9 @@ import (
 	"github.com/celestix/gotgproto/ext"
 )
 
+var ErrNoValueDate = errors.New("no date found")
+var ErrNoValueUser = errors.New("no user found")
+var ErrNoValueChat = errors.New("no chat found")
 var ErrNoValue = errors.New("no value found")
 
 type Response func(ctx *Context, u *ext.Update) error
@@ -63,7 +66,7 @@ func (c *Context) NumberOrDefault(def int) int {
 
 func (c *Context) Date() (time.Time, error) {
 	if len(c.dates) == 0 {
-		return time.Time{}, ErrNoValue
+		return time.Time{}, ErrNoValueDate
 	}
 	return c.dates[0], nil
 }
@@ -95,14 +98,14 @@ func (c *Context) TextOrDefault(def string) string {
 
 func (c *Context) User() (*model.ChatMember, error) {
 	if len(c.chatMembers) == 0 {
-		return nil, ErrNoValue
+		return nil, ErrNoValueUser
 	}
 	return &c.chatMembers[0], nil
 }
 
 func (c *Context) ReplyUser() (*model.ChatMember, error) {
 	if c.replyChatMember == nil {
-		return nil, ErrNoValue
+		return nil, ErrNoValueUser
 	}
 	return c.replyChatMember, nil
 }
@@ -123,7 +126,7 @@ func (c *Context) AnyUser() (*model.ChatMember, error) {
 
 func (c *Context) Sender() (*model.ChatMember, error) {
 	if c.senderChatMember == nil {
-		return c.senderChatMember, ErrNoValue
+		return c.senderChatMember, ErrNoValueUser
 	}
 	return c.senderChatMember, nil
 }
@@ -135,7 +138,7 @@ func (c *Context) UserOrSender() (*model.ChatMember, error) {
 	if c.senderChatMember != nil {
 		return c.senderChatMember, nil
 	}
-	return nil, ErrNoValue
+	return nil, ErrNoValueUser
 }
 
 func (c *Context) UserOrReply() (*model.ChatMember, error) {
@@ -145,7 +148,7 @@ func (c *Context) UserOrReply() (*model.ChatMember, error) {
 	if c.replyChatMember != nil {
 		return c.replyChatMember, nil
 	}
-	return nil, ErrNoValue
+	return nil, ErrNoValueUser
 }
 
 func (c *Context) RequiredStatus() model.Status {

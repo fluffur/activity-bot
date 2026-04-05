@@ -121,7 +121,7 @@ func (h *Handler) ShowStats(ctx *command.Context, u *ext.Update) error {
 	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
 		view.WriteStats(eb, report, restMembers, c.NewbieThresholdDays, &from, &to)
 		return nil
-	})), nil)
+	})), &ext.ReplyOpts{NoWebpage: true})
 
 	return err
 }
