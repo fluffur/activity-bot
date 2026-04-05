@@ -251,10 +251,6 @@ func (h *Handler) OnBotPromote(_ *gotgbot.Bot, ctx *command.Context) error {
 		return err
 	}
 
-	if err := h.chatService.SetBotDeleted(ctx.StdContext(), ctx.EffectiveChat.Id, time.Time{}); err != nil {
-		return err
-	}
-
 	slog.Info("updated chat members on bot join", "chat_id", ctx.EffectiveChat.Id, "count", count)
 	return nil
 }
