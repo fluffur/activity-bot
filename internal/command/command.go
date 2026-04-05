@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/model"
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"unicode"
@@ -212,7 +213,28 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	if len(c.argRules) == 0 && textNoCommand != "" {
 		return nil
 	}
+
+	// Calculate UTF-16 offset for entities shifting
 	handlerCtx.RawArgs = textNoCommand
+	if textNoCommand != "" {
+		trimmedText := trimPrefixIgnoreCase(text, prefix)
+		trimmedText = strings.TrimLeft(trimmedText, " \t\n\r")
+		trimmedText = trimPrefixIgnoreCase(trimmedText, alias)
+		if strings.HasPrefix(trimmedText, "@") {
+			atPart := strings.SplitN(trimmedText, " ", 2)[0]
+			if strings.EqualFold(atPart, "@"+ctx.Self.Username) {
+				trimmedText = trimmedText[len(atPart):]
+			}
+		}
+		trimmedText = strings.TrimLeft(trimmedText, " \t\n\r")
+		// Now trimmedText starts with exactly what textNoCommand is (without trailing spaces).
+
+		fullUTF16 := utf16.Encode([]rune(text))
+		argUTF16 := utf16.Encode([]rune(trimmedText))
+		offsetUTF16 := len(fullUTF16) - len(argUTF16)
+		handlerCtx.RawArgsEntities = shiftEntities(entities, offsetUTF16)
+	}
+
 	for _, rule := range c.argRules {
 		switch rule.Type {
 		case ArgTypeOnlyUserSender:
@@ -692,4 +714,50 @@ func freeTokens(s string, used []Offset) []token {
 		i = j
 	}
 	return tokens
+}
+
+func shiftEntities(entities []tg.MessageEntityClass, offset int) []tg.MessageEntityClass {
+	var result []tg.MessageEntityClass
+	for _, e := range entities {
+		v := reflect.ValueOf(e)
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+
+		if v.Kind() != reflect.Struct {
+			continue
+		}
+
+		offsetField := v.FieldByName("Offset")
+		lengthField := v.FieldByName("Length")
+		if !offsetField.IsValid() || !lengthField.IsValid() {
+			continue
+		}
+
+		originalOffset := int(offsetField.Int())
+		originalLength := int(lengthField.Int())
+		end := originalOffset + originalLength
+
+		if end <= offset {
+			continue
+		}
+
+		newOffset := originalOffset - offset
+		newLength := originalLength
+
+		if newOffset < 0 {
+			newLength += newOffset
+			newOffset = 0
+		}
+
+		newEntityPtr := reflect.New(v.Type())
+		newEntity := newEntityPtr.Elem()
+		newEntity.Set(v)
+
+		newEntity.FieldByName("Offset").SetInt(int64(newOffset))
+		newEntity.FieldByName("Length").SetInt(int64(newLength))
+
+		result = append(result, newEntityPtr.Interface().(tg.MessageEntityClass))
+	}
+	return result
 }

@@ -1,7 +1,6 @@
 package command
 
 import (
-	"activity-bot/internal/logger"
 	"fmt"
 	"strings"
 
@@ -73,7 +72,7 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 		handlerCtx.texts = strings.Fields(handlerCtx.RawArgs)
 		err = c.response(&handlerCtx, u)
 
-		_, _ = ctx.AnswerCallback(nil)
+		//_, _ = ctx.AnswerCallback(nil)
 
 		if err != nil {
 			return err
@@ -81,11 +80,6 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 
 		return dispatcher.SkipCurrentGroup
 	}
-}
-
-func NewChatTitle(u *ext.Update) bool {
-	_, ok := u.EffectiveMessage.Action.(*tg.MessageActionChatEditTitle)
-	return ok
 }
 
 func (c *Command) WrapEvent() HandlerFunc {
@@ -100,10 +94,10 @@ func (c *Command) WrapEvent() HandlerFunc {
 		if c.scope == ScopeChat {
 			chat, err := c.getChat(ctx, u)
 			if err != nil {
-				logger.L.Warn("WrapEvent: get chat failed", "error", err)
-			} else {
-				handlerCtx.chat = &chat
+				return fmt.Errorf("wrap event failed to get chat: %w", err)
 			}
+
+			handlerCtx.chat = &chat
 		}
 
 		senderMember, err := c.resolveMember(ctx.Context, handlerCtx.chat, u.EffectiveUser().GetID())
@@ -112,6 +106,10 @@ func (c *Command) WrapEvent() HandlerFunc {
 		}
 		handlerCtx.senderChatMember = senderMember
 
-		return c.response(handlerCtx, u)
+		if err = c.response(handlerCtx, u); err != nil {
+			return err
+		}
+
+		return dispatcher.SkipCurrentGroup
 	}
 }

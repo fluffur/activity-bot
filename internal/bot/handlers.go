@@ -1,6 +1,8 @@
 package bot
 
 import (
+	"activity-bot/internal/call"
+	callH "activity-bot/internal/call/handler"
 	chatH "activity-bot/internal/chat/handler"
 	"activity-bot/internal/command"
 	"activity-bot/internal/db/postgres"
@@ -28,7 +30,7 @@ func (a *App) RegisterHandlers() {
 	restService := rest.NewService(restRepository)
 	//messageService := msg.NewService(messageRepository)
 
-	//callService := call.NewService(postgres.NewChatRepository(queries), a.MemberService, statsService)
+	callService := call.NewService(postgres.NewChatRepository(queries), a.MemberService, statsService)
 	sessionService := session.NewService(sessionRepository)
 
 	dateParser := helpers.NewDateParser()
@@ -44,7 +46,7 @@ func (a *App) RegisterHandlers() {
 	//
 	//messageHandler := messageH.New(messageService, a.MemberService, a.ChatService, a.Deepseek)
 	//memberHandler := memberH.New(a.MemberService, a.ChatService, a.UserService, callService, a.AdminService)
-	//callHandler := callH.New(callService, a.MemberService, a.ChatService, a.AdminService, sessionService)
+	callHandler := callH.New(callService, a.MemberService, a.ChatService, a.AdminService, sessionService)
 	//userHandler := userH.New(a.UserService)
 	//channelHandler := channelH.New(a.MemberService, a.ChatService, a.AsyncClient, a.Config.ChannelID)
 
@@ -54,14 +56,6 @@ func (a *App) RegisterHandlers() {
 
 	a.dp.AddHandler(f.New("start", helpHandler.Start))
 	a.dp.AddHandler(f.New("help", helpHandler.Help))
-	//a.dp.AddHandler(f.New("set_call_message", callHandler.SetWelcomeCallMessage).
-	//	SetAliases("калл сообщение").
-	//	AddPrefixes("+").
-	//	SetDescription("Настройка сообщения сбора").
-	//	SetCategory(command.CategoryCall).
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetArgRules(command.TextRule()),
-	//)
 
 	a.dp.AddHandler(f.New("set_newbie_treshold", chatHandler.SetNewbieThreshold).
 		SetAliases("новички срок", "новички после").
@@ -102,9 +96,7 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).
 		SetDescription("Системный ИИ промпт").
 		SetCategory(command.CategorySettings))
-	a.dp.AddHandler(
-		f.New("chat_title_change", chatHandler.OnNewChatTitle).WrapEvent(),
-	)
+	a.dp.AddHandler(f.New("chat_title_change", chatHandler.OnNewChatTitle).WrapEvent())
 
 	a.dp.AddHandler(f.New("manage", chatHandler.Manage).
 		SetDescription("Управление чатом").
@@ -144,7 +136,7 @@ func (a *App) RegisterHandlers() {
 
 	a.dp.AddHandler(f.New("set_prompt", chatHandler.SetPrompt).SetAliases("промпт").
 		AddPrefixes("+").
-		SetArgRules(command.TextRule().SetVariadic(false).SetRange(0, 1)).
+		SetArgRules(command.TextRule().SetVariadic(true)).
 		SetRequiredStatus(model.StatusSeniorAdmin).
 		SetDescription("Настройка промпта для ИИ").
 		SetCategory(command.CategorySettings),
@@ -187,7 +179,10 @@ func (a *App) RegisterHandlers() {
 		SetCategory(command.CategorySettings),
 	)
 
-	a.dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).SetDescription("Системный ИИ промпт").SetCategory(command.CategorySettings).
+	a.dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).
+		SetDescription("Системный ИИ промпт").
+		SetCategory(command.CategorySettings).
+		SetAliases("промпт").
 		SetDescription("Показать текущий AI-промпт").
 		SetCategory(command.CategorySettings),
 	)
@@ -224,12 +219,159 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Отключить обязательный префикс").
 		SetCategory(command.CategorySettings),
 	)
-	//a.dp.AddHandler(f.New("enable_call_on_join", callHandler.EnableCallOnJoin).
-	//	SetAliases("call_enable", "включить call", "включить колл", "включить калл").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetDescription("Включить призыв при входе").
+	a.dp.AddHandler(f.New("enable_call_on_join", callHandler.EnableCallOnJoin).
+		SetAliases("call_enable", "включить call", "включить колл", "включить калл").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Включить призыв при входе").
+		SetCategory(command.CategoryCall),
+	)
+	a.dp.AddHandler(f.New("set_call_message", callHandler.SetWelcomeCallMessage).
+		SetAliases("калл сообщение").
+		AddPrefixes("+").
+		SetDescription("Настройка сообщения сбора").
+		SetCategory(command.CategoryCall).
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetArgRules(command.TextRule()),
+	)
+	a.dp.AddHandler(f.New("show_call_message", callHandler.ShowWelcomeCallMessage).
+		SetAliases("калл сообщение").
+		SetProviders(a.UserService, a.MemberService, a.ChatService, sessionService).
+		SetDescription("Показать сообщение сбора").
+		SetCategory(command.CategoryCall),
+	)
+
+	a.dp.AddHandler(f.New("call_disable", callHandler.DisableCallOnJoin).
+		SetAliases("отключить call").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Отключить call при входе").
+		SetCategory(command.CategoryCall),
+	)
+	a.dp.AddHandler(f.New("delete_call_message", callHandler.DeleteWelcomeCallMessage).
+		SetAliases("калл сообщение", "удалить калл сообщение").
+		AddPrefixes("-").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Удалить сообщение сбора").
+		SetCategory(command.CategoryCall),
+	)
+	a.dp.AddHandler(f.New("call_type", callHandler.ShowCallTypes).
+		SetAliases("калл тип").
+		SetDescription("Показать типы сбора").
+		SetCategory(command.CategoryCall),
+	)
+	a.dp.AddHandler(
+		f.New("call_type_callback", callHandler.ShowCallTypes).
+			WrapCallback(filters.CallbackQuery.Equal("call_type")),
+	)
+	a.dp.AddHandler(
+		f.New("call_type", callHandler.CallbackCallType).
+			SetRequiredStatus(model.StatusCoOwner).
+			WrapCallback(filters.CallbackQuery.Prefix("call_type:")),
+	)
+
+	//
+	//a.dp.AddHandler(f.New("call_no_norm_warn", callHandler.CallNoNormWarn).
+	//	SetAliases("калл без нормы варн").
+	//	SetRequiredStatus(model.StatusModerator).
+	//	SetDescription("Сбор без нормы с предупреждением").
 	//	SetCategory(command.CategoryCall),
 	//)
+	//
+	//a.dp.AddHandler(f.New("call_no_norm_ban", callHandler.CallNoNormBan).
+	//	SetAliases("калл без нормы бан").
+	//	SetRequiredStatus(model.StatusModerator).
+	//	SetDescription("Сбор без нормы с баном").
+	//	SetCategory(command.CategoryCall),
+	//)
+	//
+
+	a.dp.AddHandler(f.New("set_call_limit", callHandler.SetMentionsPerMessage).
+		SetAliases("калл лимит").
+		SetArgRules(command.NumberRule()).
+		SetRequiredStatus(model.StatusCoOwner).
+		SetDescription("Лимит упоминаний в call").
+		SetCategory(command.CategoryCall),
+	)
+	a.dp.AddHandler(f.New("show_call_limit", callHandler.SetMentionsPerMessage).
+		SetAliases("калл лимит").
+		SetDescription("Показать лимит call").
+		SetCategory(command.CategoryCall),
+	)
+	//
+	//
+	//a.dp.AddHandler(f.New("call_inactive", callHandler.CallInactive).
+	//	SetAliases("калл инактив", "калл неактив", "созвать неактивных").
+	//	SetRequiredStatus(model.StatusModerator).
+	//	SetDescription("Сбор неактивных").
+	//	SetCategory(command.CategoryCall),
+	//)
+	//
+	//a.dp.AddHandler(f.New("call_no_norm", callHandler.CallNoNorm).
+	//	SetAliases("калл без нормы", "созвать без нормы").
+	//	SetRequiredStatus(model.StatusModerator).
+	//	SetDescription("Сбор тех, кто без нормы").
+	//	SetCategory(command.CategoryCall),
+	//)
+	//
+	//a.dp.AddHandler(f.New("call_no_norm_warn", callHandler.CallNoNormWarn).
+	//	SetAliases("калл без нормы варн", "созвать без нормы варн").
+	//	SetRequiredStatus(model.StatusModerator),
+	//)
+	//
+	//a.dp.AddHandler(f.New("call_no_norm_ban", callHandler.CallNoNormBan).
+	//	SetAliases("калл без нормы бан", "созвать без нормы бан").
+	//	SetRequiredStatus(model.StatusModerator),
+	//)
+	//callConversation := handlers.NewConversation(
+	//	[]ext.Handler{
+	//		handlers.NewCallback(callbackquery.Equal("call_inactive"), f.New("start_call_inactive_convo", callHandler.StartCallInactiveConversation).
+	//			SetRequiredStatus(model.StatusModerator).WrapCallback()),
+	//		handlers.NewCallback(callbackquery.Equal("call_no_norm_warn"),
+	//			f.New("start_call_no_norm_convo", callHandler.StartCallNoNormWarnConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
+	//		handlers.NewCallback(callbackquery.Equal("call_no_norm_ban"),
+	//			f.New("start_call_no_norm_ban_convo", callHandler.StartCallNoNormBanConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
+	//		handlers.NewCallback(callbackquery.Equal("call_no_norm"),
+	//			f.New("start_call_no_norm_convo", callHandler.StartCallNoNormConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
+	//	},
+	//	map[string][]ext.Handler{
+	//		callH.CallStateInactive: {
+	//			handlers.NewMessage(message.Text,
+	//				f.New("handle_call_inactive_message", callHandler.HandleCallInactiveMessage).WrapEvent()),
+	//		},
+	//		callH.CallStateNoNorm: {
+	//			handlers.NewMessage(message.Text,
+	//				f.New("call_no_norm_msg", callHandler.HandleCallNoNormMessage).SetRequiredStatus(model.StatusModerator).WrapEvent()),
+	//		},
+	//		callH.CallStateNoNormWarn: {
+	//			handlers.NewMessage(message.Text, f.New("call_no_norm_warn", callHandler.HandleCallNoNormWarnMessage).
+	//				SetRequiredStatus(model.StatusModerator).
+	//				WrapEvent()),
+	//		},
+	//		callH.CallStateNoNormBan: {
+	//			handlers.NewMessage(message.Text, f.New("call_no_norm_ban", callHandler.HandleCallNoNormBanMessage).
+	//				SetRequiredStatus(model.StatusModerator).
+	//				WrapEvent()),
+	//		},
+	//	},
+	//	&handlers.ConversationOpts{
+	//		Exits: []ext.Handler{
+	//			handlers.NewCallback(callbackquery.Prefix("call_cancel"),
+	//				f.New("cancel_call_convo", callHandler.CancelCallConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
+	//			handlers.NewCallback(callbackquery.Prefix("call_nomsg:"),
+	//				f.New("no_msg_call_convo", callHandler.NoMessageCallConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
+	//		},
+	//		StateStorage: conversation.NewInMemoryStorage(conversation.KeyStrategySenderAndChat),
+	//		AllowReEntry: true,
+	//	},
+	//)
+	//a.dp.AddHandler(callConversation)
+	//
+	a.dp.AddHandler(f.New("call", callHandler.Call).SetAliases("калл", "колл", "all", "каллалл").
+		SetRequiredStatus(model.StatusModerator).
+		SetArgRules(command.TextRule().SetVariadic(false).SetRange(0, 1)).
+		SetDescription("Общий сбор чата").
+		SetCategory(command.CategoryCall),
+	)
+	//
 
 	a.dp.AddHandler(f.New("stats", statsHandler.ShowStats).
 		SetAliases("отчёт", "отчет", "стата").
@@ -443,147 +585,6 @@ func (a *App) RegisterHandlers() {
 	//	SetRequiredStatus(model.StatusModerator).
 	//	SetDescription("Перенос тг админок").
 	//	SetCategory(command.CategoryModeration),
-	//)
-	//
-	//a.dp.AddHandler(f.New("call_type", callHandler.ShowCallTypes).
-	//	SetAliases("калл тип", "калл стиль"),
-	//)
-	//a.dp.AddHandler(handlers.NewCallback(
-	//	callbackquery.Equal("call_type"),
-	//	f.New("call_type_callback", callHandler.ShowCallTypes).WrapCallback()),
-	//)
-	//a.dp.AddHandler(handlers.NewCallback(
-	//	callbackquery.Prefix("call_type:"),
-	//	f.New("call_type", callHandler.CallbackCallType).SetRequiredStatus(model.StatusCoOwner).WrapCallback(),
-	//))
-	//a.dp.AddHandler(f.New("show_call_message", callHandler.ShowWelcomeCallMessage).
-	//	SetAliases("калл сообщение").
-	//	SetProviders(a.UserService, a.MemberService, a.ChatService, sessionService).
-	//	SetDescription("Показать сообщение сбора").
-	//	SetCategory(command.CategoryCall),
-	//)
-	//
-	//a.dp.AddHandler(f.New("delete_call_message", callHandler.DeleteWelcomeCallMessage).
-	//	SetAliases("калл сообщение", "удалить калл сообщение").
-	//	AddPrefixes("-").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetDescription("Удалить сообщение сбора").
-	//	SetCategory(command.CategoryCall),
-	//)
-	//
-	//a.dp.AddHandler(f.New("call_no_norm_warn", callHandler.CallNoNormWarn).
-	//	SetAliases("калл без нормы варн").
-	//	SetRequiredStatus(model.StatusModerator).
-	//	SetDescription("Сбор без нормы с предупреждением").
-	//	SetCategory(command.CategoryCall),
-	//)
-	//
-	//a.dp.AddHandler(f.New("call_no_norm_ban", callHandler.CallNoNormBan).
-	//	SetAliases("калл без нормы бан").
-	//	SetRequiredStatus(model.StatusModerator).
-	//	SetDescription("Сбор без нормы с баном").
-	//	SetCategory(command.CategoryCall),
-	//)
-	//
-	//a.dp.AddHandler(f.New("call_type", callHandler.ShowCallTypes).
-	//	SetAliases("калл тип").
-	//	SetDescription("Показать типы сбора").
-	//	SetCategory(command.CategoryCall),
-	//)
-	//
-	//a.dp.AddHandler(f.New("set_call_limit", callHandler.SetMentionsPerMessage).
-	//	SetAliases("калл лимит").
-	//	SetArgRules(command.NumberRule()).
-	//	SetRequiredStatus(model.StatusCoOwner).
-	//	SetDescription("Лимит упоминаний в call").
-	//	SetCategory(command.CategoryCall),
-	//)
-	//
-	//a.dp.AddHandler(f.New("show_call_limit", callHandler.SetMentionsPerMessage).
-	//	SetAliases("калл лимит").
-	//	SetDescription("Показать лимит call").
-	//	SetCategory(command.CategoryCall),
-	//)
-	//
-	//a.dp.AddHandler(f.New("call_disable", callHandler.DisableCallOnJoin).
-	//	SetAliases("отключить call").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetDescription("Отключить call при входе").
-	//	SetCategory(command.CategoryCall),
-	//)
-	//
-	//a.dp.AddHandler(f.New("call_inactive", callHandler.CallInactive).
-	//	SetAliases("калл инактив", "калл неактив", "созвать неактивных").
-	//	SetRequiredStatus(model.StatusModerator).
-	//	SetDescription("Сбор неактивных").
-	//	SetCategory(command.CategoryCall),
-	//)
-	//
-	//a.dp.AddHandler(f.New("call_no_norm", callHandler.CallNoNorm).
-	//	SetAliases("калл без нормы", "созвать без нормы").
-	//	SetRequiredStatus(model.StatusModerator).
-	//	SetDescription("Сбор тех, кто без нормы").
-	//	SetCategory(command.CategoryCall),
-	//)
-	//
-	//a.dp.AddHandler(f.New("call_no_norm_warn", callHandler.CallNoNormWarn).
-	//	SetAliases("калл без нормы варн", "созвать без нормы варн").
-	//	SetRequiredStatus(model.StatusModerator),
-	//)
-	//
-	//a.dp.AddHandler(f.New("call_no_norm_ban", callHandler.CallNoNormBan).
-	//	SetAliases("калл без нормы бан", "созвать без нормы бан").
-	//	SetRequiredStatus(model.StatusModerator),
-	//)
-	//callConversation := handlers.NewConversation(
-	//	[]ext.Handler{
-	//		handlers.NewCallback(callbackquery.Equal("call_inactive"), f.New("start_call_inactive_convo", callHandler.StartCallInactiveConversation).
-	//			SetRequiredStatus(model.StatusModerator).WrapCallback()),
-	//		handlers.NewCallback(callbackquery.Equal("call_no_norm_warn"),
-	//			f.New("start_call_no_norm_convo", callHandler.StartCallNoNormWarnConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
-	//		handlers.NewCallback(callbackquery.Equal("call_no_norm_ban"),
-	//			f.New("start_call_no_norm_ban_convo", callHandler.StartCallNoNormBanConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
-	//		handlers.NewCallback(callbackquery.Equal("call_no_norm"),
-	//			f.New("start_call_no_norm_convo", callHandler.StartCallNoNormConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
-	//	},
-	//	map[string][]ext.Handler{
-	//		callH.CallStateInactive: {
-	//			handlers.NewMessage(message.Text,
-	//				f.New("handle_call_inactive_message", callHandler.HandleCallInactiveMessage).WrapEvent()),
-	//		},
-	//		callH.CallStateNoNorm: {
-	//			handlers.NewMessage(message.Text,
-	//				f.New("call_no_norm_msg", callHandler.HandleCallNoNormMessage).SetRequiredStatus(model.StatusModerator).WrapEvent()),
-	//		},
-	//		callH.CallStateNoNormWarn: {
-	//			handlers.NewMessage(message.Text, f.New("call_no_norm_warn", callHandler.HandleCallNoNormWarnMessage).
-	//				SetRequiredStatus(model.StatusModerator).
-	//				WrapEvent()),
-	//		},
-	//		callH.CallStateNoNormBan: {
-	//			handlers.NewMessage(message.Text, f.New("call_no_norm_ban", callHandler.HandleCallNoNormBanMessage).
-	//				SetRequiredStatus(model.StatusModerator).
-	//				WrapEvent()),
-	//		},
-	//	},
-	//	&handlers.ConversationOpts{
-	//		Exits: []ext.Handler{
-	//			handlers.NewCallback(callbackquery.Prefix("call_cancel"),
-	//				f.New("cancel_call_convo", callHandler.CancelCallConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
-	//			handlers.NewCallback(callbackquery.Prefix("call_nomsg:"),
-	//				f.New("no_msg_call_convo", callHandler.NoMessageCallConversation).SetRequiredStatus(model.StatusModerator).WrapCallback()),
-	//		},
-	//		StateStorage: conversation.NewInMemoryStorage(conversation.KeyStrategySenderAndChat),
-	//		AllowReEntry: true,
-	//	},
-	//)
-	//a.dp.AddHandler(callConversation)
-	//
-	//a.dp.AddHandler(f.New("call", callHandler.Call).SetAliases("калл", "колл", "all", "каллалл").
-	//	SetRequiredStatus(model.StatusModerator).
-	//	SetArgRules(command.TextRule().SetVariadic(false).SetRange(0, 1)).
-	//	SetDescription("Общий сбор чата").
-	//	SetCategory(command.CategoryCall),
 	//)
 	//
 

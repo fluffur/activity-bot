@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/tg"
 )
 
 var ErrNoValueDate = errors.New("no date found")
@@ -18,9 +19,10 @@ type Response func(ctx *Context, u *ext.Update) error
 
 type Context struct {
 	*ext.Context
-	RawArgs     string
-	RawArgsHTML string
-	tokens      []string
+	RawArgs         string
+	RawArgsHTML     string
+	RawArgsEntities []tg.MessageEntityClass
+	tokens          []string
 
 	usedOffsets []Offset
 
