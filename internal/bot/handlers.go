@@ -87,7 +87,7 @@ func (a *App) RegisterHandlers() {
 		SetAliases("новички срок", "новички после").
 		AddTriggers("+").
 		SetRequiredStatus(model.StatusSeniorAdmin).
-		SetArgRules(command.OneDateRule()).
+		SetArgRules(command.NumberRule()).
 		SetDescription("Настройка срока новичка").
 		SetCategory(command.CategorySettings),
 	)

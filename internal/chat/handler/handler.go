@@ -14,7 +14,6 @@ import (
 	"html"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 )
@@ -121,7 +120,7 @@ func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *command.Context) erro
 }
 
 func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *command.Context) error {
-	date, err := ctx.Date()
+	days, err := ctx.Number()
 	if err != nil {
 		return err
 	}
@@ -129,17 +128,11 @@ func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *command.Context) error
 	if err != nil {
 		return err
 	}
-	duration := time.Until(date)
-	days := int32(duration.Hours() / 24)
-	if days < 0 {
-		return ctx.Reply(b, "Дата не может быть в прошлом!", nil)
-	}
-
-	if err := h.service.SetNewbieThreshold(ctx.StdContext(), c.ID, days); err != nil {
+	if err := h.service.SetNewbieThreshold(ctx.StdContext(), c.ID, int32(days)); err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, view.FormatNewbieThresholdSet(days), nil)
+	return ctx.Reply(b, view.FormatNewbieThresholdSet(int32(days)), nil)
 }
 
 func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *command.Context) error {
