@@ -5,12 +5,15 @@ import (
 	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
+	"activity-bot/internal/model"
 	"activity-bot/internal/rest"
 	"activity-bot/internal/session"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/stats/view"
 	"activity-bot/internal/user"
+	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/celestix/gotgproto/ext"
@@ -266,163 +269,183 @@ func (h *Handler) WhoAreUser(ctx *command.Context, u *ext.Update, userID int64) 
 //	)
 //	return err
 //}
-//
-//func (h *Handler) CallbackAllActivity(b *gotgbot.Bot, ctx *command.Context) error {
-//	var userID int64
-//	if _, err := fmt.Sscanf(ctx.CallbackQuery.Data, "profile_activity:%d", &userID); err != nil {
-//		return err
-//	}
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//
-//	m, err := h.service.GetChatMemberStats(ctx.StdContext(), c.ID, userID)
-//	if err != nil {
-//		return err
-//	}
-//
-//	text := view.FormatProfile(m, true)
-//
-//	if ctx.EffectiveMessage.Text == "" {
-//		_, _, err = ctx.EffectiveMessage.EditCaption(b, &gotgbot.EditMessageCaptionOpts{
-//			Caption:   text,
-//			ParseMode: gotgbot.ParseModeHTML,
-//		})
-//		return err
-//	}
-//
-//	if _, _, err = ctx.EffectiveMessage.EditText(b, text, &gotgbot.EditMessageTextOpts{
-//		ParseMode: gotgbot.ParseModeHTML,
-//		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-//			ShowAboveText: true,
-//		},
-//		ReplyMarkup: gotgbot.InlineKeyboardMarkup{
-//			InlineKeyboard: [][]gotgbot.InlineKeyboardButton{{{
-//				Text:         "📊 Показать график",
-//				CallbackData: fmt.Sprintf("profile_graph:%d", userID),
-//				Style:        "primary",
-//			}}},
-//		},
-//	}); err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
-//
-//func (h *Handler) ListInactive(b *gotgbot.Bot, ctx *command.Context) error {
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//
-//	members, err := h.service.GetInactiveMembers(ctx.StdContext(), c.ID)
-//	if err != nil {
-//		return err
-//	}
-//	if len(members) == 0 {
-//		return ctx.Reply(
-//			b,
-//			fmt.Sprintf("%s Нет неактивных участников за последние сутки", helpers.SuccessEmoji()),
-//			nil,
-//		)
-//	}
-//
-//	text := view.FormatInactiveMembers(members)
-//
-//	return ctx.Reply(b, text, &gotgbot.SendMessageOpts{
-//		ParseMode: gotgbot.ParseModeHTML,
-//		ReplyMarkup: &gotgbot.InlineKeyboardMarkup{
-//			InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
-//				{{Text: "Созвать неактивных", CallbackData: "call_inactive"}},
-//			},
-//		},
-//		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-//			IsDisabled: true,
-//		},
-//	})
-//}
-//
-//func (h *Handler) ShowRestList(b *gotgbot.Bot, ctx *command.Context) error {
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//
-//	restMembers, err := h.restService.GetRestMembers(ctx.StdContext(), c.ID)
-//	if err != nil {
-//		return err
-//	}
-//
-//	_, err = ctx.Reply(ctx.Context, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-//		view.WriteRestList(eb, restMembers)
-//		return nil
-//	})), nil)
-//	return err
-//}
-//
-//func (h *Handler) ShowFailedNorm(b *gotgbot.Bot, ctx *command.Context) error {
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//
-//	now := time.Now().In(helpers.MoscowLocation)
-//	from, to, err := ResolveRange(ctx.Dates(), now, c.WeekStartDay, c.WeekStartTime, now.Location())
-//	if err != nil {
-//		return ctx.ReplyHTML(b, "❌ <b>Неверный формат даты или диапазона.</b>")
-//	}
-//
-//	report, err := h.service.GetChatMembersStats(ctx.StdContext(), c.ID, &from, &to)
-//	if err != nil {
-//		return err
-//	}
-//
-//	_, err = ctx.Reply(ctx.Context, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-//		view.WriteFailedNorm(eb, report, &from, &to)
-//		return nil
-//	})), &ext.ReplyOpts{
-//		Markup: getCallKeyboard(c),
-//	})
-//
-//	return err
-//}
-//
-//func getCallKeyboard(c model.Chat) *gotgbot.InlineKeyboardMarkup {
-//	var buttons [][]gotgbot.InlineKeyboardButton
-//	var row []gotgbot.InlineKeyboardButton
-//
-//	if c.NormWarn != 0 {
-//		row = append(row, gotgbot.InlineKeyboardButton{
-//			Text:              fmt.Sprintf("Без нормы %d", c.NormWarn),
-//			CallbackData:      "call_no_norm_warn",
-//			IconCustomEmojiId: "5433866857666855412",
-//		})
-//	}
-//	if c.NormBan != 0 {
-//		row = append(row, gotgbot.InlineKeyboardButton{
-//			Text:              fmt.Sprintf("Без нормы %d", c.NormBan),
-//			CallbackData:      "call_no_norm_ban",
-//			IconCustomEmojiId: "5433866857666855412",
-//		})
-//	}
-//
-//	if len(row) > 0 {
-//		buttons = append(buttons, row)
-//	}
-//
-//	if c.NormWarn != 0 || c.NormBan != 0 {
-//		buttons = append(buttons, []gotgbot.InlineKeyboardButton{
-//			{Text: "Всех без нормы", CallbackData: "call_no_norm", IconCustomEmojiId: "5433866857666855412"},
-//		})
-//	}
-//
-//	return &gotgbot.InlineKeyboardMarkup{
-//		InlineKeyboard: buttons,
-//	}
-//}
-//
+
+func (h *Handler) CallbackAllActivity(ctx *command.Context, u *ext.Update) error {
+	cq := u.CallbackQuery
+	if cq == nil {
+		return errors.New("no cq")
+	}
+	data, ok := cq.GetData()
+	if !ok {
+		return errors.New("no cq data")
+	}
+	var userID int64
+	if _, err := fmt.Sscanf(string(data), "profile_activity:%d", &userID); err != nil {
+		return err
+	}
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	m, err := h.service.GetChatMemberStats(ctx.StdContext(), c.ID, userID)
+	if err != nil {
+		return err
+	}
+
+	eb := &entity.Builder{}
+	view.WriteProfile(eb, m, true)
+	text, entities := eb.Raw()
+
+	_, err = ctx.EditMessage(c.ID, &tg.MessagesEditMessageRequest{
+		Message:     text,
+		ID:          cq.MsgID,
+		Entities:    entities,
+		InvertMedia: true,
+		ReplyMarkup: &tg.ReplyInlineMarkup{
+			Rows: []tg.KeyboardButtonRow{
+				{Buttons: []tg.KeyboardButtonClass{
+					&tg.KeyboardButtonCallback{
+						Text: "📊 Показать график",
+						Data: []byte(fmt.Sprintf("profile_graph:%d", userID)),
+					},
+				}},
+			},
+		},
+	})
+
+	return err
+}
+
+func (h *Handler) ListInactive(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	log.Println(ctx.Date())
+
+	members, err := h.service.GetInactiveMembers(ctx.StdContext(), c.ID)
+	if err != nil {
+		return err
+	}
+	if len(members) == 0 {
+		_, err := ctx.Reply(
+			u,
+			ext.ReplyTextString("Нет неактивных участников за сутки"),
+			nil,
+		)
+		return err
+	}
+
+	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
+		view.WriteInactiveMembers(eb, members)
+
+		return nil
+	})), &ext.ReplyOpts{
+		Markup: &tg.ReplyInlineMarkup{
+			Rows: []tg.KeyboardButtonRow{
+				{Buttons: []tg.KeyboardButtonClass{
+					&tg.KeyboardButtonCallback{Text: "Созвать неактивных", Data: []byte("call_inactive")},
+				}},
+			},
+		},
+		NoWebpage: true,
+	})
+
+	return err
+}
+
+func (h *Handler) ShowRestList(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	restMembers, err := h.restService.GetRestMembers(ctx.StdContext(), c.ID)
+	if err != nil {
+		return err
+	}
+
+	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
+		view.WriteRestList(eb, restMembers)
+		return nil
+	})), nil)
+	return err
+}
+
+func (h *Handler) ShowFailedNorm(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	now := time.Now().In(helpers.MoscowLocation)
+	from, to, err := ResolveRange(ctx.Dates(), now, c.WeekStartDay, c.WeekStartTime, now.Location())
+	if err != nil {
+		return fmt.Errorf("resolve range error: %w", err)
+
+	}
+
+	report, err := h.service.GetChatMembersStats(ctx.StdContext(), c.ID, &from, &to)
+	if err != nil {
+		return fmt.Errorf("get chat member stats error: %w", err)
+	}
+
+	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
+		view.WriteFailedNorm(eb, report, &from, &to)
+		return nil
+	})), &ext.ReplyOpts{
+		NoWebpage: true,
+		Markup:    getCallKeyboard(c),
+	})
+
+	return err
+}
+
+func getCallKeyboard(c model.Chat) tg.ReplyMarkupClass {
+	var buttons []tg.KeyboardButtonClass
+	var rows []tg.KeyboardButtonRow
+
+	if c.NormWarn != 0 {
+		buttons = append(buttons, &tg.KeyboardButtonCallback{
+			Text: fmt.Sprintf("Без нормы %d", c.NormWarn),
+			Data: []byte("call_no_norm_warn"),
+			Style: tg.KeyboardButtonStyle{
+				Icon: 5433866857666855412,
+			},
+		})
+	}
+	if c.NormBan != 0 {
+		buttons = append(buttons, &tg.KeyboardButtonCallback{
+			Text: fmt.Sprintf("Без нормы %d", c.NormBan),
+			Data: []byte("call_no_norm_ban"),
+			Style: tg.KeyboardButtonStyle{
+				Icon: 5433866857666855412,
+			},
+		})
+	}
+
+	if len(buttons) > 0 {
+		rows = append(rows, tg.KeyboardButtonRow{Buttons: buttons})
+	}
+
+	if c.NormWarn != 0 || c.NormBan != 0 {
+		rows = append(rows, tg.KeyboardButtonRow{Buttons: []tg.KeyboardButtonClass{
+			&tg.KeyboardButtonCallback{
+				Text: "Всех без нормы",
+				Data: []byte("call_no_norm"),
+				Style: tg.KeyboardButtonStyle{
+					Icon: 5433866857666855412,
+				},
+			},
+		}})
+	}
+
+	return &tg.ReplyInlineMarkup{
+		Rows: rows,
+	}
+}
+
 //func (h *Handler) ShowNewbies(b *gotgbot.Bot, ctx *command.Context) error {
 //	c, err := ctx.Chat()
 //	if err != nil {

@@ -156,8 +156,6 @@ func WriteFailedNorm(eb *entity.Builder, report []model.ChatMemberMessageCount, 
 		return
 	}
 
-	eb.Plain("\n\n⚠️ ")
-	eb.Bold("Не выполнили норму:")
 	eb.Plain("\n")
 
 	if len(sections.FailedWarn) > 0 {

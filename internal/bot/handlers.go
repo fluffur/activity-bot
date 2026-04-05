@@ -97,20 +97,29 @@ func (a *App) RegisterHandlers() {
 		SetAliases("ктоты", "кто ты", "профиль").
 		SetArgRules(command.MentionedUserRule()))
 
-	//a.dp.AddHandler(f.New("inactive", statsHandler.ListInactive).SetDescription("Список неактивных").SetCategory(command.CategoryStats).
-	//	SetAliases("инактив", "неактив"))
-	//
-	//a.dp.AddHandler(f.New("rests", statsHandler.ShowRestList).SetDescription("Список действующих рестов").SetCategory(command.CategoryStats).
-	//	SetAliases("ресты"),
-	//)
+	a.dp.AddHandler(f.New("callback_all_activity", statsHandler.CallbackAllActivity).WrapCallback())
+
+	a.dp.AddHandler(f.New("inactive", statsHandler.ListInactive).
+		SetDescription("Список неактивных").
+		SetCategory(command.CategoryStats).
+		SetArgRules(command.ArgRule{Name: "period", Min: 0, Max: 1, Type: command.ArgTypeDate}).
+		SetAliases("инактив", "неактив"),
+	)
+
+	a.dp.AddHandler(f.New("rests", statsHandler.ShowRestList).SetDescription("Список действующих рестов").SetCategory(command.CategoryStats).
+		SetAliases("ресты"),
+	)
 	//
 	//a.dp.AddHandler(f.New("all_rests", restHandler.AllUserRests).SetDescription("История рестов").SetCategory(command.CategoryProfile).
 	//	SetAliases("все ресты").SetArgRules(command.AnyUserRule()),
 	//)
 	//
-	//a.dp.AddHandler(f.New("failed_norm", statsHandler.ShowFailedNorm).SetDescription("Не выполнившие норму").SetCategory(command.CategoryStats).
-	//	SetArgRules(command.OptionalDateRangeRule()),
-	//)
+	a.dp.AddHandler(f.New("failed_norm", statsHandler.ShowFailedNorm).
+		SetAliases("без нормы").
+		SetDescription("Не выполнившие норму").
+		SetCategory(command.CategoryStats).
+		SetArgRules(command.OptionalDateRangeRule()),
+	)
 	//
 	//a.dp.AddHandler(f.New("newbies", statsHandler.ShowNewbies).SetDescription("Список новичков").SetCategory(command.CategoryStats).
 	//	SetAliases("новички"),
@@ -640,8 +649,4 @@ func (a *App) RegisterHandlers() {
 	//		f.New("profile_graph", statsHandler.CallbackProfileGraph).WrapCallback()),
 	//)
 	//
-	//a.dp.AddHandler(
-	//	handlers.NewCallback(callbackquery.Prefix(""),
-	//		f.New("callback_all_activity", statsHandler.CallbackAllActivity).WrapCallback(),
-	//	))
 }

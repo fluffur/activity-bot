@@ -3,18 +3,19 @@ package helpers
 import (
 	"activity-bot/internal/model"
 	"fmt"
-	"github.com/gotd/td/telegram/message/entity"
-	"github.com/gotd/td/tg"
 	"html"
 	"strings"
+
+	"github.com/gotd/td/telegram/message/entity"
+	"github.com/gotd/td/tg"
 )
 
 func UserLink(u model.User) string {
 	if u.Username != "" {
-		return fmt.Sprintf(`<a href="https://t.me/%s">%s</a>`, u.Username, html.EscapeString(u.FirstName))
+		return "https://t.me/" + u.Username
 	}
 
-	return fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a>`, u.ID, html.EscapeString(u.FirstName))
+	return fmt.Sprintf("tg://openmessage?user_id=%d", u.ID)
 }
 
 func Link(username, content string) string {
@@ -99,5 +100,5 @@ func WriteRoleEmojiLink(eb *entity.Builder, cm model.ChatMember) {
 		WriteCustomEmoji(eb, cm.User.Emoji, "")
 		eb.Plain(" ")
 	}
-	eb.MentionName(MemberDisplayName(cm), cm.User.AsInput())
+	eb.TextURL(MemberDisplayName(cm), UserLink(cm.User))
 }

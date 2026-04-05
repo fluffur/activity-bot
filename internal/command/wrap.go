@@ -1,68 +1,76 @@
 package command
 
-//
-//func (c *Command) WrapCallback() func(b *gotgbot.Bot, ctx *ext.Context) error {
-//	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-//		stdCtx := context.Background()
-//
-//		cq := ctx.CallbackQuery
-//		if cq == nil {
-//			return nil
-//		}
-//
-//		handlerCtx := &Context{Context: ctx, stdContext: stdCtx}
-//
-//		if c.scope == ScopeChat {
-//			chat, err := c.getChat(ctx, stdCtx)
-//			if err != nil {
-//				logger.L.Warn("WrapCallback: get chat failed", "error", err)
-//			} else {
-//				handlerCtx.chat = &chat
-//			}
-//		}
-//
-//		var senderMember *model.ChatMember
-//		if ctx.Data != nil && ctx.Data["_cached_sender"] != nil {
-//			if cached, ok := ctx.Data["_cached_sender"].(*model.ChatMember); ok {
-//				senderMember = cached
-//			}
-//		}
-//		if senderMember == nil && ctx.EffectiveUser != nil {
-//			member, err := c.resolveMember(stdCtx, handlerCtx.chat, ctx.EffectiveUser.Id)
-//			if err != nil {
-//				logger.L.Warn("WrapCallback: resolve sender failed", "error", err)
-//			} else {
-//				senderMember = member
-//				if ctx.Data == nil {
-//					ctx.Data = make(map[string]interface{})
-//				}
-//				ctx.Data["_cached_sender"] = senderMember
-//			}
-//		}
-//		handlerCtx.senderChatMember = senderMember
-//
-//		if c.requiredStatus > 0 && handlerCtx.senderChatMember != nil && !handlerCtx.senderChatMember.StatusGranted(c.requiredStatus) {
-//			_, err := cq.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-//				Text: fmt.Sprintf("[%d/%d] Недостаточно прав для выполнения команды", handlerCtx.senderChatMember.Status, c.requiredStatus),
-//			})
-//			return err
-//		}
-//
-//		data := cq.Data
-//		if idx := strings.Index(data, ":"); idx != -1 {
-//			handlerCtx.RawArgs = data[idx+1:]
-//		}
-//		handlerCtx.texts = strings.Fields(handlerCtx.RawArgs)
-//
-//		if err := c.response(b, handlerCtx); err != nil {
-//			return err
-//		}
-//
-//		_, _ = cq.Answer(b, nil)
-//		return nil
-//	}
-//}
-//
+import (
+	"fmt"
+	"strings"
+
+	"github.com/celestix/gotgproto/ext"
+	"github.com/go-faster/errors"
+	"github.com/gotd/td/tg"
+)
+
+type HandlerFunc func(ctx *ext.Context, u *ext.Update) error
+
+func (f HandlerFunc) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
+	return f(ctx, u)
+}
+
+func (c *Command) WrapCallback() HandlerFunc {
+	return func(ctx *ext.Context, u *ext.Update) error {
+		cb := u.CallbackQuery
+		if cb == nil {
+			return nil
+		}
+
+		handlerCtx := Context{
+			Context: ctx,
+		}
+
+		if c.scope == ScopeChat {
+			chat, err := c.getChat(ctx, u)
+			if err != nil {
+				return errors.Wrap(err, "callback: get chat failed")
+			}
+			handlerCtx.chat = &chat
+
+			if s, err := c.chatProvider.GetCommandPermission(ctx.Context, chat.ID, c.name); err == nil {
+				c.requiredStatus = s
+			}
+			handlerCtx.requiredStatus = c.requiredStatus
+		}
+
+		senderID := u.EffectiveUser().GetID()
+		member, err := c.resolveMember(ctx.Context, handlerCtx.chat, senderID)
+		if err != nil {
+			return errors.Wrap(err, "callback: resolve sender failed")
+		}
+		handlerCtx.senderChatMember = member
+
+		if !handlerCtx.senderChatMember.StatusGranted(c.requiredStatus) {
+			_, err := ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+				Message: fmt.Sprintf("Требуются права: %s", c.requiredStatus),
+				Alert:   true,
+			})
+			return err
+		}
+
+		data := string(cb.Data)
+		if idx := strings.Index(data, ":"); idx != -1 {
+			handlerCtx.RawArgs = data[idx+1:]
+		} else {
+			handlerCtx.RawArgs = data
+		}
+
+		handlerCtx.texts = strings.Fields(handlerCtx.RawArgs)
+
+		err = c.response(&handlerCtx, u)
+
+		_, _ = ctx.AnswerCallback(nil)
+
+		return err
+	}
+}
+
 //func (c *Command) WrapEvent() func(b *gotgbot.Bot, ctx *ext.Context) error {
 //	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 //		stdCtx := context.Background()
