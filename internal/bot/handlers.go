@@ -13,6 +13,8 @@ import (
 	"activity-bot/internal/stats"
 	statsH "activity-bot/internal/stats/handler"
 
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/callbackquery"
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
 )
 
@@ -62,12 +64,7 @@ func (a *App) RegisterHandlers() {
 	//	SetRequiredStatus(model.StatusSeniorAdmin).
 	//	SetArgRules(command.TextRule()),
 	//)
-	//a.dp.AddHandler(f.New("show_newbie_treshold", chatHandler.ShowNewbieThreshold).
-	//	SetDescription("Порог новичка").
-	//	SetCategory(command.CategorySettings).
-	//	SetAliases("новички срок", "новички после").
-	//	SetRequiredStatus(model.StatusSeniorAdmin),
-	//)
+
 	a.dp.AddHandler(f.New("set_newbie_treshold", chatHandler.SetNewbieThreshold).
 		SetAliases("новички срок", "новички после").
 		AddPrefixes("+").
@@ -76,6 +73,159 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Настройка срока новичка").
 		SetCategory(command.CategorySettings),
 	)
+	a.dp.AddHandler(f.New("show_newbie_treshold", chatHandler.ShowNewbieThreshold).
+		SetDescription("Порог новичка").
+		SetCategory(command.CategorySettings).
+		SetAliases("новички срок", "новички после").
+		SetRequiredStatus(model.StatusSeniorAdmin),
+	)
+	a.dp.AddHandler(f.New("norm", chatHandler.ShowNorm).
+		SetDescription("Посмотреть норму сообщений").
+		SetCategory(command.CategorySettings).
+		SetAliases("норма какая", "а норма какая", "норма", "норма?", "quota", "какая норма", "а какая норма"),
+	)
+	a.dp.AddHandler(f.New("set_norm", chatHandler.SetNorm).
+		SetDescription("Установка нормы").
+		SetCategory(command.CategorySettings).
+		SetAliases("норма", "quota").
+		AddPrefixes("+").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetArgRules(command.NumberRule(), command.TextRule().SetVariadic(true).SetRange(0, 1)),
+	)
+	a.dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).SetDescription("Удалить норму").SetCategory(command.CategorySettings).SetAliases("норма", "quota").
+		AddPrefixes("-").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)),
+	)
+
+	a.dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).SetDescription("Системный ИИ промпт").SetCategory(command.CategorySettings))
+
+	a.dp.AddHandler(
+		handlers.NewMessage(command.NewChatTitle,
+			f.New("chat_title_change", chatHandler.OnNewChatTitle).WrapEvent()),
+	)
+	a.dp.AddHandler(f.New("manage", chatHandler.Manage).SetDescription("Управление чатом").SetCategory(command.CategorySettings).
+		SetAliases("управление").
+		SetScope(command.ScopeUser),
+	)
+	a.dp.AddHandler(
+		f.New("set_manage", chatHandler.CallbackManage).
+			SetScope(command.ScopeUser).
+			WrapCallback(filters.CallbackQuery.Prefix("manage:")),
+	)
+
+	a.dp.AddHandler(
+		handlers.NewCallback(callbackquery.Prefix("manage_page:"),
+			f.New("manage_page", chatHandler.CallbackManagePage).WrapCallback()),
+	)
+
+	a.dp.AddHandler(f.New("enable_tags", chatHandler.EnableTags).
+		SetAliases("+tags", "+теги", "+тэги").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Включение тегов").
+		SetCategory(command.CategorySettings),
+	)
+	a.dp.AddHandler(f.New("disable_tags", chatHandler.DisableTags).SetAliases("-tags", "-теги", "-тэги").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Отключение тегов").
+		SetCategory(command.CategorySettings),
+	)
+	a.dp.AddHandler(f.New("tags", chatHandler.ShowTags).SetDescription("Список тегов").
+		SetCategory(command.CategoryGeneral).
+		SetAliases("tags", "теги", "тэги"))
+
+	a.dp.AddHandler(f.New("chats", chatHandler.UserChats).SetDescription("Список активных чатов").SetCategory(command.CategoryAdmin).
+		SetAliases("чаты", "нормы", "чаты без нормы"))
+
+	a.dp.AddHandler(f.New("set_prompt", chatHandler.SetPrompt).SetAliases("промпт").
+		AddPrefixes("+").
+		SetArgRules(command.TextRule().SetVariadic(false).SetRange(0, 1)).
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Настройка промпта для ИИ").
+		SetCategory(command.CategorySettings),
+	)
+	a.dp.AddHandler(f.New("week_start", chatHandler.ShowWeekStart).SetDescription("Начало недели для нормы").SetCategory(command.CategorySettings).
+		SetAliases("начало недели", "чистка", "время чистки", "конец чистки"))
+
+	a.dp.AddHandler(f.New("set_week_start", chatHandler.SetWeekStart).
+		SetAliases("начало недели", "чистка", "время чистки", "конец чистки").
+		AddPrefixes("+").
+		SetArgRules(command.OneDateRule()).
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Настройка начала недели").
+		SetCategory(command.CategorySettings),
+	)
+	a.dp.AddHandler(f.New("custom_prefix", chatHandler.ShowPrefix).
+		SetAliases("кастом префикс", "префикс").
+		SetRequiredStatus(model.StatusSeniorAdmin),
+	)
+	a.dp.AddHandler(f.New("set_custom_prefix", chatHandler.SetPrefix).
+		SetAliases("кастом префикс", "префикс").
+		AddPrefixes("+").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetArgRules(command.TextRule()).
+		SetDescription("Кастомные префиксы").
+		SetCategory(command.CategorySettings),
+	)
+	a.dp.AddHandler(f.New("show_newbie_treshold", chatHandler.ShowNewbieThreshold).SetDescription("Порог новичка").SetCategory(command.CategorySettings).
+		SetAliases("новички срок").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Показать срок новичка").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).SetDescription("Удалить норму").SetCategory(command.CategorySettings).
+		SetAliases("норма").
+		AddPrefixes("-").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Удалить норму").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).SetDescription("Системный ИИ промпт").SetCategory(command.CategorySettings).
+		SetDescription("Показать текущий AI-промпт").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.dp.AddHandler(f.New("week_start", chatHandler.ShowWeekStart).SetDescription("Начало недели для нормы").SetCategory(command.CategorySettings).
+		SetAliases("начало недели").
+		SetDescription("Показать начало недели").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.dp.AddHandler(f.New("custom_prefix", chatHandler.ShowPrefix).
+		SetAliases("префикс").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Показать префиксы команд").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.dp.AddHandler(f.New("prefix_only", chatHandler.ShowPrefixlessStatus).
+		SetAliases("префиксы").
+		SetDescription("Статус обязательного префикса").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.dp.AddHandler(f.New("enable_prefix_only", chatHandler.EnablePrefixOnly).
+		SetAliases("+префиксы").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Включить обязательный префикс").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.dp.AddHandler(f.New("a", chatHandler.DisablePrefixOnly).
+		SetAliases("-префиксы").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Отключить обязательный префикс").
+		SetCategory(command.CategorySettings),
+	)
+	a.dp.AddHandler(f.New("enable_call_on_join", callHandler.EnableCallOnJoin).
+		SetAliases("call_enable", "включить call", "включить колл", "включить калл").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Включить призыв при входе").
+		SetCategory(command.CategoryCall),
+	)
+
 	a.dp.AddHandler(f.New("stats", statsHandler.ShowStats).
 		SetAliases("отчёт", "отчет", "стата").
 		SetArgRules(command.OptionalDateRangeRule()).
@@ -131,22 +281,7 @@ func (a *App) RegisterHandlers() {
 		SetCategory(command.CategoryStats).
 		SetAliases("новички"),
 	)
-	//
-	//a.dp.AddHandler(f.New("norm", chatHandler.ShowNorm).
-	//	SetDescription("Посмотреть норму сообщений").
-	//	SetCategory(command.CategorySettings).
-	//	SetAliases("норма какая", "а норма какая", "норма", "норма?", "quota", "какая норма", "а какая норма"),
-	//)
-	//a.dp.AddHandler(f.New("set_norm", chatHandler.SetNorm).SetDescription("Установка нормы").SetCategory(command.CategorySettings).SetAliases("норма", "quota").
-	//	AddPrefixes("+").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetArgRules(command.NumberRule(), command.TextRule().SetVariadic(true).SetRange(0, 1)),
-	//)
-	//a.dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).SetDescription("Удалить норму").SetCategory(command.CategorySettings).SetAliases("норма", "quota").
-	//	AddPrefixes("-").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)),
-	//)
+
 	//a.dp.AddHandler(f.New("ship_random", memberHandler.ShipRandom).SetDescription("Случайный шипперинг").SetCategory(command.CategoryGeneral).
 	//	SetAliases("рандом шипперим"))
 	//
@@ -446,133 +581,7 @@ func (a *App) RegisterHandlers() {
 	//	SetCategory(command.CategoryCall),
 	//)
 	//
-	//a.dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).SetDescription("Системный ИИ промпт").SetCategory(command.CategorySettings))
-	//
-	//a.dp.AddHandler(
-	//	handlers.NewMessage(command.NewChatTitle,
-	//		f.New("chat_title_change", chatHandler.OnNewChatTitle).WrapEvent()),
-	//)
-	//a.dp.AddHandler(f.New("manage", chatHandler.Manage).SetDescription("Управление чатом").SetCategory(command.CategorySettings).
-	//	SetAliases("управление").
-	//	SetScope(command.ScopeUser),
-	//)
-	//a.dp.AddHandler(
-	//	handlers.NewCallback(callbackquery.Prefix("manage:"),
-	//		f.New("set_manage", chatHandler.CallbackManage).SetScope(command.ScopeUser).WrapCallback()),
-	//)
-	//
-	//a.dp.AddHandler(
-	//	handlers.NewCallback(callbackquery.Prefix("manage_page:"),
-	//		f.New("manage_page", chatHandler.CallbackManagePage).WrapCallback()),
-	//)
-	//
-	//a.dp.AddHandler(f.New("enable_tags", chatHandler.EnableTags).
-	//	SetAliases("+tags", "+теги", "+тэги").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetDescription("Включение тегов").
-	//	SetCategory(command.CategorySettings),
-	//)
-	//a.dp.AddHandler(f.New("disable_tags", chatHandler.DisableTags).SetAliases("-tags", "-теги", "-тэги").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetDescription("Отключение тегов").
-	//	SetCategory(command.CategorySettings),
-	//)
-	//a.dp.AddHandler(f.New("tags", chatHandler.ShowTags).SetDescription("Список тегов").
-	//	SetCategory(command.CategoryGeneral).
-	//	SetAliases("tags", "теги", "тэги"))
-	//
-	//a.dp.AddHandler(f.New("chats", chatHandler.UserChats).SetDescription("Список активных чатов").SetCategory(command.CategoryAdmin).
-	//	SetAliases("чаты", "нормы", "чаты без нормы"))
-	//
-	//a.dp.AddHandler(f.New("set_prompt", chatHandler.SetPrompt).SetAliases("промпт").
-	//	AddPrefixes("+").
-	//	SetArgRules(command.TextRule().SetVariadic(false).SetRange(0, 1)).
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetDescription("Настройка промпта для ИИ").
-	//	SetCategory(command.CategorySettings),
-	//)
-	//a.dp.AddHandler(f.New("week_start", chatHandler.ShowWeekStart).SetDescription("Начало недели для нормы").SetCategory(command.CategorySettings).
-	//	SetAliases("начало недели", "чистка", "время чистки", "конец чистки"))
-	//
-	//a.dp.AddHandler(f.New("set_week_start", chatHandler.SetWeekStart).
-	//	SetAliases("начало недели", "чистка", "время чистки", "конец чистки").
-	//	AddPrefixes("+").
-	//	SetArgRules(command.OneDateRule()).
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetDescription("Настройка начала недели").
-	//	SetCategory(command.CategorySettings),
-	//)
-	//a.dp.AddHandler(f.New("custom_prefix", chatHandler.ShowPrefix).
-	//	SetAliases("кастом префикс", "префикс").
-	//	SetRequiredStatus(model.StatusSeniorAdmin),
-	//)
-	//a.dp.AddHandler(f.New("set_custom_prefix", chatHandler.SetPrefix).
-	//	SetAliases("кастом префикс", "префикс").
-	//	AddPrefixes("+").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetArgRules(command.TextRule()).
-	//	SetDescription("Кастомные префиксы").
-	//	SetCategory(command.CategorySettings),
-	//)
-	//a.dp.AddHandler(f.New("show_newbie_treshold", chatHandler.ShowNewbieThreshold).SetDescription("Порог новичка").SetCategory(command.CategorySettings).
-	//	SetAliases("новички срок").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetDescription("Показать срок новичка").
-	//	SetCategory(command.CategorySettings),
-	//)
-	//
-	//a.dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).SetDescription("Удалить норму").SetCategory(command.CategorySettings).
-	//	SetAliases("норма").
-	//	AddPrefixes("-").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetDescription("Удалить норму").
-	//	SetCategory(command.CategorySettings),
-	//)
-	//
-	//a.dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).SetDescription("Системный ИИ промпт").SetCategory(command.CategorySettings).
-	//	SetDescription("Показать текущий AI-промпт").
-	//	SetCategory(command.CategorySettings),
-	//)
-	//
-	//a.dp.AddHandler(f.New("week_start", chatHandler.ShowWeekStart).SetDescription("Начало недели для нормы").SetCategory(command.CategorySettings).
-	//	SetAliases("начало недели").
-	//	SetDescription("Показать начало недели").
-	//	SetCategory(command.CategorySettings),
-	//)
-	//
-	//a.dp.AddHandler(f.New("custom_prefix", chatHandler.ShowPrefix).
-	//	SetAliases("префикс").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetDescription("Показать префиксы команд").
-	//	SetCategory(command.CategorySettings),
-	//)
-	//
-	//a.dp.AddHandler(f.New("prefix_only", chatHandler.ShowPrefixlessStatus).
-	//	SetAliases("префиксы").
-	//	SetDescription("Статус обязательного префикса").
-	//	SetCategory(command.CategorySettings),
-	//)
-	//
-	//a.dp.AddHandler(f.New("enable_prefix_only", chatHandler.EnablePrefixOnly).
-	//	SetAliases("+префиксы").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetDescription("Включить обязательный префикс").
-	//	SetCategory(command.CategorySettings),
-	//)
-	//
-	//a.dp.AddHandler(f.New("a", chatHandler.DisablePrefixOnly).
-	//	SetAliases("-префиксы").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetDescription("Отключить обязательный префикс").
-	//	SetCategory(command.CategorySettings),
-	//)
-	//a.dp.AddHandler(f.New("enable_call_on_join", callHandler.EnableCallOnJoin).
-	//	SetAliases("call_enable", "включить call", "включить колл", "включить калл").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetDescription("Включить призыв при входе").
-	//	SetCategory(command.CategoryCall),
-	//)
-	//
+
 	//a.dp.AddHandler(f.New("ask_ai", messageHandler.Bot).SetDescription("Вопрос к ИИ").SetCategory(command.CategoryGeneral).SetAliases("крис").
 	//	SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)),
 	//)

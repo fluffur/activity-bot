@@ -10,6 +10,7 @@ import (
 	"unicode"
 	"unicode/utf16"
 
+	"github.com/celestix/gotgproto/dispatcher"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/types"
 	"github.com/go-faster/errors"
@@ -361,7 +362,12 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 		return err
 	}
 
-	return c.response(&handlerCtx, u)
+	err = c.response(&handlerCtx, u)
+
+	if err != nil {
+		return err
+	}
+	return dispatcher.SkipCurrentGroup
 }
 
 func (c *Command) resolveUsers(ctx *ext.Context, handlerCtx *Context, msg *types.Message, text string, entities []tg.MessageEntityClass) error {
