@@ -64,7 +64,7 @@ ON CONFLICT (chat_id, user_id) DO UPDATE
                       ELSE chat_members.tag
         END,
         left_at = NULL
-RETURNING chat_id, user_id, joined_at, rest_until, tag, left_at, rest_reason, emoji, status
+RETURNING chat_id, user_id, joined_at, rest_until, tag, left_at, rest_reason, emoji, status, emoji_json
 `
 
 type EnsureMemberFullParams struct {
@@ -96,12 +96,13 @@ func (q *Queries) EnsureMemberFull(ctx context.Context, arg EnsureMemberFullPara
 		&i.RestReason,
 		&i.Emoji,
 		&i.Status,
+		&i.EmojiJson,
 	)
 	return i, err
 }
 
 const findChatMembersByTag = `-- name: FindChatMembersByTag :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
@@ -142,6 +143,7 @@ func (q *Queries) FindChatMembersByTag(ctx context.Context, arg FindChatMembersB
 			&i.ChatMember.RestReason,
 			&i.ChatMember.Emoji,
 			&i.ChatMember.Status,
+			&i.ChatMember.EmojiJson,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,
@@ -150,6 +152,7 @@ func (q *Queries) FindChatMembersByTag(ctx context.Context, arg FindChatMembersB
 			&i.User.Gender,
 			&i.User.Emoji,
 			&i.User.CustomEmojiID,
+			&i.User.EmojiJson,
 		); err != nil {
 			return nil, err
 		}
@@ -162,7 +165,7 @@ func (q *Queries) FindChatMembersByTag(ctx context.Context, arg FindChatMembersB
 }
 
 const getAnyChatMembersWithTitles = `-- name: GetAnyChatMembersWithTitles :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = $1
@@ -195,6 +198,7 @@ func (q *Queries) GetAnyChatMembersWithTitles(ctx context.Context, chatID int64)
 			&i.ChatMember.RestReason,
 			&i.ChatMember.Emoji,
 			&i.ChatMember.Status,
+			&i.ChatMember.EmojiJson,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,
@@ -203,6 +207,7 @@ func (q *Queries) GetAnyChatMembersWithTitles(ctx context.Context, chatID int64)
 			&i.User.Gender,
 			&i.User.Emoji,
 			&i.User.CustomEmojiID,
+			&i.User.EmojiJson,
 		); err != nil {
 			return nil, err
 		}
@@ -215,7 +220,7 @@ func (q *Queries) GetAnyChatMembersWithTitles(ctx context.Context, chatID int64)
 }
 
 const getChatAdmins = `-- name: GetChatAdmins :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
@@ -247,6 +252,7 @@ func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdm
 			&i.ChatMember.RestReason,
 			&i.ChatMember.Emoji,
 			&i.ChatMember.Status,
+			&i.ChatMember.EmojiJson,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,
@@ -255,6 +261,7 @@ func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdm
 			&i.User.Gender,
 			&i.User.Emoji,
 			&i.User.CustomEmojiID,
+			&i.User.EmojiJson,
 		); err != nil {
 			return nil, err
 		}
@@ -267,7 +274,7 @@ func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdm
 }
 
 const getChatMember = `-- name: GetChatMember :one
-SELECT chat_members.chat_id, chat_members.user_id, chat_members.joined_at, chat_members.rest_until, chat_members.tag, chat_members.left_at, chat_members.rest_reason, chat_members.emoji, chat_members.status, users.id, users.username, users.first_name, users.last_name, users.created_at, users.gender, users.emoji, users.custom_emoji_id
+SELECT chat_members.chat_id, chat_members.user_id, chat_members.joined_at, chat_members.rest_until, chat_members.tag, chat_members.left_at, chat_members.rest_reason, chat_members.emoji, chat_members.status, chat_members.emoji_json, users.id, users.username, users.first_name, users.last_name, users.created_at, users.gender, users.emoji, users.custom_emoji_id, users.emoji_json
 FROM chat_members
          JOIN users ON users.id = user_id
   AND chat_id = $1
@@ -297,6 +304,7 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 		&i.ChatMember.RestReason,
 		&i.ChatMember.Emoji,
 		&i.ChatMember.Status,
+		&i.ChatMember.EmojiJson,
 		&i.User.ID,
 		&i.User.Username,
 		&i.User.FirstName,
@@ -305,12 +313,13 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 		&i.User.Gender,
 		&i.User.Emoji,
 		&i.User.CustomEmojiID,
+		&i.User.EmojiJson,
 	)
 	return i, err
 }
 
 const getChatMemberByUsername = `-- name: GetChatMemberByUsername :one
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
@@ -341,6 +350,7 @@ func (q *Queries) GetChatMemberByUsername(ctx context.Context, arg GetChatMember
 		&i.ChatMember.RestReason,
 		&i.ChatMember.Emoji,
 		&i.ChatMember.Status,
+		&i.ChatMember.EmojiJson,
 		&i.User.ID,
 		&i.User.Username,
 		&i.User.FirstName,
@@ -349,12 +359,13 @@ func (q *Queries) GetChatMemberByUsername(ctx context.Context, arg GetChatMember
 		&i.User.Gender,
 		&i.User.Emoji,
 		&i.User.CustomEmojiID,
+		&i.User.EmojiJson,
 	)
 	return i, err
 }
 
 const getChatMembers = `-- name: GetChatMembers :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
@@ -385,6 +396,7 @@ func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMe
 			&i.ChatMember.RestReason,
 			&i.ChatMember.Emoji,
 			&i.ChatMember.Status,
+			&i.ChatMember.EmojiJson,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,
@@ -393,6 +405,7 @@ func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMe
 			&i.User.Gender,
 			&i.User.Emoji,
 			&i.User.CustomEmojiID,
+			&i.User.EmojiJson,
 		); err != nil {
 			return nil, err
 		}
@@ -405,7 +418,7 @@ func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMe
 }
 
 const getChatMembersWithTitles = `-- name: GetChatMembersWithTitles :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json
 FROM chat_members cm
          JOIN users u ON cm.user_id = u.id
 WHERE cm.chat_id = $1
@@ -439,6 +452,7 @@ func (q *Queries) GetChatMembersWithTitles(ctx context.Context, chatID int64) ([
 			&i.ChatMember.RestReason,
 			&i.ChatMember.Emoji,
 			&i.ChatMember.Status,
+			&i.ChatMember.EmojiJson,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,
@@ -447,6 +461,7 @@ func (q *Queries) GetChatMembersWithTitles(ctx context.Context, chatID int64) ([
 			&i.User.Gender,
 			&i.User.Emoji,
 			&i.User.CustomEmojiID,
+			&i.User.EmojiJson,
 		); err != nil {
 			return nil, err
 		}
@@ -478,7 +493,7 @@ func (q *Queries) GetMemberCustomTitle(ctx context.Context, arg GetMemberCustomT
 }
 
 const getMembersWithExpiredMute = `-- name: GetMembersWithExpiredMute :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json
 FROM moderation_actions ma
          JOIN chat_members cm ON ma.chat_id = cm.chat_id AND ma.user_id = cm.user_id
 WHERE ma.type = 'mute'
@@ -509,6 +524,7 @@ func (q *Queries) GetMembersWithExpiredMute(ctx context.Context) ([]GetMembersWi
 			&i.ChatMember.RestReason,
 			&i.ChatMember.Emoji,
 			&i.ChatMember.Status,
+			&i.ChatMember.EmojiJson,
 		); err != nil {
 			return nil, err
 		}
@@ -521,7 +537,7 @@ func (q *Queries) GetMembersWithExpiredMute(ctx context.Context) ([]GetMembersWi
 }
 
 const getNoNormMembers = `-- name: GetNoNormMembers :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
@@ -578,6 +594,7 @@ func (q *Queries) GetNoNormMembers(ctx context.Context, arg GetNoNormMembersPara
 			&i.ChatMember.RestReason,
 			&i.ChatMember.Emoji,
 			&i.ChatMember.Status,
+			&i.ChatMember.EmojiJson,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,
@@ -586,6 +603,7 @@ func (q *Queries) GetNoNormMembers(ctx context.Context, arg GetNoNormMembersPara
 			&i.User.Gender,
 			&i.User.Emoji,
 			&i.User.CustomEmojiID,
+			&i.User.EmojiJson,
 		); err != nil {
 			return nil, err
 		}
@@ -598,7 +616,7 @@ func (q *Queries) GetNoNormMembers(ctx context.Context, arg GetNoNormMembersPara
 }
 
 const inactiveChatMembers = `-- name: InactiveChatMembers :many
-SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id,
+SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json,
        cm.tag,
        cm.status,
        cm.rest_until,
@@ -642,6 +660,7 @@ func (q *Queries) InactiveChatMembers(ctx context.Context, chatID int64) ([]Inac
 			&i.User.Gender,
 			&i.User.Emoji,
 			&i.User.CustomEmojiID,
+			&i.User.EmojiJson,
 			&i.Tag,
 			&i.Status,
 			&i.RestUntil,

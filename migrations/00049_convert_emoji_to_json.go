@@ -38,14 +38,6 @@ func parseEmojiHTML(raw string) []Emoji {
 }
 
 func UP00048(ctx context.Context, tx *sql.Tx) error {
-	// PostgreSQL 9.6+ supports ADD COLUMN IF NOT EXISTS
-	if _, err := tx.ExecContext(ctx, `ALTER TABLE chat_members ADD COLUMN IF NOT EXISTS emoji_json JSONB`); err != nil {
-		return err
-	}
-	if _, err := tx.ExecContext(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS emoji_json JSONB`); err != nil {
-		return err
-	}
-
 	// 1. Process chat_members
 	type cmTask struct {
 		chatID, userID int64
@@ -53,7 +45,11 @@ func UP00048(ctx context.Context, tx *sql.Tx) error {
 	}
 	var cmTasks []cmTask
 
-	rows, err := tx.QueryContext(ctx, `SELECT chat_id, user_id, emoji FROM chat_members WHERE emoji IS NOT NULL AND emoji != ''`)
+	rows, err := tx.QueryContext(ctx, `
+		SELECT chat_id, user_id, emoji 
+		FROM chat_members 
+		WHERE emoji IS NOT NULL AND emoji != ''
+	`)
 	if err != nil {
 		return err
 	}
@@ -61,6 +57,7 @@ func UP00048(ctx context.Context, tx *sql.Tx) error {
 	for rows.Next() {
 		var chatID, userID int64
 		var emojiHTML string
+
 		if err := rows.Scan(&chatID, &userID, &emojiHTML); err != nil {
 			rows.Close()
 			return err
@@ -79,7 +76,11 @@ func UP00048(ctx context.Context, tx *sql.Tx) error {
 	rows.Close()
 
 	for _, t := range cmTasks {
-		if _, err := tx.ExecContext(ctx, `UPDATE chat_members SET emoji_json = $1 WHERE chat_id = $2 AND user_id = $3`, t.emojiJSON, t.chatID, t.userID); err != nil {
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE chat_members 
+			SET emoji_json = $1 
+			WHERE chat_id = $2 AND user_id = $3
+		`, t.emojiJSON, t.chatID, t.userID); err != nil {
 			return err
 		}
 	}
@@ -91,7 +92,11 @@ func UP00048(ctx context.Context, tx *sql.Tx) error {
 	}
 	var uTasks []uTask
 
-	rows2, err := tx.QueryContext(ctx, `SELECT id, emoji FROM users WHERE emoji IS NOT NULL AND emoji != ''`)
+	rows2, err := tx.QueryContext(ctx, `
+		SELECT id, emoji 
+		FROM users 
+		WHERE emoji IS NOT NULL AND emoji != ''
+	`)
 	if err != nil {
 		return err
 	}
@@ -99,6 +104,7 @@ func UP00048(ctx context.Context, tx *sql.Tx) error {
 	for rows2.Next() {
 		var id int64
 		var emojiHTML string
+
 		if err := rows2.Scan(&id, &emojiHTML); err != nil {
 			rows2.Close()
 			return err
@@ -117,7 +123,11 @@ func UP00048(ctx context.Context, tx *sql.Tx) error {
 	rows2.Close()
 
 	for _, t := range uTasks {
-		if _, err := tx.ExecContext(ctx, `UPDATE users SET emoji_json = $1 WHERE id = $2`, t.emojiJSON, t.id); err != nil {
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE users 
+			SET emoji_json = $1 
+			WHERE id = $2
+		`, t.emojiJSON, t.id); err != nil {
 			return err
 		}
 	}
@@ -202,13 +212,6 @@ func DOWN00048(ctx context.Context, tx *sql.Tx) error {
 		if _, err := tx.ExecContext(ctx, `UPDATE users SET emoji = $1 WHERE id = $2`, t.emojiHTML, t.id); err != nil {
 			return err
 		}
-	}
-
-	if _, err := tx.ExecContext(ctx, `ALTER TABLE chat_members DROP COLUMN IF EXISTS emoji_json`); err != nil {
-		return err
-	}
-	if _, err := tx.ExecContext(ctx, `ALTER TABLE users DROP COLUMN IF EXISTS emoji_json`); err != nil {
-		return err
 	}
 
 	return nil

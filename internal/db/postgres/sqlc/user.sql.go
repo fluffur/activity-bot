@@ -17,7 +17,7 @@ VALUES ($1, $2, $3, $4)
 ON CONFLICT (id) DO UPDATE SET username   = $2,
                                first_name = $3,
                                last_name  = $4
-RETURNING id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id
+RETURNING id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json
 `
 
 type EnsureUserExistsParams struct {
@@ -44,12 +44,13 @@ func (q *Queries) EnsureUserExists(ctx context.Context, arg EnsureUserExistsPara
 		&i.Gender,
 		&i.Emoji,
 		&i.CustomEmojiID,
+		&i.EmojiJson,
 	)
 	return i, err
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id
+SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json
 FROM users
 WHERE id = $1
 `
@@ -66,12 +67,13 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.Gender,
 		&i.Emoji,
 		&i.CustomEmojiID,
+		&i.EmojiJson,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id
+SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json
 FROM users
 WHERE LOWER(username) = LOWER($1)
 `
@@ -88,6 +90,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, lower string) (User, er
 		&i.Gender,
 		&i.Emoji,
 		&i.CustomEmojiID,
+		&i.EmojiJson,
 	)
 	return i, err
 }

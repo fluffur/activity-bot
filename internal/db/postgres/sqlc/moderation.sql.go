@@ -73,7 +73,7 @@ func (q *Queries) DeleteModerationActionsForUser(ctx context.Context, arg Delete
 }
 
 const getActiveWarns = `-- name: GetActiveWarns :many
-SELECT um.id, um.username, um.first_name, um.last_name, um.created_at, um.gender, um.emoji, um.custom_emoji_id, cmm.chat_id, cmm.user_id, cmm.joined_at, cmm.rest_until, cmm.tag, cmm.left_at, cmm.rest_reason, cmm.emoji, cmm.status, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, ma.id, ma.type, ma.chat_id, ma.user_id, ma.moderator_id, ma.reason, ma.created_at, ma.revoked_at, ma.expires_at
+SELECT um.id, um.username, um.first_name, um.last_name, um.created_at, um.gender, um.emoji, um.custom_emoji_id, um.emoji_json, cmm.chat_id, cmm.user_id, cmm.joined_at, cmm.rest_until, cmm.tag, cmm.left_at, cmm.rest_reason, cmm.emoji, cmm.status, cmm.emoji_json, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, ma.id, ma.type, ma.chat_id, ma.user_id, ma.moderator_id, ma.reason, ma.created_at, ma.revoked_at, ma.expires_at
 FROM moderation_actions ma
          JOIN chat_members cmm ON cmm.user_id = ma.moderator_id AND cmm.chat_id = ma.chat_id
          JOIN users um ON um.id = ma.moderator_id
@@ -125,6 +125,7 @@ func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) 
 			&i.User.Gender,
 			&i.User.Emoji,
 			&i.User.CustomEmojiID,
+			&i.User.EmojiJson,
 			&i.ChatMember.ChatID,
 			&i.ChatMember.UserID,
 			&i.ChatMember.JoinedAt,
@@ -134,6 +135,7 @@ func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) 
 			&i.ChatMember.RestReason,
 			&i.ChatMember.Emoji,
 			&i.ChatMember.Status,
+			&i.ChatMember.EmojiJson,
 			&i.User_2.ID,
 			&i.User_2.Username,
 			&i.User_2.FirstName,
@@ -142,6 +144,7 @@ func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) 
 			&i.User_2.Gender,
 			&i.User_2.Emoji,
 			&i.User_2.CustomEmojiID,
+			&i.User_2.EmojiJson,
 			&i.ChatMember_2.ChatID,
 			&i.ChatMember_2.UserID,
 			&i.ChatMember_2.JoinedAt,
@@ -151,6 +154,7 @@ func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) 
 			&i.ChatMember_2.RestReason,
 			&i.ChatMember_2.Emoji,
 			&i.ChatMember_2.Status,
+			&i.ChatMember_2.EmojiJson,
 			&i.ID,
 			&i.Type,
 			&i.ChatID,
@@ -172,7 +176,7 @@ func (q *Queries) GetActiveWarns(ctx context.Context, arg GetActiveWarnsParams) 
 }
 
 const getActiveWarnsByChat = `-- name: GetActiveWarnsByChat :many
-SELECT um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user AS moderator_user, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member AS moderator_chat_member, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, ma.id, ma.type, ma.chat_id, ma.user_id, ma.moderator_id, ma.reason, ma.created_at, ma.revoked_at, ma.expires_at
+SELECT um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user, um.moderator_user AS moderator_user, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member, cmm.moderator_chat_member AS moderator_chat_member, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, ma.id, ma.type, ma.chat_id, ma.user_id, ma.moderator_id, ma.reason, ma.created_at, ma.revoked_at, ma.expires_at
 FROM moderation_actions ma
          JOIN chat_members cmm ON cmm.user_id = ma.moderator_id AND cmm.chat_id = ma.chat_id
          JOIN users um ON um.id = ma.moderator_id
@@ -218,6 +222,7 @@ func (q *Queries) GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]Get
 			&i.User.Gender,
 			&i.User.Emoji,
 			&i.User.CustomEmojiID,
+			&i.User.EmojiJson,
 			&i.ChatMember.ChatID,
 			&i.ChatMember.UserID,
 			&i.ChatMember.JoinedAt,
@@ -227,6 +232,7 @@ func (q *Queries) GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]Get
 			&i.ChatMember.RestReason,
 			&i.ChatMember.Emoji,
 			&i.ChatMember.Status,
+			&i.ChatMember.EmojiJson,
 			&i.User_2.ID,
 			&i.User_2.Username,
 			&i.User_2.FirstName,
@@ -235,6 +241,7 @@ func (q *Queries) GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]Get
 			&i.User_2.Gender,
 			&i.User_2.Emoji,
 			&i.User_2.CustomEmojiID,
+			&i.User_2.EmojiJson,
 			&i.ChatMember_2.ChatID,
 			&i.ChatMember_2.UserID,
 			&i.ChatMember_2.JoinedAt,
@@ -244,6 +251,7 @@ func (q *Queries) GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]Get
 			&i.ChatMember_2.RestReason,
 			&i.ChatMember_2.Emoji,
 			&i.ChatMember_2.Status,
+			&i.ChatMember_2.EmojiJson,
 			&i.ID,
 			&i.Type,
 			&i.ChatID,
