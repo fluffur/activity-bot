@@ -5,9 +5,60 @@ on:
     branches:
       - master
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.vars.outputs.sha_short }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set outputs
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push App image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: docker/prod/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/activity-bot-app:latest
+            ghcr.io/${{ github.repository_owner }}/activity-bot-app:${{ steps.vars.outputs.sha_short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Migrate image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: docker/migrate/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/activity-bot-migrate:latest
+            ghcr.io/${{ github.repository_owner }}/activity-bot-migrate:${{ steps.vars.outputs.sha_short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   deploy:
     runs-on: ubuntu-latest
+    needs: build-and-push
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -18,6 +69,7 @@ jobs:
           host: ${{ secrets.VDS_HOST }}
           username: ${{ secrets.VDS_USER }}
           key: ${{ secrets.VDS_SSH_KEY }}
+          envs: GITHUB_TOKEN,GITHUB_ACTOR
           script: |
             set -e
             echo "Starting deployment..."
@@ -34,8 +86,13 @@ jobs:
             git fetch --all
             git reset --hard origin/master
 
-            echo "Build and start prod container..."
-            docker compose -f docker-compose.prod.yml build app
+            echo "Login to GHCR..."
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+            echo "Pull latest images..."
+            docker compose -f docker-compose.prod.yml pull
+
+            echo "Restart services..."
             docker compose -f docker-compose.prod.yml up -d app
 
             echo "Waiting for database..."
