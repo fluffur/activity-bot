@@ -22,7 +22,6 @@ import (
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
-	"github.com/cohesion-org/deepseek-go"
 	"github.com/gotd/td/telegram"
 	"github.com/hibiken/asynq"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -34,7 +33,6 @@ type App struct {
 	Config      config.Config
 	Pool        *pgxpool.Pool
 	Rdb         *redis.Client
-	Deepseek    *deepseek.Client
 	Bot         *gotgbot.Bot
 	Dp          *ext.Dispatcher
 	Updater     *ext.Updater
@@ -115,12 +113,11 @@ func NewApp(cfg config.Config) (*App, error) {
 		MaxRoutines: ext.DefaultMaxRoutines,
 	})
 	return &App{
-		Config:   cfg,
-		Pool:     pool,
-		Rdb:      rdb,
-		Deepseek: deepseek.NewClient(cfg.DeepseekAPIKey),
-		Bot:      b,
-		Dp:       dp,
+		Config: cfg,
+		Pool:   pool,
+		Rdb:    rdb,
+		Bot:    b,
+		Dp:     dp,
 		Updater: ext.NewUpdater(dp, &ext.UpdaterOpts{
 			Logger: logger.L,
 		}),

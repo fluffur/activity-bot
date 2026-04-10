@@ -58,7 +58,7 @@ func (a *App) RegisterHandlers() {
 
 	adminHandler := adminH.New(a.AdminService, a.MemberService, a.ChatService, dateParser, a.AsyncClient, f)
 
-	messageHandler := messageH.New(messageService, a.MemberService, a.ChatService, a.Deepseek)
+	messageHandler := messageH.New(messageService, a.MemberService, a.ChatService)
 	memberHandler := memberH.New(a.MemberService, a.ChatService, a.UserService, callService, a.AdminService)
 	callHandler := callH.New(callService, a.MemberService, a.ChatService, a.AdminService, sessionService)
 	userHandler := userH.New(a.UserService)
