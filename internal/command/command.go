@@ -471,7 +471,7 @@ func (c *Command) resolveMember(ctx context.Context, chat *model.Chat, user *got
 			return nil, errors.New("chat cannot be nil")
 		}
 
-		member, err := c.chatMemberProvider.EnsureMemberExists(ctx, chat.ID, user.Id, user.Username, user.FirstName, user.LastName, "member")
+		member, err := c.chatMemberProvider.EnsureMemberExists(ctx, chat.ID, user.Id, user.Username, user.FirstName, user.LastName, "")
 		if err != nil {
 			return nil, err
 		}
