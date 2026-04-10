@@ -38,7 +38,7 @@ func (c *Command) WrapCallback() func(b *gotgbot.Bot, ctx *ext.Context) error {
 			}
 		}
 		if senderMember == nil && ctx.EffectiveUser != nil {
-			member, err := c.resolveMember(stdCtx, handlerCtx.chat, ctx.EffectiveUser.Id)
+			member, err := c.resolveMember(stdCtx, handlerCtx.chat, ctx.EffectiveUser)
 			if err != nil {
 				logger.L.Warn("WrapCallback: resolve sender failed", "error", err)
 			} else {
@@ -99,7 +99,7 @@ func (c *Command) WrapEvent() func(b *gotgbot.Bot, ctx *ext.Context) error {
 			}
 		}
 		if senderMember == nil && ctx.EffectiveUser != nil {
-			member, err := c.resolveMember(stdCtx, handlerCtx.chat, ctx.EffectiveUser.Id)
+			member, err := c.resolveMember(stdCtx, handlerCtx.chat, ctx.EffectiveUser)
 			if err != nil {
 				logger.L.Warn("WrapEvent: resolve sender failed", "error", err)
 			} else {
@@ -124,7 +124,7 @@ func (c *Command) WrapEvent() func(b *gotgbot.Bot, ctx *ext.Context) error {
 			if u.IsBot {
 				continue
 			}
-			m, err := c.resolveMember(stdCtx, handlerCtx.chat, u.Id)
+			m, err := c.resolveMember(stdCtx, handlerCtx.chat, &u)
 			if err != nil {
 				m = &model.ChatMember{
 					User: model.User{

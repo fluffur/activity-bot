@@ -20,12 +20,14 @@ import (
 type UserProvider interface {
 	GetUser(ctx context.Context, id int64) (model.User, error)
 	GetByUsername(ctx context.Context, username string) (model.User, error)
+	EnsureUserExists(ctx context.Context, id int64, username, firstName, lastName string) (model.User, error)
 }
 
 type ChatMemberProvider interface {
 	GetChatMember(ctx context.Context, chatID, userId int64) (model.ChatMember, error)
 	GetChatMemberByUsername(ctx context.Context, chatID int64, username string) (model.ChatMember, error)
 	FindChatMembersByTag(ctx context.Context, chatID int64, tag string) ([]model.ChatMember, error)
+	EnsureMemberExists(ctx context.Context, chatID int64, userID int64, username, firstName, lastName, role string) (model.ChatMember, error)
 }
 
 type ChatProvider interface {
@@ -217,7 +219,7 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 		}
 	}
 	if senderMember == nil {
-		member, err := c.resolveMember(stdCtx, handlerCtx.chat, msg.From.Id)
+		member, err := c.resolveMember(stdCtx, handlerCtx.chat, msg.From)
 		if err != nil {
 			logger.L.Error("get chat member failed", "error", err)
 			return false
@@ -397,7 +399,7 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 func (c *Command) resolveUsers(ctx context.Context, handlerCtx *Context, msg *gotgbot.Message, text string, entities []gotgbot.MessageEntity) error {
 	// reply user
 	if isValidReply(msg.ReplyToMessage) {
-		replyMember, err := c.resolveMember(ctx, handlerCtx.chat, msg.ReplyToMessage.From.Id)
+		replyMember, err := c.resolveMember(ctx, handlerCtx.chat, msg.ReplyToMessage.From)
 		if err != nil {
 			logger.L.Error("resolve member failed", "error", err)
 			return err
@@ -459,27 +461,30 @@ func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 	return c.response(b, &handlerCtx)
 }
 
-func (c *Command) resolveMember(ctx context.Context, chat *model.Chat, userID int64) (*model.ChatMember, error) {
+func (c *Command) resolveMember(ctx context.Context, chat *model.Chat, user *gotgbot.User) (*model.ChatMember, error) {
+	if user == nil {
+		return nil, errors.New("user cannot be nil")
+	}
+
 	if c.scope == ScopeChat {
-		log.Println("resolve member", c.aliases, c.scope)
 		if chat == nil {
 			return nil, errors.New("chat cannot be nil")
 		}
 
-		member, err := c.chatMemberProvider.GetChatMember(ctx, chat.ID, userID)
+		member, err := c.chatMemberProvider.EnsureMemberExists(ctx, chat.ID, user.Id, user.Username, user.FirstName, user.LastName, "member")
 		if err != nil {
 			return nil, err
 		}
 		return &member, nil
 	}
 
-	user, err := c.userProvider.GetUser(ctx, userID)
+	u, err := c.userProvider.EnsureUserExists(ctx, user.Id, user.Username, user.FirstName, user.LastName)
 	if err != nil {
 		return nil, err
 	}
 
 	return &model.ChatMember{
-		User: user,
+		User: u,
 	}, nil
 }
 
@@ -603,7 +608,7 @@ func (c *Command) extractMembersFromEntities(
 		switch entity.Type {
 
 		case EntityTypeTextMention:
-			member, err := c.resolveMember(ctx, chat, entity.User.Id)
+			member, err := c.resolveMember(ctx, chat, entity.User)
 			if err != nil {
 				return nil, nil, err
 			}
