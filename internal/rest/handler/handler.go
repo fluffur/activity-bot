@@ -18,7 +18,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/telegram/message/entity"
+	"github.com/gotd/td/telegram/message/styling"
+	"github.com/gotd/td/tg"
 	"github.com/hibiken/asynq"
 )
 
@@ -37,12 +40,12 @@ func New(service *rest.Service, userService *user.Service, memberService *member
 	return &Handler{service, userService, memberService, chatService, adminService, dateParser, sessionService, asyncClient}
 }
 
-func (h *Handler) SetRest(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) SetRest(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
-	u, err := ctx.AnyUser()
+	target, err := ctx.AnyUser()
 	if err != nil {
 		return err
 	}
@@ -55,83 +58,108 @@ func (h *Handler) SetRest(b *gotgbot.Bot, ctx *command.Context) error {
 		return err
 	}
 	reason := ctx.TextOrDefault("")
+
 	if sender.Status < ctx.RequiredStatus() {
-		return h.createRequest(b, ctx, u, date, reason)
+		return h.createRequest(ctx, u, target, date, reason)
 	}
 
-	if err := h.service.SetMemberRestWithHistory(ctx.StdContext(), c.ID, u.User.ID, ctx.EffectiveMessage.MessageId, date, reason); err != nil {
-		_ = ctx.Reply(b, "Не удалось создать рест", nil)
+	if err := h.service.SetMemberRestWithHistory(ctx.StdContext(), c.ID, target.User.ID, int64(u.EffectiveMessage.GetID()), date, reason); err != nil {
+		_, _ = ctx.Reply(u, ext.ReplyTextString("Не удалось создать рест"), nil)
 		return err
 	}
 
-	text := view.FormatRestSet(*u, date, reason)
-	return ctx.ReplyHTML(b, text)
+	eb := &entity.Builder{}
+	view.WriteRestSet(eb, *target, date, reason)
+	finalText, finalEntities := eb.Complete()
+
+	_, err = ctx.SendMessage(u.EffectiveChat().GetID(), &tg.MessagesSendMessageRequest{
+		ReplyTo:  &tg.InputReplyToMessage{ReplyToMsgID: u.EffectiveMessage.GetID()},
+		Message:  finalText,
+		Entities: finalEntities,
+	})
+	return err
 }
 
-func (h *Handler) createRequest(b *gotgbot.Bot, ctx *command.Context, u *model.ChatMember, date time.Time, reason string) error {
-
-	kb := gotgbot.InlineKeyboardMarkup{
-		InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
+func (h *Handler) createRequest(ctx *command.Context, u *ext.Update, target *model.ChatMember, date time.Time, reason string) error {
+	kb := &tg.ReplyInlineMarkup{
+		Rows: []tg.KeyboardButtonRow{
 			{
-				{Text: "Одобрить", CallbackData: fmt.Sprintf("approve:%d", u.User.ID), Style: "success", IconCustomEmojiId: helpers.SuccessEmojiGray},
-				{Text: "Отклонить", CallbackData: fmt.Sprintf("reject:%d", u.User.ID), Style: "danger", IconCustomEmojiId: helpers.DangerEmojiGray},
+				Buttons: []tg.KeyboardButtonClass{
+					&tg.KeyboardButtonCallback{
+						Text: "Одобрить",
+						Data: []byte(fmt.Sprintf("approve:%d", target.User.ID)),
+					},
+					&tg.KeyboardButtonCallback{
+						Text: "Отклонить",
+						Data: []byte(fmt.Sprintf("reject:%d", target.User.ID)),
+					},
+				},
 			},
 		},
 	}
 
-	msg, err := ctx.EffectiveMessage.Reply(b, view.FormatRestRequest(*u, date, reason), &gotgbot.SendMessageOpts{
-		ParseMode:   gotgbot.ParseModeHTML,
+	eb := &entity.Builder{}
+	view.WriteRestRequest(eb, *target, date, reason)
+	finalText, finalEntities := eb.Complete()
+
+	msg, err := ctx.SendMessage(u.EffectiveChat().GetID(), &tg.MessagesSendMessageRequest{
+		ReplyTo:     &tg.InputReplyToMessage{ReplyToMsgID: u.EffectiveMessage.GetID()},
+		Message:     finalText,
+		Entities:    finalEntities,
 		ReplyMarkup: kb,
-		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-			IsDisabled: true,
-		},
 	})
 	if err != nil {
 		return err
 	}
 
-	slog.Info("rest requested", "message_id", msg.MessageId)
-	if err := h.service.CreateRestRequest(ctx.StdContext(), u.ChatID, u.User.ID, msg.MessageId, date); err != nil {
-		_ = ctx.Reply(b, "Не удалось создать заявку", nil)
-
+	slog.Info("rest requested", "message_id", msg.GetID())
+	if err := h.service.CreateRestRequest(ctx.StdContext(), target.ChatID, target.User.ID, int64(msg.GetID()), date); err != nil {
+		_, _ = ctx.Reply(u, ext.ReplyTextString("Не удалось создать заявку"), nil)
 		return err
 	}
 
-	return err
+	return nil
 }
 
-func (h *Handler) ShowRest(b *gotgbot.Bot, ctx *command.Context) error {
-	u, err := ctx.AnyUser()
+func (h *Handler) ShowRest(ctx *command.Context, u *ext.Update) error {
+	target, err := ctx.AnyUser()
 	if err != nil {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatRestShow(*u))
-
+	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
+		view.WriteRestShow(eb, *target)
+		return nil
+	})), nil)
+	return err
 }
 
-func (h *Handler) AllUserRests(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) AllUserRests(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 
-	u, err := ctx.AnyUser()
+	target, err := ctx.AnyUser()
 	if err != nil {
 		return err
 	}
 	var requests []model.ApprovedRestRequest
 
-	requests, err = h.service.GetRequests(ctx.StdContext(), c.ID, u.User.ID)
+	requests, err = h.service.GetRequests(ctx.StdContext(), c.ID, target.User.ID)
 	if err != nil {
-		_ = ctx.Reply(b, "Не удалось получить список рестов", nil)
+		_, _ = ctx.Reply(u, ext.ReplyTextString("Не удалось получить список рестов"), nil)
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatRestRequests(requests))
+	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
+		view.WriteRestRequests(eb, requests)
+		return nil
+	})), nil)
+	return err
 }
 
-func (h *Handler) EndRest(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) EndRest(ctx *command.Context, u *ext.Update) error {
 	m, err := ctx.AnyUser()
 	if err != nil {
 		return err
@@ -141,38 +169,53 @@ func (h *Handler) EndRest(b *gotgbot.Bot, ctx *command.Context) error {
 		return err
 	}
 	if m.User.ID != mod.User.ID && !mod.StatusGranted(ctx.RequiredStatus()) {
-		return ctx.Reply(b, "Вы можете удалить из реста только себя", nil)
-	}
-
-	if !m.IsRestActive(time.Now()) {
-		isSelf := m.User.ID == ctx.EffectiveUser.Id
-		return ctx.ReplyHTML(b, view.FormatRestNotInRest(*m, isSelf))
-	}
-
-	if err := h.service.EndMemberRest(ctx.StdContext(), m.ChatID, m.User.ID); err != nil {
-		_ = ctx.Reply(b, "Не удалось удалить пользователя из реста", nil)
+		_, err = ctx.Reply(u, ext.ReplyTextString("Вы можете удалить из реста только себя"), nil)
 		return err
 	}
 
-	isSelf := m.User.ID == ctx.EffectiveUser.Id
-	return ctx.ReplyHTML(b, view.FormatRestEnded(*m, isSelf))
+	if !m.IsRestActive(time.Now()) {
+		isSelf := m.User.ID == u.EffectiveUser().GetID()
+		_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
+			view.WriteRestNotInRest(eb, *m, isSelf)
+			return nil
+		})), nil)
+		return err
+	}
+
+	if err := h.service.EndMemberRest(ctx.StdContext(), m.ChatID, m.User.ID); err != nil {
+		_, _ = ctx.Reply(u, ext.ReplyTextString("Не удалось удалить пользователя из реста"), nil)
+		return err
+	}
+
+	isSelf := m.User.ID == u.EffectiveUser().GetID()
+	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
+		view.WriteRestEnded(eb, *m, isSelf)
+		return nil
+	})), nil)
+	return err
 }
 
-func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) ApproveRestRequest(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 	chatID := c.ID
-	fromID, err := parseRequestCallbackData(ctx.CallbackQuery.Data)
-	restRequest, err := h.service.GetRestRequest(ctx.StdContext(), chatID, fromID, ctx.EffectiveMessage.MessageId)
+	data, _ := u.CallbackQuery.GetData()
+	fromID, err := parseRequestCallbackData(string(data))
 	if err != nil {
-		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text: "Не найден запрос на рест",
+		return err
+	}
+	restRequest, err := h.service.GetRestRequest(ctx.StdContext(), chatID, fromID, int64(u.EffectiveMessage.GetID()))
+	if err != nil {
+		_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			QueryID: u.CallbackQuery.QueryID,
+			Message: "Не найден запрос на рест",
+			Alert:   true,
 		})
 		return err
 	}
-	moderator, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, ctx.EffectiveSender.Id())
+	moderator, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, u.EffectiveUser().GetID())
 	if err != nil {
 		return err
 	}
@@ -185,36 +228,53 @@ func (h *Handler) ApproveRestRequest(b *gotgbot.Bot, ctx *command.Context) error
 	}
 
 	if moderator.Status < requiredStatus {
-		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text: "Подтвердить запрос может только администратор",
+		_, err = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			QueryID: u.CallbackQuery.QueryID,
+			Message: "Подтвердить запрос может только администратор",
+			Alert:   true,
 		})
 		return err
 	}
 
-	if err := h.service.ApproveRestRequest(ctx.StdContext(), chatID, fromID, ctx.EffectiveMessage.MessageId, restRequest.RestUntil); err != nil {
-		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text: "Не удалось одобрить запрос",
+	if err := h.service.ApproveRestRequest(ctx.StdContext(), chatID, fromID, int64(u.EffectiveMessage.GetID()), restRequest.RestUntil); err != nil {
+		_, err := ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			QueryID: u.CallbackQuery.QueryID,
+			Message: "Не удалось одобрить запрос",
+			Alert:   true,
 		})
 		return err
 	}
 
-	u, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, fromID)
+	target, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, fromID)
 	if err != nil {
-		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text: "Не удалось найти пользователя",
+		_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			QueryID: u.CallbackQuery.QueryID,
+			Message: "Не удалось найти пользователя",
 		})
 		return err
 	}
 
-	_, _, err = b.EditMessageText(view.FormatRestRequestApproved(u, restRequest.RestUntil), &gotgbot.EditMessageTextOpts{
-		ChatId:    ctx.EffectiveChat.Id,
-		MessageId: ctx.EffectiveMessage.MessageId,
-		ParseMode: gotgbot.ParseModeHTML,
+	eb := &entity.Builder{}
+	view.WriteRestRequestApproved(eb, target, restRequest.RestUntil)
+	result, entities := eb.Complete()
+
+	_, err = ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
+		ID:       u.EffectiveMessage.GetID(),
+		Message:  result,
+		Entities: entities,
 	})
-	return err
+	if err != nil {
+		return err
+	}
+
+	_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+		QueryID: u.CallbackQuery.QueryID,
+		Message: "Запрос одобрен",
+	})
+	return nil
 }
 
-func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) RejectRestRequest(ctx *command.Context, u *ext.Update) error {
 	cctx := ctx.StdContext()
 
 	c, err := ctx.Chat()
@@ -223,15 +283,21 @@ func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *command.Context) error 
 	}
 	chatID := c.ID
 
-	fromID, err := parseRequestCallbackData(ctx.CallbackQuery.Data)
-	restRequest, err := h.service.GetRestRequest(cctx, chatID, fromID, ctx.EffectiveMessage.MessageId)
+	data, _ := u.CallbackQuery.GetData()
+	fromID, err := parseRequestCallbackData(string(data))
 	if err != nil {
-		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text: "Не найден запрос на рест",
+		return err
+	}
+	restRequest, err := h.service.GetRestRequest(cctx, chatID, fromID, int64(u.EffectiveMessage.GetID()))
+	if err != nil {
+		_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			QueryID: u.CallbackQuery.QueryID,
+			Message: "Не найден запрос на рест",
+			Alert:   true,
 		})
 		return err
 	}
-	moderator, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, ctx.EffectiveSender.Id())
+	moderator, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, u.EffectiveUser().GetID())
 	if err != nil {
 		return err
 	}
@@ -243,42 +309,47 @@ func (h *Handler) RejectRestRequest(b *gotgbot.Bot, ctx *command.Context) error 
 		}
 	}
 
-	if restRequest.UserID != ctx.EffectiveSender.Id() && moderator.Status < requiredStatus {
-		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text: "Отклонить запрос может только администратор или заявитель реста",
+	if restRequest.UserID != u.EffectiveUser().GetID() && moderator.Status < requiredStatus {
+		_, err = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			QueryID: u.CallbackQuery.QueryID,
+			Message: "Отклонить запрос может только администратор или заявитель реста",
+			Alert:   true,
 		})
 		return err
 	}
-	slog.Info("rejecting rest request", "message_id", ctx.EffectiveMessage.MessageId)
-	if err := h.service.RejectRestRequest(cctx, chatID, ctx.EffectiveSender.Id(), ctx.EffectiveMessage.MessageId); err != nil {
-		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text: "Не удалось отклонить запрос",
+	slog.Info("rejecting rest request", "message_id", u.EffectiveMessage.GetID())
+	if err := h.service.RejectRestRequest(cctx, chatID, u.EffectiveUser().GetID(), int64(u.EffectiveMessage.GetID())); err != nil {
+		_, err := ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			QueryID: u.CallbackQuery.QueryID,
+			Message: "Не удалось отклонить запрос",
+			Alert:   true,
 		})
 		return err
 	}
 
-	u, err := h.memberService.GetChatMember(cctx, chatID, fromID)
+	target, err := h.memberService.GetChatMember(cctx, chatID, fromID)
+	eb := &entity.Builder{}
 	if err != nil {
-		_, _, err = b.EditMessageText(view.FormatRestRequestRejected(nil),
-			&gotgbot.EditMessageTextOpts{
-				ChatId:      ctx.EffectiveChat.Id,
-				MessageId:   ctx.EffectiveMessage.MessageId,
-				ParseMode:   gotgbot.ParseModeHTML,
-				ReplyMarkup: gotgbot.InlineKeyboardMarkup{},
-			},
-		)
+		view.WriteRestRequestRejected(eb, nil)
+	} else {
+		view.WriteRestRequestRejected(eb, &target)
+	}
+	result, entities := eb.Complete()
+
+	_, err = ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
+		ID:       u.EffectiveMessage.GetID(),
+		Message:  result,
+		Entities: entities,
+	})
+	if err != nil {
 		return err
 	}
 
-	_, _, err = b.EditMessageText(view.FormatRestRequestRejected(&u),
-		&gotgbot.EditMessageTextOpts{
-			ChatId:      ctx.EffectiveChat.Id,
-			MessageId:   ctx.EffectiveMessage.MessageId,
-			ParseMode:   gotgbot.ParseModeHTML,
-			ReplyMarkup: gotgbot.InlineKeyboardMarkup{},
-		},
-	)
-	return err
+	_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+		QueryID: u.CallbackQuery.QueryID,
+		Message: "Запрос отклонён",
+	})
+	return nil
 }
 
 func parseRequestCallbackData(callbackData string) (int64, error) {
@@ -293,38 +364,39 @@ func parseRequestCallbackData(callbackData string) (int64, error) {
 	return int64(fromID), nil
 }
 
-func (h *Handler) RemoveRestRequest(b *gotgbot.Bot, ctx *command.Context) error {
-	u, err := ctx.AnyUser()
+func (h *Handler) RemoveRestRequest(ctx *command.Context, u *ext.Update) error {
+	target, err := ctx.AnyUser()
 	if err != nil {
 		return err
 	}
 	number, err := ctx.Number()
 	if err != nil {
-		_ = ctx.Reply(b, "Укажите корректный номер рест запроса", nil)
+		_, _ = ctx.Reply(u, ext.ReplyTextString("Укажите корректный номер рест запроса"), nil)
 		return err
 	}
 
-	requests, err := h.service.GetRequests(ctx.StdContext(), u.ChatID, u.User.ID)
+	requests, err := h.service.GetRequests(ctx.StdContext(), target.ChatID, target.User.ID)
 	if err != nil {
 		return err
 	}
 	if number > len(requests) {
-		return ctx.Reply(b, "Не найден запрос с этим номером", nil)
+		_, err = ctx.Reply(u, ext.ReplyTextString("Не найден запрос с этим номером"), nil)
+		return err
 	}
 
 	request := requests[number-1]
 
-	if request.RestUntil.Equal(u.RestUntil) {
-
+	if request.RestUntil.Equal(target.RestUntil) {
 		if err := h.service.DeleteRestRequestAndEndRest(ctx.StdContext(), request.ChatID, request.UserID, request.ID); err != nil {
 			return err
 		}
-		return ctx.Reply(b, "Удалён действительный запрос на рест, вместе с этим удалён и статус реста у участника", nil)
+		_, err = ctx.Reply(u, ext.ReplyTextString("Удалён действительный запрос на рест, вместе с этим удалён и статус реста у участника"), nil)
+		return err
 	}
 
 	if err := h.service.DeleteRestRequest(ctx.StdContext(), request.ID); err != nil {
 		return err
 	}
-	return ctx.Reply(b, "Запрос на рест успешно удален", nil)
-
+	_, err = ctx.Reply(u, ext.ReplyTextString("Запрос на рест успешно удален"), nil)
+	return err
 }

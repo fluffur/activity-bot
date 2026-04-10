@@ -5,7 +5,6 @@ import (
 	"activity-bot/internal/model"
 	"math/rand"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/gotd/td/telegram/message/entity"
@@ -130,10 +129,10 @@ func FormatCallChunk(message string, members []model.ChatMember, mentionTypes in
 
 func FormatCallChunkBuilder(eb *entity.Builder, message string, members []model.ChatMember, mentionTypes int32) {
 	if message != "" {
-		eb.WriteString(message)
+		eb.Plain(message)
 
 		if mentionTypes != 0 {
-			eb.WriteString("\n\n")
+			eb.Plain("\n\n")
 		}
 	}
 
@@ -145,17 +144,16 @@ func FormatCallChunkBuilder(eb *entity.Builder, message string, members []model.
 	for j, m := range members {
 		if mentionTypes&MentionTypeEmoji > 0 {
 			emoji := userEmoji(m)
-			if hasCustomEmoji(emoji) {
-				re := regexp.MustCompile(`emoji-id="(\d+)">([^<]+)`)
-				matches := re.FindStringSubmatch(emoji)
-				if len(matches) > 2 {
-					id, _ := strconv.ParseInt(matches[1], 10, 64)
-					eb.CustomEmoji(matches[2], id)
-					eb.WriteString(" ")
+			if len(m.Emojis) != 0 {
+				for _, e := range m.Emojis {
+
+					eb.CustomEmoji(e.Char, e.ID)
 				}
+				helpers.WriteMention(eb, m.User.ID, "​")
+
 			} else {
-				eb.WriteString(emoji)
-				eb.WriteString(" ")
+				helpers.WriteMention(eb, m.User.ID, emoji)
+				eb.Plain(" ")
 			}
 		}
 
@@ -175,7 +173,7 @@ func FormatCallChunkBuilder(eb *entity.Builder, message string, members []model.
 		helpers.WriteMention(eb, m.User.ID, title)
 
 		if j < len(members)-1 {
-			eb.WriteString(separator)
+			eb.Plain(separator)
 		}
 	}
 }

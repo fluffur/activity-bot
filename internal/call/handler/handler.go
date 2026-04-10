@@ -8,9 +8,12 @@ import (
 	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
+	"activity-bot/internal/model"
 	"activity-bot/internal/session"
+	"activity-bot/internal/stats"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/entity"
@@ -96,13 +99,6 @@ func New(service *call.Service, memberService *member.Service, chatService *chat
 //		return handler(b, ctx)
 //	}
 
-const (
-	MentionTypeNWSP  = 0
-	MentionTypeEmoji = 1 << iota
-	MentionTypeName
-	MentionTypeRole
-)
-
 func (h *Handler) Call(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
@@ -124,234 +120,146 @@ func (h *Handler) Call(ctx *command.Context, u *ext.Update) error {
 		entities = ctx.RawArgsEntities
 	}
 
-	eb := &entity.Builder{}
-	eb.Plain(msg)
-	if c.MentionTypes != MentionTypeNWSP {
-		eb.Plain("\n\n")
-	}
-	for i, m := range members {
-		helpers.WriteMention(eb, m.User.ID, helpers.MemberDisplayName(m))
-		if i < len(members)-1 {
-			eb.Plain(", ")
-		}
-	}
-	result, ents := eb.Complete()
-	entities = append(entities, ents...)
-
-	_, err = ctx.SendMessage(u.EffectiveChat().GetID(), &tg.MessagesSendMessageRequest{
-		ReplyTo:  &tg.InputReplyToMessage{ReplyToMsgID: u.EffectiveMessage.GetID()},
-		Entities: entities,
-		Message:  result,
-	})
-	return err
+	return h.doCall(ctx, u, msg, entities, members)
 }
 
-//
-//func (h *Handler) CallInactive(b *gotgbot.Bot, ctx *command.Context) error {
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//	return h.callMembers(
-//		b,
-//		ctx,
-//		func() ([]model.ChatMember, error) {
-//			return h.service.GetInactiveMembers(ctx.StdContext(), c.ID)
-//		},
-//		"Нет участников, не писавших более суток",
-//	)
-//}
-//
-//func (h *Handler) CallNoNorm(b *gotgbot.Bot, ctx *command.Context) error {
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//
-//	from, to := stats.ResolvePeriod(
-//		stats.PeriodWeek,
-//		time.Now().In(helpers.MoscowLocation),
-//		c.WeekStartDay,
-//		c.WeekStartTime,
-//	)
-//
-//	return h.callMembers(
-//		b,
-//		ctx,
-//		func() ([]model.ChatMember, error) {
-//			return h.memberService.GetNoNormMembers(ctx.StdContext(), c.ID, from, to)
-//		},
-//		fmt.Sprintf("%s Все участники выполнили норму!", helpers.SuccessEmoji()),
-//	)
-//}
-//
-//func (h *Handler) CallNoNormWarn(b *gotgbot.Bot, ctx *command.Context) error {
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//
-//	from, to := stats.ResolvePeriod(
-//		stats.PeriodWeek,
-//		time.Now(),
-//		c.WeekStartDay,
-//		c.WeekStartTime,
-//	)
-//
-//	return h.callMembers(
-//		b,
-//		ctx,
-//		func() ([]model.ChatMember, error) {
-//			return h.memberService.GetNoNormWarnMembers(ctx.StdContext(), c.ID, from, to)
-//		},
-//		fmt.Sprintf("%s Все участники выполнили норму предупреждения!", helpers.SuccessEmoji()),
-//	)
-//}
-//
-//func (h *Handler) CallNoNormBan(b *gotgbot.Bot, ctx *command.Context) error {
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//
-//	from, to := stats.ResolvePeriod(
-//		stats.PeriodWeek,
-//		time.Now(),
-//		c.WeekStartDay,
-//		c.WeekStartTime,
-//	)
-//
-//	return h.callMembers(
-//		b,
-//		ctx,
-//		func() ([]model.ChatMember, error) {
-//			return h.memberService.GetNoNormBanMembers(ctx.StdContext(), c.ID, from, to)
-//		},
-//		fmt.Sprintf("%s Все участники выполнили норму бана!", helpers.SuccessEmoji()),
-//	)
-//}
-//
-//func (h *Handler) CallInactiveCallback(b *gotgbot.Bot, ctx *command.Context) error {
-//	return h.adminCallback(b, ctx, h.CallInactive)
-//}
-//
-//func (h *Handler) CallNoNormCallback(b *gotgbot.Bot, ctx *command.Context) error {
-//	return h.adminCallback(b, ctx, h.CallNoNorm)
-//}
-//
-//func (h *Handler) CallNoNormWarnCallback(b *gotgbot.Bot, ctx *command.Context) error {
-//	return h.adminCallback(b, ctx, h.CallNoNormWarn)
-//}
-//
-//func (h *Handler) handleCall(b *gotgbot.Bot, ctx *command.Context, members []model.ChatMember) error {
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//
-//	return h.doCall(ctx.StdContext(), b, c.ID, ctx.EffectiveMessage, ctx.RawArgsHTML, members)
-//}
-//
-//func (h *Handler) doCall(
-//	stdCtx context.Context,
-//	b *gotgbot.Bot,
-//	chatID int64,
-//	srcMsg *gotgbot.Message,
-//	htmlMessage string,
-//	members []model.ChatMember,
-//) error {
-//
-//	var replyParams *gotgbot.ReplyParameters
-//	if srcMsg != nil {
-//		replyParams = &gotgbot.ReplyParameters{
-//			ChatId:    chatID,
-//			MessageId: srcMsg.MessageId,
-//		}
-//	}
-//
-//	chatSettings, err := h.service.GetChatSettings(stdCtx, chatID)
-//	if err != nil {
-//		return err
-//	}
-//
-//	mentionsLimit := int(chatSettings.MentionsPerMessage)
-//	if mentionsLimit <= 0 {
-//		mentionsLimit = 5
-//	}
-//
-//	message := htmlMessage
-//	if message == "" {
-//		message = chatSettings.WelcomeCallMessage
-//	}
-//
-//	if message != "" {
-//		message = view.ReplaceMentionsWithLinks(message)
-//	}
-//	var chatLimiter = rate.NewLimiter(rate.Every(1100*time.Millisecond), 4)
-//	for i := 0; i < len(members); i += mentionsLimit {
-//		if err := chatLimiter.Wait(stdCtx); err != nil {
-//			return err
-//		}
-//
-//		end := i + mentionsLimit
-//		if end > len(members) {
-//			end = len(members)
-//		}
-//
-//		chunkText := view.FormatCallChunk(message, members[i:end], chatSettings.MentionTypes)
-//		isLastChunk := end == len(members)
-//		var kb gotgbot.InlineKeyboardMarkup
-//		if isLastChunk {
-//			kb = gotgbot.InlineKeyboardMarkup{
-//				InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
-//					{
-//						{
-//							Text:         "⚙️ Настроить стили созыва",
-//							CallbackData: "call_type",
-//						},
-//					},
-//				},
-//			}
-//		}
-//		if srcMsg != nil && len(srcMsg.Photo) > 0 {
-//
-//			lastPhoto := srcMsg.Photo[len(srcMsg.Photo)-1]
-//
-//			if _, err := b.SendPhoto(
-//				chatID,
-//				gotgbot.InputFileByID(lastPhoto.FileId),
-//				&gotgbot.SendPhotoOpts{
-//					ParseMode:       gotgbot.ParseModeHTML,
-//					Caption:         chunkText,
-//					HasSpoiler:      srcMsg.HasMediaSpoiler,
-//					ReplyParameters: replyParams,
-//					ReplyMarkup:     kb,
-//				},
-//			); err != nil {
-//				return err
-//			}
-//
-//		} else {
-//
-//			if _, err := b.SendMessage(
-//				chatID,
-//				chunkText,
-//				&gotgbot.SendMessageOpts{
-//					ParseMode: gotgbot.ParseModeHTML,
-//					LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-//						IsDisabled: true,
-//					},
-//					ReplyParameters: replyParams,
-//					ReplyMarkup:     kb,
-//				},
-//			); err != nil {
-//				return err
-//			}
-//		}
-//	}
-//
-//	return nil
-//}
+func (h *Handler) CallInactive(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	members, err := h.service.GetInactiveMembers(ctx.StdContext(), c.ID)
+	if err != nil {
+		return err
+	}
+	if len(members) == 0 {
+		_, err = ctx.Reply(u, ext.ReplyTextString("Нет участников, не писавших более суток"), nil)
+		return err
+	}
+
+	return h.doCall(ctx, u, "", nil, members)
+}
+
+func (h *Handler) CallNoNorm(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	from, to := stats.ResolvePeriod(
+		stats.PeriodWeek,
+		time.Now().In(helpers.MoscowLocation),
+		c.WeekStartDay,
+		c.WeekStartTime,
+	)
+
+	members, err := h.memberService.GetNoNormMembers(ctx.StdContext(), c.ID, from, to)
+	if err != nil {
+		return err
+	}
+	if len(members) == 0 {
+		_, err = ctx.Reply(u, ext.ReplyTextString(fmt.Sprintf("%s Все участники выполнили норму!", helpers.SuccessEmoji())), nil)
+		return err
+	}
+
+	return h.doCall(ctx, u, "", nil, members)
+}
+
+func (h *Handler) CallNoNormWarn(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	from, to := stats.ResolvePeriod(
+		stats.PeriodWeek,
+		time.Now(),
+		c.WeekStartDay,
+		c.WeekStartTime,
+	)
+
+	members, err := h.memberService.GetNoNormWarnMembers(ctx.StdContext(), c.ID, from, to)
+	if err != nil {
+		return err
+	}
+	if len(members) == 0 {
+		_, err = ctx.Reply(u, ext.ReplyTextString(fmt.Sprintf("%s Все участники выполнили норму предупреждения!", helpers.SuccessEmoji())), nil)
+		return err
+	}
+
+	return h.doCall(ctx, u, "", nil, members)
+}
+
+func (h *Handler) CallNoNormBan(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	from, to := stats.ResolvePeriod(
+		stats.PeriodWeek,
+		time.Now(),
+		c.WeekStartDay,
+		c.WeekStartTime,
+	)
+
+	members, err := h.memberService.GetNoNormBanMembers(ctx.StdContext(), c.ID, from, to)
+	if err != nil {
+		return err
+	}
+	if len(members) == 0 {
+		_, err = ctx.Reply(u, ext.ReplyTextString(fmt.Sprintf("%s Все участники выполнили норму бана!", helpers.SuccessEmoji())), nil)
+		return err
+	}
+
+	return h.doCall(ctx, u, "", nil, members)
+}
+
+func (h *Handler) doCall(
+	ctx *command.Context,
+	u *ext.Update,
+	message string,
+	entities []tg.MessageEntityClass,
+	members []model.ChatMember,
+) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	mentionsLimit := int(c.MentionsPerMessage)
+	if mentionsLimit <= 0 {
+		mentionsLimit = 5
+	}
+
+	if message == "" {
+		message = c.WelcomeCallMessage
+	}
+
+	for i := 0; i < len(members); i += mentionsLimit {
+		end := i + mentionsLimit
+		if end > len(members) {
+			end = len(members)
+		}
+
+		eb := &entity.Builder{}
+		view.FormatCallChunkBuilder(eb, message, members[i:end], c.MentionTypes)
+
+		finalText, chunkEntities := eb.Complete()
+		finalEntities := append(entities, chunkEntities...)
+
+		_, err = ctx.SendMessage(u.EffectiveChat().GetID(), &tg.MessagesSendMessageRequest{
+			ReplyTo:  &tg.InputReplyToMessage{ReplyToMsgID: u.EffectiveMessage.GetID()},
+			Entities: finalEntities,
+			Message:  finalText,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 func (h *Handler) SetMentionsPerMessage(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/celestix/gotgproto/dispatcher"
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/go-faster/errors"
@@ -78,7 +77,7 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 			return err
 		}
 
-		return dispatcher.SkipCurrentGroup
+		return nil
 	}
 }
 
@@ -110,6 +109,6 @@ func (c *Command) WrapEvent() HandlerFunc {
 			return err
 		}
 
-		return dispatcher.SkipCurrentGroup
+		return nil
 	}
 }

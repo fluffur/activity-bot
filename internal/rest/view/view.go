@@ -5,118 +5,174 @@ import (
 	"activity-bot/internal/model"
 	"fmt"
 	"time"
+
+	"github.com/gotd/td/telegram/message/entity"
 )
 
-func FormatRestSet(member model.ChatMember, date time.Time, reason string) string {
-	text := fmt.Sprintf("Участник %s %s в рест до %s",
-		helpers.RoleEmojiLink(member),
-		helpers.Gendered(member.User.Gender, "добавлен", "добавлена"),
-		helpers.FormatToHumanDateTime(date),
-	)
+func WriteRestSet(eb *entity.Builder, member model.ChatMember, date time.Time, reason string) {
 	if reason != "" {
-		text += fmt.Sprintf("\n\nПричина: %s", reason)
+		eb.Plain(reason)
+		eb.Plain("\n\n")
 	}
-	return text
+	eb.Plain("Участник ")
+	helpers.WriteRoleEmojiLink(eb, member)
+	eb.Plain(" ")
+	eb.Plain(helpers.Gendered(member.User.Gender, "добавлен", "добавлена"))
+	eb.Plain(" в рест до ")
+	helpers.FormattedDate(eb, date)
 }
 
-func FormatRestRequest(user model.ChatMember, date time.Time, reason string) string {
-	text := fmt.Sprintf(
-		"Для участника %s запрошен рест до %s",
-		helpers.RoleEmojiLink(user),
-		helpers.FormatToHumanDateTime(date),
-	)
+func WriteRestRequest(eb *entity.Builder, user model.ChatMember, date time.Time, reason string) {
 	if reason != "" {
-		text += fmt.Sprintf("\n\nПричина: %s", reason)
+		eb.Plain(reason)
+		eb.Plain("\n\n")
 	}
-	return text
+	eb.Plain("Для участника ")
+	helpers.WriteRoleEmojiLink(eb, user)
+	eb.Plain(" запрошен рест до ")
+	helpers.FormattedDate(eb, date)
 }
 
-func FormatRestShow(m model.ChatMember) string {
+func WriteRestShow(eb *entity.Builder, m model.ChatMember) {
 	if m.RestUntil.IsZero() {
-		return fmt.Sprintf("%s не находится в ресте", helpers.RoleEmojiLink(m))
+		eb.Plain("Участник ")
+		helpers.WriteRoleEmojiLink(eb, m)
+		eb.Plain(" не находится в ресте")
+		return
 	}
-	message := "%s находится в ресте до %s"
+
+	message := " находится в ресте до "
 	if m.RestUntil.Before(time.Now()) {
-		message = "Рест %s был завершен %s"
+		eb.Plain("Рест ")
+		helpers.WriteRoleEmojiLink(eb, m)
+		eb.Plain(" был завершен ")
+		helpers.FormattedDate(eb, m.RestUntil)
+	} else {
+		helpers.WriteRoleEmojiLink(eb, m)
+		eb.Plain(message)
+		helpers.FormattedDate(eb, m.RestUntil)
 	}
-	text := fmt.Sprintf(message, helpers.RoleEmojiLink(m), helpers.FormatToHumanDateTime(m.RestUntil))
+
 	if m.RestReason != "" {
-		text += fmt.Sprintf("\n\nПричина: %s", m.RestReason)
+		eb.Plain("\n\nПричина: ")
+		eb.Plain(m.RestReason) // Reason in DB is usually plain text or HTML, for now assuming it might benefit from builder
 	}
-	return text
 }
 
-func FormatRestEnded(user model.ChatMember, isSelf bool) string {
+func WriteRestEnded(eb *entity.Builder, user model.ChatMember, isSelf bool) {
 	if isSelf {
-		return "Вы успешно удалены из реста"
+		eb.Plain("Вы успешно удалены из реста")
+		return
 	}
-	return fmt.Sprintf("Участник %s успешно %s из реста",
-		helpers.RoleEmojiLink(user),
-		helpers.Gendered(user.User.Gender, "удалён", "удалена"),
-	)
+	eb.Plain("Участник ")
+	helpers.WriteRoleEmojiLink(eb, user)
+	eb.Plain(" успешно ")
+	eb.Plain(helpers.Gendered(user.User.Gender, "удалён", "удалена"))
+	eb.Plain(" из реста")
 }
 
-func FormatRestNotInRest(user model.ChatMember, isSelf bool) string {
+func WriteRestNotInRest(eb *entity.Builder, user model.ChatMember, isSelf bool) {
 	if isSelf {
-		return "Вы не находитесь в ресте"
+		eb.Plain("Вы не находитесь в ресте")
+		return
 	}
-	return fmt.Sprintf("Пользователь %s не находится в ресте", helpers.RoleEmojiLink(user))
+	eb.Plain("Пользователь ")
+	helpers.WriteRoleEmojiLink(eb, user)
+	eb.Plain(" не находится в ресте")
 }
 
-func FormatRestRequestApproved(user model.ChatMember, restUntil time.Time) string {
-	return fmt.Sprintf("Запрос одобрен. У %s рест до %s", helpers.RoleEmojiLink(user), helpers.FormatToHumanDateTime(restUntil))
+func WriteRestRequestApproved(eb *entity.Builder, user model.ChatMember, restUntil time.Time) {
+	eb.Plain("Запрос одобрен. У ")
+	helpers.WriteRoleEmojiLink(eb, user)
+	eb.Plain(" рест до ")
+	helpers.FormattedDate(eb, restUntil)
 }
 
-func FormatRestRequestRejected(user *model.ChatMember) string {
+func WriteRestRequestRejected(eb *entity.Builder, user *model.ChatMember) {
 	if user == nil {
-		return "Запрос на рест отклонён"
+		eb.Plain("Запрос на рест отклонён")
+		return
 	}
-	return fmt.Sprintf("Запрос на рест для %s отклонён", helpers.RoleEmojiLink(*user))
+	eb.Plain("Запрос на рест для ")
+	helpers.WriteRoleEmojiLink(eb, *user)
+	eb.Plain(" отклонён")
 }
 
-func FormatRestRequests(requests []model.ApprovedRestRequest) string {
+func WriteRestRequests(eb *entity.Builder, requests []model.ApprovedRestRequest) {
 	if len(requests) == 0 {
-		return "Список рестов пуст"
+		eb.Plain("Список рестов пуст")
+		return
 	}
 
-	var approvedText, rejectedText string
 	var cm model.ChatMember
-	for i, r := range requests {
-		cm = r.ChatMember
-		reasonPart := ""
-		if r.Reason != "" {
-			reasonPart = fmt.Sprintf(" (%s)", r.Reason)
-		}
-		timePart := fmt.Sprintf("• Запрошено %s", helpers.FormatToHumanDateTime(r.RequestedAt))
-		if !r.UpdatedAt.IsZero() {
-			timePart += fmt.Sprintf("\n• Одобрено %s", helpers.FormatToHumanDateTime(r.RequestedAt))
-		}
-		line := fmt.Sprintf("<code>%d</code> %s Срок окончания %s%s\n%s\n\n", i+1, isRestActiveMessage(r), helpers.FormatToHumanDateTime(r.RestUntil), reasonPart, timePart)
+	if len(requests) > 0 {
+		cm = requests[0].ChatMember
+	}
 
-		switch r.Status {
-		case "approved":
-			approvedText += line
-		case "rejected":
-			rejectedText += line
+	eb.Plain("Список рестов ")
+	helpers.WriteRoleEmojiLink(eb, cm)
+	eb.Plain(":\n")
+
+	type group struct {
+		title string
+		reqs  []model.ApprovedRestRequest
+	}
+	groups := []group{
+		{"Одобренные:", nil},
+		{"Отклонённые:", nil},
+	}
+
+	for _, r := range requests {
+		if r.Status == "approved" {
+			groups[0].reqs = append(groups[0].reqs, r)
+		} else if r.Status == "rejected" {
+			groups[1].reqs = append(groups[1].reqs, r)
 		}
 	}
 
-	text := fmt.Sprintf("Список рестов %s:\n", helpers.RoleEmojiLink(cm))
+	for _, g := range groups {
+		if len(g.reqs) == 0 {
+			continue
+		}
 
-	if approvedText != "" {
-		text += "\nОдобренные:<blockquote expandable>" + approvedText + "</blockquote>"
-	}
-	if rejectedText != "" {
-		text += "\nОтклонённые:<blockquote expandable>" + rejectedText + "</blockquote>"
+		eb.Plain("\n")
+		eb.Plain(g.title)
+		eb.Plain("\n")
+
+		token := eb.Token()
+		for i, r := range g.reqs {
+			eb.Code(fmt.Sprintf("%d", i+1))
+			eb.Plain(" ")
+			writeRestActiveMessageEB(eb, r)
+			eb.Plain(" Срок окончания ")
+			helpers.FormattedDate(eb, r.RestUntil)
+			if r.Reason != "" {
+				eb.Plain(fmt.Sprintf(" (%s)", r.Reason))
+			}
+			eb.Plain("\n• Запрошено ")
+			helpers.FormattedDate(eb, r.RequestedAt)
+			if !r.UpdatedAt.IsZero() {
+				eb.Plain("\n• Одобрено ")
+				helpers.FormattedDate(eb, r.UpdatedAt)
+			}
+			if i < len(g.reqs)-1 {
+				eb.Plain("\n\n")
+			}
+		}
+		token.Apply(eb, entity.Blockquote(true))
 	}
 
-	return text + "\nЧтобы удалить определенный рест введите команду <code>удалить рест @участник номер</code>"
+	eb.Plain("\nЧтобы удалить определенный рест введите команду ")
+	eb.Code("удалить рест @участник номер")
 }
 
-func isRestActiveMessage(rr model.ApprovedRestRequest) string {
-	if !rr.ChatMember.IsRestActive(time.Now()) || !rr.ChatMember.RestUntil.Equal(rr.RestUntil) {
-		return fmt.Sprintf("%s Недействителен\n", helpers.DangerEmoji())
+func writeRestActiveMessageEB(eb *entity.Builder, rr model.ApprovedRestRequest) {
+	now := time.Now()
+	if !rr.ChatMember.IsRestActive(now) || !rr.ChatMember.RestUntil.Equal(rr.RestUntil) {
+		helpers.WriteDangerEmoji(eb)
+		eb.Plain(" Недействителен\n")
+	} else {
+		helpers.WriteSuccessEmoji(eb)
+		eb.Plain(" Действителен\n")
 	}
-	return fmt.Sprintf("%s Действителен\n", helpers.SuccessEmoji())
-
 }

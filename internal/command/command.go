@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/model"
 	"context"
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -195,6 +196,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 		return nil
 	}
 	alias := c.findAlias(text, prefix, ctx.Self.Username)
+	log.Println(text, prefix, alias)
 	if alias == "" {
 		return nil
 	}

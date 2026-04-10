@@ -34,16 +34,16 @@ func WriteProfile(eb *entity.Builder, m model.ChatMemberStats, full bool) {
 	eb.Plain("\n")
 
 	if m.ChatMember.LeftAt.IsZero() {
-		eb.Plain(fmt.Sprintf("• В чате c %s (%s)",
-			helpers.FormatToHumanDateTime(m.ChatMember.JoinedAt),
-			helpers.FormatLastSeenPlain(m.ChatMember.JoinedAt),
-		))
+		eb.Plain("• В чате c ")
+		helpers.FormattedDate(eb, m.ChatMember.JoinedAt)
+		eb.Plain(fmt.Sprintf(" (%s)", helpers.FormatLastSeenPlain(m.ChatMember.JoinedAt)))
 	} else {
-		eb.Plain(fmt.Sprintf("❌ %s чат (%s — %s)",
-			helpers.Gendered(m.ChatMember.User.Gender, "Покинул", "Покинула"),
-			helpers.FormatToHumanDateTime(m.ChatMember.JoinedAt),
-			helpers.FormatToHumanDateTime(m.ChatMember.LeftAt),
-		))
+		eb.Plain(fmt.Sprintf("❌ %s чат (",
+			helpers.Gendered(m.ChatMember.User.Gender, "Покинул", "Покинула")))
+		helpers.FormattedDate(eb, m.ChatMember.JoinedAt)
+		eb.Plain(" — ")
+		helpers.FormattedDate(eb, m.ChatMember.LeftAt)
+		eb.Plain(")")
 	}
 
 	if full {
@@ -90,7 +90,7 @@ func WriteProfile(eb *entity.Builder, m model.ChatMemberStats, full bool) {
 		token := eb.Token()
 		helpers.WriteRestEmoji(eb)
 		eb.Plain(" Рест до ")
-		eb.Plain(helpers.FormatToHumanDateTime(m.ChatMember.RestUntil))
+		helpers.FormattedDate(eb, m.ChatMember.RestUntil)
 		token.Apply(eb, entity.Blockquote(true))
 
 	} else if daysSinceRestEnd >= 0 && daysSinceRestEnd <= 3 {
@@ -98,7 +98,7 @@ func WriteProfile(eb *entity.Builder, m model.ChatMemberStats, full bool) {
 		token := eb.Token()
 		helpers.WriteRestEmoji(eb)
 		eb.Plain(" Последний рест был завершен ")
-		eb.Plain(helpers.FormatToHumanDateTime(m.ChatMember.RestUntil))
+		helpers.FormattedDate(eb, m.ChatMember.RestUntil)
 		token.Apply(eb, entity.Blockquote(true))
 	}
 }

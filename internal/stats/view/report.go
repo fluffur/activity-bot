@@ -231,14 +231,13 @@ func prepareReportSections(report []model.ChatMemberMessageCount, restMembers []
 }
 
 func writeRestLine(eb *entity.Builder, r model.ChatMember) {
-	var untilText string
-	if !r.RestUntil.IsZero() {
-		untilText = helpers.FormatToHumanDateTime(r.RestUntil)
-	} else {
-		untilText = "неизвестно"
-	}
 	helpers.WriteRoleEmojiLink(eb, r)
-	eb.Plain(fmt.Sprintf(" до %s", untilText))
+	eb.Plain(" до ")
+	if !r.RestUntil.IsZero() {
+		helpers.FormattedDate(eb, r.RestUntil)
+	} else {
+		eb.Plain("неизвестно")
+	}
 }
 
 func WritePeriodHeader(eb *entity.Builder, from, to *time.Time) {
@@ -250,9 +249,11 @@ func WritePeriodHeader(eb *entity.Builder, from, to *time.Time) {
 		helpers.FormattedDate(eb, *to)
 
 	} else if from != nil {
-		eb.Plain(fmt.Sprintf(" Отчет с %s", helpers.FormatToHumanDateTime(*from)))
+		eb.Plain(" Отчет с ")
+		helpers.FormattedDate(eb, *from)
 	} else if to != nil {
-		eb.Plain(fmt.Sprintf(" Отчет до %s", helpers.FormatToHumanDateTime(*to)))
+		eb.Plain(" Отчет до ")
+		helpers.FormattedDate(eb, *to)
 	} else {
 		eb.Plain(" Отчет за всё время")
 	}
