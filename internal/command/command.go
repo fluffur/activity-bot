@@ -461,6 +461,7 @@ func (c *Command) HandleUpdate(b *gotgbot.Bot, ctx *ext.Context) error {
 
 func (c *Command) resolveMember(ctx context.Context, chat *model.Chat, userID int64) (*model.ChatMember, error) {
 	if c.scope == ScopeChat {
+		log.Println("resolve member", c.aliases, c.scope)
 		if chat == nil {
 			return nil, errors.New("chat cannot be nil")
 		}
