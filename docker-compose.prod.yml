@@ -1,6 +1,6 @@
 services:
   app:
-    image: ${APP_IMAGE:-ghcr.io/yoworu/activity-bot-app:latest}
+    image: ${APP_IMAGE:-ghcr.io/fluffur/activity-bot-app:latest}
     restart: unless-stopped
     depends_on:
       db:
@@ -43,7 +43,7 @@ services:
       - redisdata:/data
 
   migrate:
-    image: ${MIGRATE_IMAGE:-ghcr.io/yoworu/activity-bot-migrate:latest}
+    image: ${MIGRATE_IMAGE:-ghcr.io/fluffur/activity-bot-migrate:latest}
     container_name: activity_migrate
     env_file:
       - .env
