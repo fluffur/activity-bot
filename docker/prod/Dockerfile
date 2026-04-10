@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-
 FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
@@ -11,12 +9,7 @@ RUN go mod download
 
 COPY . .
 
-ENV CGO_ENABLED=0
-ENV GOOS=linux
-ENV GOARCH=amd64
-
-RUN --mount=type=cache,target=/root/.cache/go-build \
-    go build -ldflags="-s -w" -o bot cmd/bot/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o bot cmd/bot/main.go
 
 FROM alpine:latest
 
