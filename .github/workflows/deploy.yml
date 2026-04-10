@@ -65,6 +65,9 @@ jobs:
 
       - name: Deploy to VDS
         uses: appleboy/ssh-action@v0.1.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
         with:
           host: ${{ secrets.VDS_HOST }}
           username: ${{ secrets.VDS_USER }}
