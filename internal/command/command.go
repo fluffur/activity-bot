@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/model"
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"unicode"
@@ -180,6 +181,7 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	entities := msg.GetEntities()
 
 	if c.scope == ScopeChat {
+		log.Println(c.scope)
 		chat, err := c.getChat(ctx, stdCtx)
 		if err != nil {
 			logger.L.Warn("get chat failed", "error", err)
