@@ -180,6 +180,14 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 	text := msg.GetText()
 	entities := msg.GetEntities()
 
+	// command validation
+	trigger := c.findTrigger(text)
+
+	alias := c.findAlias(text, trigger, b.User.Username)
+	if alias == "" {
+		return false
+	}
+
 	if c.scope == ScopeChat {
 		log.Println(c.scope)
 		chat, err := c.getChat(ctx, stdCtx)
@@ -196,15 +204,7 @@ func (c *Command) CheckUpdate(b *gotgbot.Bot, ctx *ext.Context) bool {
 			handlerCtx.requiredStatus = s
 		}
 	}
-
-	// command validation
-	trigger := c.findTrigger(text)
 	if c.requireTrigger && trigger == "" {
-		return false
-	}
-
-	alias := c.findAlias(text, trigger, b.User.Username)
-	if alias == "" {
 		return false
 	}
 
