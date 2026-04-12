@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/pressly/goose/v3"
+	"github.com/rivo/uniseg"
 )
 
 func init() {
@@ -15,39 +17,78 @@ func init() {
 }
 
 type Emoji struct {
-	ID   int64  `json:"id"`
+	Type string `json:"type"`
+	ID   int64  `json:"id,omitempty"`
 	Char string `json:"char"`
 }
 
-var tgEmojiRegex = regexp.MustCompile(`<tg-emoji emoji-id="(\d+)">(.+?)</tg-emoji>`)
+var tgEmojiFullRegex = regexp.MustCompile(`<tg-emoji emoji-id="(\d+)">(.+?)</tg-emoji>`)
+var tgEmojiStartRegex = regexp.MustCompile(`^<tg-emoji`)
 
-func parseEmojiHTML(raw string) []Emoji {
-	var emojis []Emoji
-	matches := tgEmojiRegex.FindAllStringSubmatch(raw, -1)
-	for _, m := range matches {
-		var id int64
-		for _, c := range m[1] {
-			id = id*10 + int64(c-'0')
+func parseMixed(input string) []Emoji {
+	var result []Emoji
+
+	for len(input) > 0 {
+		if tgEmojiStartRegex.MatchString(input) {
+			loc := tgEmojiFullRegex.FindStringIndex(input)
+			if loc != nil && loc[0] == 0 {
+				tag := input[:loc[1]]
+				sub := tgEmojiFullRegex.FindStringSubmatch(tag)
+
+				if len(sub) == 3 {
+					var id int64
+					for _, c := range sub[1] {
+						id = id*10 + int64(c-'0')
+					}
+
+					result = append(result, Emoji{
+						Type: "custom",
+						ID:   id,
+						Char: sub[2],
+					})
+
+					input = input[loc[1]:]
+					continue
+				}
+			}
 		}
-		emojis = append(emojis, Emoji{
-			ID:   id,
-			Char: m[2],
-		})
+
+		g := uniseg.NewGraphemes(input)
+		if g.Next() {
+			part := g.Str()
+
+			result = append(result, Emoji{
+				Type: "unicode",
+				Char: part,
+			})
+
+			input = input[len(part):]
+			continue
+		}
+
+		break
 	}
-	return emojis
+
+	return result
+}
+
+type cmRow struct {
+	chatID int64
+	userID int64
+	raw    string
+}
+
+type uRow struct {
+	id  int64
+	raw string
 }
 
 func UP00048(ctx context.Context, tx *sql.Tx) error {
-	// 1. Process chat_members
-	type cmTask struct {
-		chatID, userID int64
-		emojiJSON      string
-	}
-	var cmTasks []cmTask
+	var cmRows []cmRow
 
 	rows, err := tx.QueryContext(ctx, `
-		SELECT chat_id, user_id, emoji 
-		FROM chat_members 
+		SELECT chat_id, user_id, emoji
+		FROM chat_members
 		WHERE emoji IS NOT NULL AND emoji != ''
 	`)
 	if err != nil {
@@ -55,46 +96,40 @@ func UP00048(ctx context.Context, tx *sql.Tx) error {
 	}
 
 	for rows.Next() {
-		var chatID, userID int64
-		var emojiHTML string
-
-		if err := rows.Scan(&chatID, &userID, &emojiHTML); err != nil {
+		var r cmRow
+		if err := rows.Scan(&r.chatID, &r.userID, &r.raw); err != nil {
 			rows.Close()
 			return err
 		}
-
-		emojis := parseEmojiHTML(emojiHTML)
-		if len(emojis) > 0 {
-			b, err := json.Marshal(emojis)
-			if err != nil {
-				rows.Close()
-				return err
-			}
-			cmTasks = append(cmTasks, cmTask{chatID, userID, string(b)})
-		}
+		cmRows = append(cmRows, r)
 	}
 	rows.Close()
 
-	for _, t := range cmTasks {
+	for _, r := range cmRows {
+		parsed := parseMixed(r.raw)
+		if len(parsed) == 0 {
+			continue
+		}
+
+		b, err := json.Marshal(parsed)
+		if err != nil {
+			return err
+		}
+
 		if _, err := tx.ExecContext(ctx, `
-			UPDATE chat_members 
-			SET emoji_json = $1 
+			UPDATE chat_members
+			SET emoji_json = $1
 			WHERE chat_id = $2 AND user_id = $3
-		`, t.emojiJSON, t.chatID, t.userID); err != nil {
+		`, b, r.chatID, r.userID); err != nil {
 			return err
 		}
 	}
 
-	// 2. Process users
-	type uTask struct {
-		id        int64
-		emojiJSON string
-	}
-	var uTasks []uTask
+	var uRows []uRow
 
 	rows2, err := tx.QueryContext(ctx, `
-		SELECT id, emoji 
-		FROM users 
+		SELECT id, emoji
+		FROM users
 		WHERE emoji IS NOT NULL AND emoji != ''
 	`)
 	if err != nil {
@@ -102,32 +137,31 @@ func UP00048(ctx context.Context, tx *sql.Tx) error {
 	}
 
 	for rows2.Next() {
-		var id int64
-		var emojiHTML string
-
-		if err := rows2.Scan(&id, &emojiHTML); err != nil {
+		var r uRow
+		if err := rows2.Scan(&r.id, &r.raw); err != nil {
 			rows2.Close()
 			return err
 		}
-
-		emojis := parseEmojiHTML(emojiHTML)
-		if len(emojis) > 0 {
-			b, err := json.Marshal(emojis)
-			if err != nil {
-				rows2.Close()
-				return err
-			}
-			uTasks = append(uTasks, uTask{id, string(b)})
-		}
+		uRows = append(uRows, r)
 	}
 	rows2.Close()
 
-	for _, t := range uTasks {
+	for _, r := range uRows {
+		parsed := parseMixed(r.raw)
+		if len(parsed) == 0 {
+			continue
+		}
+
+		b, err := json.Marshal(parsed)
+		if err != nil {
+			return err
+		}
+
 		if _, err := tx.ExecContext(ctx, `
-			UPDATE users 
-			SET emoji_json = $1 
+			UPDATE users
+			SET emoji_json = $1
 			WHERE id = $2
-		`, t.emojiJSON, t.id); err != nil {
+		`, b, r.id); err != nil {
 			return err
 		}
 	}
@@ -136,80 +170,108 @@ func UP00048(ctx context.Context, tx *sql.Tx) error {
 }
 
 func DOWN00048(ctx context.Context, tx *sql.Tx) error {
-	type cmDownTask struct {
-		chatID, userID int64
-		emojiHTML      string
+	var cmRows []struct {
+		chatID int64
+		userID int64
+		raw    string
 	}
-	var cmDownTasks []cmDownTask
 
-	rows, err := tx.QueryContext(ctx, `SELECT chat_id, user_id, emoji_json FROM chat_members WHERE emoji_json IS NOT NULL`)
+	rows, err := tx.QueryContext(ctx, `
+		SELECT chat_id, user_id, emoji_json
+		FROM chat_members
+		WHERE emoji_json IS NOT NULL
+	`)
 	if err != nil {
 		return err
 	}
 
 	for rows.Next() {
-		var chatID, userID int64
-		var jsonStr string
-		if err := rows.Scan(&chatID, &userID, &jsonStr); err != nil {
+		var r struct {
+			chatID int64
+			userID int64
+			raw    string
+		}
+		if err := rows.Scan(&r.chatID, &r.userID, &r.raw); err != nil {
 			rows.Close()
 			return err
 		}
-
-		var emojis []Emoji
-		if err := json.Unmarshal([]byte(jsonStr), &emojis); err != nil {
-			rows.Close()
-			return err
-		}
-
-		var html string
-		for _, e := range emojis {
-			html += fmt.Sprintf(`<tg-emoji emoji-id="%d">%s</tg-emoji>`, e.ID, e.Char)
-		}
-		cmDownTasks = append(cmDownTasks, cmDownTask{chatID, userID, html})
+		cmRows = append(cmRows, r)
 	}
 	rows.Close()
 
-	for _, t := range cmDownTasks {
-		if _, err := tx.ExecContext(ctx, `UPDATE chat_members SET emoji = $1 WHERE chat_id = $2 AND user_id = $3`, t.emojiHTML, t.chatID, t.userID); err != nil {
+	for _, r := range cmRows {
+		var parsed []Emoji
+		if err := json.Unmarshal([]byte(r.raw), &parsed); err != nil {
+			return err
+		}
+
+		var result strings.Builder
+
+		for _, e := range parsed {
+			if e.Type == "custom" {
+				result.WriteString(fmt.Sprintf(`<tg-emoji emoji-id="%d">%s</tg-emoji>`, e.ID, e.Char))
+			} else {
+				result.WriteString(e.Char)
+			}
+		}
+
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE chat_members
+			SET emoji = $1
+			WHERE chat_id = $2 AND user_id = $3
+		`, result.String(), r.chatID, r.userID); err != nil {
 			return err
 		}
 	}
 
-	type uDownTask struct {
-		id        int64
-		emojiHTML string
+	var uRows []struct {
+		id  int64
+		raw string
 	}
-	var uDownTasks []uDownTask
 
-	rows2, err := tx.QueryContext(ctx, `SELECT id, emoji_json FROM users WHERE emoji_json IS NOT NULL`)
+	rows2, err := tx.QueryContext(ctx, `
+		SELECT id, emoji_json
+		FROM users
+		WHERE emoji_json IS NOT NULL
+	`)
 	if err != nil {
 		return err
 	}
 
 	for rows2.Next() {
-		var id int64
-		var jsonStr string
-		if err := rows2.Scan(&id, &jsonStr); err != nil {
+		var r struct {
+			id  int64
+			raw string
+		}
+		if err := rows2.Scan(&r.id, &r.raw); err != nil {
 			rows2.Close()
 			return err
 		}
-
-		var emojis []Emoji
-		if err := json.Unmarshal([]byte(jsonStr), &emojis); err != nil {
-			rows2.Close()
-			return err
-		}
-
-		var html string
-		for _, e := range emojis {
-			html += fmt.Sprintf(`<tg-emoji emoji-id="%d">%s</tg-emoji>`, e.ID, e.Char)
-		}
-		uDownTasks = append(uDownTasks, uDownTask{id, html})
+		uRows = append(uRows, r)
 	}
 	rows2.Close()
 
-	for _, t := range uDownTasks {
-		if _, err := tx.ExecContext(ctx, `UPDATE users SET emoji = $1 WHERE id = $2`, t.emojiHTML, t.id); err != nil {
+	for _, r := range uRows {
+		var parsed []Emoji
+		if err := json.Unmarshal([]byte(r.raw), &parsed); err != nil {
+			return err
+		}
+
+		var result strings.Builder
+
+		for _, e := range parsed {
+			if e.Type == "custom" {
+				result.WriteString(fmt.Sprintf(`<tg-emoji emoji-id="%d">%s</tg-emoji>`, e.ID, e.Char))
+			} else {
+				result.WriteString(e.Char)
+			}
+		}
+
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE users
+			SET emoji = $1
+			WHERE id = $2
+		`, result.String(), r.id); err != nil {
 			return err
 		}
 	}

@@ -250,7 +250,7 @@ func (a *App) RegisterHandlers() {
 	)
 
 	a.dp.AddHandler(f.New("call_disable", callHandler.DisableCallOnJoin).
-		SetAliases("отключить call").
+		SetAliases("отключить калл").
 		SetRequiredStatus(model.StatusSeniorAdmin).
 		SetDescription("Отключить call при входе").
 		SetCategory(command.CategoryCall),
@@ -300,14 +300,6 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Сбор без нормы с баном").
 		SetCategory(command.CategoryCall),
 	)
-	a.dp.AddHandler(f.New("call", callHandler.Call).
-		SetAliases("калл", "колл", "all", "каллалл").
-		SetRequiredStatus(model.StatusModerator).
-		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)).
-		SetDescription("Общий сбор чата").
-		SetCategory(command.CategoryCall),
-	)
-
 	a.dp.AddHandler(f.New("set_call_limit", callHandler.SetMentionsPerMessage).
 		SetAliases("калл лимит").
 		SetArgRules(command.NumberRule()).
@@ -324,6 +316,7 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(f.New("call_inactive", callHandler.CallInactive).
 		SetAliases("калл инактив", "калл неактив", "созвать неактивных").
 		SetRequiredStatus(model.StatusModerator).
+		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)).
 		SetDescription("Сбор неактивных").
 		SetCategory(command.CategoryCall),
 	)
@@ -364,7 +357,13 @@ func (a *App) RegisterHandlers() {
 		),
 	)
 	a.dp.AddHandler(callConversation)
-
+	a.dp.AddHandler(f.New("call", callHandler.Call).
+		SetAliases("калл", "колл", "all", "каллалл").
+		SetRequiredStatus(model.StatusModerator).
+		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)).
+		SetDescription("Общий сбор чата").
+		SetCategory(command.CategoryCall),
+	)
 	a.dp.AddHandler(f.New("stats", statsHandler.ShowStats).
 		SetAliases("отчёт", "отчет", "стата").
 		SetArgRules(command.OptionalDateRangeRule()).
@@ -385,6 +384,12 @@ func (a *App) RegisterHandlers() {
 	)
 	a.dp.AddHandler(f.New("ship_random", memberHandler.ShipRandom).SetDescription("Случайный шипперинг").SetCategory(command.CategoryGeneral).
 		SetAliases("рандом шипперим"))
+
+	a.dp.AddHandler(f.New("rests", restHandler.ShowRest).
+		SetDescription("История рестов").
+		SetCategory(command.CategoryProfile).
+		SetAliases("все ресты").SetArgRules(command.AnyUserRule()),
+	)
 
 	a.dp.AddHandler(f.New("all_rests", restHandler.AllUserRests).
 		SetDescription("История рестов").
@@ -569,7 +574,7 @@ func (a *App) RegisterHandlers() {
 		SetArgRules(command.AnyUserRule()))
 	a.dp.AddHandler(f.New("set_emoji", userHandler.SetEmoji).SetDescription("Установить эмодзи").SetCategory(command.CategoryProfile).
 		SetAliases("эмоджи", "эмодзи").
-		SetArgRules(command.AnyUserRule(), command.TextRule().SetVariadic(true).SetRange(0, 1)))
+		SetArgRules(command.AnyUserRule(), command.TextRule().SetVariadic(true).SetRange(1, 1)))
 
 	a.dp.AddHandler(f.New("emoji", userHandler.ShowEmoji).
 		SetDescription("Посмотреть эмодзи").

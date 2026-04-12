@@ -17,11 +17,11 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand"
-	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/telegram/message/entity"
 	"github.com/gotd/td/tg"
 	"golang.org/x/time/rate"
 )
@@ -211,9 +211,10 @@ func (h *Handler) OnJoinMember(ctx *command.Context, u *ext.Update) error {
 				end = len(members)
 			}
 
-			chunkText := view.FormatCallChunk(message, members[i:end], chatData.MentionTypes)
-			if _, sendErr := ctx.Reply(u, options.WithText(chunkText)); sendErr != nil {
-				return sendErr
+			eb := &entity.Builder{}
+			view.FormatCallChunkBuilder(eb, message, members[i:end], chatData.MentionTypes)
+			if sendErr := ctx.ReplyOnly(u, options.WithBuilder(eb)); sendErr != nil {
+				logger.L.Error("failed to send on join call chuck", "error", sendErr)
 			}
 		}
 	}
@@ -225,6 +226,10 @@ func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
 	msg := u.EffectiveMessage
 	if msg.Action == nil {
 		return nil
+	}
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
 	}
 	action, ok := msg.Action.(*tg.MessageActionChatDeleteUser)
 	if !ok {
@@ -238,19 +243,20 @@ func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
 	if err != nil {
 		return err
 	}
-
+	eb := &entity.Builder{}
+	eb.Plain("🕊 ")
+	helpers.WriteRoleEmojiLink(eb, m)
+	eb.Plain(fmt.Sprintf(" %s нас", helpers.Gendered(m.User.Gender, "покинул", "покинула")))
 	admins, err := h.adminService.GetAdminsEnsured(ctx.StdContext(), u.EffectiveChat().GetID(), h.service.SyncChatMembers)
 	if err != nil {
 		return err
 	}
-	var sb strings.Builder
+	eb.Plain("\n\n")
 	for _, a := range admins {
-		sb.WriteString(helpers.Mention(a.User.ID, "​"))
+		view.RenderMention(eb, a, c.MentionTypes)
 	}
-	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("🕊 %s %s нас..."+sb.String(),
-		helpers.RoleEmojiLink(m),
-		helpers.Gendered(m.User.Gender, "покинул", "покинула"),
-	)))
+
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) OnBotPromote(ctx *command.Context, u *ext.Update) error {
@@ -302,10 +308,24 @@ func (h *Handler) ShowEmoji(ctx *command.Context, u *ext.Update) error {
 	if err != nil {
 		return err
 	}
-	if cm.Emoji == "" {
-		return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("У %s еще нет значка чата\n\nДобавить значок: !значок @участник 😘", helpers.RoleEmojiLink(*cm))))
+
+	eb := &entity.Builder{}
+
+	if len(cm.Emojis) == 0 {
+		eb.Plain("У ")
+		helpers.WriteUserMention(eb, cm.User)
+		eb.Plain(" еще нет значка чата\n\nДобавить: ")
+		eb.Code("!значок @участник 💤")
+
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
-	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Значок %s: %s", helpers.RoleLink(*cm), cm.Emoji)))
+
+	eb.Plain("Значок ")
+	helpers.WriteUserMention(eb, cm.User)
+	eb.Plain(": ")
+	helpers.DisplayEmoji(eb, cm.Emojis)
+
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) SetEmoji(ctx *command.Context, u *ext.Update) error {
@@ -314,16 +334,32 @@ func (h *Handler) SetEmoji(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	graphemes := helpers.ParseEmojis(ctx.RawArgsHTML)
-	emojis := strings.Join(graphemes, "")
-	if len(graphemes) > 3 {
-		return ctx.ReplyOnly(u, options.WithText("❌ Можно указать не более 3 значков на участника"))
+	emojis := helpers.ExtractEmoji(ctx.RawArgs, ctx.RawArgsEntities)
+
+	if len(emojis) == 0 {
+		return ctx.ReplyOnly(u, options.WithText("Отправьте emoji"))
 	}
-	if err := h.service.SetChatMemberEmoji(ctx.StdContext(), cm.ChatID, cm.User.ID, emojis); err != nil {
+
+	if len(emojis) > 3 {
+		return ctx.ReplyOnly(u, options.WithText("❌ Можно указать не более 3 значков"))
+	}
+
+	if err := h.service.SetChatMemberEmoji(
+		ctx.StdContext(),
+		cm.ChatID,
+		cm.User.ID,
+		emojis,
+	); err != nil {
 		return fmt.Errorf("failed to set chat member emoji: %w", err)
 	}
 
-	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Значок %s для %s успешно установлен", emojis, helpers.RoleLink(*cm))))
+	eb := &entity.Builder{}
+	eb.Plain("Значок ")
+	helpers.DisplayEmoji(eb, emojis)
+	eb.Plain(" установлен для ")
+	helpers.WriteUserMention(eb, cm.User)
+
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) RemoveEmoji(ctx *command.Context, u *ext.Update) error {
@@ -331,9 +367,25 @@ func (h *Handler) RemoveEmoji(ctx *command.Context, u *ext.Update) error {
 	if err != nil {
 		return err
 	}
-	if err := h.service.SetChatMemberEmoji(ctx.StdContext(), cm.ChatID, cm.User.ID, ""); err != nil {
-		return fmt.Errorf("failed to set remove member emoji: %w", err)
+
+	if len(cm.Emojis) == 0 {
+		return ctx.ReplyOnly(u, options.WithText("У пользователя нет значка"))
 	}
 
-	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Значок %s для %s успешно удалён", "", helpers.RoleLink(*cm))))
+	if err := h.service.SetChatMemberEmoji(
+		ctx.StdContext(),
+		cm.ChatID,
+		cm.User.ID,
+		nil,
+	); err != nil {
+		return fmt.Errorf("failed to remove member emoji: %w", err)
+	}
+
+	eb := &entity.Builder{}
+	eb.Plain("Значок ")
+	helpers.DisplayEmoji(eb, cm.Emojis)
+	eb.Plain(" удалён у ")
+	helpers.WriteUserMention(eb, cm.User)
+
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }

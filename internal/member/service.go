@@ -139,6 +139,6 @@ func (s *Service) GetChatMemberByUsername(ctx context.Context, chatID int64, use
 	return s.repo.GetByUsername(ctx, chatID, username)
 }
 
-func (s *Service) SetChatMemberEmoji(ctx context.Context, chatID int64, userID int64, emoji string) error {
-	return s.repo.SetEmoji(ctx, chatID, userID, emoji)
+func (s *Service) SetChatMemberEmoji(ctx context.Context, chatID int64, userID int64, emojis model.Emojis) error {
+	return s.repo.SetEmoji(ctx, chatID, userID, emojis)
 }

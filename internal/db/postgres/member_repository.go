@@ -220,7 +220,7 @@ func (r *MemberRepository) EnsureFull(ctx context.Context, chatID, userID int64,
 		return model.ChatMember{}, err
 	}
 
-	return mapChatMember(m), nil
+	return mapChatMemberFull(m.ChatMember, m.User), nil
 }
 
 func (r *MemberRepository) MarkLeftNotInList(ctx context.Context, chatID int64, userIDs []int64) error {
@@ -278,14 +278,11 @@ func (r *MemberRepository) GetByUsername(ctx context.Context, chatID int64, user
 	return mapChatMemberFull(m.ChatMember, m.User), nil
 }
 
-func (r *MemberRepository) SetEmoji(ctx context.Context, chatID, userID int64, emoji string) error {
-	return r.queries.SetChatMemberEmoji(ctx, db.SetChatMemberEmojiParams{
-		ChatID: chatID,
-		UserID: userID,
-		Emoji: pgtype.Text{
-			String: emoji,
-			Valid:  emoji != "",
-		},
+func (r *MemberRepository) SetEmoji(ctx context.Context, chatID, userID int64, emojis model.Emojis) error {
+	return r.queries.SetChatMemberEmojiJSON(ctx, db.SetChatMemberEmojiJSONParams{
+		ChatID:    chatID,
+		UserID:    userID,
+		EmojiJson: emojis,
 	})
 }
 

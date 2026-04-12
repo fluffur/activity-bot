@@ -149,8 +149,7 @@ func (h *Handler) CallInactive(ctx *command.Context, u *ext.Update) error {
 	if len(members) == 0 {
 		return ctx.ReplyOnly(u, options.WithText("Нет участников, не писавших более суток"))
 	}
-
-	return h.doCall(ctx, u, "", nil, members)
+	return h.doCall(ctx, u, ctx.RawArgs, ctx.RawArgsEntities, members)
 }
 
 func (h *Handler) CallNoNorm(ctx *command.Context, u *ext.Update) error {
@@ -177,7 +176,7 @@ func (h *Handler) CallNoNorm(ctx *command.Context, u *ext.Update) error {
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 
-	return h.doCall(ctx, u, "", nil, members)
+	return h.doCall(ctx, u, ctx.RawArgs, nil, members)
 }
 
 func (h *Handler) CallNoNormWarn(ctx *command.Context, u *ext.Update) error {

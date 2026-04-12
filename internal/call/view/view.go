@@ -64,69 +64,6 @@ func ReplaceMentionsWithLinks(input string) string {
 	return sb.String()
 }
 
-func FormatCallChunk(message string, members []model.ChatMember, mentionTypes int32) string {
-	var sb strings.Builder
-	if message != "" {
-		sb.WriteString(message)
-
-		if mentionTypes != 0 {
-			sb.WriteString("\n\n")
-		}
-	}
-
-	separator := " "
-	if mentionTypes&MentionTypeName > 0 || mentionTypes&MentionTypeRole > 0 {
-		separator = ", "
-	}
-
-	for j, m := range members {
-		var parts []string
-		emptyStr := "​"
-		if j == 0 && message == "" {
-			emptyStr = "ㅤ"
-		}
-
-		emoji := userEmoji(m)
-
-		if mentionTypes&MentionTypeEmoji > 0 && !hasCustomEmoji(emoji) {
-			parts = append(parts, emoji)
-		}
-		if mentionTypes&MentionTypeName > 0 {
-			parts = append(parts, m.User.DisplayName())
-		}
-		if mentionTypes&MentionTypeRole > 0 && m.Tag != "" {
-			parts = append(parts, m.Tag)
-		}
-
-		if len(parts) == 0 && !(mentionTypes&MentionTypeEmoji > 0 && hasCustomEmoji(emoji)) {
-			parts = append(parts, emptyStr)
-		}
-
-		title := strings.Join(parts, " ")
-		if strings.TrimSpace(title) == "" {
-			title = emptyStr
-		}
-
-		if mentionTypes&MentionTypeEmoji > 0 && hasCustomEmoji(emoji) {
-			sb.WriteString(emoji)
-			sb.WriteString(" ")
-			if title != "" {
-				sb.WriteString(helpers.Mention(m.User.ID, title))
-			} else {
-				sb.WriteString(helpers.Mention(m.User.ID, "ㅤ"))
-			}
-		} else {
-			sb.WriteString(helpers.Mention(m.User.ID, title))
-		}
-
-		if j < len(members)-1 {
-			sb.WriteString(separator)
-		}
-	}
-
-	return sb.String()
-}
-
 func FormatCallChunkBuilder(eb *entity.Builder, message string, members []model.ChatMember, mentionTypes int32) {
 	if message != "" {
 		eb.Plain(message)
@@ -142,35 +79,7 @@ func FormatCallChunkBuilder(eb *entity.Builder, message string, members []model.
 	}
 
 	for j, m := range members {
-		if mentionTypes&MentionTypeEmoji > 0 {
-			emoji := userEmoji(m)
-			if len(m.Emojis) != 0 {
-				for _, e := range m.Emojis {
-
-					eb.CustomEmoji(e.Char, e.ID)
-				}
-				helpers.WriteMention(eb, m.User.ID, "​")
-
-			} else {
-				helpers.WriteMention(eb, m.User.ID, emoji)
-				eb.Plain(" ")
-			}
-		}
-
-		var parts []string
-		if mentionTypes&MentionTypeName > 0 {
-			parts = append(parts, m.User.DisplayName())
-		}
-		if mentionTypes&MentionTypeRole > 0 && m.Tag != "" {
-			parts = append(parts, m.Tag)
-		}
-
-		title := strings.Join(parts, " ")
-		if title == "" {
-			title = "​"
-		}
-
-		helpers.WriteMention(eb, m.User.ID, title)
+		RenderMention(eb, m, mentionTypes)
 
 		if j < len(members)-1 {
 			eb.Plain(separator)
@@ -185,17 +94,48 @@ func FormatWelcomeCallMessage(message string) string {
 	return ": " + message
 }
 
-func userEmoji(m model.ChatMember) string {
-	if m.Emoji != "" {
-		return m.Emoji
-	}
-	if m.User.Emoji != "" {
-		return m.User.Emoji
+func userEmojis(m model.ChatMember) model.Emojis {
+	if len(m.Emojis) != 0 {
+		return m.Emojis
 	}
 
-	return callEmojis[rand.Intn(len(callEmojis))]
+	if len(m.User.Emojis) != 0 {
+		return m.User.Emojis
+	}
+
+	return model.Emojis{
+		{
+			Type: model.EmojiTypeUnicode,
+			Char: callEmojis[rand.Intn(len(callEmojis))],
+		},
+	}
 }
 
-func hasCustomEmoji(s string) bool {
-	return strings.Contains(s, "<tg-emoji")
+func RenderMention(eb *entity.Builder, m model.ChatMember, mentionTypes int32) {
+	hasEmoji := mentionTypes&MentionTypeEmoji > 0
+	hasName := mentionTypes&MentionTypeName > 0
+	hasRole := mentionTypes&MentionTypeRole > 0
+
+	if hasEmoji {
+		emojis := userEmojis(m)
+		helpers.MentionEmoji(eb, m.User, emojis)
+	}
+
+	var parts []string
+
+	if hasName {
+		parts = append(parts, m.User.DisplayName())
+	}
+
+	if hasRole && m.Tag != "" {
+		parts = append(parts, m.Tag)
+	}
+
+	title := strings.Join(parts, " ")
+
+	if title == "" {
+		title = "\u200B"
+	}
+
+	helpers.WriteMention(eb, m.User.ID, title)
 }

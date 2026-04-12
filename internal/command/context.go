@@ -22,7 +22,6 @@ type Response func(ctx *Context, u *ext.Update) error
 type Context struct {
 	*ext.Context
 	RawArgs         string
-	RawArgsHTML     string
 	RawArgsEntities []tg.MessageEntityClass
 	tokens          []string
 

@@ -61,14 +61,14 @@ WITH chat_upsert AS (
     INSERT INTO chats (id)
         VALUES (@chat_id)
         ON CONFLICT (id) DO NOTHING
-        RETURNING id),
-     chat_id_resolve AS (SELECT id
-                         FROM chat_upsert
-                         UNION ALL
-                         SELECT id
-                         FROM chats
-                         WHERE id = @chat_id
-                         LIMIT 1),
+        RETURNING id
+),
+     chat_id_resolve AS (
+         SELECT id FROM chat_upsert
+         UNION ALL
+         SELECT id FROM chats WHERE id = @chat_id
+         LIMIT 1
+     ),
      user_upsert AS (
          INSERT INTO users (id, username, first_name, last_name)
              VALUES (@user_id, @username, @first_name, @last_name)
@@ -76,22 +76,30 @@ WITH chat_upsert AS (
                  SET username = EXCLUDED.username,
                      first_name = EXCLUDED.first_name,
                      last_name = EXCLUDED.last_name
-             RETURNING id)
-INSERT
-INTO chat_members (chat_id, user_id, tag)
-SELECT chat_id_resolve.id,
-       user_upsert.id,
-       @tag
-FROM chat_id_resolve,
-     user_upsert
-ON CONFLICT (chat_id, user_id) DO UPDATE
-    SET tag     = CASE
-                      WHEN @tag IS NOT NULL AND @tag <> ''
-                          THEN @tag
-                      ELSE chat_members.tag
-        END,
-        left_at = NULL
-RETURNING *;
+             RETURNING id
+     ),
+     member_upsert AS (
+         INSERT INTO chat_members (chat_id, user_id, tag)
+             SELECT chat_id_resolve.id,
+                    user_upsert.id,
+                    @tag
+             FROM chat_id_resolve, user_upsert
+             ON CONFLICT (chat_id, user_id) DO UPDATE
+                 SET tag = CASE
+                               WHEN @tag IS NOT NULL AND @tag <> ''
+                                   THEN @tag
+                               ELSE chat_members.tag
+                     END,
+                     left_at = NULL
+             RETURNING *
+     )
+SELECT
+    sqlc.embed(chat_members),
+    sqlc.embed(users)
+FROM member_upsert cm
+         JOIN chat_members ON chat_members.chat_id = cm.chat_id
+    AND chat_members.user_id = cm.user_id
+         JOIN users ON users.id = cm.user_id;
 
 -- name: ResetChatMemberCreators :exec
 UPDATE chat_members
@@ -183,6 +191,13 @@ UPDATE chat_members
 SET emoji = $1
 WHERE user_id = $2
   AND chat_id = $3;
+
+-- name: SetChatMemberEmojiJSON :exec
+UPDATE chat_members
+SET emoji_json = $1
+WHERE user_id = $2
+  AND chat_id = $3;
+
 
 -- name: SetChatMemberStatus :exec
 UPDATE chat_members

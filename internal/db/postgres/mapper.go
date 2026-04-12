@@ -15,6 +15,7 @@ func mapUser(u db.User) model.User {
 		Username:      u.Username.String,
 		Gender:        u.Gender,
 		Emoji:         u.Emoji.String,
+		Emojis:        u.EmojiJson,
 		CustomEmojiID: u.CustomEmojiID.String,
 	}
 }

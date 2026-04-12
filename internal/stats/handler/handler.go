@@ -202,8 +202,6 @@ func (h *Handler) WhoAreUser(ctx *command.Context, u *ext.Update, userID int64) 
 		return err
 	}
 
-	//text := view.FormatProfile(m, false)
-
 	kb := &tg.ReplyInlineMarkup{
 		Rows: []tg.KeyboardButtonRow{
 			{Buttons: []tg.KeyboardButtonClass{

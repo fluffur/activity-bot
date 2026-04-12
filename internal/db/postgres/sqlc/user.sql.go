@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 
+	"activity-bot/internal/model"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -124,6 +125,22 @@ type SetUserEmojiParams struct {
 
 func (q *Queries) SetUserEmoji(ctx context.Context, arg SetUserEmojiParams) error {
 	_, err := q.db.Exec(ctx, setUserEmoji, arg.ID, arg.Emoji)
+	return err
+}
+
+const setUserEmojiJson = `-- name: SetUserEmojiJson :exec
+UPDATE users
+SET emoji_json = $2
+WHERE id = $1
+`
+
+type SetUserEmojiJsonParams struct {
+	ID        int64        `db:"id" json:"id"`
+	EmojiJson model.Emojis `db:"emoji_json" json:"emojiJson"`
+}
+
+func (q *Queries) SetUserEmojiJson(ctx context.Context, arg SetUserEmojiJsonParams) error {
+	_, err := q.db.Exec(ctx, setUserEmojiJson, arg.ID, arg.EmojiJson)
 	return err
 }
 

@@ -3,14 +3,14 @@ package handler
 import (
 	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
-	"activity-bot/internal/logger"
 	"activity-bot/internal/model"
 	"activity-bot/internal/options"
 	"activity-bot/internal/user"
 	"fmt"
-	"strings"
+	"log"
 
 	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/telegram/message/entity"
 )
 
 type Handler struct {
@@ -69,25 +69,43 @@ func (h *Handler) SetEmoji(ctx *command.Context, u *ext.Update) error {
 	if cm.User.ID != u.EffectiveUser().GetID() {
 		return ctx.ReplyOnly(u, options.WithText("Нельзя менять эмоджи других пользователей. Для эмоджи в рамках чата есть значки. Попробуйте через команду значок"))
 	}
-	emojis := strings.TrimSpace(ctx.RawArgsHTML)
-	graphemes := helpers.ParseEmojis(emojis)
-
-	if len(graphemes) > 3 {
+	emojis := helpers.ExtractEmoji(ctx.RawArgs, ctx.RawArgsEntities)
+	if len(emojis) > 3 {
 		return ctx.ReplyOnly(u, options.WithText("❌ Нужно отправить не более 3 эмоджи на пользователя"))
 	}
 
-	if err := h.service.SetEmoji(ctx.StdContext(), u.EffectiveUser().GetID(), strings.Join(graphemes, "")); err != nil {
+	if err := h.service.SetEmoji(ctx.StdContext(), u.EffectiveUser().GetID(), emojis); err != nil {
 		return fmt.Errorf("failed to set emoji: %w", err)
 	}
-	logger.L.Info("set emoji", "emoji", emojis)
-	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Эмоджи %s установлено для %s", emojis, helpers.UserLink(cm.User))))
+
+	eb := &entity.Builder{}
+	eb.Plain("Эмоджи ")
+	helpers.DisplayEmoji(eb, emojis)
+	eb.Plain(" установлено для ")
+	helpers.WriteUserMention(eb, cm.User)
+
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) RemoveEmoji(ctx *command.Context, u *ext.Update) error {
-	if err := h.service.SetEmoji(ctx.StdContext(), u.EffectiveUser().GetID(), ""); err != nil {
+	member, err := ctx.Sender()
+	if err != nil {
+		return err
+	}
+	if len(member.User.Emojis) == 0 {
+		return ctx.ReplyOnly(u, options.WithText("У вас не установлен эмоджи"))
+
+	}
+
+	if err := h.service.SetEmoji(ctx.StdContext(), u.EffectiveUser().GetID(), nil); err != nil {
 		return fmt.Errorf("failed to set emoji: %w", err)
 	}
-	return ctx.ReplyOnly(u, options.WithText("Emoji удалено"))
+
+	eb := &entity.Builder{}
+	eb.Plain("Эмоджи ")
+	helpers.DisplayEmoji(eb, member.User.Emojis)
+	eb.Plain(" удалено")
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) ShowEmoji(ctx *command.Context, u *ext.Update) error {
@@ -96,9 +114,19 @@ func (h *Handler) ShowEmoji(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	if cm.Emoji == "" {
-		return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("У пользователя %s еще нет эмоджи\n\nДобавить emoji: !эмоджи 😘", helpers.UserLink(cm.User))))
+	eb := &entity.Builder{}
+	log.Println(cm.Emojis, cm.User.Emojis)
+	if len(cm.User.Emojis) == 0 {
+		eb.Plain("У ")
+		helpers.WriteUserMention(eb, cm.User)
+		eb.Plain(" ещё не установлен эмоджи\n\nКоманда: ")
+		eb.Code("эмоджи 💤")
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 
-	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Эмоджи пользователя %s: %s", helpers.UserLink(cm.User), cm.Emoji)))
+	eb.Plain("Эмоджи ")
+	helpers.WriteUserMention(eb, cm.User)
+	eb.Plain(": ")
+	helpers.DisplayEmoji(eb, cm.User.Emojis)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }

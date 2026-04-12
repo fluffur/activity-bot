@@ -148,7 +148,7 @@ func (h *Handler) SetPrompt(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	if err := h.service.SetChatPrompt(ctx.StdContext(), c.ID, ctx.RawArgsHTML); err != nil {
+	if err := h.service.SetChatPrompt(ctx.StdContext(), c.ID, ctx.RawArgs); err != nil {
 		return err
 	}
 
