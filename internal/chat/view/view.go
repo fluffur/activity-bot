@@ -28,10 +28,6 @@ func WriteNorm(eb *entity.Builder, norm, normBan int32) {
 	eb.Plain(fmt.Sprintf("Норма меньше %d варн%s", norm, banInfo))
 }
 
-func FormatNormSet(norm int, action string) string {
-	return fmt.Sprintf("Установлена новая норма чата: %d на %s", norm, action)
-}
-
 func FormatNewbieThreshold(days int32) string {
 	if days == 0 {
 		return fmt.Sprintf("Срок для новичков ещё не указан")

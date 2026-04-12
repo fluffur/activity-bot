@@ -1,8 +1,9 @@
 package guard
 
+/*
 import (
 	"activity-bot/internal/chat"
-	"activity-bot/internal/cmd"
+	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
@@ -12,9 +13,9 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-func Restricted(memberService *member.Service, chatService *chat.Service, sessionService cmd.SessionService, commandName string, defaultStatus model.Status) cmd.Guard {
-	return cmd.GuardFunc(func(ctx *ext.Context, _ string, stdCtx context.Context) (bool, string) {
-		chatID, err := cmd.GetChatID(sessionService, ctx, stdCtx)
+func Restricted(memberService *member.Service, chatService *chat.Service, sessionService command.SessionService, commandName string, defaultStatus model.Status) command.Guard {
+	return command.GuardFunc(func(ctx *ext.Context, _ string, stdCtx context.Context) (bool, string) {
+		chatID, err := command.GetChatID(sessionService, ctx, stdCtx)
 		if err != nil {
 			return false, "Не удалось определить чат"
 		}
@@ -38,3 +39,4 @@ func Restricted(memberService *member.Service, chatService *chat.Service, sessio
 		return true, ""
 	})
 }
+*/

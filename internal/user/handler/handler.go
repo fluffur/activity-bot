@@ -5,11 +5,12 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/model"
+	"activity-bot/internal/options"
 	"activity-bot/internal/user"
 	"fmt"
 	"strings"
 
-	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/celestix/gotgproto/ext"
 )
 
 type Handler struct {
@@ -20,7 +21,7 @@ func New(service *user.Service) *Handler {
 	return &Handler{service}
 }
 
-func (h *Handler) SetGender(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) SetGender(ctx *command.Context, u *ext.Update) error {
 	gender := ctx.TextOrDefault("м")
 
 	switch gender {
@@ -29,11 +30,11 @@ func (h *Handler) SetGender(b *gotgbot.Bot, ctx *command.Context) error {
 	case "ж", "жен", "женский", "female", "f":
 		gender = model.GenderFemale
 	default:
-		return ctx.Reply(b, "Неизвестный пол. Используйте: м или ж", nil)
+		return ctx.ReplyOnly(u, options.WithText("Неизвестный пол. Используйте: м или ж"))
 	}
 
-	if err := h.service.SetGender(ctx.StdContext(), ctx.EffectiveSender.Id(), gender); err != nil {
-		_ = ctx.Reply(b, "Не удалось установить пол", nil)
+	if err := h.service.SetGender(ctx.StdContext(), u.EffectiveUser().GetID(), gender); err != nil {
+		_ = ctx.ReplyOnly(u, options.WithText("Не удалось установить пол"))
 		return err
 	}
 
@@ -42,63 +43,62 @@ func (h *Handler) SetGender(b *gotgbot.Bot, ctx *command.Context) error {
 		genderName = "женский"
 	}
 
-	return ctx.Reply(b, fmt.Sprintf("Пол установлен: %s", genderName), nil)
+	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Пол установлен: %s", genderName)))
 }
 
-func (h *Handler) ShowGender(b *gotgbot.Bot, ctx *command.Context) error {
-	u, err := ctx.AnyUser()
+func (h *Handler) ShowGender(ctx *command.Context, u *ext.Update) error {
+	cm, err := ctx.AnyUser()
 	if err != nil {
 		return err
 	}
 	gender := "неизвестен"
-	if u.User.Gender == model.GenderFemale {
+	if cm.User.Gender == model.GenderFemale {
 		gender = "женский"
-	} else if u.User.Gender == model.GenderMale {
+	} else if cm.User.Gender == model.GenderMale {
 		gender = "мужской"
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Пол %s: %s", helpers.LinkWithContent(u.User, u.User.FirstName), gender))
+	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Пол %s: %s", helpers.LinkWithContent(cm.User, cm.User.FirstName), gender)))
 }
 
-func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *command.Context) error {
-	u, err := ctx.AnyUser()
+func (h *Handler) SetEmoji(ctx *command.Context, u *ext.Update) error {
+	cm, err := ctx.AnyUser()
 	if err != nil {
 		return err
 	}
-	if u.User.ID != ctx.EffectiveSender.Id() {
-		return ctx.ReplyHTML(b, "Нельзя менять эмоджи других пользователей. Для эмоджи в рамках чата есть значки. Попробуйте через команду <code>значок</code>")
+	if cm.User.ID != u.EffectiveUser().GetID() {
+		return ctx.ReplyOnly(u, options.WithText("Нельзя менять эмоджи других пользователей. Для эмоджи в рамках чата есть значки. Попробуйте через команду значок"))
 	}
 	emojis := strings.TrimSpace(ctx.RawArgsHTML)
 	graphemes := helpers.ParseEmojis(emojis)
 
 	if len(graphemes) > 3 {
-		return ctx.Reply(b, "❌ Нужно отправить не более 3 эмоджи на пользователя", nil)
+		return ctx.ReplyOnly(u, options.WithText("❌ Нужно отправить не более 3 эмоджи на пользователя"))
 	}
 
-	if err := h.service.SetEmoji(ctx.StdContext(), ctx.EffectiveSender.Id(), strings.Join(graphemes, "")); err != nil {
+	if err := h.service.SetEmoji(ctx.StdContext(), u.EffectiveUser().GetID(), strings.Join(graphemes, "")); err != nil {
 		return fmt.Errorf("failed to set emoji: %w", err)
 	}
 	logger.L.Info("set emoji", "emoji", emojis)
-	return ctx.ReplyHTML(b, fmt.Sprintf("Эмоджи %s установлено для %s", emojis, helpers.UserLink(u.User)))
+	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Эмоджи %s установлено для %s", emojis, helpers.UserLink(cm.User))))
 }
 
-func (h *Handler) RemoveEmoji(b *gotgbot.Bot, ctx *command.Context) error {
-	if err := h.service.SetEmoji(ctx.StdContext(), ctx.EffectiveSender.Id(), ""); err != nil {
+func (h *Handler) RemoveEmoji(ctx *command.Context, u *ext.Update) error {
+	if err := h.service.SetEmoji(ctx.StdContext(), u.EffectiveUser().GetID(), ""); err != nil {
 		return fmt.Errorf("failed to set emoji: %w", err)
 	}
-	return ctx.Reply(b, "Emoji удалено", nil)
+	return ctx.ReplyOnly(u, options.WithText("Emoji удалено"))
 }
 
-func (h *Handler) ShowEmoji(b *gotgbot.Bot, ctx *command.Context) error {
-	u, err := ctx.AnyUser()
+func (h *Handler) ShowEmoji(ctx *command.Context, u *ext.Update) error {
+	cm, err := ctx.AnyUser()
 	if err != nil {
 		return err
 	}
 
-	if u.Emoji == "" {
-		return ctx.ReplyHTML(b, fmt.Sprintf("У пользователя %s еще нет эмоджи\n\nДобавить emoji: <code>!эмоджи 😘</code>", helpers.UserLink(u.User)))
+	if cm.Emoji == "" {
+		return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("У пользователя %s еще нет эмоджи\n\nДобавить emoji: !эмоджи 😘", helpers.UserLink(cm.User))))
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Эмоджи пользователя %s: %s", helpers.UserLink(u.User), u.Emoji))
-
+	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Эмоджи пользователя %s: %s", helpers.UserLink(cm.User), cm.Emoji)))
 }

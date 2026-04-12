@@ -46,8 +46,7 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 			}
 			handlerCtx.requiredStatus = c.requiredStatus
 		}
-		senderID := u.EffectiveUser().GetID()
-		member, err := c.resolveMember(ctx.Context, handlerCtx.chat, senderID)
+		member, err := c.resolveMember(ctx, handlerCtx.chat, u.EffectiveUser())
 		if err != nil {
 			return errors.Wrap(err, "callback: resolve sender failed")
 		}
@@ -99,7 +98,7 @@ func (c *Command) WrapEvent() HandlerFunc {
 			handlerCtx.chat = &chat
 		}
 
-		senderMember, err := c.resolveMember(ctx.Context, handlerCtx.chat, u.EffectiveUser().GetID())
+		senderMember, err := c.resolveMember(ctx, handlerCtx.chat, u.EffectiveUser())
 		if err != nil {
 			return err
 		}

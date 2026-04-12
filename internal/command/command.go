@@ -3,6 +3,7 @@ package command
 import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
+	"activity-bot/internal/options"
 	"context"
 	"fmt"
 	"log"
@@ -22,11 +23,13 @@ import (
 type UserProvider interface {
 	GetUser(ctx context.Context, id int64) (model.User, error)
 	GetByUsername(ctx context.Context, username string) (model.User, error)
+	EnsureUserExists(ctx context.Context, id int64, username, firstName, lastName string) (model.User, error)
 }
 
 type ChatMemberProvider interface {
 	GetChatMember(ctx context.Context, chatID, userId int64) (model.ChatMember, error)
 	GetChatMemberByUsername(ctx context.Context, chatID int64, username string) (model.ChatMember, error)
+	EnsureMemberExists(ctx context.Context, chatID int64, userID int64, username, firstName, lastName, role string) (model.ChatMember, error)
 	FindChatMembersByTag(ctx context.Context, chatID int64, tag string) ([]model.ChatMember, error)
 }
 
@@ -175,6 +178,14 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	text := m.Text
 	entities := m.Entities
 
+	// command validation
+	prefix := c.findPrefix(text)
+	alias := c.findAlias(text, prefix, ctx.Self.Username)
+	if alias == "" {
+		return nil
+	}
+	log.Println(text, prefix, alias)
+
 	if c.scope == ScopeChat {
 		chat, err := c.getChat(ctx, u)
 		if err != nil {
@@ -189,20 +200,12 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 			handlerCtx.requiredStatus = s
 		}
 	}
-
-	// command validation
-	prefix := c.findPrefix(text)
 	if c.requirePrefix && prefix == "" {
-		return nil
-	}
-	alias := c.findAlias(text, prefix, ctx.Self.Username)
-	log.Println(text, prefix, alias)
-	if alias == "" {
 		return nil
 	}
 
 	// sender
-	member, err := c.resolveMember(ctx.Context, handlerCtx.chat, u.EffectiveUser().GetID())
+	member, err := c.resolveMember(ctx, handlerCtx.chat, u.EffectiveUser())
 	if err != nil {
 		return errors.Wrap(err, "resolve sender failed")
 	}
@@ -243,7 +246,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 			if _, ok := getReplyToMessageID(m); ok {
 				return nil
 			}
-			members, _, err := c.extractMembersFromEntities(ctx.Context, handlerCtx.chat, text, entities)
+			members, _, err := c.extractMembersFromEntities(ctx, handlerCtx.chat, text, entities)
 			if err != nil {
 				return errors.Wrap(err, "failed to extract users")
 			}
@@ -382,8 +385,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	}
 
 	if !handlerCtx.senderChatMember.StatusGranted(c.RequiredStatus()) {
-		_, err = ctx.Reply(u, ext.ReplyTextString(fmt.Sprintf("Требуются права: %s", c.RequiredStatus())), nil)
-		return err
+		return handlerCtx.ReplyOnly(u, options.WithText(fmt.Sprintf("Требуются права: %s", c.RequiredStatus())))
 	}
 
 	err = c.response(&handlerCtx, u)
@@ -409,12 +411,34 @@ func (c *Command) resolveUsers(ctx *ext.Context, handlerCtx *Context, msg *types
 			return nil
 		}
 
-		fromID := reply.FromID
-		fromUser, ok := fromID.(*tg.PeerUser)
+		fromID, ok := reply.GetFromID()
 		if !ok {
+			return nil
+		}
+		fromUser, ok := fromID.(*tg.PeerUser)
+		inputPeer, err := ctx.ResolveInputPeerById(fromUser.UserID)
+		if err != nil {
+			return err
+		}
+		pUser, ok := inputPeer.(*tg.InputPeerUser)
+		if !ok {
+			return errors.New("replyToMessage FromUser is not a User")
+		}
+		uSlice, err := ctx.Raw.UsersGetUsers(ctx, []tg.InputUserClass{&tg.InputUser{
+			UserID:     pUser.UserID,
+			AccessHash: pUser.AccessHash,
+		}})
+		if err != nil {
+			return err
+		}
+		if len(uSlice) == 0 {
 			return errors.New("replyToMessage must have a FromUser")
 		}
-		replyMember, err := c.resolveMember(ctx, handlerCtx.chat, fromUser.GetUserID())
+		user, ok := uSlice[0].(*tg.User)
+		if !ok {
+			return errors.New("replyToMessage FromUser is not a User")
+		}
+		replyMember, err := c.resolveMember(ctx, handlerCtx.chat, user)
 		if err != nil {
 			return errors.Wrap(err, "resolve reply failed")
 		}
@@ -454,20 +478,66 @@ func (c *Command) RequiredStatus() model.Status {
 	return c.requiredStatus
 }
 
-func (c *Command) resolveMember(ctx context.Context, chat *model.Chat, userID int64) (*model.ChatMember, error) {
+func (c *Command) resolveMember(ctx *ext.Context, chat *model.Chat, u any) (*model.ChatMember, error) {
+	var userObj *tg.User
+
+	switch val := u.(type) {
+	case *tg.User:
+		userObj = val
+	case int64:
+		inputPeer, err := ctx.ResolveInputPeerById(val)
+		if err != nil {
+			return nil, fmt.Errorf("resolve peer failed: %w", err)
+		}
+		pUser, ok := inputPeer.(*tg.InputPeerUser)
+		if !ok {
+			return nil, fmt.Errorf("peer %d is not a user", val)
+		}
+		uSlice, err := ctx.Raw.UsersGetUsers(ctx, []tg.InputUserClass{&tg.InputUser{
+			UserID:     pUser.UserID,
+			AccessHash: pUser.AccessHash,
+		}})
+		if err != nil {
+			return nil, fmt.Errorf("fetch user failed: %w", err)
+		}
+		if len(uSlice) == 0 {
+			return nil, fmt.Errorf("user %d not found", val)
+		}
+		userObj, ok = uSlice[0].(*tg.User)
+		if !ok {
+			return nil, fmt.Errorf("peer %d is not a user", val)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported type for resolveMember: %T", u)
+	}
+
 	if c.scope == ScopeChat {
 		if chat == nil {
 			return nil, errors.New("chat cannot be nil")
 		}
 
-		member, err := c.chatMemberProvider.GetChatMember(ctx, chat.ID, userID)
+		member, err := c.chatMemberProvider.EnsureMemberExists(
+			ctx.Context,
+			chat.ID,
+			userObj.GetID(),
+			userObj.Username,
+			userObj.FirstName,
+			userObj.LastName,
+			"",
+		)
 		if err != nil {
 			return nil, err
 		}
 		return &member, nil
 	}
 
-	user, err := c.userProvider.GetUser(ctx, userID)
+	user, err := c.userProvider.EnsureUserExists(
+		ctx.Context,
+		userObj.GetID(),
+		userObj.Username,
+		userObj.FirstName,
+		userObj.LastName,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -574,7 +644,7 @@ func (c *Command) getChat(ctx *ext.Context, u *ext.Update) (model.Chat, error) {
 }
 
 func (c *Command) extractMembersFromEntities(
-	ctx context.Context,
+	ctx *ext.Context,
 	chat *model.Chat,
 	text string,
 	entities []tg.MessageEntityClass,
@@ -587,8 +657,10 @@ func (c *Command) extractMembersFromEntities(
 		extracted := extractEntity(text, entity)
 
 		encoded := utf16.Encode([]rune(text))
-		byteStart := len(string(utf16.Decode(encoded[:entity.GetOffset()])))
-		byteEnd := byteStart + len(string(utf16.Decode(encoded[entity.GetOffset():entity.GetOffset()+entity.GetLength()])))
+		byteOffset := entity.GetOffset()
+		byteLength := entity.GetLength()
+		byteStart := len(string(utf16.Decode(encoded[:byteOffset])))
+		byteEnd := byteStart + len(string(utf16.Decode(encoded[byteOffset:byteOffset+byteLength])))
 		entityOffset := Offset{byteStart, byteEnd}
 
 		switch e := entity.(type) {

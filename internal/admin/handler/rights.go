@@ -4,32 +4,32 @@ import (
 	"activity-bot/internal/admin/view"
 	"activity-bot/internal/command"
 	"activity-bot/internal/model"
+	"activity-bot/internal/options"
 	"strconv"
 	"strings"
 
-	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/tg"
 )
 
-func (h *Handler) ManageRights(b *gotgbot.Bot, ctx *command.Context) error {
-	return ctx.Reply(b, view.FormatCategories(), &gotgbot.SendMessageOpts{
-		ReplyMarkup: view.GetCategoriesKeyboard(),
-		ParseMode:   gotgbot.ParseModeHTML,
-	})
+func (h *Handler) ManageRights(ctx *command.Context, u *ext.Update) error {
+	return ctx.ReplyOnly(u, options.WithText(view.FormatCategories()), options.WithMarkup(view.GetCategoriesKeyboard()))
 }
 
-func (h *Handler) CallbackManageRights(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) CallbackManageRights(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
-	data := ctx.CallbackQuery.Data
-	parts := strings.Split(data, ":")
+	data := u.CallbackQuery.Data
+	parts := strings.Split(string(data), ":")
 	action := parts[0]
 
 	switch action {
 	case "rights_list":
-		_, _, err := ctx.CallbackQuery.Message.EditText(b, view.FormatCategories(), &gotgbot.EditMessageTextOpts{
-			ParseMode:   gotgbot.ParseModeHTML,
+		_, err := ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
+			ID:          u.CallbackQuery.GetMsgID(),
+			Message:     view.FormatCategories(),
 			ReplyMarkup: view.GetCategoriesKeyboard(),
 		})
 		return err
@@ -45,8 +45,9 @@ func (h *Handler) CallbackManageRights(b *gotgbot.Bot, ctx *command.Context) err
 		}
 
 		configCmds := h.factory.ConfigurableCommands()
-		_, _, err = ctx.CallbackQuery.Message.EditText(b, view.FormatCommandsByCategory(category, configCmds, perms), &gotgbot.EditMessageTextOpts{
-			ParseMode:   gotgbot.ParseModeHTML,
+		_, err = ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
+			ID:          u.CallbackQuery.GetMsgID(),
+			Message:     view.FormatCommandsByCategory(category, configCmds, perms),
 			ReplyMarkup: view.GetCommandsByCategoryKeyboard(category, configCmds, perms),
 		})
 		return err
@@ -62,8 +63,9 @@ func (h *Handler) CallbackManageRights(b *gotgbot.Bot, ctx *command.Context) err
 			status = command.GetDefaultStatus(configCmds, key)
 		}
 
-		_, _, err = ctx.CallbackQuery.Message.EditText(b, view.FormatEditCommandRights(key, status, configCmds), &gotgbot.EditMessageTextOpts{
-			ParseMode:   gotgbot.ParseModeHTML,
+		_, err = ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
+			ID:          u.CallbackQuery.GetMsgID(),
+			Message:     view.FormatEditCommandRights(key, status, configCmds),
 			ReplyMarkup: view.GetEditRightsKeyboard(key, status, configCmds),
 		})
 		return err
@@ -83,18 +85,20 @@ func (h *Handler) CallbackManageRights(b *gotgbot.Bot, ctx *command.Context) err
 
 		configCmds := h.factory.ConfigurableCommands()
 
-		//perms, err := h.chatService.GetCommandPermissions(ctx.StdContext(), c.ID)
-		//if err != nil {
-		//	return err
-		//}
-		_, _, err = ctx.CallbackQuery.Message.EditText(b, view.FormatEditCommandRights(key, status, configCmds), &gotgbot.EditMessageTextOpts{
-			ParseMode:   gotgbot.ParseModeHTML,
+		_, err = ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
+			ID:          u.CallbackQuery.GetMsgID(),
+			Message:     view.FormatEditCommandRights(key, status, configCmds),
 			ReplyMarkup: view.GetEditRightsKeyboard(key, status, configCmds),
 		})
 		if err == nil {
-			_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{Text: "Права обновлены"})
+			_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+				Message: "Права обновлены",
+			})
+		} else {
+			_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+				Message: "Права с этим уровнем уже установлены",
+			})
 		}
-		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{Text: "Права с этим уровнем уже установлены"})
 		return err
 	}
 

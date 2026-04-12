@@ -6,12 +6,17 @@ import (
 	"activity-bot/internal/call/view"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/command"
+	"activity-bot/internal/conversation"
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
+	"activity-bot/internal/options"
 	"activity-bot/internal/session"
 	"activity-bot/internal/stats"
+	"context"
 	"fmt"
+	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,6 +31,7 @@ type Handler struct {
 	chatService    *chat.Service
 	adminService   *admin.Service
 	sessionService *session.Service
+	storage        conversation.Storage
 	mu             sync.Mutex
 	// promptMessages[chatID][userID] = messageID вопроса "ответьте на это сообщение..."
 	promptMessages map[int64]map[int64]int64
@@ -38,13 +44,21 @@ const (
 	CallStateNoNormBan  = "call_no_norm_ban_msg"
 )
 
-func New(service *call.Service, memberService *member.Service, chatService *chat.Service, adminService *admin.Service, sessionService *session.Service) *Handler {
+func New(
+	service *call.Service,
+	memberService *member.Service,
+	chatService *chat.Service,
+	adminService *admin.Service,
+	sessionService *session.Service,
+	storage conversation.Storage,
+) *Handler {
 	return &Handler{
 		service:        service,
 		memberService:  memberService,
 		chatService:    chatService,
 		adminService:   adminService,
 		sessionService: sessionService,
+		storage:        storage,
 		promptMessages: make(map[int64]map[int64]int64),
 	}
 }
@@ -86,7 +100,7 @@ func New(service *call.Service, memberService *member.Service, chatService *chat
 //		if err != nil {
 //			return err
 //		}
-//
+//callINactive
 //		if !m.StatusGranted(model.StatusModerator) {
 //			_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 //				Text: fmt.Sprintf("%d Требуются права: %s", m.Status, m.Status.String()),
@@ -133,8 +147,7 @@ func (h *Handler) CallInactive(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 	if len(members) == 0 {
-		_, err = ctx.Reply(u, ext.ReplyTextString("Нет участников, не писавших более суток"), nil)
-		return err
+		return ctx.ReplyOnly(u, options.WithText("Нет участников, не писавших более суток"))
 	}
 
 	return h.doCall(ctx, u, "", nil, members)
@@ -158,8 +171,10 @@ func (h *Handler) CallNoNorm(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 	if len(members) == 0 {
-		_, err = ctx.Reply(u, ext.ReplyTextString(fmt.Sprintf("%s Все участники выполнили норму!", helpers.SuccessEmoji())), nil)
-		return err
+		eb := &entity.Builder{}
+		helpers.WriteSuccessEmoji(eb)
+		eb.Plain(" Все участники выполнили норму")
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 
 	return h.doCall(ctx, u, "", nil, members)
@@ -183,8 +198,7 @@ func (h *Handler) CallNoNormWarn(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 	if len(members) == 0 {
-		_, err = ctx.Reply(u, ext.ReplyTextString(fmt.Sprintf("%s Все участники выполнили норму предупреждения!", helpers.SuccessEmoji())), nil)
-		return err
+		return ctx.ReplyOnly(u, options.WithText("Все участники выполнили норму предупреждения"))
 	}
 
 	return h.doCall(ctx, u, "", nil, members)
@@ -208,8 +222,7 @@ func (h *Handler) CallNoNormBan(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 	if len(members) == 0 {
-		_, err = ctx.Reply(u, ext.ReplyTextString(fmt.Sprintf("%s Все участники выполнили норму бана!", helpers.SuccessEmoji())), nil)
-		return err
+		return ctx.ReplyOnly(u, options.WithText("Все участники выполнили норму бана"))
 	}
 
 	return h.doCall(ctx, u, "", nil, members)
@@ -248,12 +261,7 @@ func (h *Handler) doCall(
 		finalText, chunkEntities := eb.Complete()
 		finalEntities := append(entities, chunkEntities...)
 
-		_, err = ctx.SendMessage(u.EffectiveChat().GetID(), &tg.MessagesSendMessageRequest{
-			ReplyTo:  &tg.InputReplyToMessage{ReplyToMsgID: u.EffectiveMessage.GetID()},
-			Entities: finalEntities,
-			Message:  finalText,
-		})
-		if err != nil {
+		if err := ctx.ReplyOnly(u, options.WithText(finalText), options.WithEntities(finalEntities)); err != nil {
 			return err
 		}
 	}
@@ -271,8 +279,7 @@ func (h *Handler) SetMentionsPerMessage(ctx *command.Context, u *ext.Update) err
 		return err
 	}
 	if count <= 0 || count > 50 {
-		_, err = ctx.Reply(u, ext.ReplyTextString("Укажите число от 1 до 50"), nil)
-		return err
+		return ctx.ReplyOnly(u, options.WithText("Укажите число от 1 до 50"))
 	}
 
 	if err := h.service.SetMentionsPerMessage(
@@ -283,12 +290,10 @@ func (h *Handler) SetMentionsPerMessage(ctx *command.Context, u *ext.Update) err
 		return err
 	}
 
-	_, err = ctx.Reply(
+	return ctx.ReplyOnly(
 		u,
-		ext.ReplyTextString(fmt.Sprintf("Лимит упоминаний в одном сообщении изменен на %d", count)),
-		nil,
+		options.WithText(fmt.Sprintf("Лимит упоминаний в одном сообщении изменен на %d", count)),
 	)
-	return err
 }
 
 func (h *Handler) ShowMentionsPerMessage(ctx *command.Context, u *ext.Update) error {
@@ -296,12 +301,10 @@ func (h *Handler) ShowMentionsPerMessage(ctx *command.Context, u *ext.Update) er
 	if err != nil {
 		return err
 	}
-	_, err = ctx.Reply(
+	return ctx.ReplyOnly(
 		u,
-		ext.ReplyTextString(fmt.Sprintf("Лимит упоминаний в одном сообщении: %d", c.MentionsPerMessage)),
-		nil,
+		options.WithText(fmt.Sprintf("Лимит упоминаний в одном сообщении: %d", c.MentionsPerMessage)),
 	)
-	return err
 }
 
 func (h *Handler) ShowCallTypes(ctx *command.Context, u *ext.Update) error {
@@ -313,14 +316,11 @@ func (h *Handler) ShowCallTypes(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	_, err = ctx.Reply(
+	return ctx.ReplyOnly(
 		u,
-		ext.ReplyTextString("Настройте стиль упоминаний:"),
-		&ext.ReplyOpts{
-			Markup: h.getCallTypesKeyboard(c.MentionTypes),
-		},
+		options.WithText("Настройте стиль упоминаний:"),
+		options.WithMarkup(h.getCallTypesKeyboard(c.MentionTypes)),
 	)
-	return err
 }
 
 func (h *Handler) CallbackCallType(ctx *command.Context, u *ext.Update) error {
@@ -421,8 +421,7 @@ func (h *Handler) SetWelcomeCallMessage(ctx *command.Context, u *ext.Update) err
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString(view.FormatWelcomeCallMessageSet()), nil)
-	return err
+	return ctx.ReplyOnly(u, options.WithText("Новое сообщение созыва установлено"))
 }
 
 func (h *Handler) DeleteWelcomeCallMessage(ctx *command.Context, u *ext.Update) error {
@@ -431,18 +430,14 @@ func (h *Handler) DeleteWelcomeCallMessage(ctx *command.Context, u *ext.Update) 
 		return err
 	}
 	if c.WelcomeCallMessage == "" {
-		_, err := ctx.Reply(u, ext.ReplyTextString("Сообщение ещё не было установлено"), nil)
-
-		return err
+		return ctx.ReplyOnly(u, options.WithText("Сообщение ещё не было установлено"))
 	}
 
 	if err := h.service.SetWelcomeCallMessage(ctx.StdContext(), c.ID, ""); err != nil {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString("Сообщение удалено"), nil)
-	return err
-
+	return ctx.ReplyOnly(u, options.WithText("Сообщение созыва удалено"))
 }
 
 func (h *Handler) EnableCallOnJoin(ctx *command.Context, u *ext.Update) error {
@@ -455,8 +450,7 @@ func (h *Handler) EnableCallOnJoin(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString(view.FormatCallOnJoinEnabled()), nil)
-	return err
+	return ctx.ReplyOnly(u, options.WithText("Теперь при вступлении новых участников будет выполняться созыв"))
 }
 
 func (h *Handler) DisableCallOnJoin(ctx *command.Context, u *ext.Update) error {
@@ -469,8 +463,7 @@ func (h *Handler) DisableCallOnJoin(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString(view.FormatCallOnJoinDisabled()), nil)
-	return err
+	return ctx.ReplyOnly(u, options.WithText("Теперь при инвайте новых участников не будет выполняться созыв"))
 }
 
 func (h *Handler) ShowWelcomeCallMessage(ctx *command.Context, u *ext.Update) error {
@@ -479,352 +472,356 @@ func (h *Handler) ShowWelcomeCallMessage(ctx *command.Context, u *ext.Update) er
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString(view.FormatWelcomeCallMessage(c.WelcomeCallMessage)), nil)
-	return err
+	return ctx.ReplyOnly(u, options.WithText(view.FormatWelcomeCallMessage(c.WelcomeCallMessage)))
 }
 
-//
-//func (h *Handler) startCallConversation(
-//	b *gotgbot.Bot,
-//	ctx *command.Context,
-//	nextState string,
-//) error {
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//	chatID := c.ID
-//	m, err := ctx.Sender()
-//	if err != nil {
-//		return err
-//	}
-//	if !m.StatusGranted(ctx.RequiredStatus()) {
-//		if ctx.CallbackQuery != nil {
-//			_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-//				Text:      "Требуются права администратора",
-//				ShowAlert: true,
-//			})
-//		}
-//		return handlers.EndConversation()
-//	}
-//
-//	callType := "всех"
-//	switch nextState {
-//	case CallStateInactive:
-//		callType = "неактивных"
-//	case CallStateNoNorm:
-//		callType = "без нормы"
-//	case CallStateNoNormWarn:
-//		callType = "без нормы (предупреждение)"
-//	case CallStateNoNormBan:
-//		callType = "без нормы (бан)"
-//	}
-//
-//	userMention := "Пользователь"
-//	if ctx.EffectiveUser != nil {
-//		userMention = helpers.Mention(ctx.EffectiveUser.Id, ctx.EffectiveUser.FirstName)
-//	}
-//
-//	text := fmt.Sprintf(
-//		"%s, введите сообщение созыва %s: ",
-//		userMention,
-//		callType,
-//	)
-//	promptMsg, err := ctx.EffectiveMessage.Reply(
-//		b,
-//		text,
-//		&gotgbot.SendMessageOpts{
-//			ParseMode: gotgbot.ParseModeHTML,
-//			ReplyMarkup: gotgbot.InlineKeyboardMarkup{
-//				InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
-//					{
-//						{
-//							Text:         "Без сообщения",
-//							Style:        "primary",
-//							CallbackData: fmt.Sprintf("call_nomsg:%s", nextState),
-//						}},
-//					{{
-//						Text:         "Отменить",
-//						Style:        "danger",
-//						CallbackData: "call_cancel",
-//					},
-//					},
-//				},
-//			},
-//		},
-//	)
-//	if err != nil {
-//		return err
-//	}
-//
-//	if ctx.EffectiveSender != nil {
-//		uid := ctx.EffectiveSender.Id()
-//		h.mu.Lock()
-//		if h.promptMessages[chatID] == nil {
-//			h.promptMessages[chatID] = make(map[int64]int64)
-//		}
-//		h.promptMessages[chatID][uid] = promptMsg.MessageId
-//		h.mu.Unlock()
-//	}
-//
-//	if ctx.CallbackQuery != nil {
-//		_, _ = ctx.CallbackQuery.Answer(b, nil)
-//	}
-//	log.Println("next state", nextState)
-//	return handlers.NextConversationState(nextState)
-//}
-//
-//func (h *Handler) StartCallInactiveConversation(b *gotgbot.Bot, ctx *command.Context) error {
-//	return h.startCallConversation(b, ctx, CallStateInactive)
-//}
-//
-//func (h *Handler) StartCallNoNormConversation(b *gotgbot.Bot, ctx *command.Context) error {
-//	return h.startCallConversation(b, ctx, CallStateNoNorm)
-//}
-//
-//func (h *Handler) StartCallNoNormWarnConversation(b *gotgbot.Bot, ctx *command.Context) error {
-//	return h.startCallConversation(b, ctx, CallStateNoNormWarn)
-//}
-//
-//func (h *Handler) StartCallNoNormBanConversation(b *gotgbot.Bot, ctx *command.Context) error {
-//	return h.startCallConversation(b, ctx, CallStateNoNormBan)
-//}
-//
-//func (h *Handler) handleCallWithMessage(
-//	b *gotgbot.Bot,
-//	ctx *command.Context,
-//	getMembers func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error),
-//) error {
-//	stdCtx := ctx.StdContext()
-//
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//
-//	if ctx.EffectiveSender != nil {
-//		uid := ctx.EffectiveSender.Id()
-//
-//		var promptID int64
-//		h.mu.Lock()
-//		if byUser, ok := h.promptMessages[c.ID]; ok {
-//			if mid, ok2 := byUser[uid]; ok2 {
-//				promptID = mid
-//				delete(byUser, uid)
-//				if len(byUser) == 0 {
-//					delete(h.promptMessages, c.ID)
-//				}
-//			}
-//		}
-//		h.mu.Unlock()
-//
-//		if promptID != 0 {
-//			m := &gotgbot.Message{MessageId: promptID, Chat: gotgbot.Chat{Id: c.ID}}
-//			if _, ok, errEdit := m.EditReplyMarkup(b, nil); errEdit != nil || !ok {
-//				logger.L.Warn(
-//					"failed to clear stored call prompt keyboard",
-//					"error", errEdit,
-//					"edited", ok,
-//					"chat_id", c.ID,
-//					"message_id", promptID,
-//				)
-//			}
-//		}
-//	}
-//
-//	members, err := getMembers(stdCtx, c.ID)
-//	if err != nil {
-//		return err
-//	}
-//
-//	if len(members) == 0 {
-//		_, err = ctx.EffectiveMessage.Reply(b, "Не найдено пользователей для созыва.", nil)
-//		if err != nil {
-//			return err
-//		}
-//		return handlers.EndConversation()
-//	}
-//
-//	html := ctx.EffectiveMessage.OriginalHTML()
-//
-//	if err := h.doCall(stdCtx, b, c.ID, ctx.EffectiveMessage, html, members); err != nil {
-//		return err
-//	}
-//
-//	return handlers.EndConversation()
-//}
-//
-//func (h *Handler) HandleCallInactiveMessage(b *gotgbot.Bot, ctx *command.Context) error {
-//	return h.handleCallWithMessage(b, ctx, func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
-//		return h.service.GetInactiveMembers(stdCtx, chatID)
-//	})
-//}
-//
-//func (h *Handler) HandleCallNoNormMessage(b *gotgbot.Bot, ctx *command.Context) error {
-//	return h.handleCallWithMessage(
-//		b,
-//		ctx,
-//		func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
-//			c, err := h.chatService.GetChat(stdCtx, chatID)
-//			if err != nil {
-//				return nil, err
-//			}
-//
-//			from, to := stats.ResolvePeriod(
-//				stats.PeriodWeek,
-//				time.Now(),
-//				c.WeekStartDay,
-//				c.WeekStartTime,
-//			)
-//
-//			return h.memberService.GetNoNormMembers(stdCtx, chatID, from, to)
-//		},
-//	)
-//}
-//
-//func (h *Handler) HandleCallNoNormWarnMessage(b *gotgbot.Bot, ctx *command.Context) error {
-//	return h.handleCallWithMessage(
-//		b,
-//		ctx,
-//		func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
-//			c, err := h.chatService.GetChat(stdCtx, chatID)
-//			if err != nil {
-//				return nil, err
-//			}
-//
-//			from, to := stats.ResolvePeriod(
-//				stats.PeriodWeek,
-//				time.Now(),
-//				c.WeekStartDay,
-//				c.WeekStartTime,
-//			)
-//
-//			return h.memberService.GetNoNormWarnMembers(stdCtx, chatID, from, to)
-//		},
-//	)
-//}
-//
-//func (h *Handler) HandleCallNoNormBanMessage(b *gotgbot.Bot, ctx *command.Context) error {
-//	return h.handleCallWithMessage(
-//		b,
-//		ctx,
-//		func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
-//			c, err := h.chatService.GetChat(stdCtx, chatID)
-//			if err != nil {
-//				return nil, err
-//			}
-//
-//			from, to := stats.ResolvePeriod(
-//				stats.PeriodWeek,
-//				time.Now(),
-//				c.WeekStartDay,
-//				c.WeekStartTime,
-//			)
-//
-//			return h.memberService.GetNoNormBanMembers(stdCtx, chatID, from, to)
-//		},
-//	)
-//}
-//
-//func (h *Handler) CancelCallConversation(b *gotgbot.Bot, ctx *command.Context) error {
-//	if ctx.CallbackQuery != nil && ctx.CallbackQuery.Message != nil {
-//		if _, _, err := ctx.CallbackQuery.Message.EditText(
-//			b,
-//			"❌ Операция созыва отменена.", nil,
-//		); err != nil {
-//			logger.L.Error("Failed to edit cancel call prompt", "error", err)
-//		}
-//	}
-//
-//	if ctx.CallbackQuery != nil {
-//		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-//			Text: "Созыв отменён",
-//		})
-//	}
-//	return handlers.EndConversation()
-//}
-//
-//func (h *Handler) NoMessageCallConversation(b *gotgbot.Bot, ctx *command.Context) error {
-//	stdCtx := context.Background()
-//
-//	c, err := ctx.Chat()
-//	if err != nil {
-//		return err
-//	}
-//
-//	state := ""
-//	if ctx.CallbackQuery != nil {
-//		data := ctx.CallbackQuery.Data
-//		const prefix = "call_nomsg:"
-//		if len(data) > len(prefix) && data[:len(prefix)] == prefix {
-//			state = data[len(prefix):]
-//		}
-//	}
-//
-//	var members []model.ChatMember
-//	switch state {
-//	case CallStateInactive:
-//		members, err = h.service.GetInactiveMembers(stdCtx, c.ID)
-//	case CallStateNoNorm:
-//		c, gErr := h.chatService.GetChat(stdCtx, c.ID)
-//		if gErr != nil {
-//			return gErr
-//		}
-//		from, to := stats.ResolvePeriod(
-//			stats.PeriodWeek,
-//			time.Now(),
-//			c.WeekStartDay,
-//			c.WeekStartTime,
-//		)
-//		members, err = h.memberService.GetNoNormMembers(stdCtx, c.ID, from, to)
-//	case CallStateNoNormWarn, CallStateNoNormBan:
-//		c, gErr := h.chatService.GetChat(stdCtx, c.ID)
-//		if gErr != nil {
-//			return gErr
-//		}
-//		from, to := stats.ResolvePeriod(
-//			stats.PeriodWeek,
-//			time.Now(),
-//			c.WeekStartDay,
-//			c.WeekStartTime,
-//		)
-//		members, err = h.memberService.GetNoNormWarnMembers(stdCtx, c.ID, from, to)
-//	default:
-//		return handlers.EndConversation()
-//	}
-//
-//	if err != nil {
-//		return err
-//	}
-//
-//	if len(members) == 0 {
-//		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-//			Text: "Нет участников для созыва.",
-//		})
-//		if err != nil {
-//			return err
-//		}
-//		return handlers.EndConversation()
-//	}
-//
-//	if err := h.doCall(stdCtx, b, c.ID, ctx.EffectiveMessage, "", members); err != nil {
-//		return err
-//	}
-//
-//	if ctx.CallbackQuery != nil {
-//		if ctx.CallbackQuery.Message != nil {
-//			if _, _, err := ctx.CallbackQuery.Message.EditReplyMarkup(
-//				b,
-//				&gotgbot.EditMessageReplyMarkupOpts{},
-//			); err != nil {
-//				logger.L.Warn("failed to clear keyboard on no-message call", "error", err)
-//			}
-//		}
-//
-//		_, _ = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-//			Text: "Созыв отправлен без сообщения.",
-//		})
-//	}
-//
-//	return handlers.EndConversation()
-//}
+func (h *Handler) startCallConversation(
+	ctx *command.Context,
+	u *ext.Update,
+	nextState string,
+) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	chatID := c.ID
+	m, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, u.EffectiveUser().GetID())
+	if err != nil {
+		return err
+	}
+
+	if !m.StatusGranted(ctx.RequiredStatus()) {
+		if u.CallbackQuery != nil {
+			_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+				Message: "Требуются права администратора",
+				Alert:   true,
+				QueryID: u.CallbackQuery.QueryID,
+			})
+		}
+		return nil
+	}
+
+	callType := "всех"
+	switch nextState {
+	case CallStateInactive:
+		callType = "неактивных"
+	case CallStateNoNorm:
+		callType = "без нормы"
+	case CallStateNoNormWarn:
+		callType = "без нормы (предупреждение)"
+	case CallStateNoNormBan:
+		callType = "без нормы (бан)"
+	}
+	sender, err := ctx.Sender()
+	if err != nil {
+		return err
+	}
+
+	eb := &entity.Builder{}
+	helpers.WriteRoleEmojiLink(eb, *sender)
+
+	eb.Plain(fmt.Sprintf(
+		", введите сообщение созыва %s: ",
+		callType,
+	))
+
+	markup := &tg.ReplyInlineMarkup{
+		Rows: []tg.KeyboardButtonRow{
+			{
+				Buttons: []tg.KeyboardButtonClass{
+					&tg.KeyboardButtonCallback{
+						Text: "Без сообщения",
+						Data: []byte(fmt.Sprintf("call_nomsg:%s", nextState)),
+						Style: tg.KeyboardButtonStyle{
+							BgPrimary: true,
+						},
+					},
+				},
+			},
+			{
+				Buttons: []tg.KeyboardButtonClass{
+					&tg.KeyboardButtonCallback{
+						Text: "Отменить",
+						Data: []byte("call_cancel"),
+					},
+				},
+			},
+		},
+	}
+
+	text, entities := eb.Complete()
+	promptMsg, err := ctx.SendMessage(u.EffectiveChat().GetID(), &tg.MessagesSendMessageRequest{
+		ReplyMarkup: markup,
+		ReplyTo:     &tg.InputReplyToMessage{TopMsgID: u.CallbackQuery.GetMsgID()},
+		Message:     text,
+		Entities:    entities,
+	})
+	if err != nil {
+		return err
+	}
+
+	uid := u.EffectiveUser().GetID()
+	h.mu.Lock()
+	if h.promptMessages[chatID] == nil {
+		h.promptMessages[chatID] = make(map[int64]int64)
+	}
+	h.promptMessages[chatID][uid] = int64(promptMsg.ID)
+	h.mu.Unlock()
+
+	if u.CallbackQuery != nil {
+		_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{QueryID: u.CallbackQuery.QueryID})
+	}
+
+	log.Println("next state", nextState)
+	return conversation.SetState(ctx.StdContext(), h.storage, chatID, uid, nextState, time.Hour)
+}
+
+func (h *Handler) StartCallInactiveConversation(ctx *command.Context, u *ext.Update) error {
+	return h.startCallConversation(ctx, u, CallStateInactive)
+}
+
+func (h *Handler) StartCallNoNormConversation(ctx *command.Context, u *ext.Update) error {
+	return h.startCallConversation(ctx, u, CallStateNoNorm)
+}
+
+func (h *Handler) StartCallNoNormWarnConversation(ctx *command.Context, u *ext.Update) error {
+	return h.startCallConversation(ctx, u, CallStateNoNormWarn)
+}
+
+func (h *Handler) StartCallNoNormBanConversation(ctx *command.Context, u *ext.Update) error {
+	return h.startCallConversation(ctx, u, CallStateNoNormBan)
+}
+
+func (h *Handler) handleCallWithMessage(
+	ctx *command.Context,
+	u *ext.Update,
+	getMembers func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error),
+) error {
+	stdCtx := ctx.StdContext()
+
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	uid := u.EffectiveUser().GetID()
+	var promptID int64
+	h.mu.Lock()
+	if byUser, ok := h.promptMessages[c.ID]; ok {
+		if mid, ok2 := byUser[uid]; ok2 {
+			promptID = mid
+			delete(byUser, uid)
+			if len(byUser) == 0 {
+				delete(h.promptMessages, c.ID)
+			}
+		}
+	}
+	h.mu.Unlock()
+
+	if promptID != 0 {
+		_, _ = ctx.EditMessage(c.ID, &tg.MessagesEditMessageRequest{
+			ID:          int(promptID),
+			ReplyMarkup: &tg.ReplyInlineMarkup{},
+		})
+	}
+
+	members, err := getMembers(stdCtx, c.ID)
+	if err != nil {
+		return err
+	}
+
+	if len(members) == 0 {
+		if err := ctx.ReplyOnly(u, options.WithText("Не найдено пользователей для созыва")); err != nil {
+			return err
+		}
+		return conversation.StopConversation(stdCtx, h.storage, c.ID, uid)
+	}
+
+	var entities []tg.MessageEntityClass
+	text := ""
+	if u.EffectiveMessage != nil {
+		text = u.EffectiveMessage.Text
+		entities = u.EffectiveMessage.Entities
+	}
+
+	if err := h.doCall(ctx, u, text, entities, members); err != nil {
+		return err
+	}
+
+	return conversation.StopConversation(stdCtx, h.storage, c.ID, uid)
+}
+
+func (h *Handler) HandleCallInactiveMessage(ctx *command.Context, u *ext.Update) error {
+	return h.handleCallWithMessage(ctx, u, func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
+		return h.service.GetInactiveMembers(stdCtx, chatID)
+	})
+}
+
+func (h *Handler) HandleCallNoNormMessage(ctx *command.Context, u *ext.Update) error {
+	return h.handleCallWithMessage(
+		ctx,
+		u,
+		func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
+			c, err := h.chatService.GetChat(stdCtx, chatID)
+			if err != nil {
+				return nil, err
+			}
+
+			from, to := stats.ResolvePeriod(
+				stats.PeriodWeek,
+				time.Now(),
+				c.WeekStartDay,
+				c.WeekStartTime,
+			)
+
+			return h.memberService.GetNoNormMembers(stdCtx, chatID, from, to)
+		},
+	)
+}
+
+func (h *Handler) HandleCallNoNormWarnMessage(ctx *command.Context, u *ext.Update) error {
+	return h.handleCallWithMessage(
+		ctx,
+		u,
+		func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
+			c, err := h.chatService.GetChat(stdCtx, chatID)
+			if err != nil {
+				return nil, err
+			}
+
+			from, to := stats.ResolvePeriod(
+				stats.PeriodWeek,
+				time.Now(),
+				c.WeekStartDay,
+				c.WeekStartTime,
+			)
+
+			return h.memberService.GetNoNormWarnMembers(stdCtx, chatID, from, to)
+		},
+	)
+}
+
+func (h *Handler) HandleCallNoNormBanMessage(ctx *command.Context, u *ext.Update) error {
+	return h.handleCallWithMessage(
+		ctx,
+		u,
+		func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
+			c, err := h.chatService.GetChat(stdCtx, chatID)
+			if err != nil {
+				return nil, err
+			}
+
+			from, to := stats.ResolvePeriod(
+				stats.PeriodWeek,
+				time.Now(),
+				c.WeekStartDay,
+				c.WeekStartTime,
+			)
+
+			return h.memberService.GetNoNormBanMembers(stdCtx, chatID, from, to)
+		},
+	)
+}
+
+func (h *Handler) CancelCallConversation(ctx *command.Context, u *ext.Update) error {
+	log.Println("call")
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	uid := u.EffectiveUser().GetID()
+
+	if u.CallbackQuery != nil {
+		_, _ = ctx.EditMessage(c.ID, &tg.MessagesEditMessageRequest{
+			ID:      u.CallbackQuery.GetMsgID(),
+			Message: "❌ Операция созыва отменена.",
+		})
+		_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			Message: "Созыв отменён",
+			QueryID: u.CallbackQuery.QueryID,
+		})
+	}
+
+	return conversation.StopConversation(ctx.StdContext(), h.storage, c.ID, uid)
+}
+
+func (h *Handler) NoMessageCallConversation(ctx *command.Context, u *ext.Update) error {
+	stdCtx := ctx.StdContext()
+
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	uid := u.EffectiveUser().GetID()
+
+	state := ""
+	if u.CallbackQuery != nil {
+		data, _ := u.CallbackQuery.GetData()
+		const prefix = "call_nomsg"
+		if strings.HasPrefix(string(data), prefix) {
+			parts := strings.Split(string(data), ":")
+			if len(parts) > 1 {
+				state = parts[1]
+			}
+		}
+		_, _ = ctx.EditMessage(c.ID, &tg.MessagesEditMessageRequest{
+			ID: u.CallbackQuery.GetMsgID(),
+		})
+	}
+
+	var members []model.ChatMember
+	switch state {
+	case CallStateInactive:
+		members, err = h.service.GetInactiveMembers(stdCtx, c.ID)
+	case CallStateNoNorm:
+		from, to := stats.ResolvePeriod(
+			stats.PeriodWeek,
+			time.Now(),
+			c.WeekStartDay,
+			c.WeekStartTime,
+		)
+		members, err = h.memberService.GetNoNormMembers(stdCtx, c.ID, from, to)
+	case CallStateNoNormWarn, CallStateNoNormBan:
+		from, to := stats.ResolvePeriod(
+			stats.PeriodWeek,
+			time.Now(),
+			c.WeekStartDay,
+			c.WeekStartTime,
+		)
+		members, err = h.memberService.GetNoNormWarnMembers(stdCtx, c.ID, from, to)
+	default:
+		return conversation.StopConversation(stdCtx, h.storage, c.ID, uid)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if len(members) == 0 {
+		if u.CallbackQuery != nil {
+			_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+				Message: "Нет участников для созыва.",
+				Alert:   true,
+				QueryID: u.CallbackQuery.QueryID,
+			})
+		}
+		return conversation.StopConversation(stdCtx, h.storage, c.ID, uid)
+	}
+
+	if err := h.doCall(ctx, u, "", nil, members); err != nil {
+		return err
+	}
+
+	if u.CallbackQuery != nil {
+		_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			Message: "Созыв отправлен без сообщения.",
+			QueryID: u.CallbackQuery.QueryID,
+		})
+		_, _ = ctx.EditMessage(c.ID, &tg.MessagesEditMessageRequest{
+			ID:          u.CallbackQuery.GetMsgID(),
+			ReplyMarkup: &tg.ReplyInlineMarkup{},
+		})
+	}
+
+	return conversation.StopConversation(stdCtx, h.storage, c.ID, uid)
+}

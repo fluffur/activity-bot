@@ -62,7 +62,11 @@ func WriteAdminRemoved(eb *entity.Builder, user model.ChatMember) {
 }
 
 func FormatAdminAdded(user model.ChatMember, status model.Status) string {
-...
+	eb := &entity.Builder{}
+	WriteAdminAdded(eb, user, status)
+	res, _ := eb.Complete()
+	return res
+}
 
 func WriteModerationAction(eb *entity.Builder, user model.ChatMember, action string, until time.Time, reason string) {
 	var actionText string
@@ -97,7 +101,11 @@ func WriteModerationAction(eb *entity.Builder, user model.ChatMember, action str
 }
 
 func FormatModerationAction(user model.ChatMember, action string, until time.Time, reason string) string {
-...
+	eb := &entity.Builder{}
+	WriteModerationAction(eb, user, action, until, reason)
+	res, _ := eb.Complete()
+	return res
+}
 
 func WriteWarnInfo(eb *entity.Builder, user model.ChatMember, count, maxWarns int, until time.Time, reason string, banned bool) {
 	eb.Plain("Участнику ")
@@ -122,7 +130,11 @@ func WriteWarnInfo(eb *entity.Builder, user model.ChatMember, count, maxWarns in
 }
 
 func FormatWarnInfo(user model.ChatMember, count, maxWarns int, until time.Time, reason string, banned bool) string {
-...
+	eb := &entity.Builder{}
+	WriteWarnInfo(eb, user, count, maxWarns, until, reason, banned)
+	res, _ := eb.Complete()
+	return res
+}
 
 func FormatUnwarnInfo(user model.ChatMember, count, maxWarns int) string {
 	return fmt.Sprintf("С участника %s снято предупреждение (%d/%d)", helpers.RoleEmojiLink(user), count, maxWarns)
@@ -175,13 +187,32 @@ func WriteWarnlist(eb *entity.Builder, warns []model.Warn, maxWarns int) {
 }
 
 func FormatWarnlist(warns []model.Warn, maxWarns int) string {
-...
+	eb := &entity.Builder{}
+	WriteWarnlist(eb, warns, maxWarns)
+	res, _ := eb.Complete()
+	return res
+}
 
 func FormatUnmuteInfo(user model.ChatMember) string {
-	return fmt.Sprintf("Участник %s %s",
-		helpers.RoleEmojiLink(user),
-		helpers.Gendered(user.User.Gender, "размучен", "размучена"),
-	)
+	eb := &entity.Builder{}
+	WriteUnmuteInfo(eb, user)
+	res, _ := eb.Complete()
+	return res
+}
+
+func WriteUnmuteInfo(eb *entity.Builder, user model.ChatMember) {
+	eb.Plain("Участник ")
+	helpers.WriteRoleEmojiLink(eb, user)
+	eb.Plain(" ")
+	eb.Plain(helpers.Gendered(user.User.Gender, "размучен", "размучена"))
+}
+
+func WriteUnwarnInfo(eb *entity.Builder, user model.ChatMember, count int, max int) {
+	eb.Plain("Предупреждение участнику ")
+	helpers.WriteRoleEmojiLink(eb, user)
+	eb.Plain(" ")
+	eb.Plain(helpers.Gendered(user.User.Gender, "снято", "снято"))
+	eb.Plain(fmt.Sprintf(" (активные: %d/%d)", count, max))
 }
 
 func WriteDirectModerationAction(eb *entity.Builder, user model.ChatMember, chatTitle string, action string, until time.Time, reason string) {
@@ -216,4 +247,8 @@ func WriteDirectModerationAction(eb *entity.Builder, user model.ChatMember, chat
 }
 
 func FormatDirectModerationAction(user model.ChatMember, chatTitle string, action string, until time.Time, reason string) string {
-...
+	eb := &entity.Builder{}
+	WriteDirectModerationAction(eb, user, chatTitle, action, until, reason)
+	res, _ := eb.Complete()
+	return res
+}

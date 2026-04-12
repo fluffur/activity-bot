@@ -8,6 +8,7 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
+	"activity-bot/internal/options"
 	"activity-bot/internal/session"
 	"fmt"
 	"strconv"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/entity"
-	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/tg"
 )
 
@@ -43,11 +43,9 @@ func (h *Handler) ShowNorm(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-		view.WriteNorm(eb, c.NormWarn, c.NormBan)
-		return nil
-	})), nil)
-	return err
+	eb := &entity.Builder{}
+	view.WriteNorm(eb, c.NormWarn, c.NormBan)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) SetNorm(ctx *command.Context, u *ext.Update) error {
@@ -66,8 +64,9 @@ func (h *Handler) SetNorm(ctx *command.Context, u *ext.Update) error {
 		"бан":  true,
 	}
 	if !validActions[action] {
-		_, err := ctx.Reply(u, ext.ReplyTextString(fmt.Sprintf("❌ Неверное действие: '%s'. Допустимые: 'варн', 'бан'", action)), nil)
-		return err
+		return ctx.ReplyOnly(u,
+			options.WithText(fmt.Sprintf("❌ Неверное действие: '%s'. Допустимые: 'варн', 'бан'", action)),
+		)
 	}
 
 	if action == "варн" {
@@ -80,8 +79,7 @@ func (h *Handler) SetNorm(ctx *command.Context, u *ext.Update) error {
 		}
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString(view.FormatNormSet(int(norm), action)), nil)
-	return err
+	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Установлена новая норма чата: %d на %s", norm, action)))
 }
 
 func (h *Handler) RemoveNorm(ctx *command.Context, u *ext.Update) error {
@@ -105,21 +103,18 @@ func (h *Handler) RemoveNorm(ctx *command.Context, u *ext.Update) error {
 			return h.service.SetBanNorm(ctx.StdContext(), c.ID, 0)
 		}
 	default:
-		_, err := ctx.Reply(u, ext.ReplyTextString("❌ Неверное действие. Допустимые: 'варн', 'бан'"), nil)
-		return err
+		return ctx.ReplyOnly(u, options.WithText("❌ Неверное действие. Допустимые: 'варн', 'бан'"))
 	}
 
 	if oldNorm == 0 {
-		_, err := ctx.Reply(u, ext.ReplyTextString(fmt.Sprintf("❌ Норма на %s не была установлена", action)), nil)
-		return err
+		return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("❌ Норма на %s не была установлена", action)))
 	}
 
 	if err := setFn(); err != nil {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString(fmt.Sprintf("Норма %d (%s) удалена", oldNorm, action)), nil)
-	return err
+	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Норма %d (%s) удалена", oldNorm, action)))
 }
 
 func (h *Handler) ShowNewbieThreshold(ctx *command.Context, u *ext.Update) error {
@@ -128,8 +123,7 @@ func (h *Handler) ShowNewbieThreshold(ctx *command.Context, u *ext.Update) error
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString(view.FormatNewbieThreshold(c.NewbieThresholdDays)), nil)
-	return err
+	return ctx.ReplyOnly(u, options.WithText(view.FormatNewbieThreshold(c.NewbieThresholdDays)))
 }
 func (h *Handler) SetNewbieThreshold(ctx *command.Context, u *ext.Update) error {
 	days := int32(ctx.NumberOrDefault(3))
@@ -138,16 +132,14 @@ func (h *Handler) SetNewbieThreshold(ctx *command.Context, u *ext.Update) error 
 		return err
 	}
 	if days < 0 {
-		_, err := ctx.Reply(u, ext.ReplyTextString("Дата не может быть в прошлом!"), nil)
-		return err
+		return ctx.ReplyOnly(u, options.WithText("Дата не может быть в прошлом!"))
 	}
 
 	if err := h.service.SetNewbieThreshold(ctx.StdContext(), c.ID, days); err != nil {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString(view.FormatNewbieThresholdSet(days)), nil)
-	return err
+	return ctx.ReplyOnly(u, options.WithText(view.FormatNewbieThresholdSet(days)))
 }
 
 func (h *Handler) SetPrompt(ctx *command.Context, u *ext.Update) error {
@@ -160,8 +152,7 @@ func (h *Handler) SetPrompt(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString("Промпт установлен успешно"), nil)
-	return err
+	return ctx.ReplyOnly(u, options.WithText("Промпт установлен успешно"))
 }
 
 func (h *Handler) ShowPrompt(ctx *command.Context, u *ext.Update) error {
@@ -170,8 +161,7 @@ func (h *Handler) ShowPrompt(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString(view.FormatPrompt(c.AISystemPrompt)), nil)
-	return err
+	return ctx.ReplyOnly(u, options.WithText(view.FormatPrompt(c.AISystemPrompt)))
 }
 
 func (h *Handler) ShowWeekStart(ctx *command.Context, u *ext.Update) error {
@@ -180,11 +170,9 @@ func (h *Handler) ShowWeekStart(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-		view.WriteWeekStart(eb, int(c.WeekStartDay), c.WeekStartTime)
-		return nil
-	})), nil)
-	return err
+	eb := &entity.Builder{}
+	view.WriteWeekStart(eb, int(c.WeekStartDay), c.WeekStartTime)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) SetWeekStart(ctx *command.Context, u *ext.Update) error {
@@ -211,11 +199,9 @@ func (h *Handler) SetWeekStart(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-		view.WriteWeekStartSet(eb, int(weekday), newTime)
-		return nil
-	})), nil)
-	return err
+	eb := &entity.Builder{}
+	view.WriteWeekStartSet(eb, int(weekday), newTime)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) ShowPrefix(ctx *command.Context, u *ext.Update) error {
@@ -224,11 +210,9 @@ func (h *Handler) ShowPrefix(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-		view.WritePrefix(eb, c.CommandPrefix)
-		return nil
-	})), nil)
-	return err
+	eb := &entity.Builder{}
+	view.WritePrefix(eb, c.CommandPrefix)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) SetPrefix(ctx *command.Context, u *ext.Update) error {
@@ -238,19 +222,16 @@ func (h *Handler) SetPrefix(ctx *command.Context, u *ext.Update) error {
 	}
 	prefix := ctx.TextOrDefault("")
 	if prefix == "" {
-		_, err := ctx.Reply(u, ext.ReplyTextString("❌ Укажите префикс"), nil)
-		return err
+		return ctx.ReplyOnly(u, options.WithText("❌ Укажите префикс"))
 	}
 
 	if err := h.service.SetCommandPrefix(ctx.StdContext(), c.ID, prefix); err != nil {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-		view.WritePrefixSet(eb, prefix)
-		return nil
-	})), nil)
-	return err
+	eb := &entity.Builder{}
+	view.WritePrefixSet(eb, prefix)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) DisablePrefixOnly(ctx *command.Context, u *ext.Update) error {
@@ -262,11 +243,9 @@ func (h *Handler) DisablePrefixOnly(ctx *command.Context, u *ext.Update) error {
 	if err := h.service.SetAllowPrefixless(ctx.StdContext(), c.ID, true); err != nil {
 		return err
 	}
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-		view.WritePrefixlessToggle(eb, true)
-		return nil
-	})), nil)
-	return err
+	eb := &entity.Builder{}
+	view.WritePrefixlessToggle(eb, true)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) EnablePrefixOnly(ctx *command.Context, u *ext.Update) error {
@@ -278,11 +257,9 @@ func (h *Handler) EnablePrefixOnly(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-		view.WritePrefixlessToggle(eb, false)
-		return nil
-	})), nil)
-	return err
+	eb := &entity.Builder{}
+	view.WritePrefixlessToggle(eb, false)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) ShowPrefixlessStatus(ctx *command.Context, u *ext.Update) error {
@@ -290,11 +267,9 @@ func (h *Handler) ShowPrefixlessStatus(ctx *command.Context, u *ext.Update) erro
 	if err != nil {
 		return err
 	}
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-		view.WritePrefixlessStatus(eb, c.AllowPrefixless)
-		return nil
-	})), nil)
-	return err
+	eb := &entity.Builder{}
+	view.WritePrefixlessStatus(eb, c.AllowPrefixless)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) Manage(ctx *command.Context, u *ext.Update) error {
@@ -326,8 +301,7 @@ func (h *Handler) Manage(ctx *command.Context, u *ext.Update) error {
 
 func (h *Handler) SendDM(ctx *command.Context, u *ext.Update, text string, replyMarkup tg.ReplyMarkupClass) error {
 	if u.EffectiveChat().GetID() == u.EffectiveUser().GetID() {
-		_, err := ctx.Reply(u, ext.ReplyTextString(text), &ext.ReplyOpts{Markup: replyMarkup})
-		return err
+		return ctx.ReplyOnly(u, options.WithText(text), options.WithMarkup(replyMarkup))
 	}
 
 	_, err := ctx.SendMessage(
@@ -338,11 +312,9 @@ func (h *Handler) SendDM(ctx *command.Context, u *ext.Update, text string, reply
 		},
 	)
 	if err != nil {
-		_, err = ctx.Reply(u, ext.ReplyTextString("Не удалось отправить сообщение в лс"), nil)
-		return err
+		return ctx.ReplyOnly(u, options.WithText("Не удалось отправить сообщение в лс"))
 	}
-	_, err = ctx.Reply(u, ext.ReplyTextString("Ответ отправлен в лс"), nil)
-	return err
+	return ctx.ReplyOnly(u, options.WithText("Ответ отправлен в лс"))
 }
 
 func (h *Handler) getManageKeyboard(chats []chatInfo, page int) tg.ReplyMarkupClass {
@@ -508,8 +480,7 @@ func (h *Handler) UserChats(ctx *command.Context, u *ext.Update) error {
 	}
 
 	if len(chats) == 0 {
-		_, err := ctx.Reply(u, ext.ReplyTextString(fmt.Sprintf("%s Все недельные нормы выполнены.", helpers.SuccessEmoji())), nil)
-		return err
+		return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("%s Все недельные нормы выполнены.", helpers.SuccessEmoji())))
 	}
 
 	var warnChats []model.ChatWithoutNorm
@@ -594,19 +565,16 @@ func (h *Handler) UserChats(ctx *command.Context, u *ext.Update) error {
 	)
 	if err != nil {
 		if u.EffectiveChat().GetID() != u.EffectiveUser().GetID() {
-			_, err = ctx.Reply(u, ext.ReplyTextString("Не удалось отправить список норм в личные сообщения, убедитесь в том, что бот имеет доступ к личным сообщениям"), nil)
-			return err
+			return ctx.ReplyOnly(u, options.WithText("Не удалось отправить список норм в личные сообщения, убедитесь в том, что бот имеет доступ к личным сообщениям"))
 		}
 
 		return err
 	}
 
 	if u.EffectiveChat().GetID() != u.EffectiveUser().GetID() {
-		_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-			eb.Plain(fmt.Sprintf("Список невыполненных норм отправлен вам в личные сообщения %s", helpers.SuccessEmoji()))
-			return nil
-		})), nil)
-		return err
+		eb := &entity.Builder{}
+		eb.Plain(fmt.Sprintf("Список невыполненных норм отправлен вам в личные сообщения %s", helpers.SuccessEmoji()))
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 
 	return nil
@@ -622,8 +590,7 @@ func (h *Handler) EnableTags(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString("Поддержка тегов в чате включена. Теперь при установке роли админка не выдается"), nil)
-	return err
+	return ctx.ReplyOnly(u, options.WithText("Поддержка тегов в чате включена. Теперь при установке роли админка не выдается"))
 }
 
 func (h *Handler) DisableTags(ctx *command.Context, u *ext.Update) error {
@@ -636,8 +603,7 @@ func (h *Handler) DisableTags(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString("Поддержка тегов в чате выключена. Теперь при установке роли выдается админка с минимальными правами"), nil)
-	return err
+	return ctx.ReplyOnly(u, options.WithText("Поддержка тегов в чате выключена. Теперь при установке роли выдается админка с минимальными правами"))
 }
 
 func (h *Handler) ShowTags(ctx *command.Context, u *ext.Update) error {
@@ -647,15 +613,12 @@ func (h *Handler) ShowTags(ctx *command.Context, u *ext.Update) error {
 	}
 
 	if c.TagsEnabled {
-		_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-			eb.Plain(helpers.SuccessEmoji() + " В чате поддерживаются теги. Это значит, что при установке роли пользователю устанавливается телеграм-тег, а не минимальные права администратора с подписью")
-			return nil
-		})), nil)
-		return err
+		eb := &entity.Builder{}
+		eb.Plain(helpers.SuccessEmoji() + " В чате поддерживаются теги. Это значит, что при установке роли пользователю устанавливается телеграм-тег, а не минимальные права администратора с подписью")
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString("❌ В чате не поддерживаются теги. Это значит, что при установке роли пользователю выдаются минимальные права администратора с подписью, а не телеграм-тег"), nil)
-	return err
+	return ctx.ReplyOnly(u, options.WithText("❌ В чате не поддерживаются теги. Это значит, что при установке роли пользователю выдаются минимальные права администратора с подписью, а не телеграм-тег"))
 }
 
 func writeNormInfoEB(eb *entity.Builder, c model.ChatWithoutNorm) {

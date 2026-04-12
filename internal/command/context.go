@@ -2,11 +2,13 @@ package command
 
 import (
 	"activity-bot/internal/model"
+	"activity-bot/internal/options"
 	"context"
 	"errors"
 	"time"
 
 	"github.com/celestix/gotgproto/ext"
+	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/tg"
 )
 
@@ -155,4 +157,32 @@ func (c *Context) UserOrReply() (*model.ChatMember, error) {
 
 func (c *Context) RequiredStatus() model.Status {
 	return c.requiredStatus
+}
+
+func (c *Context) Reply(u *ext.Update, opts ...options.SendMessageOption) (*types.Message, error) {
+	var msgID int
+
+	switch {
+	case u.EffectiveMessage != nil:
+		msgID = u.EffectiveMessage.GetID()
+	case u.CallbackQuery != nil:
+		msgID = u.CallbackQuery.GetMsgID()
+	default:
+		return nil, errors.New("no effective message")
+	}
+
+	req := &tg.MessagesSendMessageRequest{}
+	req.SetNoWebpage(true)
+	req.ReplyTo = &tg.InputReplyToMessage{ReplyToMsgID: msgID}
+
+	for _, opt := range opts {
+		opt(req)
+	}
+
+	return c.SendMessage(u.EffectiveChat().GetID(), req)
+}
+
+func (c *Context) ReplyOnly(u *ext.Update, opts ...options.SendMessageOption) error {
+	_, err := c.Reply(u, opts...)
+	return err
 }

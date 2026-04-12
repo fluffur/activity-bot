@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
+	"activity-bot/internal/options"
 	"activity-bot/internal/rest"
 	"activity-bot/internal/session"
 	"activity-bot/internal/stats"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/entity"
-	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/gotd/td/tg"
 )
@@ -114,16 +114,13 @@ func (h *Handler) ShowStats(ctx *command.Context, u *ext.Update) error {
 	}
 
 	if len(report) == 0 && len(restMembers) == 0 {
-		_, err := ctx.Reply(u, ext.ReplyTextString("За выбранный период активности не найдено"), nil)
-		return err
+		return ctx.ReplyOnly(u, options.WithText("За выбранный период активности не найдено"))
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-		view.WriteStats(eb, report, restMembers, c.NewbieThresholdDays, &from, &to)
-		return nil
-	})), &ext.ReplyOpts{NoWebpage: true})
+	eb := &entity.Builder{}
+	view.WriteStats(eb, report, restMembers, c.NewbieThresholdDays, &from, &to)
 
-	return err
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) ShowChatActivityGraph(ctx *command.Context, u *ext.Update) error {
@@ -151,8 +148,7 @@ func (h *Handler) ShowChatActivityGraph(ctx *command.Context, u *ext.Update) err
 	}
 
 	if buf == nil {
-		_, err := ctx.Reply(u, ext.ReplyTextString("Недостаточно данных для построения графика"), nil)
-		return err
+		return ctx.ReplyOnly(u, options.WithText("Недостаточно данных для построения графика"))
 	}
 
 	eb := &entity.Builder{}
@@ -186,13 +182,13 @@ func (h *Handler) WhoAmI(ctx *command.Context, u *ext.Update) error {
 	return h.WhoAreUser(ctx, u, u.EffectiveUser().GetID())
 }
 
-func (h *Handler) WhoAreYou(ctx *command.Context, upd *ext.Update) error {
-	u, err := ctx.UserOrReply()
+func (h *Handler) WhoAreYou(ctx *command.Context, u *ext.Update) error {
+	target, err := ctx.UserOrReply()
 	if err != nil {
 		return err
 	}
 
-	return h.WhoAreUser(ctx, upd, u.User.ID)
+	return h.WhoAreUser(ctx, u, target.User.ID)
 }
 
 func (h *Handler) WhoAreUser(ctx *command.Context, u *ext.Update, userID int64) error {
@@ -224,15 +220,10 @@ func (h *Handler) WhoAreUser(ctx *command.Context, u *ext.Update, userID int64) 
 		},
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-		view.WriteProfile(eb, m, false)
-		return nil
-	})), &ext.ReplyOpts{
-		NoWebpage: true,
-		Markup:    kb,
-	})
+	eb := &entity.Builder{}
+	view.WriteProfile(eb, m, false)
 
-	return err
+	return ctx.ReplyOnly(u, options.WithBuilder(eb), options.WithMarkup(kb))
 }
 
 func (h *Handler) CallbackProfileGraph(ctx *command.Context, u *ext.Update) error {
@@ -329,7 +320,7 @@ func (h *Handler) CallbackAllActivity(ctx *command.Context, u *ext.Update) error
 
 	_, err = ctx.EditMessage(c.ID, &tg.MessagesEditMessageRequest{
 		Message:     text,
-		ID:          cq.MsgID,
+		ID:          cq.GetMsgID(),
 		Entities:    entities,
 		InvertMedia: true,
 		ReplyMarkup: &tg.ReplyInlineMarkup{
@@ -359,30 +350,19 @@ func (h *Handler) ListInactive(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 	if len(members) == 0 {
-		_, err := ctx.Reply(
-			u,
-			ext.ReplyTextString("Нет неактивных участников за сутки"),
-			nil,
-		)
-		return err
+		return ctx.ReplyOnly(u, options.WithText("Нет неактивных участников за сутки"))
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-		view.WriteInactiveMembers(eb, members)
+	eb := &entity.Builder{}
+	view.WriteInactiveMembers(eb, members)
 
-		return nil
-	})), &ext.ReplyOpts{
-		Markup: &tg.ReplyInlineMarkup{
-			Rows: []tg.KeyboardButtonRow{
-				{Buttons: []tg.KeyboardButtonClass{
-					&tg.KeyboardButtonCallback{Text: "Созвать неактивных", Data: []byte("call_inactive")},
-				}},
-			},
+	return ctx.ReplyOnly(u, options.WithBuilder(eb), options.WithMarkup(&tg.ReplyInlineMarkup{
+		Rows: []tg.KeyboardButtonRow{
+			{Buttons: []tg.KeyboardButtonClass{
+				&tg.KeyboardButtonCallback{Text: "Созвать неактивных", Data: []byte("call_inactive")},
+			}},
 		},
-		NoWebpage: true,
-	})
-
-	return err
+	}))
 }
 
 func (h *Handler) ShowRestList(ctx *command.Context, u *ext.Update) error {
@@ -396,11 +376,10 @@ func (h *Handler) ShowRestList(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-		view.WriteRestList(eb, restMembers)
-		return nil
-	})), nil)
-	return err
+	eb := &entity.Builder{}
+	view.WriteRestList(eb, restMembers)
+
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) ShowFailedNorm(ctx *command.Context, u *ext.Update) error {
@@ -421,15 +400,10 @@ func (h *Handler) ShowFailedNorm(ctx *command.Context, u *ext.Update) error {
 		return fmt.Errorf("get chat member stats error: %w", err)
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-		view.WriteFailedNorm(eb, report, &from, &to)
-		return nil
-	})), &ext.ReplyOpts{
-		NoWebpage: true,
-		Markup:    getCallKeyboard(c),
-	})
+	eb := &entity.Builder{}
+	view.WriteFailedNorm(eb, report, &from, &to)
 
-	return err
+	return ctx.ReplyOnly(u, options.WithBuilder(eb), options.WithMarkup(getCallKeyboard(c)))
 }
 
 func getCallKeyboard(c model.Chat) tg.ReplyMarkupClass {
@@ -487,9 +461,8 @@ func (h *Handler) ShowNewbies(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(styling.Custom(func(eb *entity.Builder) error {
-		view.WriteNewbies(eb, report)
-		return nil
-	})), nil)
-	return err
+	eb := &entity.Builder{}
+	view.WriteNewbies(eb, report)
+
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
