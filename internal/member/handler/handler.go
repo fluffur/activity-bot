@@ -15,6 +15,7 @@ import (
 	"activity-bot/internal/user"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"math/rand"
 	"time"
@@ -173,48 +174,82 @@ func (h *Handler) OnJoinMember(ctx *command.Context, u *ext.Update) error {
 	if msg.Action == nil {
 		return nil
 	}
-	action, ok := msg.Action.(*tg.MessageActionChatAddUser)
-	if !ok {
+
+	effectiveChat := u.EffectiveChat()
+	effectiveUser := u.EffectiveUser()
+
+	var userIDs []int64
+
+	switch action := msg.Action.(type) {
+
+	case *tg.MessageActionChatAddUser:
+		userIDs = action.Users
+
+	case *tg.MessageActionChatJoinedByLink,
+		*tg.MessageActionChatJoinedByRequest:
+		userIDs = []int64{effectiveUser.ID}
+
+	default:
 		return nil
 	}
 
-	for _, id := range action.Users {
+	for _, id := range userIDs {
 		if id == ctx.Self.ID {
 			return h.OnBotPromote(ctx, u)
 		}
+
+		log.Println("member joined", id, effectiveChat, effectiveUser)
+
+		if _, err := h.service.EnsureMemberExists(
+			ctx.StdContext(),
+			effectiveChat.GetID(),
+			id,
+			effectiveUser.Username,
+			effectiveUser.FirstName,
+			effectiveUser.LastName,
+			"",
+		); err != nil {
+			return err
+		}
 	}
 
-	chatData, err := h.chatService.GetChat(ctx.StdContext(), u.EffectiveChat().GetID())
-	if err != nil {
-		return err
-	}
+	switch msg.Action.(type) {
+	case *tg.MessageActionChatJoinedByLink,
+		*tg.MessageActionChatJoinedByRequest:
 
-	if chatData.CallOnJoin {
-		members, err := h.callService.GetAllMembers(ctx.StdContext(), u.EffectiveChat().GetID())
+		chatData, err := ctx.Chat()
 		if err != nil {
 			return err
 		}
 
-		mentionsLimit := int(chatData.MentionsPerMessage)
-		if mentionsLimit <= 0 {
-			mentionsLimit = 5
-		}
-
-		message := chatData.WelcomeCallMessage
-		if message != "" {
-			message = view.ReplaceMentionsWithLinks(message)
-		}
-
-		for i := 0; i < len(members); i += mentionsLimit {
-			end := i + mentionsLimit
-			if end > len(members) {
-				end = len(members)
+		if chatData.CallOnJoin {
+			members, err := h.callService.GetAllMembers(ctx.StdContext(), effectiveChat.GetID())
+			if err != nil {
+				return err
 			}
 
-			eb := &entity.Builder{}
-			view.FormatCallChunkBuilder(eb, message, members[i:end], chatData.MentionTypes)
-			if sendErr := ctx.ReplyOnly(u, options.WithBuilder(eb)); sendErr != nil {
-				logger.L.Error("failed to send on join call chuck", "error", sendErr)
+			mentionsLimit := int(chatData.MentionsPerMessage)
+			if mentionsLimit <= 0 {
+				mentionsLimit = 5
+			}
+
+			message := chatData.WelcomeCallMessage
+			if message != "" {
+				message = view.ReplaceMentionsWithLinks(message)
+			}
+
+			for i := 0; i < len(members); i += mentionsLimit {
+				end := i + mentionsLimit
+				if end > len(members) {
+					end = len(members)
+				}
+
+				eb := &entity.Builder{}
+				view.FormatCallChunkBuilder(eb, message, members[i:end], chatData.MentionTypes)
+
+				if err := ctx.ReplyOnly(u, options.WithBuilder(eb)); err != nil {
+					logger.L.Error("failed to send on join call chuck", "error", err)
+				}
 			}
 		}
 	}

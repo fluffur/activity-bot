@@ -6,7 +6,6 @@ import (
 	"activity-bot/internal/options"
 	"context"
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -62,8 +61,11 @@ type Command struct {
 	isDevCommand bool
 	devID        int64
 
-	requirePrefix  bool
+	requirePrefix bool
+
 	requiredStatus model.Status
+
+	checkStatusDisabled bool
 
 	userProvider       UserProvider
 	chatMemberProvider ChatMemberProvider
@@ -184,7 +186,6 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	if alias == "" {
 		return nil
 	}
-	log.Println(text, prefix, alias)
 
 	if c.scope == ScopeChat {
 		chat, err := c.getChat(ctx, u)
@@ -384,7 +385,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 		}
 	}
 
-	if !handlerCtx.senderChatMember.StatusGranted(c.RequiredStatus()) {
+	if !c.checkStatusDisabled && !handlerCtx.senderChatMember.StatusGranted(c.RequiredStatus()) {
 		return handlerCtx.ReplyOnly(u, options.WithText(fmt.Sprintf("Требуются права: %s", c.RequiredStatus())))
 	}
 
@@ -470,6 +471,12 @@ func (c *Command) resolveUsers(ctx *ext.Context, handlerCtx *Context, msg *types
 
 func (c *Command) SetRequiredStatus(status model.Status) *Command {
 	c.requiredStatus = status
+
+	return c
+}
+
+func (c *Command) DisableCheckStatus() *Command {
+	c.checkStatusDisabled = true
 
 	return c
 }
@@ -620,27 +627,41 @@ func getReplyToMessageID(msg *types.Message) (int, bool) {
 }
 
 func (c *Command) getChat(ctx *ext.Context, u *ext.Update) (model.Chat, error) {
-	var chat model.Chat
-	var err error
+	ec := u.EffectiveChat()
 
-	if u.EffectiveChat().IsAUser() {
-		chat, err = c.sessionService.GetChat(ctx.Context, u.EffectiveUser().GetID())
+	switch chat := ec.(type) {
+
+	case *types.User:
+		result, err := c.sessionService.GetChat(ctx.Context, chat.GetID())
 		if err != nil {
-			return model.Chat{}, errors.Wrap(err, "failed to get chat from private messages")
+			return model.Chat{}, errors.Wrap(err, "failed to get private chat")
 		}
-	} else {
-		ch := u.GetChannel()
-		title := ch.GetTitle()
-		if title == "" {
-			title = u.GetChat().GetTitle()
+		return result, nil
+
+	case *types.Chat, *types.Channel:
+		var title string
+
+		switch ch := chat.(type) {
+		case *types.Chat:
+			title = ch.Title
+		case *types.Channel:
+			title = ch.Title
 		}
-		chat, err = c.chatProvider.EnsureChatExists(ctx.Context, u.EffectiveChat().GetID(), title)
+
+		result, err := c.chatProvider.EnsureChatExists(
+			ctx.Context,
+			chat.GetID(),
+			title,
+		)
 		if err != nil {
-			return model.Chat{}, errors.Wrap(err, "failed to get chat from group")
+			return model.Chat{}, errors.Wrap(err, "failed to ensure chat")
 		}
+
+		return result, nil
+
+	default:
+		return model.Chat{}, errors.New("unsupported chat type")
 	}
-
-	return chat, nil
 }
 
 func (c *Command) extractMembersFromEntities(

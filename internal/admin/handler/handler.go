@@ -142,7 +142,6 @@ func (h *Handler) Kick(ctx *command.Context, u *ext.Update) error {
 
 	reason := ctx.TextOrDefault("")
 
-	// DM Notification
 	ebDM := &entity.Builder{}
 	view.WriteDirectModerationAction(ebDM, *target, c.Title, "kick", time.Time{}, reason)
 	caption, entities := ebDM.Complete()
@@ -156,6 +155,10 @@ func (h *Handler) Kick(ctx *command.Context, u *ext.Update) error {
 			return ctx.ReplyOnly(u, options.WithText("Нельзя кикнуть администратора или создателя"))
 		}
 		_, _ = h.memberService.ProcessLeftMember(ctx.StdContext(), target.ChatID, target.User.ID)
+		return fmt.Errorf("failed to kick: %w", err)
+	}
+
+	if _, err := ctx.BanChatMember(c.ID, target.User.ID, 0); err != nil {
 		return fmt.Errorf("failed to kick: %w", err)
 	}
 
@@ -190,8 +193,10 @@ func (h *Handler) Ban(ctx *command.Context, u *ext.Update) error {
 		_, _ = h.memberService.ProcessLeftMember(ctx.StdContext(), c.ID, target.User.ID)
 		return fmt.Errorf("failed to ban: %w", err)
 	}
+	if _, err := ctx.BanChatMember(c.ID, target.User.ID, 0); err != nil {
+		return fmt.Errorf("failed to ban: %w", err)
+	}
 
-	// DM Notification
 	ebDM := &entity.Builder{}
 	view.WriteDirectModerationAction(ebDM, *target, c.Title, "ban", until, reason)
 	caption, entities := ebDM.Complete()
@@ -212,7 +217,10 @@ func (h *Handler) Mute(ctx *command.Context, u *ext.Update) error {
 	if err != nil {
 		return err
 	}
-
+	c, err := ctx.Chat()
+	if err != nil {
+		return fmt.Errorf("chat %w", err)
+	}
 	until := ctx.DateOrDefault(time.Now().Add(time.Hour * 24 * 7 * 2))
 	reason := ctx.TextOrDefault("")
 
@@ -230,6 +238,9 @@ func (h *Handler) Mute(ctx *command.Context, u *ext.Update) error {
 		}
 
 		return err
+	}
+	if _, err := ctx.DemoteChatMember(c.ID, target.User.ID, &ext.EditAdminOpts{}); err != nil {
+		return fmt.Errorf("failed to mute: %w", err)
 	}
 
 	if !until.IsZero() {
@@ -419,10 +430,6 @@ func (h *Handler) Unmute(ctx *command.Context, u *ext.Update) error {
 	cm, err := ctx.User()
 	if err != nil {
 		return err
-	}
-
-	if err := h.service.Unmute(ctx.StdContext(), cm.ChatID, cm.User.ID); err != nil {
-		return ctx.ReplyOnly(u, options.WithText("Не удалось размутить пользователя"))
 	}
 
 	eb := &entity.Builder{}

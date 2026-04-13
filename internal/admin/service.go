@@ -34,15 +34,13 @@ type Service struct {
 	repo         Repository
 	memberRepo   member.Repository
 	memberStatus ChatMemberStatusProvider
-	moderator    Moderator
 	ownerID      int64
 }
 
-func NewService(repo Repository, statusProvider ChatMemberStatusProvider, moderator Moderator, ownerID int64) *Service {
+func NewService(repo Repository, statusProvider ChatMemberStatusProvider, ownerID int64) *Service {
 	return &Service{
 		repo:         repo,
 		memberStatus: statusProvider,
-		moderator:    moderator,
 		ownerID:      ownerID,
 	}
 }
@@ -128,19 +126,12 @@ func (s *Service) Kick(ctx context.Context, m model.ChatMember, mod model.ChatMe
 		return ErrUserIsProtected
 	}
 
-	if err := s.moderator.Kick(m.ChatID, m.User.ID); err != nil {
-		return err
-	}
-
 	return s.repo.CreateModerationAction(ctx, "kick", m.ChatID, m.User.ID, mod.User.ID, reason, time.Time{})
 }
 
 func (s *Service) Ban(ctx context.Context, m model.ChatMember, mod model.ChatMember, until time.Time, reason string) error {
 	if !mod.CanModerate(m) {
 		return ErrUserIsProtected
-	}
-	if err := s.moderator.Ban(m.ChatID, m.User.ID, until); err != nil {
-		return err
 	}
 
 	return s.repo.CreateModerationAction(ctx, "ban", m.ChatID, m.User.ID, mod.User.ID, reason, until)
@@ -158,10 +149,6 @@ func (s *Service) Mute(ctx context.Context, m model.ChatMember, mod model.ChatMe
 		if duration < 30*time.Second || duration > 366*24*time.Hour {
 			return ErrInvalidRange
 		}
-	}
-
-	if err := s.moderator.Mute(m.ChatID, m.User.ID, until); err != nil {
-		return err
 	}
 
 	return s.repo.CreateModerationAction(ctx, "mute", m.ChatID, m.User.ID, mod.User.ID, reason, until)
@@ -186,9 +173,6 @@ func (s *Service) Warn(ctx context.Context, m model.ChatMember, mod model.ChatMe
 	}
 
 	if int(count) >= maxWarns {
-		if err := s.moderator.Ban(m.ChatID, m.User.ID, time.Time{}); err != nil {
-			return int(count), true, err
-		}
 		_ = s.repo.CreateModerationAction(ctx, "ban", m.ChatID, m.User.ID, mod.User.ID, "Превышен лимит предупреждений", time.Time{})
 		_ = s.repo.ClearWarns(ctx, m.ChatID, m.User.ID)
 		return int(count), true, nil
@@ -198,15 +182,7 @@ func (s *Service) Warn(ctx context.Context, m model.ChatMember, mod model.ChatMe
 }
 
 func (s *Service) Unban(ctx context.Context, chatID, userID int64) error {
-	if err := s.moderator.Unban(chatID, userID); err != nil {
-		return err
-	}
-
 	return s.repo.RemoveModerationActions(ctx, chatID, userID)
-}
-
-func (s *Service) Unmute(_ context.Context, chatID, userID int64) error {
-	return s.moderator.Unmute(chatID, userID)
 }
 
 func (s *Service) Unwarn(ctx context.Context, chatID, userID int64) (int, error) {

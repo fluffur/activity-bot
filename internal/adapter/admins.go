@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/model"
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/celestix/gotgproto"
@@ -37,6 +38,7 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 	}
 	chats := d.GetChats()
 	if len(chats) == 0 {
+		log.Println("wtf")
 		return nil, errors.New("chat not found")
 	}
 	ch := chats[0]
@@ -80,7 +82,7 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 
 		for _, participant := range participants.Participants {
 			var userID int64
-			var rank int16
+			var status int16
 			var tag string
 
 			switch p := participant.(type) {
@@ -93,7 +95,7 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 			case *tg.ChannelParticipantCreator:
 				userID = p.UserID
 				tag = p.Rank
-				rank = 5
+				status = 5
 			case *tg.ChannelParticipantAdmin:
 				userID = p.UserID
 				tag = p.Rank
@@ -114,7 +116,7 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 					Username:  u.Username,
 				},
 				Tag:    tag,
-				Status: rank,
+				Status: status,
 			})
 		}
 

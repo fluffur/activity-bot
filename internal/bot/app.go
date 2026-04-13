@@ -86,13 +86,13 @@ func NewApp(cfg config.Config) (*App, error) {
 	restRepo := postgres.NewRestRepository(queries, pool)
 
 	statusProvider := adapter.NewTelegramMemberStatusProvider(nil)
-	moderator := adapter.NewTelegramModerator(nil)
+	//moderator := adapter.NewTelegramModerator(nil)
 	adminsProvider := adapter.NewTelegramChatMembersProvider(bot)
 	memberTagAdapter := adapter.NewMemberTagAdapter(nil, chatRepo)
 
 	userService := user.NewService(userRepo)
 	memberService := member.NewService(memberRepo, chatRepo, userRepo, adminsProvider, memberTagAdapter)
-	adminService := admin.NewService(adminRepo, statusProvider, moderator, cfg.BotOwnerID)
+	adminService := admin.NewService(adminRepo, statusProvider, cfg.BotOwnerID)
 	chatService := chat.NewService(chatRepo)
 	restService := rest.NewService(restRepo)
 

@@ -32,12 +32,12 @@ func (a *App) RegisterHandlers() {
 
 	statsRepository := postgres.NewStatsRepository(queries)
 	restRepository := postgres.NewRestRepository(queries, a.Pool)
-	//messageRepository := postgres.NewMessageRepository(queries)
+	messageRepository := postgres.NewMessageRepository(queries)
 	sessionRepository := postgres.NewSessionRepository(queries)
 
 	statsService := stats.NewService(statsRepository)
 	restService := rest.NewService(restRepository)
-	messageService := msg.NewService(nil) // messageRepository is nil for now as it was commented out
+	messageService := msg.NewService(messageRepository)
 
 	callService := call.NewService(postgres.NewChatRepository(queries), a.MemberService, statsService)
 	sessionService := session.NewService(sessionRepository)
@@ -222,7 +222,7 @@ func (a *App) RegisterHandlers() {
 		SetCategory(command.CategorySettings),
 	)
 
-	a.dp.AddHandler(f.New("a", chatHandler.DisablePrefixOnly).
+	a.dp.AddHandler(f.New("disable_prefix_only", chatHandler.DisablePrefixOnly).
 		SetAliases("-префиксы").
 		SetRequiredStatus(model.StatusSeniorAdmin).
 		SetDescription("Отключить обязательный префикс").
@@ -376,6 +376,10 @@ func (a *App) RegisterHandlers() {
 		SetArgRules(command.OptionalDateRangeRule()),
 	//WithGuards(groupGuard, rateLimiterGuard),
 	)
+	a.dp.AddHandler(f.New("rests", statsHandler.ShowRestList).
+		SetDescription("Список участников в ресте").
+		SetAliases("ресты"),
+	)
 
 	a.dp.AddHandler(f.New("who_am_i", statsHandler.WhoAmI).
 		SetDescription("Мой профиль").
@@ -397,7 +401,10 @@ func (a *App) RegisterHandlers() {
 		SetAliases("все ресты").SetArgRules(command.AnyUserRule()),
 	)
 
-	a.dp.AddHandler(f.New("set_rest", restHandler.SetRest).SetDescription("Выдать рест").SetCategory(command.CategoryModeration).SetRequiredStatus(model.StatusModerator).
+	a.dp.AddHandler(f.New("set_rest", restHandler.SetRest).SetDescription("Выдать рест").
+		SetCategory(command.CategoryModeration).
+		SetRequiredStatus(model.StatusModerator).
+		DisableCheckStatus().
 		SetAliases("рест", "rest", "установить рест").
 		AddPrefixes("+").
 		SetArgRules(command.AnyUserRule(), command.OneDateRule()),
@@ -474,7 +481,8 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Бан участника").
 		SetCategory(command.CategoryModeration),
 	)
-	a.dp.AddHandler(f.New("mute", adminHandler.Mute).SetAliases("мут").
+	a.dp.AddHandler(f.New("mute", adminHandler.Mute).
+		SetAliases("мут").
 		SetRequiredStatus(model.StatusAdmin).
 		SetArgRules(
 			command.MentionedUserRule(),
@@ -616,15 +624,6 @@ func (a *App) RegisterHandlers() {
 		SetRequiredStatus(model.StatusSeniorAdmin),
 	)
 	a.dp.AddHandler(
-		f.New("left_member", memberHandler.OnLeftMember).WrapEvent(),
-	)
-	a.dp.AddHandler(
-		f.New("bot_promote", memberHandler.OnBotPromote).WrapEvent(),
-	)
-	a.dp.AddHandler(
-		f.New("new_members", memberHandler.OnJoinMember).WrapEvent(),
-	)
-	a.dp.AddHandler(
 		f.New("subscribe", channelHandler.Subscribe).SetDescription("Подписка на канал").SetCategory(command.CategorySettings).
 			SetRequiredStatus(model.StatusSeniorAdmin),
 	)
@@ -632,6 +631,13 @@ func (a *App) RegisterHandlers() {
 		f.New("unsubscribe", channelHandler.Unsubscribe).SetDescription("Отписка от канала").SetCategory(command.CategorySettings).
 			WrapCallback(filters.CallbackQuery.Prefix("unsubscribe")),
 	)
+	a.dp.AddHandler(
+		f.New("left_member", memberHandler.OnLeftMember).WrapEvent(),
+	)
+	a.dp.AddHandler(
+		f.New("new_members", memberHandler.OnJoinMember).WrapEvent(),
+	)
+
 	a.dp.AddHandler(
 		f.New("message", messageHandler.Message).WrapEvent(),
 	)
