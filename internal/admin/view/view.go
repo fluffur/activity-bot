@@ -4,7 +4,6 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gotd/td/telegram/message/entity"
@@ -18,8 +17,13 @@ func StatusTitle(status model.Status, count int) string {
 	return status.PluralTitle()
 }
 func FormatAdminsList(admins []model.ChatMember) string {
-	var sb strings.Builder
+	eb := &entity.Builder{}
+	WriteAdminsList(eb, admins)
+	res, _ := eb.Complete()
+	return res
+}
 
+func WriteAdminsList(eb *entity.Builder, admins []model.ChatMember) {
 	categories := map[model.Status][]model.ChatMember{}
 
 	for _, a := range admins {
@@ -36,14 +40,19 @@ func FormatAdminsList(admins []model.ChatMember) string {
 			continue
 		}
 
-		sb.WriteString("\n" + helpers.StatusEmoji(status) + " " + StatusTitle(status, len(members)) + "\n")
+		eb.Plain("\n")
+		helpers.WriteCustomEmoji(eb, helpers.StatusEmojiID(status), helpers.StatusEmojiPlain(status))
+		eb.Plain(" " + StatusTitle(status, len(members)) + "\n")
 
 		for _, m := range members {
-			sb.WriteString(fmt.Sprintf("▸ %s\n", helpers.RoleEmojiLink(m)))
+			eb.Plain("▸ ")
+			helpers.WriteRoleEmojiLink(eb, m)
+			eb.Plain("\n")
 		}
 	}
 
-	return sb.String() + "\nЧтобы добавить, напишите <code>+mod @участник [0-5]</code>"
+	eb.Plain("\nЧтобы добавить, напишите: ")
+	eb.Code("фм повысить @участник ранг")
 }
 
 func WriteAdminAdded(eb *entity.Builder, user model.ChatMember, status model.Status) {
@@ -51,7 +60,7 @@ func WriteAdminAdded(eb *entity.Builder, user model.ChatMember, status model.Sta
 	helpers.WriteRoleEmojiLink(eb, user)
 	eb.Plain(" ")
 	eb.Plain(helpers.Gendered(user.User.Gender, "назначен", "назначена"))
-	eb.Plain(fmt.Sprintf(" ранг %d", status))
+	eb.Plain(fmt.Sprintf(" ранг %d (%s)", status, status.String()))
 }
 
 func WriteAdminRemoved(eb *entity.Builder, user model.ChatMember) {
@@ -137,11 +146,23 @@ func FormatWarnInfo(user model.ChatMember, count, maxWarns int, until time.Time,
 }
 
 func FormatUnwarnInfo(user model.ChatMember, count, maxWarns int) string {
-	return fmt.Sprintf("С участника %s снято предупреждение (%d/%d)", helpers.RoleEmojiLink(user), count, maxWarns)
+	eb := &entity.Builder{}
+	WriteUnwarnInfo(eb, user, count, maxWarns)
+	res, _ := eb.Complete()
+	return res
 }
 
 func FormatWarnsCleared(user model.ChatMember) string {
-	return fmt.Sprintf("Все предупреждения участника %s были аннулированы", helpers.RoleEmojiLink(user))
+	eb := &entity.Builder{}
+	WriteWarnsCleared(eb, user)
+	res, _ := eb.Complete()
+	return res
+}
+
+func WriteWarnsCleared(eb *entity.Builder, user model.ChatMember) {
+	eb.Plain("Все предупреждения участника ")
+	helpers.WriteRoleEmojiLink(eb, user)
+	eb.Plain(" были аннулированы")
 }
 
 func WriteWarnlist(eb *entity.Builder, warns []model.Warn, maxWarns int) {

@@ -19,6 +19,12 @@ func WithBuilder(eb *entity.Builder) SendMessageOption {
 	}
 }
 
+func WithWebpage() SendMessageOption {
+	return func(r *tg.MessagesSendMessageRequest) {
+		r.SetNoWebpage(false)
+	}
+}
+
 func WithEntities(e []tg.MessageEntityClass) SendMessageOption {
 	return func(r *tg.MessagesSendMessageRequest) {
 		r.Entities = e

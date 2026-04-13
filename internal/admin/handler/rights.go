@@ -9,11 +9,14 @@ import (
 	"strings"
 
 	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/telegram/message/entity"
 	"github.com/gotd/td/tg"
 )
 
 func (h *Handler) ManageRights(ctx *command.Context, u *ext.Update) error {
-	return ctx.ReplyOnly(u, options.WithText(view.FormatCategories()), options.WithMarkup(view.GetCategoriesKeyboard()))
+	eb := &entity.Builder{}
+	view.WriteCategories(eb)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb), options.WithMarkup(view.GetCategoriesKeyboard()))
 }
 
 func (h *Handler) CallbackManageRights(ctx *command.Context, u *ext.Update) error {
@@ -27,9 +30,13 @@ func (h *Handler) CallbackManageRights(ctx *command.Context, u *ext.Update) erro
 
 	switch action {
 	case "rights_list":
+		eb := &entity.Builder{}
+		view.WriteCategories(eb)
+		text, entities := eb.Complete()
 		_, err := ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
 			ID:          u.CallbackQuery.GetMsgID(),
-			Message:     view.FormatCategories(),
+			Message:     text,
+			Entities:    entities,
 			ReplyMarkup: view.GetCategoriesKeyboard(),
 		})
 		return err
@@ -45,9 +52,13 @@ func (h *Handler) CallbackManageRights(ctx *command.Context, u *ext.Update) erro
 		}
 
 		configCmds := h.factory.ConfigurableCommands()
+		eb := &entity.Builder{}
+		view.WriteCommandsByCategory(eb, category, configCmds, perms)
+		text, entities := eb.Complete()
 		_, err = ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
 			ID:          u.CallbackQuery.GetMsgID(),
-			Message:     view.FormatCommandsByCategory(category, configCmds, perms),
+			Message:     text,
+			Entities:    entities,
 			ReplyMarkup: view.GetCommandsByCategoryKeyboard(category, configCmds, perms),
 		})
 		return err
@@ -62,10 +73,14 @@ func (h *Handler) CallbackManageRights(ctx *command.Context, u *ext.Update) erro
 		if err != nil {
 			status = command.GetDefaultStatus(configCmds, key)
 		}
+		eb := &entity.Builder{}
+		view.WriteEditCommandRights(eb, key, status, configCmds)
+		text, entities := eb.Complete()
 
 		_, err = ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
 			ID:          u.CallbackQuery.GetMsgID(),
-			Message:     view.FormatEditCommandRights(key, status, configCmds),
+			Message:     text,
+			Entities:    entities,
 			ReplyMarkup: view.GetEditRightsKeyboard(key, status, configCmds),
 		})
 		return err
@@ -84,10 +99,14 @@ func (h *Handler) CallbackManageRights(ctx *command.Context, u *ext.Update) erro
 		}
 
 		configCmds := h.factory.ConfigurableCommands()
+		eb := &entity.Builder{}
+		view.WriteEditCommandRights(eb, key, status, configCmds)
+		text, entities := eb.Complete()
 
 		_, err = ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
 			ID:          u.CallbackQuery.GetMsgID(),
-			Message:     view.FormatEditCommandRights(key, status, configCmds),
+			Message:     text,
+			Entities:    entities,
 			ReplyMarkup: view.GetEditRightsKeyboard(key, status, configCmds),
 		})
 		if err == nil {

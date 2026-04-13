@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"activity-bot/internal/adapter"
 	"activity-bot/internal/admin"
 	service "activity-bot/internal/call"
 	"activity-bot/internal/call/view"
@@ -13,18 +12,15 @@ import (
 	memberview "activity-bot/internal/member/view"
 	"activity-bot/internal/options"
 	"activity-bot/internal/user"
-	"errors"
 	"fmt"
 	"log"
 	"log/slog"
 	"math/rand"
-	"time"
 	"unicode/utf8"
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/entity"
 	"github.com/gotd/td/tg"
-	"golang.org/x/time/rate"
 )
 
 type Handler struct {
@@ -67,8 +63,9 @@ func (h *Handler) ListRoles(ctx *command.Context, u *ext.Update) error {
 	if len(members) == 0 {
 		return ctx.ReplyOnly(u, options.WithText("В чате нет установленных ролей"))
 	}
-
-	return ctx.ReplyOnly(u, options.WithText(memberview.FormatRolesList(members)))
+	eb := &entity.Builder{}
+	memberview.WriteRolesList(eb, members)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 func (h *Handler) SetRole(ctx *command.Context, u *ext.Update) error {
 	cm, err := ctx.AnyUser()
@@ -85,75 +82,34 @@ func (h *Handler) SetRole(ctx *command.Context, u *ext.Update) error {
 	}
 
 	if err := h.service.SetMemberTitle(ctx.StdContext(), cm.ChatID, cm.User.ID, tag); err != nil {
-		if errors.Is(err, adapter.ErrChatMemberNotFound) {
-			return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Участник не найден\n\nTelegram: %s", err.Error())))
-		} else if errors.Is(err, adapter.ErrChatMemberCantBeEdited) {
-			return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Я не могу изменить роль этого участника\n\nTelegram: %s", err.Error())))
-		} else if errors.Is(err, adapter.ErrChatMemberIsRestricted) {
-			return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Пользователь не является полноправным участником чата\n\nTelegram: %s", err.Error())))
-		} else if errors.Is(err, adapter.ErrChatMemberIsCreator) {
-			return ctx.ReplyOnly(u, options.WithText("Я не могу менять роль создателя чата"))
-		}
-
-		_ = ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Не удалось установить роль: %s", err.Error())))
-
 		return fmt.Errorf("failed to set member title: %w", err)
 	}
 
-	return ctx.ReplyOnly(u, options.WithText(memberview.FormatRoleUpdated(*cm, tag)))
-}
-
-func (h *Handler) RestoreRoles(ctx *command.Context, u *ext.Update) error {
-	c, err := ctx.Chat()
+	chatPeer, err := ctx.ResolveInputPeerById(u.EffectiveChat().GetID())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to resolve chat peer: %w", err)
 	}
-	members, err := h.service.GetAnyMembersWithTitle(ctx.StdContext(), c.ID)
+	channelPeer, ok := chatPeer.(*tg.InputPeerChannel)
+	if !ok {
+		return fmt.Errorf("chat %d is not a channel/supergroup", u.EffectiveChat().GetID())
+	}
+
+	participantPeer, err := ctx.ResolveInputPeerById(cm.User.ID)
 	if err != nil {
-		_ = ctx.ReplyOnly(u, options.WithText("Не удалось получить список ролей из базы"))
-		return err
+		return fmt.Errorf("failed to resolve participant peer: %w", err)
 	}
 
-	if len(members) == 0 {
-		return ctx.ReplyOnly(u, options.WithText("В базе данных нет сохраненных ролей для этого чата"))
+	if _, err := ctx.Raw.MessagesEditChatParticipantRank(ctx.StdContext(), &tg.MessagesEditChatParticipantRankRequest{
+		Peer:        channelPeer,
+		Participant: participantPeer,
+		Rank:        tag,
+	}); err != nil {
+		return fmt.Errorf("failed to set rank: %w", err)
 	}
 
-	var restoredCount int
-	limiter := rate.NewLimiter(rate.Every(500*time.Millisecond), 1)
-
-	for _, m := range members {
-		if err := limiter.Wait(ctx.StdContext()); err != nil {
-			return err
-		}
-
-		if _, err := ctx.Raw.ChannelsEditAdmin(ctx, &tg.ChannelsEditAdminRequest{
-			Channel: &tg.InputChannel{ChannelID: c.ID},
-			UserID:  m.User.AsInput(),
-			AdminRights: tg.ChatAdminRights{
-				ChangeInfo:     true,
-				PostMessages:   true,
-				EditMessages:   true,
-				DeleteMessages: true,
-				BanUsers:       true,
-				InviteUsers:    true,
-				PinMessages:    true,
-				AddAdmins:      true,
-				Anonymous:      true,
-				ManageCall:     true,
-				Other:          true,
-			},
-			Rank: m.Tag,
-		}); err != nil {
-			logger.L.Warn("failed to promote chat member", "chatID", c.ID, "userID", m.User.ID, "error", err)
-			continue
-		}
-
-		restoredCount++
-	}
-
-	msgText := fmt.Sprintf("%s Восстановление завершено.\n\nВосстановлено: %d", helpers.SuccessEmoji(), restoredCount)
-
-	return ctx.ReplyOnly(u, options.WithText(msgText))
+	eb := &entity.Builder{}
+	memberview.WriteRoleUpdated(eb, *cm, tag)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) ShowRole(ctx *command.Context, u *ext.Update) error {
@@ -163,10 +119,15 @@ func (h *Handler) ShowRole(ctx *command.Context, u *ext.Update) error {
 	}
 
 	if cm.Tag == "" {
-		return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("У участника %s нет роли", helpers.UserLink(cm.User))))
+		eb := &entity.Builder{}
+		eb.Plain("У участника ")
+		helpers.WriteRoleEmojiLink(eb, *cm)
+		eb.Plain("еще не установлена роль\n\nПопробуйте установить командой: ")
+		eb.Code("!роль @участник Название Роли")
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 
-	return ctx.ReplyOnly(u, options.WithText(memberview.FormatMemberRole(cm.User, cm.Tag)))
+	return ctx.ReplyOnly(u, options.WithText(memberview.FormatMemberRole(cm.Tag)))
 }
 
 func (h *Handler) OnJoinMember(ctx *command.Context, u *ext.Update) error {
@@ -332,10 +293,14 @@ func (h *Handler) ShipRandom(ctx *command.Context, u *ext.Update) error {
 
 	first := members[0]
 	second := members[1]
-
-	text := fmt.Sprintf("%s <b>Шипперим рандом</b>: %s + %s\n%s", helpers.CustomEmoji("5258276353949575281", "❤️"), helpers.RoleMentionEmoji(first), helpers.RoleMentionEmoji(second), phrase)
-
-	return ctx.ReplyOnly(u, options.WithText(text))
+	eb := &entity.Builder{}
+	helpers.WriteCustomEmoji(eb, "5258276353949575281", "❤️")
+	eb.Bold(" Шипперим рандом: ")
+	helpers.WriteRoleEmojiMention(eb, first)
+	eb.Plain(" + ")
+	helpers.WriteRoleEmojiMention(eb, second)
+	eb.Plain("\n" + phrase)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) ShowEmoji(ctx *command.Context, u *ext.Update) error {

@@ -233,7 +233,6 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 			}
 		}
 		trimmedText = strings.TrimLeft(trimmedText, " \t\n\r")
-		// Now trimmedText starts with exactly what textNoCommand is (without trailing spaces).
 
 		fullUTF16 := utf16.Encode([]rune(text))
 		argUTF16 := utf16.Encode([]rune(trimmedText))

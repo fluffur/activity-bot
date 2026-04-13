@@ -5,13 +5,17 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"fmt"
+	"strconv"
 	"strings"
 
+	"github.com/gotd/td/telegram/message/entity"
 	"github.com/gotd/td/tg"
 )
 
-func FormatCategories() string {
-	return "⚖️ <b>Настройка прав доступа команд</b>\n\nВыберите категорию команд для настройки:"
+func WriteCategories(eb *entity.Builder) {
+	eb.Plain("⚖️ ")
+	eb.Bold("Настройка прав доступа команд")
+	eb.Plain("\n\nВыберите категорию команд для настройки:")
 }
 
 func GetCategoriesKeyboard() tg.ReplyMarkupClass {
@@ -31,9 +35,11 @@ func GetCategoriesKeyboard() tg.ReplyMarkupClass {
 	return &tg.ReplyInlineMarkup{Rows: rows}
 }
 
-func FormatCommandsByCategory(category command.Category, commands []*command.Command, perms map[string]model.Status) string {
+func WriteCommandsByCategory(eb *entity.Builder, category command.Category, commands []*command.Command, perms map[string]model.Status) {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("Категория: %s\n\n", category))
+	eb.Plain(sb.String())
+	sb.Reset()
 
 	for _, c := range commands {
 		if c.Category() != category {
@@ -49,18 +55,23 @@ func FormatCommandsByCategory(category command.Category, commands []*command.Com
 
 		formattedAliases := make([]string, len(aliases))
 		for i, a := range aliases {
-			formattedAliases[i] = "<code>" + a + "</code>"
+			formattedAliases[i] = a
 		}
 
-		sb.WriteString(fmt.Sprintf("%s %s (%s)\n",
-			helpers.StatusEmoji(status),
-			c.Description(),
-			strings.Join(formattedAliases, ", "),
-		))
+		helpers.WriteStatusEmoji(eb, status)
+		eb.Plain(" ")
+		eb.Plain(c.Description())
+		eb.Plain(" (")
+		for i, alias := range formattedAliases {
+			if i > 0 {
+				eb.Plain(", ")
+			}
+			eb.Code(alias)
+		}
+		eb.Plain(")\n")
 	}
 
-	sb.WriteString("\nВыберите команду для изменения прав:")
-	return sb.String()
+	eb.Plain("\nВыберите команду для изменения прав:")
 }
 
 func GetCommandsByCategoryKeyboard(category command.Category, commands []*command.Command, perms map[string]model.Status) tg.ReplyMarkupClass {
@@ -70,11 +81,15 @@ func GetCommandsByCategoryKeyboard(category command.Category, commands []*comman
 			continue
 		}
 
+		icon, _ := strconv.ParseInt(helpers.StatusEmojiID(c.RequiredStatus()), 10, 64)
 		rows = append(rows, tg.KeyboardButtonRow{
 			Buttons: []tg.KeyboardButtonClass{
 				&tg.KeyboardButtonCallback{
 					Text: c.Description(),
 					Data: []byte("rights_edit:" + c.Name()),
+					Style: tg.KeyboardButtonStyle{
+						Icon: icon,
+					},
 				},
 			},
 		})
@@ -93,6 +108,13 @@ func GetCommandsByCategoryKeyboard(category command.Category, commands []*comman
 }
 
 func FormatEditCommandRights(key string, currentStatus model.Status, commands []*command.Command) string {
+	eb := &entity.Builder{}
+	WriteEditCommandRights(eb, key, currentStatus, commands)
+	res, _ := eb.Complete()
+	return res
+}
+
+func WriteEditCommandRights(eb *entity.Builder, key string, currentStatus model.Status, commands []*command.Command) {
 	var config *command.Command
 	for _, c := range commands {
 		if c.Name() == key {
@@ -102,21 +124,25 @@ func FormatEditCommandRights(key string, currentStatus model.Status, commands []
 	}
 
 	if config == nil {
-		return "Ошибка: команда не найдена"
+		eb.Plain("Ошибка: команда не найдена")
+		return
 	}
 
 	aliases := append(config.Aliases(), config.Name())
-	formattedAliases := make([]string, len(aliases))
+	eb.Plain("⚙️ ")
+	eb.Plain(config.Description())
+	eb.Plain("\nСинонимы: ")
 	for i, a := range aliases {
-		formattedAliases[i] = "<code>" + a + "</code>"
+		if i > 0 {
+			eb.Plain(", ")
+		}
+		eb.Code(a)
 	}
-
-	return fmt.Sprintf("⚙️ %s\nСинонимы: %s\n\nТекущий уровень: %s %s\n\nВыберите новый уровень доступа:",
-		config.Description(),
-		strings.Join(formattedAliases, ", "),
-		helpers.StatusEmoji(currentStatus),
-		currentStatus.String(),
-	)
+	eb.Plain("\n\nТекущий уровень: ")
+	helpers.WriteStatusEmoji(eb, currentStatus)
+	eb.Plain(" ")
+	eb.Plain(currentStatus.String())
+	eb.Plain("\n\nВыберите новый уровень доступа:")
 }
 
 func GetEditRightsKeyboard(key string, currentStatus model.Status, commands []*command.Command) tg.ReplyMarkupClass {

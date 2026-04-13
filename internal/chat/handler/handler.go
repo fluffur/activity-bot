@@ -480,7 +480,7 @@ func (h *Handler) UserChats(ctx *command.Context, u *ext.Update) error {
 	}
 
 	if len(chats) == 0 {
-		return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("%s Все недельные нормы выполнены.", helpers.SuccessEmoji())))
+		return ctx.ReplyOnly(u, options.WithText("✅ Все недельные нормы выполнены"))
 	}
 
 	var warnChats []model.ChatWithoutNorm
@@ -573,7 +573,7 @@ func (h *Handler) UserChats(ctx *command.Context, u *ext.Update) error {
 
 	if u.EffectiveChat().GetID() != u.EffectiveUser().GetID() {
 		eb := &entity.Builder{}
-		eb.Plain(fmt.Sprintf("Список невыполненных норм отправлен вам в личные сообщения %s", helpers.SuccessEmoji()))
+		eb.Plain("✅ Список невыполненных норм отправлен вам в личные сообщения")
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 
@@ -614,7 +614,7 @@ func (h *Handler) ShowTags(ctx *command.Context, u *ext.Update) error {
 
 	if c.TagsEnabled {
 		eb := &entity.Builder{}
-		eb.Plain(helpers.SuccessEmoji() + " В чате поддерживаются теги. Это значит, что при установке роли пользователю устанавливается телеграм-тег, а не минимальные права администратора с подписью")
+		eb.Plain("✅ В чате поддерживаются теги. Это значит, что при установке роли пользователю устанавливается телеграм-тег, а не минимальные права администратора с подписью")
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 

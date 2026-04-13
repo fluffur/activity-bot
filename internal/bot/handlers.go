@@ -63,8 +63,8 @@ func (a *App) RegisterHandlers() {
 	//groupGuard := guard.OnlyGroups(sessionService)
 	//rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 2, 10*time.Second, sessionService)
 
-	a.dp.AddHandler(f.New("start", helpHandler.Start))
-	a.dp.AddHandler(f.New("help", helpHandler.Help))
+	a.dp.AddHandler(f.New("start", helpHandler.Start).SetScope(command.ScopeUser))
+	a.dp.AddHandler(f.New("help", helpHandler.Help).SetScope(command.ScopeUser))
 
 	a.dp.AddHandler(f.New("set_newbie_treshold", chatHandler.SetNewbieThreshold).
 		SetAliases("новички срок", "новички после").
@@ -386,8 +386,16 @@ func (a *App) RegisterHandlers() {
 		SetCategory(command.CategoryProfile).
 		SetAliases("ктоя", "кто я", "профиль"),
 	)
-	a.dp.AddHandler(f.New("ship_random", memberHandler.ShipRandom).SetDescription("Случайный шипперинг").SetCategory(command.CategoryGeneral).
-		SetAliases("рандом шипперим"))
+	a.dp.AddHandler(f.New("callback_all_activity", statsHandler.CallbackAllActivity).
+		WrapCallback(filters.CallbackQuery.Prefix("profile_activity:")),
+	)
+	a.dp.AddHandler(f.New("callback_profile_graph", statsHandler.CallbackProfileGraph).
+		WrapCallback(filters.CallbackQuery.Prefix("profile_graph:")),
+	)
+	a.dp.AddHandler(f.New("ship_random", memberHandler.ShipRandom).
+		SetDescription("Случайный шипперинг").
+		SetCategory(command.CategoryGeneral).
+		SetAliases("рандом шипперим", "шипперим"))
 
 	a.dp.AddHandler(f.New("rests", restHandler.ShowRest).
 		SetDescription("История рестов").
@@ -435,7 +443,10 @@ func (a *App) RegisterHandlers() {
 		SetAliases("админы", "модеры", "mods"),
 	)
 
-	a.dp.AddHandler(f.New("add_admin", adminHandler.SetStatus).SetDescription("Назначить администратора").SetCategory(command.CategoryAdmin).SetAliases("админ", "admin", "mod").
+	a.dp.AddHandler(f.New("add_admin", adminHandler.SetStatus).
+		SetDescription("Назначить администратора").
+		SetCategory(command.CategoryAdmin).
+		SetAliases("админ", "admin", "mod", "повысить").
 		SetArgRules(command.AnyUserRule(), command.NumberRule()).AddPrefixes("+").
 		SetRequiredStatus(model.StatusCoOwner),
 	)
@@ -454,7 +465,7 @@ func (a *App) RegisterHandlers() {
 		SetCategory(command.CategoryModeration),
 	)
 	a.dp.AddHandler(f.New("unmute", adminHandler.Unmute).
-		SetAliases("unmute", "размут", "размутить", "-мут").
+		SetAliases("unmute", "размут", "размутить", "-мут", "снять мут").
 		SetArgRules(command.MentionedUserRule()).
 		SetRequiredStatus(model.StatusAdmin).
 		SetDescription("Размут участника").
@@ -554,13 +565,6 @@ func (a *App) RegisterHandlers() {
 		SetAliases("роль", "title", "какая роль", "роль у", "роль кого"),
 	)
 
-	a.dp.AddHandler(f.New("move_admins", memberHandler.RestoreRoles).
-		SetAliases("перенести админки").
-		SetRequiredStatus(model.StatusModerator).
-		SetDescription("Перенос тг админок").
-		SetCategory(command.CategoryModeration),
-	)
-
 	a.dp.AddHandler(f.New("ask_ai", messageHandler.Bot).SetDescription("Вопрос к ИИ").SetCategory(command.CategoryGeneral).SetAliases("крис").
 		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)),
 	)
@@ -574,11 +578,11 @@ func (a *App) RegisterHandlers() {
 		SetAliases("фейклив", "фейк лив").SetArgRules(command.AnyUserRule()))
 
 	a.dp.AddHandler(f.New("set_gender", userHandler.SetGender).SetDescription("Установить пол").SetCategory(command.CategoryProfile).
-		SetAliases("пол", "установить пол").
+		SetAliases("пол", "установить пол").SetScope(command.ScopeUser).
 		SetArgRules(command.TextRule()),
 	)
 	a.dp.AddHandler(f.New("gender", userHandler.ShowGender).SetDescription("Посмотреть пол").SetCategory(command.CategoryProfile).
-		SetAliases("пол").
+		SetAliases("пол").SetScope(command.ScopeUser).
 		SetArgRules(command.AnyUserRule()))
 	a.dp.AddHandler(f.New("set_emoji", userHandler.SetEmoji).SetDescription("Установить эмодзи").SetCategory(command.CategoryProfile).
 		SetAliases("эмоджи", "эмодзи").

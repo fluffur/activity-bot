@@ -122,7 +122,7 @@ func (h *Handler) ListAdmins(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	eb.Plain(view.FormatAdminsList(admins))
+	view.WriteAdminsList(eb, admins)
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -223,7 +223,10 @@ func (h *Handler) Mute(ctx *command.Context, u *ext.Update) error {
 	}
 	until := ctx.DateOrDefault(time.Now().Add(time.Hour * 24 * 7 * 2))
 	reason := ctx.TextOrDefault("")
-
+	if reason == "навсегда" {
+		reason = ""
+		until = time.Time{}
+	}
 	mod, err := h.memberService.GetChatMember(ctx.StdContext(), target.ChatID, u.EffectiveUser().GetID())
 	if err != nil {
 		return err
@@ -239,7 +242,50 @@ func (h *Handler) Mute(ctx *command.Context, u *ext.Update) error {
 
 		return err
 	}
-	if _, err := ctx.DemoteChatMember(c.ID, target.User.ID, &ext.EditAdminOpts{}); err != nil {
+
+	chatPeer, err := ctx.ResolveInputPeerById(c.ID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve chat peer: %w", err)
+	}
+	channelPeer, ok := chatPeer.(*tg.InputPeerChannel)
+	if !ok {
+		return fmt.Errorf("chat %d is not a channel/supergroup", c.ID)
+	}
+
+	participantPeer, err := ctx.ResolveInputPeerById(target.User.ID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve participant peer: %w", err)
+	}
+
+	bannedRights := tg.ChatBannedRights{
+		SendMessages:    true,
+		SendMedia:       true,
+		SendStickers:    true,
+		SendGifs:        true,
+		SendGames:       true,
+		SendInline:      true,
+		EmbedLinks:      true,
+		SendPolls:       true,
+		SendPhotos:      true,
+		SendVideos:      true,
+		SendRoundvideos: true,
+		SendAudios:      true,
+		SendVoices:      true,
+		SendDocs:        true,
+		SendPlain:       true,
+	}
+	if !until.IsZero() {
+		bannedRights.UntilDate = int(until.Unix())
+	}
+
+	if _, err := ctx.Raw.ChannelsEditBanned(ctx, &tg.ChannelsEditBannedRequest{
+		Channel: &tg.InputChannel{
+			ChannelID:  channelPeer.ChannelID,
+			AccessHash: channelPeer.AccessHash,
+		},
+		Participant:  participantPeer,
+		BannedRights: bannedRights,
+	}); err != nil {
 		return fmt.Errorf("failed to mute: %w", err)
 	}
 
@@ -360,16 +406,15 @@ func (h *Handler) Warn(ctx *command.Context, u *ext.Update) error {
 	count, banned, err := h.service.Warn(ctx.StdContext(), *target, *mod, reason, until)
 	if err != nil {
 		if errors.Is(err, admin.ErrUserIsProtected) {
-			return ctx.ReplyOnly(u, options.WithText("Нельзя выдать предупреждение администратору или создателю"))
-		}
-		if banned {
-			_, _ = h.memberService.ProcessLeftMember(ctx.StdContext(), target.ChatID, target.User.ID)
-		} else {
-			return ctx.ReplyOnly(u, options.WithText("Не удалось выдать предупреждение"))
+			return ctx.ReplyOnly(u, options.WithText("Нельзя выдать предупреждение вышестоящему лицу"))
 		}
 		return fmt.Errorf("failed to give warn: %w", err)
 	}
 	if banned {
+		if _, err := ctx.BanChatMember(target.ChatID, target.User.ID, 0); err != nil {
+			return fmt.Errorf("failed to ban: %w", err)
+		}
+
 		_, _ = h.memberService.ProcessLeftMember(ctx.StdContext(), target.ChatID, target.User.ID)
 	}
 	maxWarns, _ := h.service.GetMaxWarns(ctx.StdContext(), target.ChatID)
@@ -414,6 +459,10 @@ func (h *Handler) Unban(ctx *command.Context, u *ext.Update) error {
 		return ctx.ReplyOnly(u, options.WithText("Не удалось разбанить пользователя"))
 	}
 
+	if _, err := ctx.UnbanChatMember(target.ChatID, target.User.ID); err != nil {
+		return fmt.Errorf("failed to unban: %w", err)
+	}
+
 	eb := &entity.Builder{}
 	eb.Plain("Пользователь ")
 	helpers.WriteRoleEmojiLink(eb, *target)
@@ -430,6 +479,31 @@ func (h *Handler) Unmute(ctx *command.Context, u *ext.Update) error {
 	cm, err := ctx.User()
 	if err != nil {
 		return err
+	}
+
+	chatPeer, err := ctx.ResolveInputPeerById(c.ID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve chat peer: %w", err)
+	}
+	channelPeer, ok := chatPeer.(*tg.InputPeerChannel)
+	if !ok {
+		return fmt.Errorf("chat %d is not a channel/supergroup", c.ID)
+	}
+
+	participantPeer, err := ctx.ResolveInputPeerById(cm.User.ID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve participant peer: %w", err)
+	}
+
+	if _, err := ctx.Raw.ChannelsEditBanned(ctx, &tg.ChannelsEditBannedRequest{
+		Channel: &tg.InputChannel{
+			ChannelID:  channelPeer.ChannelID,
+			AccessHash: channelPeer.AccessHash,
+		},
+		Participant:  participantPeer,
+		BannedRights: tg.ChatBannedRights{},
+	}); err != nil {
+		return fmt.Errorf("failed to unmute: %w", err)
 	}
 
 	eb := &entity.Builder{}
@@ -550,7 +624,7 @@ func (h *Handler) ClearWarns(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	eb.Plain(view.FormatWarnsCleared(*target))
+	view.WriteWarnsCleared(eb, *target)
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -585,7 +659,9 @@ func (h *Handler) DemoteTgAdmin(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	return ctx.ReplyOnly(u,
-		options.WithText(fmt.Sprintf("Участник %s %s", helpers.RoleEmojiLink(*cm), helpers.Gendered(cm.User.Gender, "разжалован", "разжалована"))),
-	)
+	eb := &entity.Builder{}
+	eb.Plain("Участник ")
+	helpers.WriteRoleEmojiLink(eb, *cm)
+	eb.Plain(" " + helpers.Gendered(cm.User.Gender, "разжалован", "разжалована"))
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }

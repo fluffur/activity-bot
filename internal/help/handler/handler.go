@@ -29,17 +29,25 @@ func (h *Handler) Start(ctx *command.Context, u *ext.Update) error {
 	eb.Plain("Добавь меня в группу или ")
 	eb.TextURL("открой список команд", h.commandsLink)
 
-	return ctx.ReplyOnly(u, options.WithBuilder(eb), options.WithMarkup(getKb(ctx.Self.Username)))
+	return ctx.ReplyOnly(u,
+		options.WithBuilder(eb),
+		options.WithMarkup(getKb(ctx.Self.Username)),
+		options.WithWebpage(),
+	)
 }
 
 func (h *Handler) Help(ctx *command.Context, u *ext.Update) error {
 	eb := &entity.Builder{}
 	eb.Plain("Помощь\n\n")
 
-	eb.TextURL("* Команды бота\n", h.commandsLink)
-	eb.TextURL("* Написать разработчику\n", "https://t.me/"+h.ownerUsername)
+	eb.TextURL(" Команды бота\n", h.commandsLink)
+	eb.TextURL(" Написать разработчику\n", "https://t.me/"+h.ownerUsername)
 
-	return ctx.ReplyOnly(u, options.WithBuilder(eb), options.WithMarkup(getKb(ctx.Self.Username)))
+	return ctx.ReplyOnly(u,
+		options.WithBuilder(eb),
+		options.WithMarkup(getKb(ctx.Self.Username)),
+		options.WithWebpage(),
+	)
 }
 
 func getKb(botUsername string) *tg.ReplyInlineMarkup {

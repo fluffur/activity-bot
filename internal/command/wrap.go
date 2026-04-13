@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/celestix/gotgproto/dispatcher"
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/go-faster/errors"
@@ -53,11 +54,15 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 		handlerCtx.senderChatMember = member
 
 		if !handlerCtx.senderChatMember.StatusGranted(c.requiredStatus) {
-			_, err := ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			_, err = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
 				Message: fmt.Sprintf("Требуются права: %s", c.requiredStatus),
 				Alert:   true,
+				QueryID: cb.QueryID,
 			})
-			return err
+			if err != nil {
+				return errors.Wrap(err, "callback: answer failed")
+			}
+			return dispatcher.EndGroups
 		}
 
 		data := string(cb.Data)
@@ -68,6 +73,7 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 		}
 
 		handlerCtx.texts = strings.Fields(handlerCtx.RawArgs)
+
 		err = c.response(&handlerCtx, u)
 
 		//_, _ = ctx.AnswerCallback(nil)

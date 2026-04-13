@@ -209,7 +209,7 @@ func (h *Handler) WhoAreUser(ctx *command.Context, u *ext.Update, userID int64) 
 					Text: "Вся активность",
 					Data: []byte(fmt.Sprintf("profile_activity:%d", userID)),
 					Style: tg.KeyboardButtonStyle{
-						BgPrimary: true,
+						BgSuccess: true,
 						Icon:      5425112292683435471,
 					},
 				},
@@ -325,6 +325,9 @@ func (h *Handler) CallbackAllActivity(ctx *command.Context, u *ext.Update) error
 			Rows: []tg.KeyboardButtonRow{
 				{Buttons: []tg.KeyboardButtonClass{
 					&tg.KeyboardButtonCallback{
+						Style: tg.KeyboardButtonStyle{
+							BgSuccess: true,
+						},
 						Text: "📊 Показать график",
 						Data: []byte(fmt.Sprintf("profile_graph:%d", userID)),
 					},

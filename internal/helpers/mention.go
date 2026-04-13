@@ -18,37 +18,6 @@ func UserLink(u model.User) string {
 	return fmt.Sprintf("tg://openmessage?user_id=%d", u.ID)
 }
 
-func Link(username, content string) string {
-	return fmt.Sprintf(`<a href="https://t.me/%s">%s</a>`, username, html.EscapeString(content))
-}
-
-func AnyLink(href, content string) string {
-	return "<a href=\"" + href + "\">" + content + "</a>"
-}
-
-func LinkWithContent(u model.User, content string) string {
-	if u.Username != "" {
-		return fmt.Sprintf(`<a href="https://t.me/%s">%s</a>`, u.Username, html.EscapeString(content))
-	}
-
-	return fmt.Sprintf(`<a href="tg://openmessage?user_id=%d">%s</a>`, u.ID, html.EscapeString(content))
-}
-
-func RoleEmojiLink(cm model.ChatMember) string {
-	var emoji string
-	if cm.Emoji != "" {
-		emoji = cm.Emoji + " "
-	} else if cm.User.Emoji != "" {
-		emoji = cm.User.Emoji + " "
-	}
-	return emoji + LinkWithContent(cm.User, MemberDisplayName(cm))
-
-}
-
-func RoleLink(cm model.ChatMember) string {
-	return LinkWithContent(cm.User, MemberDisplayName(cm))
-}
-
 func MemberDisplayName(cm model.ChatMember) string {
 	var displayName string
 	if cm.Tag != "" {
@@ -81,10 +50,6 @@ func Mention(id int64, value string) string {
 	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, id, html.EscapeString(value))
 }
 
-func TelegramChannelLink(username string) string {
-	return fmt.Sprintf("https://t.me/%s", username)
-}
-
 func WriteMention(eb *entity.Builder, id int64, value string) {
 	if value == "" {
 		value = "—"
@@ -113,4 +78,15 @@ func WriteRoleEmojiLink(eb *entity.Builder, cm model.ChatMember) {
 		eb.Plain(" ")
 	}
 	eb.TextURL(MemberDisplayName(cm), UserLink(cm.User))
+}
+
+func WriteRoleEmojiMention(eb *entity.Builder, cm model.ChatMember) {
+	if len(cm.Emojis) != 0 {
+		DisplayEmoji(eb, cm.Emojis)
+		eb.Plain(" ")
+	} else if len(cm.User.Emojis) != 0 {
+		DisplayEmoji(eb, cm.User.Emojis)
+		eb.Plain(" ")
+	}
+	WriteMemberMention(eb, cm)
 }

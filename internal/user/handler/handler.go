@@ -58,7 +58,11 @@ func (h *Handler) ShowGender(ctx *command.Context, u *ext.Update) error {
 		gender = "мужской"
 	}
 
-	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Пол %s: %s", helpers.LinkWithContent(cm.User, cm.User.FirstName), gender)))
+	eb := &entity.Builder{}
+	eb.Plain("Пол ")
+	helpers.WriteUserMention(eb, cm.User)
+	eb.Plain(fmt.Sprintf(": %s", gender))
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
 func (h *Handler) SetEmoji(ctx *command.Context, u *ext.Update) error {

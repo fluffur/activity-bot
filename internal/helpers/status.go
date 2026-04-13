@@ -7,10 +7,6 @@ import (
 	"github.com/gotd/td/telegram/message/entity"
 )
 
-func StatusEmoji(status model.Status) string {
-	return CustomEmoji(StatusEmojiID(status), StatusEmojiPlain(status))
-}
-
 func StatusEmojiID(status model.Status) string {
 	switch status {
 	case model.StatusMember:
