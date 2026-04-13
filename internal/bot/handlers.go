@@ -136,7 +136,7 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Отключение тегов").
 		SetCategory(command.CategorySettings),
 	)
-	a.dp.AddHandler(f.New("tags", chatHandler.ShowTags).SetDescription("Список тегов").
+	a.dp.AddHandler(f.New("tags", chatHandler.ShowTags).SetDescription("Статус тегов").
 		SetCategory(command.CategoryGeneral).
 		SetAliases("tags", "теги", "тэги"))
 

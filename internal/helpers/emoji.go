@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"activity-bot/internal/model"
-	"fmt"
 	"strconv"
 	"unicode/utf16"
 
@@ -11,11 +10,6 @@ import (
 	"github.com/makeworld-the-better-one/go-isemoji"
 	"github.com/rivo/uniseg"
 )
-
-type span struct {
-	start int
-	end   int
-}
 
 func ExtractEmoji(text string, entities []tg.MessageEntityClass) model.Emojis {
 	var result model.Emojis
@@ -73,15 +67,6 @@ func ExtractEmoji(text string, entities []tg.MessageEntityClass) model.Emojis {
 	return result
 }
 
-func isUsed(start, end int, used []span) bool {
-	for _, s := range used {
-		if start < s.end && end > s.start {
-			return true
-		}
-	}
-	return false
-}
-
 func DisplayEmoji(eb *entity.Builder, emojis model.Emojis) {
 	for _, emoji := range emojis {
 		switch emoji.Type {
@@ -112,10 +97,6 @@ func MentionEmoji(eb *entity.Builder, user model.User, emojis model.Emojis) {
 	if !hasNormalEmoji {
 		WriteMention(eb, user.ID, "​")
 	}
-}
-
-func CustomEmoji(id string, originalEmoji string) string {
-	return fmt.Sprintf(`<tg-emoji emoji-id="%s">%s</tg-emoji>`, id, originalEmoji)
 }
 
 const (
@@ -150,14 +131,4 @@ func WriteDangerEmoji(eb *entity.Builder) {
 
 func WriteStatsEmoji(eb *entity.Builder) {
 	WriteCustomEmoji(eb, "5258391025281408576", "📊")
-}
-
-func WriteEmoji(eb *entity.Builder, emoji string, emojis model.Emojis) {
-	if len(emojis) == 0 {
-		eb.Plain(emoji)
-	}
-
-	for _, e := range emojis {
-		eb.CustomEmoji(e.Char, e.ID)
-	}
 }

@@ -19,27 +19,6 @@ func init() {
 	time.Local = MoscowLocation
 }
 
-func FormatToHumanDateTime(date time.Time) string {
-	date = date.Local()
-	now := time.Now()
-
-	months := [...]string{
-		"января", "февраля", "марта", "апреля", "мая", "июня",
-		"июля", "августа", "сентября", "октября", "ноября", "декабря",
-	}
-
-	var text string
-	if now.Year() == date.Year() && now.YearDay() == date.YearDay() {
-		text = "сегодня"
-	} else if now.Year() == date.Year() {
-		text = fmt.Sprintf("%d %s", date.Day(), months[date.Month()-1])
-	} else {
-		text = fmt.Sprintf("%d %s %d", date.Day(), months[date.Month()-1], date.Year())
-	}
-
-	return text
-}
-
 func PluralizeDays(n int) string {
 	nAbs := n % 100
 	if nAbs >= 11 && nAbs <= 14 {
@@ -108,15 +87,6 @@ func formatLastSeenHuman(t time.Time) string {
 	return strings.Join(parts, " ")
 }
 
-func FormatLastSeen(t time.Time) string {
-	human := formatLastSeenHuman(t)
-	return fmt.Sprintf(
-		"<tg-time unix=\"%d\">%s</tg-time>",
-		t.Unix(),
-		human,
-	)
-}
-
 func FormatLastSeenPlain(t time.Time) string {
 	return formatLastSeenHuman(t)
 }
@@ -134,16 +104,6 @@ func pluralRu(n int, one, few, many string) string {
 	default:
 		return many
 	}
-}
-
-func FormatWeekStartDay(day int) string {
-	days := [...]string{
-		"понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье",
-	}
-	if day < 1 || day > 7 {
-		return "неизвестно"
-	}
-	return days[day-1]
 }
 
 func TimeToMicroseconds(s string) int64 {

@@ -3,7 +3,6 @@ package helpers
 import (
 	"activity-bot/internal/model"
 	"fmt"
-	"html"
 	"strings"
 
 	"github.com/gotd/td/telegram/message/entity"
@@ -30,24 +29,6 @@ func MemberDisplayName(cm model.ChatMember) string {
 		displayName = fullName
 	}
 	return displayName
-}
-
-func RoleMentionEmoji(cm model.ChatMember) string {
-	var emoji string
-	if cm.Emoji != "" {
-		emoji = cm.Emoji + " "
-	} else if cm.User.Emoji != "" {
-		emoji = cm.User.Emoji + " "
-	}
-	return emoji + Mention(cm.User.ID, MemberDisplayName(cm))
-
-}
-
-func Mention(id int64, value string) string {
-	if value == "" {
-		value = "—"
-	}
-	return fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, id, html.EscapeString(value))
 }
 
 func WriteMention(eb *entity.Builder, id int64, value string) {
