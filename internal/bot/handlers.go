@@ -108,7 +108,7 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).
 		SetDescription("Системный ИИ промпт").
 		SetCategory(command.CategorySettings))
-	a.dp.AddHandler(f.New("chat_title_change", chatHandler.OnNewChatTitle).WrapEvent())
+	a.dp.AddHandler(f.New("chat_title_change", chatHandler.OnNewChatTitle).WrapEvent(chatTitleChangedFilter))
 
 	a.dp.AddHandler(f.New("manage", chatHandler.Manage).
 		SetDescription("Управление чатом").
@@ -341,16 +341,16 @@ func (a *App) RegisterHandlers() {
 		},
 		map[string][]conversation.Handler{
 			callH.CallStateInactive: {
-				f.New("handle_call_inactive_message", callHandler.HandleCallInactiveMessage).WrapEvent(),
+				f.New("handle_call_inactive_message", callHandler.HandleCallInactiveMessage).WrapEvent(textMessageFilter),
 			},
 			callH.CallStateNoNorm: {
-				f.New("handle_call_no_norm_message", callHandler.HandleCallNoNormMessage).WrapEvent(),
+				f.New("handle_call_no_norm_message", callHandler.HandleCallNoNormMessage).WrapEvent(textMessageFilter),
 			},
 			callH.CallStateNoNormWarn: {
-				f.New("handle_call_no_norm_warn_message", callHandler.HandleCallNoNormWarnMessage).WrapEvent(),
+				f.New("handle_call_no_norm_warn_message", callHandler.HandleCallNoNormWarnMessage).WrapEvent(textMessageFilter),
 			},
 			callH.CallStateNoNormBan: {
-				f.New("handle_call_no_norm_ban_message", callHandler.HandleCallNoNormBanMessage).WrapEvent(),
+				f.New("handle_call_no_norm_ban_message", callHandler.HandleCallNoNormBanMessage).WrapEvent(textMessageFilter),
 			},
 		},
 		storage,
@@ -640,14 +640,14 @@ func (a *App) RegisterHandlers() {
 			WrapCallback(filters.CallbackQuery.Prefix("unsubscribe")),
 	)
 	a.dp.AddHandler(
-		f.New("left_member", memberHandler.OnLeftMember).WrapEvent(),
+		f.New("left_member", memberHandler.OnLeftMember).WrapEvent(leftMemberFilter),
 	)
 	a.dp.AddHandler(
-		f.New("new_members", memberHandler.OnJoinMember).WrapEvent(),
+		f.New("new_members", memberHandler.OnJoinMember).WrapEvent(joinMemberFilter),
 	)
 
 	a.dp.AddHandler(
-		f.New("message", messageHandler.Message).WrapEvent(),
+		f.New("message", messageHandler.Message).WrapEvent(textMessageFilter),
 	)
 
 	var userScopeBotCommands []tg.BotCommand
