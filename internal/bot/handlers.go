@@ -108,6 +108,9 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).
 		SetDescription("Системный ИИ промпт").
 		SetCategory(command.CategorySettings))
+	a.dp.AddHandler(
+		f.New("new_members", memberHandler.OnJoinMember).WrapEvent(joinMemberFilter),
+	)
 	a.dp.AddHandler(f.New("chat_title_change", chatHandler.OnNewChatTitle).WrapEvent(chatTitleChangedFilter))
 
 	a.dp.AddHandler(f.New("manage", chatHandler.Manage).
@@ -641,9 +644,6 @@ func (a *App) RegisterHandlers() {
 	)
 	a.dp.AddHandler(
 		f.New("left_member", memberHandler.OnLeftMember).WrapEvent(leftMemberFilter),
-	)
-	a.dp.AddHandler(
-		f.New("new_members", memberHandler.OnJoinMember).WrapEvent(joinMemberFilter),
 	)
 
 	a.dp.AddHandler(

@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/model"
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/celestix/gotgproto"
@@ -37,7 +38,15 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 	}
 	chats := d.GetChats()
 	if len(chats) == 0 {
-		return nil, errors.New("chat not found s")
+		log.Println(chatID, peerID)
+		c, err := p.client.API().MessagesGetChats(ctx, []int64{chatID})
+		if err != nil {
+			return nil, err
+		}
+		chats = c.GetChats()
+		if len(chats) == 0 {
+			return nil, errors.New("no chats found")
+		}
 	}
 	ch := chats[0]
 	fullChannel, ok := ch.(*tg.Channel)

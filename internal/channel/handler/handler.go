@@ -48,7 +48,7 @@ func (h *Handler) Post(ctx *command.Context, u *ext.Update) error {
 
 		_, err := h.asyncClient.Enqueue(task)
 		if err != nil {
-			return err
+			return fmt.Errorf("post: enqueue broadcast task: %w", err)
 		}
 	}
 
@@ -61,17 +61,17 @@ func (h *Handler) Unsubscribe(ctx *command.Context, u *ext.Update) error {
 
 	m, err := h.memberService.GetChatMember(ctx.StdContext(), effectiveChat.GetID(), effectiveSender.GetID())
 	if err != nil {
-		return err
+		return fmt.Errorf("unsubscribe: get member: %w", err)
 	}
 	if !m.StatusGranted(model.StatusCoOwner) {
 		_, err := ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
 			Message: "У вас нет прав адмниистратора для этого",
 		})
-		return err
+		return fmt.Errorf("unsubscribe: answer callback: %w", err)
 	}
 	err = h.chatService.DisableBroadcast(ctx.StdContext(), effectiveChat.GetID())
 	if err != nil {
-		return err
+		return fmt.Errorf("unsubscribe: disable broadcast: %w", err)
 	}
 
 	_, err = ctx.EditMessage(effectiveChat.GetID(), &tg.MessagesEditMessageRequest{
@@ -79,7 +79,7 @@ func (h *Handler) Unsubscribe(ctx *command.Context, u *ext.Update) error {
 		ReplyMarkup: nil,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("unsubscribe: edit message: %w", err)
 	}
 
 	return ctx.ReplyOnly(u, options.WithText("Рассылка отключена ❌"))
@@ -88,10 +88,10 @@ func (h *Handler) Unsubscribe(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) Subscribe(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("subscribe: get chat: %w", err)
 	}
 	if err := h.chatService.EnableBroadcast(ctx.StdContext(), c.ID); err != nil {
-		return err
+		return fmt.Errorf("subscribe: enable broadcast: %w", err)
 	}
 	return ctx.ReplyOnly(u, options.WithText("Рассылка включена"))
 }

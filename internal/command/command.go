@@ -220,7 +220,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	// sender
 	member, err := c.resolveMember(ctx, handlerCtx.chat, u.EffectiveUser())
 	if err != nil {
-		return errors.Wrap(err, "resolve sender failed")
+		logger.L.Error("resolve sender failed", "error", err)
 	}
 	handlerCtx.senderChatMember = member
 
@@ -395,7 +395,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 		}
 	}
 
-	if !c.checkStatusDisabled && !handlerCtx.senderChatMember.StatusGranted(c.RequiredStatus()) {
+	if !c.checkStatusDisabled && handlerCtx.senderChatMember != nil && !handlerCtx.senderChatMember.StatusGranted(c.RequiredStatus()) {
 
 		if err := handlerCtx.ReplyOnly(u, options.WithText(fmt.Sprintf("Требуются права: %s", c.RequiredStatus()))); err != nil {
 			logger.L.Error("reply status", "error", err)

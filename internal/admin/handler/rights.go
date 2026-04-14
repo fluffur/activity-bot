@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/command"
 	"activity-bot/internal/model"
 	"activity-bot/internal/options"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -22,7 +23,7 @@ func (h *Handler) ManageRights(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) CallbackManageRights(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("manage rights: get chat: %w", err)
 	}
 	data := u.CallbackQuery.Data
 	parts := strings.Split(string(data), ":")
@@ -39,7 +40,7 @@ func (h *Handler) CallbackManageRights(ctx *command.Context, u *ext.Update) erro
 			Entities:    entities,
 			ReplyMarkup: view.GetCategoriesKeyboard(),
 		})
-		return err
+		return fmt.Errorf("manage rights: show categories: %w", err)
 
 	case "rights_cat":
 		if len(parts) < 2 {
@@ -48,7 +49,7 @@ func (h *Handler) CallbackManageRights(ctx *command.Context, u *ext.Update) erro
 		category := command.Category(parts[1])
 		perms, err := h.chatService.GetCommandPermissions(ctx.StdContext(), c.ID)
 		if err != nil {
-			return err
+			return fmt.Errorf("manage rights: get permissions: %w", err)
 		}
 
 		configCmds := h.factory.ConfigurableCommands()
@@ -61,7 +62,7 @@ func (h *Handler) CallbackManageRights(ctx *command.Context, u *ext.Update) erro
 			Entities:    entities,
 			ReplyMarkup: view.GetCommandsByCategoryKeyboard(category, configCmds, perms),
 		})
-		return err
+		return fmt.Errorf("manage rights: show category commands: %w", err)
 
 	case "rights_edit":
 		if len(parts) < 2 {
@@ -83,7 +84,7 @@ func (h *Handler) CallbackManageRights(ctx *command.Context, u *ext.Update) erro
 			Entities:    entities,
 			ReplyMarkup: view.GetEditRightsKeyboard(key, status, configCmds),
 		})
-		return err
+		return fmt.Errorf("manage rights: show command editor: %w", err)
 
 	case "rights_set":
 		if len(parts) < 3 {
@@ -95,7 +96,7 @@ func (h *Handler) CallbackManageRights(ctx *command.Context, u *ext.Update) erro
 
 		err := h.chatService.SetCommandPermission(ctx.StdContext(), c.ID, key, status)
 		if err != nil {
-			return err
+			return fmt.Errorf("manage rights: set command permission: %w", err)
 		}
 
 		configCmds := h.factory.ConfigurableCommands()
@@ -118,7 +119,7 @@ func (h *Handler) CallbackManageRights(ctx *command.Context, u *ext.Update) erro
 				Message: "Права с этим уровнем уже установлены",
 			})
 		}
-		return err
+		return fmt.Errorf("manage rights: update rights message: %w", err)
 	}
 
 	return nil

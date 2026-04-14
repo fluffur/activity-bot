@@ -43,19 +43,19 @@ func New(service *rest.Service, userService *user.Service, memberService *member
 func (h *Handler) SetRest(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("set rest: get chat: %w", err)
 	}
 	target, err := ctx.AnyUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("set rest: resolve target: %w", err)
 	}
 	sender, err := ctx.Sender()
 	if err != nil {
-		return err
+		return fmt.Errorf("set rest: resolve sender: %w", err)
 	}
 	date, err := ctx.Date()
 	if err != nil {
-		return err
+		return fmt.Errorf("set rest: parse date: %w", err)
 	}
 	reason := ctx.TextOrDefault("")
 
@@ -96,7 +96,7 @@ func (h *Handler) createRequest(ctx *command.Context, u *ext.Update, target *mod
 
 	msg, err := ctx.Reply(u, options.WithBuilder(eb), options.WithMarkup(kb))
 	if err != nil {
-		return err
+		return fmt.Errorf("create rest request: send request message: %w", err)
 	}
 
 	slog.Info("rest requested", "message_id", msg.GetID())
@@ -110,7 +110,7 @@ func (h *Handler) createRequest(ctx *command.Context, u *ext.Update, target *mod
 func (h *Handler) ShowRest(ctx *command.Context, u *ext.Update) error {
 	target, err := ctx.AnyUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("show rest: resolve user: %w", err)
 	}
 
 	eb := &entity.Builder{}
@@ -122,12 +122,12 @@ func (h *Handler) ShowRest(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) AllUserRests(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("all user rests: get chat: %w", err)
 	}
 
 	target, err := ctx.AnyUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("all user rests: resolve user: %w", err)
 	}
 	var requests []model.ApprovedRestRequest
 
@@ -145,11 +145,11 @@ func (h *Handler) AllUserRests(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) EndRest(ctx *command.Context, u *ext.Update) error {
 	m, err := ctx.AnyUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("end rest: resolve user: %w", err)
 	}
 	mod, err := ctx.Sender()
 	if err != nil {
-		return err
+		return fmt.Errorf("end rest: resolve sender: %w", err)
 	}
 	if m.User.ID != mod.User.ID && !mod.StatusGranted(ctx.RequiredStatus()) {
 		return ctx.ReplyOnly(u, options.WithText("Вы можете удалить из реста только себя"))
@@ -175,7 +175,7 @@ func (h *Handler) EndRest(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) ApproveRestRequest(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("approve rest request: get chat: %w", err)
 	}
 	chatID := c.ID
 	cq := u.CallbackQuery
@@ -185,7 +185,7 @@ func (h *Handler) ApproveRestRequest(ctx *command.Context, u *ext.Update) error 
 	data, _ := cq.GetData()
 	fromID, err := parseRequestCallbackData(string(data))
 	if err != nil {
-		return err
+		return fmt.Errorf("approve rest request: parse callback: %w", err)
 	}
 	restRequest, err := h.service.GetRestRequest(ctx.StdContext(), chatID, fromID, int64(cq.GetMsgID()))
 	if err != nil {
@@ -194,11 +194,11 @@ func (h *Handler) ApproveRestRequest(ctx *command.Context, u *ext.Update) error 
 			Message: "Не найден запрос на рест",
 			Alert:   true,
 		})
-		return err
+		return fmt.Errorf("approve rest request: load request: %w", err)
 	}
 	moderator, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, u.EffectiveUser().GetID())
 	if err != nil {
-		return err
+		return fmt.Errorf("approve rest request: get moderator: %w", err)
 	}
 
 	requiredStatus := model.StatusAdmin
@@ -214,7 +214,7 @@ func (h *Handler) ApproveRestRequest(ctx *command.Context, u *ext.Update) error 
 			Message: "Подтвердить запрос может только администратор",
 			Alert:   true,
 		})
-		return err
+		return fmt.Errorf("approve rest request: insufficient rights callback: %w", err)
 	}
 
 	if err := h.service.ApproveRestRequest(ctx.StdContext(), chatID, fromID, int64(cq.GetMsgID()), restRequest.RestUntil); err != nil {
@@ -223,7 +223,7 @@ func (h *Handler) ApproveRestRequest(ctx *command.Context, u *ext.Update) error 
 			Message: "Не удалось одобрить запрос",
 			Alert:   true,
 		})
-		return err
+		return fmt.Errorf("approve rest request: approve request callback: %w", err)
 	}
 
 	target, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, fromID)
@@ -232,7 +232,7 @@ func (h *Handler) ApproveRestRequest(ctx *command.Context, u *ext.Update) error 
 			QueryID: cq.QueryID,
 			Message: "Не удалось найти пользователя",
 		})
-		return err
+		return fmt.Errorf("approve rest request: get target member: %w", err)
 	}
 
 	eb := &entity.Builder{}
@@ -245,7 +245,7 @@ func (h *Handler) ApproveRestRequest(ctx *command.Context, u *ext.Update) error 
 		Entities: entities,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("approve rest request: edit message: %w", err)
 	}
 
 	_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
@@ -260,7 +260,7 @@ func (h *Handler) RejectRestRequest(ctx *command.Context, u *ext.Update) error {
 
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("reject rest request: get chat: %w", err)
 	}
 	chatID := c.ID
 
@@ -271,7 +271,7 @@ func (h *Handler) RejectRestRequest(ctx *command.Context, u *ext.Update) error {
 	data, _ := cq.GetData()
 	fromID, err := parseRequestCallbackData(string(data))
 	if err != nil {
-		return err
+		return fmt.Errorf("reject rest request: parse callback: %w", err)
 	}
 	restRequest, err := h.service.GetRestRequest(cctx, chatID, fromID, int64(cq.GetMsgID()))
 	if err != nil {
@@ -280,11 +280,11 @@ func (h *Handler) RejectRestRequest(ctx *command.Context, u *ext.Update) error {
 			Message: "Не найден запрос на рест",
 			Alert:   true,
 		})
-		return err
+		return fmt.Errorf("reject rest request: load request: %w", err)
 	}
 	moderator, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, u.EffectiveUser().GetID())
 	if err != nil {
-		return err
+		return fmt.Errorf("reject rest request: get moderator: %w", err)
 	}
 
 	requiredStatus := model.StatusAdmin
@@ -300,7 +300,7 @@ func (h *Handler) RejectRestRequest(ctx *command.Context, u *ext.Update) error {
 			Message: "Отклонить запрос может только администратор или заявитель реста",
 			Alert:   true,
 		})
-		return err
+		return fmt.Errorf("reject rest request: insufficient rights callback: %w", err)
 	}
 	slog.Info("rejecting rest request", "message_id", cq.GetMsgID())
 	if err := h.service.RejectRestRequest(cctx, chatID, u.EffectiveUser().GetID(), int64(cq.GetMsgID())); err != nil {
@@ -309,7 +309,7 @@ func (h *Handler) RejectRestRequest(ctx *command.Context, u *ext.Update) error {
 			Message: "Не удалось отклонить запрос",
 			Alert:   true,
 		})
-		return err
+		return fmt.Errorf("reject rest request: reject callback: %w", err)
 	}
 
 	target, err := h.memberService.GetChatMember(cctx, chatID, fromID)
@@ -327,7 +327,7 @@ func (h *Handler) RejectRestRequest(ctx *command.Context, u *ext.Update) error {
 		Entities: entities,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("reject rest request: edit message: %w", err)
 	}
 
 	_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
@@ -344,7 +344,7 @@ func parseRequestCallbackData(callbackData string) (int64, error) {
 	}
 	fromID, err := strconv.ParseInt(parts[1], 10, 64)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("parse callback user id: %w", err)
 	}
 	return fromID, nil
 }
@@ -352,7 +352,7 @@ func parseRequestCallbackData(callbackData string) (int64, error) {
 func (h *Handler) RemoveRestRequest(ctx *command.Context, u *ext.Update) error {
 	target, err := ctx.AnyUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("remove rest request: resolve user: %w", err)
 	}
 	number, err := ctx.Number()
 	if err != nil {
@@ -361,7 +361,7 @@ func (h *Handler) RemoveRestRequest(ctx *command.Context, u *ext.Update) error {
 
 	requests, err := h.service.GetRequests(ctx.StdContext(), target.ChatID, target.User.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("remove rest request: get requests: %w", err)
 	}
 	if number > len(requests) {
 		return ctx.ReplyOnly(u, options.WithText("Не найден запрос с этим номером"))
@@ -371,13 +371,13 @@ func (h *Handler) RemoveRestRequest(ctx *command.Context, u *ext.Update) error {
 
 	if request.RestUntil.Equal(target.RestUntil) {
 		if err := h.service.DeleteRestRequestAndEndRest(ctx.StdContext(), request.ChatID, request.UserID, request.ID); err != nil {
-			return err
+			return fmt.Errorf("remove rest request: delete and end rest: %w", err)
 		}
 		return ctx.ReplyOnly(u, options.WithText("Удалён действительный запрос на рест, вместе с этим удалён и статус реста у участника"))
 	}
 
 	if err := h.service.DeleteRestRequest(ctx.StdContext(), request.ID); err != nil {
-		return err
+		return fmt.Errorf("remove rest request: delete request: %w", err)
 	}
 	return ctx.ReplyOnly(u, options.WithText("Запрос на рест успешно удален"))
 }

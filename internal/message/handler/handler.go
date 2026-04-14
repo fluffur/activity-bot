@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/member"
 	"activity-bot/internal/message"
 	"activity-bot/internal/options"
+	"fmt"
 
 	"github.com/cohesion-org/deepseek-go"
 
@@ -27,7 +28,7 @@ func New(service *message.Service, memberService *member.Service, chatService *c
 func (h *Handler) Bot(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("bot: get chat: %w", err)
 	}
 	request := &deepseek.ChatCompletionRequest{
 		Model: deepseek.DeepSeekChat,
@@ -45,7 +46,7 @@ func (h *Handler) Bot(ctx *command.Context, u *ext.Update) error {
 	resp, err := h.deepseekClient.CreateChatCompletion(ctx.StdContext(), request)
 	if err != nil {
 		_ = ctx.ReplyOnly(u, options.WithText("Не удалось получить ответ от бота"))
-		return err
+		return fmt.Errorf("bot: create chat completion: %w", err)
 	}
 
 	if len(resp.Choices) == 0 {
@@ -79,7 +80,7 @@ func (h *Handler) Message(ctx *command.Context, u *ext.Update) error {
 		effectiveSender.LastName,
 		"",
 	); err != nil {
-		return err
+		return fmt.Errorf("message: ensure member exists: %w", err)
 	}
 
 	return h.service.Save(

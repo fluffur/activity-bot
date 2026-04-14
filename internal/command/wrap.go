@@ -86,7 +86,7 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 		}
 
 		if err = c.response(&handlerCtx, u); err != nil {
-			return err
+			return errors.Wrap(err, "callback: response failed")
 		}
 
 		return dispatcher.SkipCurrentGroup
@@ -117,7 +117,7 @@ func (c *Command) WrapEvent(filter filters.UpdateFilter) HandlerFunc {
 
 		senderMember, err := c.resolveMember(ctx, handlerCtx.chat, u.EffectiveUser())
 		if err != nil {
-			return err
+			logger.L.Error("event: resolve sender failed", "error", err)
 		}
 		handlerCtx.senderChatMember = senderMember
 
@@ -132,7 +132,7 @@ func (c *Command) WrapEvent(filter filters.UpdateFilter) HandlerFunc {
 		}
 
 		if err = c.response(handlerCtx, u); err != nil {
-			return err
+			return errors.Wrap(err, "event: response failed")
 		}
 
 		return nil

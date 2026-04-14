@@ -35,7 +35,7 @@ func (h *Handler) SetGender(ctx *command.Context, u *ext.Update) error {
 
 	if err := h.service.SetGender(ctx.StdContext(), u.EffectiveUser().GetID(), gender); err != nil {
 		_ = ctx.ReplyOnly(u, options.WithText("Не удалось установить пол"))
-		return err
+		return fmt.Errorf("set gender: %w", err)
 	}
 
 	genderName := "мужской"
@@ -49,7 +49,7 @@ func (h *Handler) SetGender(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) ShowGender(ctx *command.Context, u *ext.Update) error {
 	cm, err := ctx.AnyUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("show gender: resolve user: %w", err)
 	}
 	gender := "неизвестен"
 	if cm.User.Gender == model.GenderFemale {
@@ -68,7 +68,7 @@ func (h *Handler) ShowGender(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) SetEmoji(ctx *command.Context, u *ext.Update) error {
 	cm, err := ctx.AnyUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("set emoji: resolve user: %w", err)
 	}
 	if cm.User.ID != u.EffectiveUser().GetID() {
 		return ctx.ReplyOnly(u, options.WithText("Нельзя менять эмоджи других пользователей. Для эмоджи в рамках чата есть значки. Попробуйте через команду значок"))
@@ -97,7 +97,7 @@ func (h *Handler) SetEmoji(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) RemoveEmoji(ctx *command.Context, u *ext.Update) error {
 	member, err := ctx.Sender()
 	if err != nil {
-		return err
+		return fmt.Errorf("remove emoji: resolve sender: %w", err)
 	}
 	if len(member.User.Emojis) == 0 {
 		return ctx.ReplyOnly(u, options.WithText("У вас не установлен эмоджи"))
@@ -118,7 +118,7 @@ func (h *Handler) RemoveEmoji(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) ShowEmoji(ctx *command.Context, u *ext.Update) error {
 	cm, err := ctx.AnyUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("show emoji: resolve user: %w", err)
 	}
 
 	eb := &entity.Builder{}

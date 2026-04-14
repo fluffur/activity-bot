@@ -66,11 +66,11 @@ func New(
 func (h *Handler) Call(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("call: get chat: %w", err)
 	}
 	members, err := h.memberService.GetChatMembers(ctx.StdContext(), c.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("call: get chat members: %w", err)
 	}
 
 	if len(members) == 0 {
@@ -90,11 +90,11 @@ func (h *Handler) Call(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) CallInactive(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("call inactive: get chat: %w", err)
 	}
 	members, err := h.service.GetInactiveMembers(ctx.StdContext(), c.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("call inactive: get inactive members: %w", err)
 	}
 	if len(members) == 0 {
 		return ctx.ReplyOnly(u, options.WithText("Нет участников, не писавших более суток"))
@@ -105,7 +105,7 @@ func (h *Handler) CallInactive(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) CallNoNorm(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("call no norm: get chat: %w", err)
 	}
 
 	from, to := stats.ResolvePeriod(
@@ -117,7 +117,7 @@ func (h *Handler) CallNoNorm(ctx *command.Context, u *ext.Update) error {
 
 	members, err := h.memberService.GetNoNormMembers(ctx.StdContext(), c.ID, from, to)
 	if err != nil {
-		return err
+		return fmt.Errorf("call no norm: get members: %w", err)
 	}
 	if len(members) == 0 {
 		eb := &entity.Builder{}
@@ -132,7 +132,7 @@ func (h *Handler) CallNoNorm(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) CallNoNormWarn(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("call no norm warn: get chat: %w", err)
 	}
 
 	from, to := stats.ResolvePeriod(
@@ -144,7 +144,7 @@ func (h *Handler) CallNoNormWarn(ctx *command.Context, u *ext.Update) error {
 
 	members, err := h.memberService.GetNoNormWarnMembers(ctx.StdContext(), c.ID, from, to)
 	if err != nil {
-		return err
+		return fmt.Errorf("call no norm warn: get members: %w", err)
 	}
 	if len(members) == 0 {
 		return ctx.ReplyOnly(u, options.WithText("Все участники выполнили норму предупреждения"))
@@ -156,7 +156,7 @@ func (h *Handler) CallNoNormWarn(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) CallNoNormBan(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("call no norm ban: get chat: %w", err)
 	}
 
 	from, to := stats.ResolvePeriod(
@@ -168,7 +168,7 @@ func (h *Handler) CallNoNormBan(ctx *command.Context, u *ext.Update) error {
 
 	members, err := h.memberService.GetNoNormBanMembers(ctx.StdContext(), c.ID, from, to)
 	if err != nil {
-		return err
+		return fmt.Errorf("call no norm ban: get members: %w", err)
 	}
 	if len(members) == 0 {
 		return ctx.ReplyOnly(u, options.WithText("Все участники выполнили норму бана"))
@@ -186,7 +186,7 @@ func (h *Handler) doCall(
 ) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("do call: get chat: %w", err)
 	}
 
 	mentionsLimit := int(c.MentionsPerMessage)
@@ -211,7 +211,7 @@ func (h *Handler) doCall(
 		finalEntities := append(entities, chunkEntities...)
 
 		if err := ctx.ReplyOnly(u, options.WithText(finalText), options.WithEntities(finalEntities)); err != nil {
-			return err
+			return fmt.Errorf("do call: send chunk: %w", err)
 		}
 	}
 
@@ -221,11 +221,11 @@ func (h *Handler) doCall(
 func (h *Handler) SetMentionsPerMessage(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("set mentions per message: get chat: %w", err)
 	}
 	count, err := ctx.Number()
 	if err != nil {
-		return err
+		return fmt.Errorf("set mentions per message: parse number: %w", err)
 	}
 	if count <= 0 || count > 50 {
 		return ctx.ReplyOnly(u, options.WithText("Укажите число от 1 до 50"))
@@ -236,7 +236,7 @@ func (h *Handler) SetMentionsPerMessage(ctx *command.Context, u *ext.Update) err
 		c.ID,
 		int32(count),
 	); err != nil {
-		return err
+		return fmt.Errorf("set mentions per message: save: %w", err)
 	}
 
 	return ctx.ReplyOnly(
@@ -248,7 +248,7 @@ func (h *Handler) SetMentionsPerMessage(ctx *command.Context, u *ext.Update) err
 func (h *Handler) ShowMentionsPerMessage(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("show mentions per message: get chat: %w", err)
 	}
 	return ctx.ReplyOnly(
 		u,
@@ -262,7 +262,7 @@ func (h *Handler) ShowCallTypes(ctx *command.Context, u *ext.Update) error {
 	}
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("show call types: get chat: %w", err)
 	}
 
 	return ctx.ReplyOnly(
@@ -275,13 +275,13 @@ func (h *Handler) ShowCallTypes(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) CallbackCallType(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("callback call type: get chat: %w", err)
 	}
 
 	data, _ := u.CallbackQuery.GetData()
 	var bit int32
 	if _, err := fmt.Sscanf(string(data), "call_type:%d", &bit); err != nil {
-		return err
+		return fmt.Errorf("callback call type: parse callback: %w", err)
 	}
 
 	current := c.MentionTypes
@@ -303,7 +303,7 @@ func (h *Handler) CallbackCallType(ctx *command.Context, u *ext.Update) error {
 	}
 
 	if err := h.service.SetMentionTypes(ctx.StdContext(), c.ID, newTypes); err != nil {
-		return err
+		return fmt.Errorf("callback call type: set mention types: %w", err)
 	}
 
 	_, err = ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
@@ -311,14 +311,17 @@ func (h *Handler) CallbackCallType(ctx *command.Context, u *ext.Update) error {
 		ReplyMarkup: h.getCallTypesKeyboard(newTypes),
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("callback call type: edit message: %w", err)
 	}
 
 	_, err = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
 		Message: "Настройки обновлены",
 		QueryID: u.CallbackQuery.QueryID,
 	})
-	return err
+	if err != nil {
+		return fmt.Errorf("callback call type: answer callback: %w", err)
+	}
+	return nil
 }
 
 func (h *Handler) getCallTypesKeyboard(currentTypes int32) tg.ReplyMarkupClass {

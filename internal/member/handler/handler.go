@@ -38,12 +38,12 @@ func New(service *member.Service, chatService *chat.Service, userService *user.S
 func (h *Handler) UpdateMembersList(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("update members list: get chat: %w", err)
 	}
 	count, err := h.service.SyncChatMembers(ctx.StdContext(), c.ID)
 	if err != nil {
 		_ = ctx.ReplyOnly(u, options.WithText("Не удалось обновить данные чата"))
-		return err
+		return fmt.Errorf("update members list: sync chat members: %w", err)
 	}
 
 	return ctx.ReplyOnly(u, options.WithText(memberview.FormatSyncResult(count)))
@@ -52,12 +52,12 @@ func (h *Handler) UpdateMembersList(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) ListRoles(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("list roles: get chat: %w", err)
 	}
 	members, err := h.service.GetMembersWithTitle(ctx.StdContext(), c.ID)
 	if err != nil {
 		_ = ctx.ReplyOnly(u, options.WithText("Не удалось получить список ролей"))
-		return err
+		return fmt.Errorf("list roles: get members with title: %w", err)
 	}
 
 	if len(members) == 0 {
@@ -70,11 +70,11 @@ func (h *Handler) ListRoles(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) SetRole(ctx *command.Context, u *ext.Update) error {
 	cm, err := ctx.AnyUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("set role: resolve user: %w", err)
 	}
 	tag, err := ctx.Text()
 	if err != nil {
-		return err
+		return fmt.Errorf("set role: parse tag: %w", err)
 	}
 
 	if utf8.RuneCountInString(tag) > 16 {
@@ -87,7 +87,7 @@ func (h *Handler) SetRole(ctx *command.Context, u *ext.Update) error {
 
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("set role: get chat: %w", err)
 	}
 
 	if c.TagsEnabled {
@@ -113,7 +113,7 @@ func (h *Handler) SetRole(ctx *command.Context, u *ext.Update) error {
 			_ = ctx.ReplyOnly(u, options.WithText(
 				fmt.Sprintf("Телеграм не позволил установить роль участнику.\nПроверьте, есть ли у бота право на добавление администраторов\n\n%s", err.Error()),
 			))
-			return err
+			return fmt.Errorf("set role: channels edit admin: %w", err)
 		}
 	}
 
@@ -125,7 +125,7 @@ func (h *Handler) SetRole(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) ShowRole(ctx *command.Context, u *ext.Update) error {
 	cm, err := ctx.AnyUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("show role: resolve user: %w", err)
 	}
 
 	if cm.Tag == "" {
@@ -141,6 +141,7 @@ func (h *Handler) ShowRole(ctx *command.Context, u *ext.Update) error {
 }
 
 func (h *Handler) OnJoinMember(ctx *command.Context, u *ext.Update) error {
+	log.Println("join member")
 	msg := u.EffectiveMessage
 	if msg.Action == nil {
 		return nil
@@ -180,7 +181,7 @@ func (h *Handler) OnJoinMember(ctx *command.Context, u *ext.Update) error {
 			effectiveUser.LastName,
 			"",
 		); err != nil {
-			return err
+			return fmt.Errorf("join member: ensure member exists: %w", err)
 		}
 	}
 
@@ -190,13 +191,13 @@ func (h *Handler) OnJoinMember(ctx *command.Context, u *ext.Update) error {
 
 		chatData, err := ctx.Chat()
 		if err != nil {
-			return err
+			return fmt.Errorf("join member: get chat: %w", err)
 		}
 
 		if chatData.CallOnJoin {
 			members, err := h.callService.GetAllMembers(ctx.StdContext(), effectiveChat.GetID())
 			if err != nil {
-				return err
+				return fmt.Errorf("join member: get call members: %w", err)
 			}
 
 			mentionsLimit := int(chatData.MentionsPerMessage)
@@ -235,7 +236,7 @@ func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
 	}
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("left member: get chat: %w", err)
 	}
 	action, ok := msg.Action.(*tg.MessageActionChatDeleteUser)
 	if !ok {
@@ -247,7 +248,7 @@ func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
 
 	m, err := h.service.ProcessLeftMember(ctx.StdContext(), u.EffectiveChat().GetID(), userID)
 	if err != nil {
-		return err
+		return fmt.Errorf("left member: process leave: %w", err)
 	}
 	eb := &entity.Builder{}
 	eb.Plain("🕊 ")
@@ -255,7 +256,7 @@ func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
 	eb.Plain(fmt.Sprintf(" %s нас", helpers.Gendered(m.User.Gender, "покинул", "покинула")))
 	admins, err := h.adminService.GetAdminsEnsured(ctx.StdContext(), u.EffectiveChat().GetID(), h.service.SyncChatMembers)
 	if err != nil {
-		return err
+		return fmt.Errorf("left member: get admins ensured: %w", err)
 	}
 	eb.Plain("\n\n")
 	for _, a := range admins {
@@ -266,13 +267,22 @@ func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
 }
 
 func (h *Handler) OnBotPromote(ctx *command.Context, u *ext.Update) error {
-	effectiveChat := u.GetChat()
+	log.Println("bot promote")
+	effectiveChat := u.EffectiveChat()
 	count, err := h.service.SyncChatMembers(ctx.StdContext(), effectiveChat.GetID())
 	if err != nil {
-		return err
+		return fmt.Errorf("bot promote: sync chat members: %w", err)
 	}
-	if err := h.chatService.SetTitle(ctx.StdContext(), effectiveChat.GetID(), effectiveChat.GetTitle()); err != nil {
-		return err
+	ch := u.GetChat()
+	channel := u.GetChannel()
+	var title string
+	if ch != nil {
+		title = ch.Title
+	} else if channel != nil {
+		title = channel.Title
+	}
+	if err := h.chatService.SetTitle(ctx.StdContext(), effectiveChat.GetID(), title); err != nil {
+		return fmt.Errorf("bot promote: set chat title: %w", err)
 	}
 
 	slog.Info("updated chat members on bot join", "chat_id", effectiveChat.GetID(), "count", count)
@@ -282,12 +292,12 @@ func (h *Handler) OnBotPromote(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) ShipRandom(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
-		return err
+		return fmt.Errorf("ship random: get chat: %w", err)
 	}
 
 	members, err := h.service.GetChatMembers(ctx.StdContext(), c.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("ship random: get chat members: %w", err)
 	}
 
 	rand.Shuffle(len(members), func(i, j int) {
@@ -316,7 +326,7 @@ func (h *Handler) ShipRandom(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) ShowEmoji(ctx *command.Context, u *ext.Update) error {
 	cm, err := ctx.AnyUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("show member emoji: resolve user: %w", err)
 	}
 
 	eb := &entity.Builder{}
@@ -341,7 +351,7 @@ func (h *Handler) ShowEmoji(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) SetEmoji(ctx *command.Context, u *ext.Update) error {
 	cm, err := ctx.AnyUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("set member emoji: resolve user: %w", err)
 	}
 
 	emojis := helpers.ExtractEmoji(ctx.RawArgs, ctx.RawArgsEntities)
@@ -375,7 +385,7 @@ func (h *Handler) SetEmoji(ctx *command.Context, u *ext.Update) error {
 func (h *Handler) RemoveEmoji(ctx *command.Context, u *ext.Update) error {
 	cm, err := ctx.AnyUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("remove member emoji: resolve user: %w", err)
 	}
 
 	if len(cm.Emojis) == 0 {
