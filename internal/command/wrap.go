@@ -80,7 +80,7 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 				if errors.Is(err, ErrStop) {
 					return dispatcher.SkipCurrentGroup
 				}
-				logger.L.Error("middleware", "error", err)
+				logger.L.Error("middleware", err)
 				return dispatcher.SkipCurrentGroup
 			}
 		}
@@ -93,12 +93,8 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 	}
 }
 
-func (c *Command) WrapEvent(filter filters.UpdateFilter) HandlerFunc {
+func (c *Command) WrapEvent() HandlerFunc {
 	return func(ctx *ext.Context, u *ext.Update) error {
-		if filter != nil && !filter(u) {
-			return nil
-		}
-
 		msg := u.EffectiveMessage
 		if msg == nil {
 			return nil
@@ -126,7 +122,7 @@ func (c *Command) WrapEvent(filter filters.UpdateFilter) HandlerFunc {
 				if errors.Is(err, ErrStop) {
 					return dispatcher.SkipCurrentGroup
 				}
-				logger.L.Error("middleware", "error", err)
+				logger.L.Error("middleware", err)
 				return dispatcher.SkipCurrentGroup
 			}
 		}
