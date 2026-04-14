@@ -645,5 +645,12 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(
 		f.New("message", messageHandler.Message).WrapEvent(),
 	)
-
+	//a.Bot.API().BotsSetBotCommands(ctx, &tg.BotsSetBotCommandsRequest{
+	//	Scope:    nil,
+	//	LangCode: "",
+	//	Commands: nil,
+	//})
+	//for _, cmd := range f.ConfigurableCommands() {
+	//
+	//}
 }
