@@ -5,3 +5,4 @@ backups/
 ./migrate
 ./bot
 data/
+flood_cm
