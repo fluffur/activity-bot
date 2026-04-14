@@ -1,8 +1,6 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: docker/prod/Dockerfile
+    image: ${APP_IMAGE:-ghcr.io/fluffur/activity-bot-app:latest}
     restart: unless-stopped
     depends_on:
       db:
@@ -45,9 +43,7 @@ services:
       - redisdata:/data
 
   migrate:
-    build:
-      context: .
-      dockerfile: docker/migrate/Dockerfile
+    image: ${MIGRATE_IMAGE:-ghcr.io/fluffur/activity-bot-migrate:latest}
     container_name: activity_migrate
     env_file:
       - .env

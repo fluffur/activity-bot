@@ -199,7 +199,7 @@ func (r *MemberRepository) EnsureFull(ctx context.Context, chatID, userID int64,
 	m, err := r.queries.EnsureMemberFull(ctx, db.EnsureMemberFullParams{
 		Tag: pgtype.Text{
 			String: role,
-			Valid:  true,
+			Valid:  role != "",
 		},
 		ChatID: chatID,
 		UserID: userID,
