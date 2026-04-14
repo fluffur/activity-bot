@@ -447,18 +447,19 @@ func (h *Handler) CallbackManage(ctx *command.Context, u *ext.Update) error {
 	if h.adminService.OwnerID() == effectiveUser.ID {
 		m, err = h.memberService.EnsureMemberExists(ctx.StdContext(), chatID, effectiveUser.GetID(), effectiveUser.Username, effectiveUser.FirstName, effectiveUser.LastName, "")
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to ensure %w", err)
 		}
 	} else {
 		m, err = h.memberService.GetChatMember(ctx.StdContext(), chatID, u.EffectiveUser().GetID())
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get chat member %w", err)
 		}
 	}
 	if !m.StatusGranted(model.StatusModerator) && h.adminService.OwnerID() != m.User.ID {
 		_, err := ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
 			Message: "У вас больше нет прав администратора в этом чате",
 			Alert:   true,
+			QueryID: u.CallbackQuery.GetQueryID(),
 		})
 		return err
 	}
