@@ -63,7 +63,7 @@ func (c *Conversation) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	}
 
 	if state != "" {
-		// Check exits first
+		// CheckUpdate exits first
 		for _, exit := range c.Exits {
 			if err := exit.CheckUpdate(ctx, u); err == nil || !errors.Is(err, dispatcher.ContinueGroups) {
 				// If handler matched (didn't return Skip/Continue)
@@ -72,7 +72,7 @@ func (c *Conversation) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 			}
 		}
 
-		// Check state handlers
+		// CheckUpdate state handlers
 		if handlers, ok := c.States[state]; ok {
 			for _, h := range handlers {
 				if err := h.CheckUpdate(ctx, u); err == nil || err != dispatcher.ContinueGroups {
@@ -82,7 +82,7 @@ func (c *Conversation) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 		}
 	}
 
-	// Check entry points
+	// CheckUpdate entry points
 	for _, entry := range c.EntryPoints {
 		if err := entry.CheckUpdate(ctx, u); err == nil || err != dispatcher.ContinueGroups {
 			return err

@@ -1,7 +1,6 @@
 package member
 
 import (
-	"activity-bot/internal/adapter"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
@@ -15,15 +14,14 @@ type ChatMembersProvider interface {
 }
 
 type Service struct {
-	repo             Repository
-	chatRepo         chat.Repository
-	userRepo         user.Repository
-	adminsProvider   ChatMembersProvider
-	memberTagAdapter *adapter.MemberTagAdapter
+	repo           Repository
+	chatRepo       chat.Repository
+	userRepo       user.Repository
+	adminsProvider ChatMembersProvider
 }
 
-func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Repository, adminsProvider ChatMembersProvider, memberTagAdapter *adapter.MemberTagAdapter) *Service {
-	return &Service{repo, chatRepo, userRepo, adminsProvider, memberTagAdapter}
+func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Repository, adminsProvider ChatMembersProvider) *Service {
+	return &Service{repo, chatRepo, userRepo, adminsProvider}
 }
 
 func (s *Service) SetMemberTitle(ctx context.Context, chatID int64, userID int64, title string) error {

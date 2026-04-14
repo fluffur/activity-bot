@@ -1,6 +1,7 @@
 package command
 
 import (
+	"activity-bot/internal/logger"
 	"fmt"
 	"strings"
 
@@ -74,15 +75,21 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 
 		handlerCtx.texts = strings.Fields(handlerCtx.RawArgs)
 
-		err = c.response(&handlerCtx, u)
+		for _, middleware := range c.middlewares {
+			if err := middleware.CheckUpdate(&handlerCtx, u); err != nil {
+				if errors.Is(err, ErrStop) {
+					return dispatcher.SkipCurrentGroup
+				}
+				logger.L.Error("middleware", err)
+				return dispatcher.SkipCurrentGroup
+			}
+		}
 
-		//_, _ = ctx.AnswerCallback(nil)
-
-		if err != nil {
+		if err = c.response(&handlerCtx, u); err != nil {
 			return err
 		}
 
-		return nil
+		return dispatcher.SkipCurrentGroup
 	}
 }
 
@@ -109,6 +116,16 @@ func (c *Command) WrapEvent() HandlerFunc {
 			return err
 		}
 		handlerCtx.senderChatMember = senderMember
+
+		for _, middleware := range c.middlewares {
+			if err := middleware.CheckUpdate(handlerCtx, u); err != nil {
+				if errors.Is(err, ErrStop) {
+					return dispatcher.SkipCurrentGroup
+				}
+				logger.L.Error("middleware", err)
+				return dispatcher.SkipCurrentGroup
+			}
+		}
 
 		if err = c.response(handlerCtx, u); err != nil {
 			return err

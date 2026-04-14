@@ -63,56 +63,6 @@ func New(
 	}
 }
 
-// func (h *Handler) callMembers(
-//
-//	b *gotgbot.Bot,
-//	ctx *command.Context,
-//	getMembers func() ([]model.ChatMember, error),
-//	emptyMsg string,
-//
-// ) error {
-//
-//		members, err := getMembers()
-//		if err != nil {
-//			return err
-//		}
-//
-//		if len(members) == 0 {
-//			return ctx.Reply(b, emptyMsg, nil)
-//		}
-//
-//		return h.doCall(ctx, u, msg, entities, members)
-//	}
-//
-// func (h *Handler) adminCallback(
-//
-//	b *gotgbot.Bot,
-//	ctx *command.Context,
-//	handler func(*gotgbot.Bot, *command.Context) error,
-//
-// ) error {
-//
-//		m, err := h.memberService.GetChatMember(
-//			ctx.StdContext(),
-//			ctx.EffectiveChat.Id,
-//			ctx.EffectiveSender.Id(),
-//		)
-//		if err != nil {
-//			return err
-//		}
-//callINactive
-//		if !m.StatusGranted(model.StatusModerator) {
-//			_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-//				Text: fmt.Sprintf("%d Требуются права: %s", m.Status, m.Status.String()),
-//			})
-//			return err
-//		}
-//
-//		_, _ = ctx.CallbackQuery.Answer(b, nil)
-//
-//		return handler(b, ctx)
-//	}
-
 func (h *Handler) Call(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {

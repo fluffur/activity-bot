@@ -31,17 +31,15 @@ var (
 )
 
 type Service struct {
-	repo         Repository
-	memberRepo   member.Repository
-	memberStatus ChatMemberStatusProvider
-	ownerID      int64
+	repo       Repository
+	memberRepo member.Repository
+	ownerID    int64
 }
 
-func NewService(repo Repository, statusProvider ChatMemberStatusProvider, ownerID int64) *Service {
+func NewService(repo Repository, ownerID int64) *Service {
 	return &Service{
-		repo:         repo,
-		memberStatus: statusProvider,
-		ownerID:      ownerID,
+		repo:    repo,
+		ownerID: ownerID,
 	}
 }
 
@@ -60,44 +58,11 @@ func (s *Service) SetStatus(ctx context.Context, sender model.ChatMember, m mode
 		return ErrUserIsAlreadyAdmin
 	}
 
-	if m.Status == 5 {
-		memberStatus, err := s.memberStatus.GetChatMemberStatus(m.ChatID, m.User.ID)
-		if err != nil {
-			return err
-		}
-
-		if memberStatus == "creator" {
-			return ErrUserIsCreator
-		}
-	}
-
 	return s.repo.SetStatus(ctx, m.ChatID, m.User.ID, int16(status))
 }
 
 func (s *Service) SetDevStatus(ctx context.Context, m model.ChatMember, status model.Status) error {
 	return s.repo.SetStatus(ctx, m.ChatID, m.User.ID, int16(status))
-}
-
-func (s *Service) CheckStatus(ctx context.Context, chatID, userID int64, status model.Status) (bool, error) {
-	m, err := s.memberRepo.GetChatMember(ctx, chatID, userID)
-	if err != nil {
-		return false, err
-	}
-
-	if m.Status == status {
-		return true, nil
-	}
-
-	memberStatus, err := s.memberStatus.GetChatMemberStatus(chatID, userID)
-	if err != nil {
-		return false, err
-	}
-
-	if memberStatus == "creator" {
-		return true, nil
-	}
-
-	return false, nil
 }
 
 func (s *Service) GetAdminsEnsured(

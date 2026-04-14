@@ -63,6 +63,7 @@ type Command struct {
 	devID        int64
 
 	requirePrefix bool
+	middlewares   []Middleware
 
 	requiredStatus model.Status
 
@@ -171,8 +172,14 @@ func (c *Command) SetAliases(aliases ...string) *Command {
 	return c
 }
 
+func (c *Command) WithMiddlewares(middlewares ...Middleware) *Command {
+	c.middlewares = middlewares
+
+	return c
+}
+
 func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
-	handlerCtx := Context{Context: ctx}
+	handlerCtx := Context{Context: ctx, Command: c}
 	m := u.EffectiveMessage
 	if m == nil || m.Text == "" {
 		return nil
@@ -221,7 +228,6 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 		return nil
 	}
 
-	// Calculate UTF-16 offset for entities shifting
 	handlerCtx.RawArgs = textNoCommand
 	if textNoCommand != "" {
 		trimmedText := trimPrefixIgnoreCase(text, prefix)
@@ -387,6 +393,16 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 
 	if !c.checkStatusDisabled && !handlerCtx.senderChatMember.StatusGranted(c.RequiredStatus()) {
 		return handlerCtx.ReplyOnly(u, options.WithText(fmt.Sprintf("Требуются права: %s", c.RequiredStatus())))
+	}
+
+	for _, middleware := range c.middlewares {
+		if err := middleware.CheckUpdate(&handlerCtx, u); err != nil {
+			if errors.Is(err, ErrStop) {
+				return dispatcher.SkipCurrentGroup
+			}
+			logger.L.Error("middleware", err)
+			return dispatcher.SkipCurrentGroup
+		}
 	}
 
 	err = c.response(&handlerCtx, u)
@@ -763,10 +779,6 @@ func parseUsernameFromUrl(url string) string {
 
 func parseUsernameFromMention(mention string) string {
 	return strings.TrimPrefix(mention, "@")
-}
-
-func sliceHTMLByTextOffset(html string, offset int) string {
-	return string([]rune(html)[offset:])
 }
 
 // token is a whitespace-separated word with its byte offsets in the source string.

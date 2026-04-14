@@ -10,12 +10,14 @@ import (
 	db "activity-bot/internal/db/postgres/sqlc"
 	helpH "activity-bot/internal/help/handler"
 	"activity-bot/internal/helpers"
+	"activity-bot/internal/middleware"
 	"activity-bot/internal/model"
 	"activity-bot/internal/rest"
 	restH "activity-bot/internal/rest/handler"
 	"activity-bot/internal/session"
 	"activity-bot/internal/stats"
 	statsH "activity-bot/internal/stats/handler"
+	time "time"
 
 	adminH "activity-bot/internal/admin/handler"
 	channelH "activity-bot/internal/channel/handler"
@@ -59,9 +61,7 @@ func (a *App) RegisterHandlers() {
 	userHandler := userH.New(a.UserService)
 	channelHandler := channelH.New(a.MemberService, a.ChatService, a.AsyncClient, a.Config.ChannelID)
 
-	//developerGuard := guard.NewDeveloperGuard(a.AdminService, a.Config.BotOwnerID)
-	//groupGuard := guard.OnlyGroups(sessionService)
-	//rateLimiterGuard := guard.NewRateLimiter(a.Rdb, 2, 10*time.Second, sessionService)
+	rateLimiterMiddleware := middleware.NewRateLimiter(a.Rdb, 3, 10*time.Second)
 
 	a.dp.AddHandler(f.New("start", helpHandler.Start).SetScope(command.ScopeUser))
 	a.dp.AddHandler(f.New("help", helpHandler.Help).SetScope(command.ScopeUser))
@@ -367,7 +367,7 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(f.New("stats", statsHandler.ShowStats).
 		SetAliases("отчёт", "отчет", "стата").
 		SetArgRules(command.OptionalDateRangeRule()).
-		//WithGuards(groupGuard, guard.NewRateLimiter(a.Rdb, 2, 4*time.Second, sessionService)).
+		//WithGuards(groupGuard, middleware.NewRateLimiter(a.Rdb, 2, 4*time.Second, sessionService)).
 		SetDescription("Отчёт в чате").
 		SetCategory(command.CategoryStats),
 	)
@@ -541,6 +541,7 @@ func (a *App) RegisterHandlers() {
 		SetDevCommand(true))
 	a.dp.AddHandler(f.New("update_chat", memberHandler.UpdateMembersList).SetDescription("Обновление списка участников").SetCategory(command.CategorySettings).
 		SetAliases("обновить чат", "update").
+		WithMiddlewares(rateLimiterMiddleware).
 		SetRequiredStatus(model.StatusMember).
 		SetDescription("Обновление списка участников").
 		SetCategory(command.CategorySettings),

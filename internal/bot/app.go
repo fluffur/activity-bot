@@ -85,14 +85,11 @@ func NewApp(cfg config.Config) (*App, error) {
 	userRepo := postgres.NewUserRepository(queries)
 	restRepo := postgres.NewRestRepository(queries, pool)
 
-	statusProvider := adapter.NewTelegramMemberStatusProvider(nil)
-	//moderator := adapter.NewTelegramModerator(nil)
 	adminsProvider := adapter.NewTelegramChatMembersProvider(bot)
-	memberTagAdapter := adapter.NewMemberTagAdapter(nil, chatRepo)
 
 	userService := user.NewService(userRepo)
-	memberService := member.NewService(memberRepo, chatRepo, userRepo, adminsProvider, memberTagAdapter)
-	adminService := admin.NewService(adminRepo, statusProvider, cfg.BotOwnerID)
+	memberService := member.NewService(memberRepo, chatRepo, userRepo, adminsProvider)
+	adminService := admin.NewService(adminRepo, cfg.BotOwnerID)
 	chatService := chat.NewService(chatRepo)
 	restService := rest.NewService(restRepo)
 
@@ -121,54 +118,6 @@ func (a *App) Run(ctx context.Context) error {
 	return a.Bot.Idle()
 }
 
-//	func (a *App) startWebhook() error {
-//		webhookOpts := ext.WebhookOpts{
-//			ListenAddr:  fmt.Sprintf("0.0.0.0:%d", a.Config.HTTPPort),
-//			SecretToken: a.Config.WebhookSecretToken,
-//		}
-//
-//		err := a.Updater.StartWebhook(a.Bot, a.Config.WebhookPath, webhookOpts)
-//		if err != nil {
-//			return err
-//		}
-//
-//		err = a.Updater.SetAllBotWebhooks(a.Config.WebhookURL, &gotgbot.SetWebhookOpts{
-//			MaxConnections:     100,
-//			DropPendingUpdates: true,
-//			SecretToken:        a.Config.WebhookSecretToken,
-//		})
-//		if err != nil {
-//			return err
-//		}
-//
-//		slog.Info("Bot has been started with webhooks", "bot_username", a.Bot.User.Username, "url", a.Config.WebhookURL)
-//		a.Updater.Idle()
-//		return nil
-//	}
-//
-//	func (a *App) startPolling() error {
-//		err := a.Updater.StartPolling(a.Bot, &ext.PollingOpts{
-//			DropPendingUpdates: true,
-//			GetUpdatesOpts: &gotgbot.GetUpdatesOpts{
-//				Timeout: 9,
-//				AllowedUpdates: []string{
-//					"message",
-//					"channel_post",
-//					"edited_channel_post",
-//					"callback_query",
-//				},
-//				RequestOpts: &gotgbot.RequestOpts{
-//					Timeout: time.Second * 10,
-//				},
-//			},
-//		})
-//		if err != nil {
-//			return err
-//		}
-//		slog.Info("Bot has been started with long polling", "bot_username", a.Bot.User.Username)
-//
-//		return nil
-//	}
 func (a *App) Close() {
 	if a.Pool != nil {
 		a.Pool.Close()

@@ -21,6 +21,7 @@ type Response func(ctx *Context, u *ext.Update) error
 
 type Context struct {
 	*ext.Context
+	Command         *Command
 	RawArgs         string
 	RawArgsEntities []tg.MessageEntityClass
 	tokens          []string
@@ -48,7 +49,7 @@ func (c *Context) StdContext() context.Context {
 func (c *Context) Chat() (model.Chat, error) {
 	chat := c.chat
 	if chat == nil {
-		return model.Chat{}, ErrNoValue
+		return model.Chat{}, ErrNoValueChat
 	}
 	return *chat, nil
 }
