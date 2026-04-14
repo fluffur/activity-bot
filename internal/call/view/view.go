@@ -134,7 +134,7 @@ func RenderMention(eb *entity.Builder, m model.ChatMember, mentionTypes int32) {
 	title := strings.Join(parts, " ")
 
 	if title == "" {
-		title = "\u200B"
+		title = "ㅤ"
 	}
 
 	helpers.WriteMention(eb, m.User.ID, title)
