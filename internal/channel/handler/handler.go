@@ -5,10 +5,12 @@ import (
 	"activity-bot/internal/command"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
+	"activity-bot/internal/options"
 	"encoding/json"
 	"fmt"
 
-	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/tg"
 	"github.com/hibiken/asynq"
 )
 
@@ -23,8 +25,8 @@ func New(memberService *member.Service, chatService *chat.Service, asyncClient *
 	return &Handler{memberService, chatService, asyncClient, channelID}
 }
 
-func (h *Handler) Post(b *gotgbot.Bot, ctx *command.Context) error {
-	if ctx.EffectiveChat.Id != h.channelID {
+func (h *Handler) Post(ctx *command.Context, u *ext.Update) error {
+	if u.EffectiveChat().GetID() != h.channelID {
 		return nil
 	}
 
@@ -32,14 +34,14 @@ func (h *Handler) Post(b *gotgbot.Bot, ctx *command.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get chats: %w", err)
 	}
-	msg := ctx.EffectiveMessage
+	msg := u.EffectiveMessage
 
 	for _, c := range chats {
 
 		payload, _ := json.Marshal(model.BroadcastPayload{
 			ChatID:     c.ID,
-			FromChatID: msg.Chat.Id,
-			MessageID:  msg.MessageId,
+			FromChatID: u.EffectiveChat().GetID(),
+			MessageID:  int64(msg.ID),
 		})
 
 		task := asynq.NewTask("broadcast:post", payload)
@@ -53,32 +55,37 @@ func (h *Handler) Post(b *gotgbot.Bot, ctx *command.Context) error {
 	return nil
 }
 
-func (h *Handler) Unsubscribe(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) Unsubscribe(ctx *command.Context, u *ext.Update) error {
+	effectiveChat := u.EffectiveChat()
+	effectiveSender := u.EffectiveUser()
 
-	m, err := h.memberService.GetChatMember(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveSender.Id())
+	m, err := h.memberService.GetChatMember(ctx.StdContext(), effectiveChat.GetID(), effectiveSender.GetID())
 	if err != nil {
 		return err
 	}
 	if !m.StatusGranted(model.StatusCoOwner) {
-		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text: "У вас нет прав адмниистратора для этого",
+		_, err := ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			Message: "У вас нет прав адмниистратора для этого",
 		})
 		return err
 	}
-	err = h.chatService.DisableBroadcast(ctx.StdContext(), ctx.EffectiveChat.Id)
+	err = h.chatService.DisableBroadcast(ctx.StdContext(), effectiveChat.GetID())
 	if err != nil {
 		return err
 	}
 
-	_, _, err = ctx.EffectiveMessage.EditReplyMarkup(b, nil)
+	_, err = ctx.EditMessage(effectiveChat.GetID(), &tg.MessagesEditMessageRequest{
+		ID:          u.CallbackQuery.GetMsgID(),
+		ReplyMarkup: nil,
+	})
 	if err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, "Рассылка отключена ❌", nil)
+	return ctx.ReplyOnly(u, options.WithText("Рассылка отключена ❌"))
 }
 
-func (h *Handler) Subscribe(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) Subscribe(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
@@ -86,5 +93,5 @@ func (h *Handler) Subscribe(b *gotgbot.Bot, ctx *command.Context) error {
 	if err := h.chatService.EnableBroadcast(ctx.StdContext(), c.ID); err != nil {
 		return err
 	}
-	return ctx.Reply(b, "Рассылка включена", nil)
+	return ctx.ReplyOnly(u, options.WithText("Рассылка включена"))
 }

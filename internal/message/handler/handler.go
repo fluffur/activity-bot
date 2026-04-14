@@ -5,80 +5,87 @@ import (
 	"activity-bot/internal/command"
 	"activity-bot/internal/member"
 	"activity-bot/internal/message"
+	"activity-bot/internal/options"
 
-	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/cohesion-org/deepseek-go"
+
+	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/tg"
 )
 
 type Handler struct {
-	service       *message.Service
-	memberService *member.Service
-	chatService   *chat.Service
+	service        *message.Service
+	memberService  *member.Service
+	chatService    *chat.Service
+	deepseekClient *deepseek.Client
 }
 
-func New(service *message.Service, memberService *member.Service, chatService *chat.Service) *Handler {
-	return &Handler{service, memberService, chatService}
+func New(service *message.Service, memberService *member.Service, chatService *chat.Service, deepseekClient *deepseek.Client) *Handler {
+	return &Handler{service, memberService, chatService, deepseekClient}
 }
 
-func (h *Handler) Bot(b *gotgbot.Bot, ctx *command.Context) error {
-	//c, err := ctx.Chat()
-	//if err != nil {
-	//	return err
-	//}
-	//request := &deepseek.ChatCompletionRequest{
-	//	Model: deepseek.DeepSeekChat,
-	//	Messages: []deepseek.ChatCompletionMessage{
-	//		{
-	//			Role:    deepseek.ChatMessageRoleSystem,
-	//			Content: "Отвечай коротко, 1-2 предложения. " + c.AISystemPrompt,
-	//		},
-	//		{
-	//			Role:    deepseek.ChatMessageRoleUser,
-	//			Content: ctx.TextOrDefault(""),
-	//		},
-	//	},
-	//}
-	//resp, err := h.deepseekClient.CreateChatCompletion(ctx.StdContext(), request)
-	//if err != nil {
-	//	_ = ctx.Reply(b, "Не удалось получить ответ от бота", nil)
-	//	return err
-	//}
-	//
-	//if len(resp.Choices) == 0 {
-	//	_ = ctx.Reply(b, "Бот не вернул ответ", nil)
-	//	return nil
-	//}
-	//
-	//return ctx.Reply(b, resp.Choices[0].Message.Content, &gotgbot.SendMessageOpts{
-	//	ParseMode: gotgbot.ParseModeMarkdown,
-	//})
-	return nil
-}
+func (h *Handler) Bot(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	request := &deepseek.ChatCompletionRequest{
+		Model: deepseek.DeepSeekChat,
+		Messages: []deepseek.ChatCompletionMessage{
+			{
+				Role:    deepseek.ChatMessageRoleSystem,
+				Content: "Отвечай коротко, 1-2 предложения. " + c.AISystemPrompt,
+			},
+			{
+				Role:    deepseek.ChatMessageRoleUser,
+				Content: ctx.TextOrDefault(""),
+			},
+		},
+	}
+	resp, err := h.deepseekClient.CreateChatCompletion(ctx.StdContext(), request)
+	if err != nil {
+		_ = ctx.ReplyOnly(u, options.WithText("Не удалось получить ответ от бота"))
+		return err
+	}
 
-func (h *Handler) Message(_ *gotgbot.Bot, ctx *command.Context) error {
-	if ctx.EffectiveMessage.ChatOwnerLeft != nil || ctx.EffectiveMessage.LeftChatMember != nil || len(ctx.EffectiveMessage.NewChatMembers) > 0 {
+	if len(resp.Choices) == 0 {
+		_ = ctx.ReplyOnly(u, options.WithText("Бот не вернул ответ"))
 		return nil
 	}
-	effectiveSender := ctx.EffectiveSender
-	effectiveChat := ctx.EffectiveChat
+
+	return ctx.ReplyOnly(u, options.WithText(resp.Choices[0].Message.Content))
+}
+
+func (h *Handler) Message(ctx *command.Context, u *ext.Update) error {
+	msg := u.EffectiveMessage
+	if msg.Action != nil {
+		switch msg.Action.(type) {
+		case *tg.MessageActionChatJoinedByLink, *tg.MessageActionChatAddUser, *tg.MessageActionChatDeleteUser:
+			return nil
+		}
+	}
+
+	effectiveSender := u.EffectiveUser()
+	effectiveChat := u.EffectiveChat()
 	if effectiveSender == nil || effectiveChat == nil {
 		return nil
 	}
 	if _, err := h.memberService.EnsureMemberExists(
 		ctx.StdContext(),
-		effectiveChat.Id,
-		effectiveSender.Id(),
-		effectiveSender.Username(),
-		effectiveSender.FirstName(),
-		effectiveSender.LastName(),
-		ctx.EffectiveMessage.SenderTag,
+		effectiveChat.GetID(),
+		effectiveSender.GetID(),
+		effectiveSender.Username,
+		effectiveSender.FirstName,
+		effectiveSender.LastName,
+		"",
 	); err != nil {
 		return err
 	}
 
 	return h.service.Save(
 		ctx.StdContext(),
-		effectiveChat.Id,
-		effectiveSender.Id(),
-		ctx.EffectiveMessage.MessageId,
+		effectiveChat.GetID(),
+		effectiveSender.GetID(),
+		int64(msg.ID),
 	)
 }

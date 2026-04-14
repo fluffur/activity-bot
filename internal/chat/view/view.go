@@ -4,25 +4,28 @@ import (
 	"activity-bot/internal/helpers"
 	"fmt"
 	"time"
+
+	"github.com/gotd/td/telegram/message/entity"
 )
 
-func FormatNorm(norm, normBan int32) string {
+func WriteNorm(eb *entity.Builder, norm, normBan int32) {
 	if norm == 0 && normBan == 0 {
-		return fmt.Sprintf("Норма еще не установлена\n\nПопробуйте <code>!норма 100 варн</code> или <code>!норма 40 бан</code>")
+		eb.Plain("Норма еще не установлена\n\nПопробуйте ")
+		eb.Code("!норма 100 варн")
+		eb.Plain(" или ")
+		eb.Code("!норма 40 бан")
+		return
 	}
 	if norm == normBan {
-		return fmt.Sprintf("Норма: %d сообщений", norm)
+		eb.Plain(fmt.Sprintf("Норма: %d сообщений", norm))
+		return
 	}
 	banInfo := ""
 	if normBan != 0 {
 		banInfo = fmt.Sprintf(", меньше %d бан", normBan)
 	}
 
-	return fmt.Sprintf("Норма меньше %d варн%s", norm, banInfo)
-}
-
-func FormatNormSet(norm int, action string) string {
-	return fmt.Sprintf("Установлена новая норма чата: %d на %s", norm, action)
+	eb.Plain(fmt.Sprintf("Норма меньше %d варн%s", norm, banInfo))
 }
 
 func FormatNewbieThreshold(days int32) string {
@@ -40,38 +43,42 @@ func FormatPrompt(prompt string) string {
 	return fmt.Sprintf("Промпт: \"%s\"", prompt)
 }
 
-func FormatPrefix(prefix string) string {
+func WritePrefix(eb *entity.Builder, prefix string) {
 	if prefix == "" {
-		return "В этом чате не установлен кастомный префикс."
+		eb.Plain("В этом чате не установлен кастомный префикс.")
+		return
 	}
-	return fmt.Sprintf("Текущий префикс чата: `%s`", prefix)
+	eb.Plain("Текущий префикс чата: ")
+	eb.Code(prefix)
 }
 
-func FormatPrefixSet(prefix string) string {
-	return fmt.Sprintf("Установлен новый префикс чата: `%s`", prefix)
+func WritePrefixSet(eb *entity.Builder, prefix string) {
+	eb.Plain("Установлен новый префикс чата: ")
+	eb.Code(prefix)
 }
 
-func FormatPrefixlessToggle(enabled bool) string {
-	return "Теперь " + FormatPrefixlessStatus(enabled)
+func WritePrefixlessToggle(eb *entity.Builder, enabled bool) {
+	eb.Plain("Теперь ")
+	WritePrefixlessStatus(eb, enabled)
 }
 
-func FormatPrefixlessStatus(enabled bool) string {
+func WritePrefixlessStatus(eb *entity.Builder, enabled bool) {
 	if !enabled {
-		return "Бот не отвечает на сообщения без префиксов"
+		eb.Plain("Бот не отвечает на сообщения без префиксов")
+		return
 	}
-	return "Бот отвечает на сообщения без префиксов"
+	eb.Plain("Бот отвечает на сообщения без префиксов")
 }
 
-func FormatWeekStart(day int, time string) string {
-	return FormatWeek("Начало недели", day, time)
-
+func WriteWeekStart(eb *entity.Builder, day int, timeStr string) {
+	WriteWeek(eb, "Начало недели", day, timeStr)
 }
 
-func FormatWeekStartSet(day int, time string) string {
-	return FormatWeek("Начало недели изменено", day, time)
+func WriteWeekStartSet(eb *entity.Builder, day int, timeStr string) {
+	WriteWeek(eb, "Начало недели изменено", day, timeStr)
 }
 
-func FormatWeek(msg string, day int, timeStr string) string {
+func WriteWeek(eb *entity.Builder, msg string, day int, timeStr string) {
 	now := time.Now()
 
 	var h, m int
@@ -93,11 +100,6 @@ func FormatWeek(msg string, day int, timeStr string) string {
 		time.Local,
 	)
 
-	return fmt.Sprintf(
-		"📅 %s: <tg-time unix=\"%d\">%s в %s</tg-time>",
-		msg,
-		target.Unix(),
-		helpers.FormatWeekStartDay(day),
-		timeStr,
-	)
+	eb.Plain("📅 " + msg + ": ")
+	helpers.FormattedDate(eb, target)
 }

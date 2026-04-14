@@ -6,29 +6,21 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gotd/td/telegram"
+	"github.com/celestix/gotgproto"
 	"github.com/gotd/td/tg"
 )
 
 type TelegramChatMembersProvider struct {
-	client *telegram.Client
-	ready  chan struct{}
+	client *gotgproto.Client
 }
 
-func NewTelegramChatMembersProvider(client *telegram.Client, ready chan struct{}) *TelegramChatMembersProvider {
+func NewTelegramChatMembersProvider(client *gotgproto.Client) *TelegramChatMembersProvider {
 	return &TelegramChatMembersProvider{
 		client: client,
-		ready:  ready,
 	}
 }
 
 func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID int64) ([]model.ChatMemberUpdate, error) {
-	select {
-	case <-p.ready:
-	case <-time.After(time.Second * 15):
-		return nil, errors.New("telegram client not ready")
-	}
-
 	var result []model.ChatMemberUpdate
 
 	peerID := chatID
@@ -45,7 +37,7 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 	}
 	chats := d.GetChats()
 	if len(chats) == 0 {
-		return nil, errors.New("chat not found")
+		return nil, errors.New("chat not found s")
 	}
 	ch := chats[0]
 	fullChannel, ok := ch.(*tg.Channel)
@@ -88,7 +80,7 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 
 		for _, participant := range participants.Participants {
 			var userID int64
-			var rank int16
+			var status int16
 			var tag string
 
 			switch p := participant.(type) {
@@ -101,7 +93,7 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 			case *tg.ChannelParticipantCreator:
 				userID = p.UserID
 				tag = p.Rank
-				rank = 5
+				status = 5
 			case *tg.ChannelParticipantAdmin:
 				userID = p.UserID
 				tag = p.Rank
@@ -122,7 +114,7 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 					Username:  u.Username,
 				},
 				Tag:    tag,
-				Status: rank,
+				Status: status,
 			})
 		}
 

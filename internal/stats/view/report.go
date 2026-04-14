@@ -4,150 +4,181 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"fmt"
-	"strings"
 	"time"
+
+	"github.com/gotd/td/telegram/message/entity"
 )
 
-func FormatStats(report []model.ChatMemberMessageCount, restMembers []model.ChatMember, newbieThresholdDays int32, from, to *time.Time) string {
-	header := formatPeriodHeader(from, to)
+func WriteStats(eb *entity.Builder, report []model.ChatMemberMessageCount, restMembers []model.ChatMember, newbieThresholdDays int32, from, to *time.Time) {
+	WritePeriodHeader(eb, from, to)
+	eb.Plain("\n\n")
+
 	sections := prepareReportSections(report, restMembers)
 	topOnly := sections.NormWarn == 0 && sections.NormBan == 0
 
-	var sb strings.Builder
-	sb.WriteString(header + "\n\n")
 	if !topOnly {
-
 		if sections.NormWarn > 0 {
-			sb.WriteString(fmt.Sprintf("%s Прошли норму %d\n", helpers.CustomEmoji("5870633910337015697", "✅"), sections.NormWarn))
+			helpers.WriteCustomEmoji(eb, "5870633910337015697", "✅")
+			eb.Plain(fmt.Sprintf(" Прошли норму %d\n", sections.NormWarn))
 
-			sb.WriteString("<blockquote expandable>")
+			token := eb.Token()
 			if len(sections.Passed) > 0 {
-				writeNumberedList(&sb, sections.Passed)
+				writeNumberedList(eb, sections.Passed)
 			} else {
-				sb.WriteString("Список пуст\n")
+				eb.Plain("Список пуст\n")
 			}
-			sb.WriteString("</blockquote>")
+			token.Apply(eb, entity.Blockquote(true))
 
-			sb.WriteString(fmt.Sprintf("\n%s Не прошли норму️ %d (варн) \n", helpers.CustomEmoji("5870948572526022116", "⚠️"), sections.NormWarn))
-			sb.WriteString("<blockquote expandable>")
+			eb.Plain("\n")
+			helpers.WriteCustomEmoji(eb, "5870948572526022116", "⚠️")
+			eb.Plain(fmt.Sprintf(" Не прошли норму️ %d (варн) \n", sections.NormWarn))
+
+			token = eb.Token()
 			if len(sections.FailedWarn) > 0 {
-				writeNumberedList(&sb, sections.FailedWarn)
+				writeNumberedList(eb, sections.FailedWarn)
 			} else {
-				sb.WriteString("Список пуст\n")
+				eb.Plain("Список пуст\n")
 			}
-			sb.WriteString("</blockquote>")
+			token.Apply(eb, entity.Blockquote(true))
 		}
 
 		if sections.NormBan > 0 {
-			sb.WriteString(fmt.Sprintf("\n%s Не прошли норму %d (бан) \n", helpers.CustomEmoji("5870657884844462243", "❌"), sections.NormBan))
-			sb.WriteString("<blockquote expandable>")
+			eb.Plain("\n")
+			helpers.WriteCustomEmoji(eb, "5870657884844462243", "❌")
+			eb.Plain(fmt.Sprintf(" Не прошли норму %d (бан) \n", sections.NormBan))
+
+			token := eb.Token()
 			if len(sections.FailedBan) > 0 {
-				writeNumberedList(&sb, sections.FailedBan)
+				writeNumberedList(eb, sections.FailedBan)
 			} else {
-				sb.WriteString("Список пуст\n")
+				eb.Plain("Список пуст\n")
 			}
-			sb.WriteString("</blockquote>")
+			token.Apply(eb, entity.Blockquote(true))
 		}
 
 		if newbieThresholdDays > 0 {
-			sb.WriteString(fmt.Sprintf("\n%s Новички (%d %s)\n", helpers.NewbieEmoji(), newbieThresholdDays, helpers.PluralizeDays(int(newbieThresholdDays))))
-			sb.WriteString("<blockquote expandable>")
+			eb.Plain("\n")
+			helpers.WriteNewbieEmoji(eb)
+			eb.Plain(fmt.Sprintf(" Новички (%d %s)\n", newbieThresholdDays, helpers.PluralizeDays(int(newbieThresholdDays))))
+
+			token := eb.Token()
 			if len(sections.Newbies) > 0 {
-				writeNumberedList(&sb, sections.Newbies)
+				writeNumberedList(eb, sections.Newbies)
 			} else {
-				sb.WriteString("Список пуст\n")
+				eb.Plain("Список пуст\n")
 			}
-			sb.WriteString("</blockquote>")
+			token.Apply(eb, entity.Blockquote(true))
 		}
 
-		sb.WriteString(fmt.Sprintf("\n%s Рест\n", helpers.RestEmoji()))
-		sb.WriteString("<blockquote expandable>")
+		eb.Plain("\n")
+		helpers.WriteRestEmoji(eb)
+		eb.Plain(" Рест\n")
+
+		token := eb.Token()
 		if len(sections.InRest) > 0 {
-			writeNumberedList(&sb, sections.InRest)
-
+			for i, r := range sections.InRest {
+				eb.Plain(fmt.Sprintf("%d. ", i+1))
+				writeRestLine(eb, r)
+				eb.Plain("\n")
+			}
 		} else {
-			sb.WriteString("Список пуст\n")
+			eb.Plain("Список пуст\n")
 		}
-		sb.WriteString("</blockquote>")
+		token.Apply(eb, entity.Blockquote(true))
 
 	} else {
+		eb.CustomEmoji("🌟", 5224694451338759997)
+		eb.Plain(" Топ участников\n")
 
-		sb.WriteString(fmt.Sprintf("%s Топ участников\n", helpers.CustomEmoji("5224694451338759997", "🌟")))
-
-		sb.WriteString("<blockquote expandable>")
+		token := eb.Token()
 		if len(sections.Passed) > 0 {
-			writeNumberedList(&sb, sections.Passed)
+			writeNumberedList(eb, sections.Passed)
 		} else {
-			sb.WriteString("Список пуст\n")
+			eb.Plain("Список пуст\n")
 		}
-		sb.WriteString("</blockquote>")
+		token.Apply(eb, entity.Blockquote(true))
 	}
 
-	sb.WriteString(fmt.Sprintf("\n%s Всего сообщений: <code>%d</code>\n", helpers.TotalEmoji(), sections.TotalMessages))
-
-	return sb.String()
+	eb.Plain("\n")
+	helpers.WriteTotalEmoji(eb)
+	eb.Plain(" Всего сообщений: ")
+	eb.Code(fmt.Sprintf("%d", sections.TotalMessages))
+	eb.Plain("\n")
 }
 
-func FormatRestList(restMembers []model.ChatMember) string {
+func WriteRestList(eb *entity.Builder, restMembers []model.ChatMember) {
 	if len(restMembers) == 0 {
-		return fmt.Sprintf("%s <b>В ресте никого нет.</b>", helpers.RestEmoji())
+		helpers.WriteRestEmoji(eb)
+		eb.Plain(" ")
+		eb.Bold("В ресте никого нет.")
+		return
 	}
 
-	var inRest []string
-	for _, r := range restMembers {
-		inRest = append(inRest, formatRestLine(r))
-	}
+	helpers.WriteRestEmoji(eb)
+	eb.Plain(" ")
+	eb.Bold("Список участников в ресте:")
+	eb.Plain("\n\n")
 
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s <b>Список участников в ресте:</b>\n\n", helpers.RestEmoji()))
-	writeNumberedList(&sb, inRest)
-	return sb.String()
+	for i, r := range restMembers {
+		eb.Plain(fmt.Sprintf("%d. ", i+1))
+		writeRestLine(eb, r)
+		eb.Plain("\n")
+	}
 }
 
-func FormatNewbies(report []model.ChatMemberMessageCount) string {
+func WriteNewbies(eb *entity.Builder, report []model.ChatMemberMessageCount) {
 	sections := prepareReportSections(report, nil)
 
 	if len(sections.Newbies) == 0 {
-		return fmt.Sprintf("%s <b>Новых участников за этот период не найдено.</b>", helpers.NewbieEmoji())
+		helpers.WriteNewbieEmoji(eb)
+		eb.Plain(" ")
+		eb.Bold("Новых участников за этот период не найдено.")
+		return
 	}
 
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s <b>Новые участники:</b>\n\n", helpers.NewbieEmoji()))
-	writeNumberedList(&sb, sections.Newbies)
-	return sb.String()
+	helpers.WriteNewbieEmoji(eb)
+	eb.Plain(" ")
+	eb.Bold("Новые участники:")
+	eb.Plain("\n\n")
+
+	writeNumberedList(eb, sections.Newbies)
 }
 
-func FormatFailedNorm(report []model.ChatMemberMessageCount, from, to *time.Time) string {
-	header := formatPeriodHeader(from, to)
+func WriteFailedNorm(eb *entity.Builder, report []model.ChatMemberMessageCount, from, to *time.Time) {
+	WritePeriodHeader(eb, from, to)
 	sections := prepareReportSections(report, nil)
 
 	if len(sections.FailedWarn) == 0 && len(sections.FailedBan) == 0 {
-		return header + fmt.Sprintf("\n\n%s <b>Все участники выполнили норму!</b>", helpers.SuccessEmoji())
+		eb.Plain("\n\n")
+		helpers.WriteSuccessEmoji(eb)
+		eb.Plain(" ")
+		eb.Bold("Все участники выполнили норму!")
+		return
 	}
 
-	var sb strings.Builder
-	sb.WriteString(header + "\n\n")
-	sb.WriteString("⚠️ <b>Не выполнили норму:</b>\n")
+	eb.Plain("\n")
 
 	if len(sections.FailedWarn) > 0 {
-		sb.WriteString(fmt.Sprintf("\n%s Меньше %d сообщений (варн):\n", helpers.CustomEmoji("5224340348465073584", "⚠️"), sections.NormWarn))
-		writeNumberedList(&sb, sections.FailedWarn)
+		eb.Plain("\n")
+		helpers.WriteCustomEmoji(eb, "5224340348465073584", "⚠️")
+		eb.Plain(fmt.Sprintf(" Меньше %d сообщений (варн):\n", sections.NormWarn))
+		writeNumberedList(eb, sections.FailedWarn)
 	}
 
 	if len(sections.FailedBan) > 0 {
-		sb.WriteString(fmt.Sprintf("\n%s Меньше %d сообщений (бан):\n", helpers.DangerEmoji(), sections.NormBan))
-		writeNumberedList(&sb, sections.FailedBan)
+		eb.Plain("\n")
+		helpers.WriteDangerEmoji(eb)
+		eb.Plain(fmt.Sprintf(" Меньше %d сообщений (бан):\n", sections.NormBan))
+		writeNumberedList(eb, sections.FailedBan)
 	}
-
-	return sb.String()
 }
 
 type reportSections struct {
-	Passed        []string
-	FailedWarn    []string
-	FailedBan     []string
-	Newbies       []string
-	InRest        []string
+	Passed        []model.ChatMemberMessageCount
+	FailedWarn    []model.ChatMemberMessageCount
+	FailedBan     []model.ChatMemberMessageCount
+	Newbies       []model.ChatMemberMessageCount
+	InRest        []model.ChatMember
 	NormWarn      int32
 	NormBan       int32
 	TotalMessages int64
@@ -168,8 +199,6 @@ func prepareReportSections(report []model.ChatMemberMessageCount, restMembers []
 			normBanDone = r.MessageCount >= int64(r.Chat.NormBan)
 		}
 
-		line := fmt.Sprintf("%s — <code>%d</code>", helpers.RoleEmojiLink(r.ChatMember), r.MessageCount)
-
 		isNewbie := false
 		if r.Chat.NewbieThresholdDays > 0 {
 			newbieUntil := r.ChatMember.JoinedAt.AddDate(0, 0, int(r.Chat.NewbieThresholdDays))
@@ -180,52 +209,62 @@ func prepareReportSections(report []model.ChatMemberMessageCount, restMembers []
 
 		if isNewbie {
 			if normWarnDone {
-				s.Passed = append(s.Passed, fmt.Sprintf("%s %s — <code>%d</code>", helpers.NewbieEmoji(), helpers.RoleEmojiLink(r.ChatMember), r.MessageCount))
+				s.Passed = append(s.Passed, r)
 			} else {
-				s.Newbies = append(s.Newbies, line)
+				s.Newbies = append(s.Newbies, r)
 			}
 			continue
 		}
 
 		if !normBanDone && r.Chat.NormBan > 0 {
-			s.FailedBan = append(s.FailedBan, line)
+			s.FailedBan = append(s.FailedBan, r)
 		} else if !normWarnDone {
-			s.FailedWarn = append(s.FailedWarn, line)
+			s.FailedWarn = append(s.FailedWarn, r)
 		} else {
-			s.Passed = append(s.Passed, line)
+			s.Passed = append(s.Passed, r)
 		}
 	}
 
-	for _, r := range restMembers {
-		s.InRest = append(s.InRest, formatRestLine(r))
-	}
+	s.InRest = restMembers
 
 	return s
 }
 
-func formatRestLine(r model.ChatMember) string {
-	var untilText string
+func writeRestLine(eb *entity.Builder, r model.ChatMember) {
+	helpers.WriteRoleEmojiLink(eb, r)
+	eb.Plain(" до ")
 	if !r.RestUntil.IsZero() {
-		untilText = helpers.FormatToHumanDateTime(r.RestUntil)
+		helpers.FormattedDate(eb, r.RestUntil)
 	} else {
-		untilText = "неизвестно"
+		eb.Plain("неизвестно")
 	}
-	return fmt.Sprintf("%s до %s", helpers.RoleEmojiLink(r), untilText)
 }
 
-func formatPeriodHeader(from, to *time.Time) string {
+func WritePeriodHeader(eb *entity.Builder, from, to *time.Time) {
+	helpers.WriteCustomEmoji(eb, "5870772616305839506", "📊")
 	if from != nil && to != nil {
-		return fmt.Sprintf("%s Отчет за период:\n%s — %s", helpers.CustomEmoji("5870772616305839506", "📊"), helpers.FormatToHumanDateTime(*from), helpers.FormatToHumanDateTime(*to))
+		eb.Plain(" Отчет за период:\n")
+		helpers.FormattedDate(eb, *from)
+		eb.Plain("\n")
+		helpers.FormattedDate(eb, *to)
+
 	} else if from != nil {
-		return fmt.Sprintf("%s Отчет с %s", helpers.CustomEmoji("5870772616305839506", "📊"), helpers.FormatToHumanDateTime(*from))
+		eb.Plain(" Отчет с ")
+		helpers.FormattedDate(eb, *from)
 	} else if to != nil {
-		return fmt.Sprintf("%s Отчет до %s", helpers.CustomEmoji("5870772616305839506", "📊"), helpers.FormatToHumanDateTime(*to))
+		eb.Plain(" Отчет до ")
+		helpers.FormattedDate(eb, *to)
+	} else {
+		eb.Plain(" Отчет за всё время")
 	}
-	return fmt.Sprintf("%s Отчет за всё время", helpers.CustomEmoji("5870772616305839506", "📊"))
 }
 
-func writeNumberedList(sb *strings.Builder, items []string) {
+func writeNumberedList(eb *entity.Builder, items []model.ChatMemberMessageCount) {
 	for i, item := range items {
-		sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, item))
+		eb.Plain(fmt.Sprintf("%d. ", i+1))
+		helpers.WriteRoleEmojiLink(eb, item.ChatMember)
+		eb.Plain(" — ")
+		eb.Code(fmt.Sprintf("%d", item.MessageCount))
+		eb.Plain("\n")
 	}
 }

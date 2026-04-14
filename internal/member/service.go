@@ -1,7 +1,6 @@
 package member
 
 import (
-	"activity-bot/internal/adapter"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/model"
 	"activity-bot/internal/user"
@@ -15,21 +14,17 @@ type ChatMembersProvider interface {
 }
 
 type Service struct {
-	repo             Repository
-	chatRepo         chat.Repository
-	userRepo         user.Repository
-	adminsProvider   ChatMembersProvider
-	memberTagAdapter *adapter.MemberTagAdapter
+	repo           Repository
+	chatRepo       chat.Repository
+	userRepo       user.Repository
+	adminsProvider ChatMembersProvider
 }
 
-func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Repository, adminsProvider ChatMembersProvider, memberTagAdapter *adapter.MemberTagAdapter) *Service {
-	return &Service{repo, chatRepo, userRepo, adminsProvider, memberTagAdapter}
+func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Repository, adminsProvider ChatMembersProvider) *Service {
+	return &Service{repo, chatRepo, userRepo, adminsProvider}
 }
 
 func (s *Service) SetMemberTitle(ctx context.Context, chatID int64, userID int64, title string) error {
-	if err := s.memberTagAdapter.SetMemberTag(ctx, chatID, userID, title); err != nil {
-		return err
-	}
 	return s.repo.UpdateCustomTitle(ctx, chatID, userID, title)
 }
 func (s *Service) GetMembersWithTitle(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
@@ -108,6 +103,10 @@ func (s *Service) SyncChatMembers(ctx context.Context, chatID int64) (int, error
 		userIDs[i] = m.User.ID
 	}
 
+	if err := s.repo.MarkLeftNotInList(ctx, chatID, userIDs); err != nil {
+		return 0, fmt.Errorf("failed to mark left members: %w", err)
+	}
+
 	return len(members), nil
 }
 
@@ -139,6 +138,6 @@ func (s *Service) GetChatMemberByUsername(ctx context.Context, chatID int64, use
 	return s.repo.GetByUsername(ctx, chatID, username)
 }
 
-func (s *Service) SetChatMemberEmoji(ctx context.Context, chatID int64, userID int64, emoji string) error {
-	return s.repo.SetEmoji(ctx, chatID, userID, emoji)
+func (s *Service) SetChatMemberEmoji(ctx context.Context, chatID int64, userID int64, emojis model.Emojis) error {
+	return s.repo.SetEmoji(ctx, chatID, userID, emojis)
 }

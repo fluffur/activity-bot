@@ -5,30 +5,41 @@ import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
 	"fmt"
+	"strconv"
 	"strings"
 
-	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/gotd/td/telegram/message/entity"
+	"github.com/gotd/td/tg"
 )
 
-func FormatCategories() string {
-	return "⚖️ <b>Настройка прав доступа команд</b>\n\nВыберите категорию команд для настройки:"
+func WriteCategories(eb *entity.Builder) {
+	eb.Plain("⚖️ ")
+	eb.Bold("Настройка прав доступа команд")
+	eb.Plain("\n\nВыберите категорию команд для настройки:")
 }
 
-func GetCategoriesKeyboard() gotgbot.InlineKeyboardMarkup {
+func GetCategoriesKeyboard() tg.ReplyMarkupClass {
 	categories := command.Categories()
 
-	var rows [][]gotgbot.InlineKeyboardButton
+	var rows []tg.KeyboardButtonRow
 	for _, cat := range categories {
-		rows = append(rows, []gotgbot.InlineKeyboardButton{
-			{Text: string(cat), CallbackData: "rights_cat:" + string(cat)},
+		rows = append(rows, tg.KeyboardButtonRow{
+			Buttons: []tg.KeyboardButtonClass{
+				&tg.KeyboardButtonCallback{
+					Text: string(cat),
+					Data: []byte("rights_cat:" + string(cat)),
+				},
+			},
 		})
 	}
-	return gotgbot.InlineKeyboardMarkup{InlineKeyboard: rows}
+	return &tg.ReplyInlineMarkup{Rows: rows}
 }
 
-func FormatCommandsByCategory(category command.Category, commands []*command.Command, perms map[string]model.Status) string {
+func WriteCommandsByCategory(eb *entity.Builder, category command.Category, commands []*command.Command, perms map[string]model.Status) {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("Категория: %s\n\n", category))
+	eb.Plain(sb.String())
+	sb.Reset()
 
 	for _, c := range commands {
 		if c.Category() != category {
@@ -44,45 +55,66 @@ func FormatCommandsByCategory(category command.Category, commands []*command.Com
 
 		formattedAliases := make([]string, len(aliases))
 		for i, a := range aliases {
-			formattedAliases[i] = "<code>" + a + "</code>"
+			formattedAliases[i] = a
 		}
 
-		sb.WriteString(fmt.Sprintf("%s %s (%s)\n",
-			helpers.StatusEmoji(status),
-			c.Description(),
-			strings.Join(formattedAliases, ", "),
-		))
+		helpers.WriteStatusEmoji(eb, status)
+		eb.Plain(" ")
+		eb.Plain(c.Description())
+		eb.Plain(" (")
+		for i, alias := range formattedAliases {
+			if i > 0 {
+				eb.Plain(", ")
+			}
+			eb.Code(alias)
+		}
+		eb.Plain(")\n")
 	}
 
-	sb.WriteString("\nВыберите команду для изменения прав:")
-	return sb.String()
+	eb.Plain("\nВыберите команду для изменения прав:")
 }
 
-func GetCommandsByCategoryKeyboard(category command.Category, commands []*command.Command, perms map[string]model.Status) gotgbot.InlineKeyboardMarkup {
-	var rows [][]gotgbot.InlineKeyboardButton
+func GetCommandsByCategoryKeyboard(category command.Category, commands []*command.Command, perms map[string]model.Status) tg.ReplyMarkupClass {
+	var rows []tg.KeyboardButtonRow
 	for _, c := range commands {
 		if c.Category() != category {
 			continue
 		}
 
-		status := c.RequiredStatus()
-		if s, ok := perms[c.Name()]; ok {
-			status = s
-		}
-
-		rows = append(rows, []gotgbot.InlineKeyboardButton{
-			{Text: c.Description(), CallbackData: "rights_edit:" + c.Name(), IconCustomEmojiId: helpers.StatusEmojiID(status)},
+		icon, _ := strconv.ParseInt(helpers.StatusEmojiID(c.RequiredStatus()), 10, 64)
+		rows = append(rows, tg.KeyboardButtonRow{
+			Buttons: []tg.KeyboardButtonClass{
+				&tg.KeyboardButtonCallback{
+					Text: c.Description(),
+					Data: []byte("rights_edit:" + c.Name()),
+					Style: tg.KeyboardButtonStyle{
+						Icon: icon,
+					},
+				},
+			},
 		})
 	}
 
-	rows = append(rows, []gotgbot.InlineKeyboardButton{
-		{Text: "К категориям", CallbackData: "rights_list", Style: "danger"},
+	rows = append(rows, tg.KeyboardButtonRow{
+		Buttons: []tg.KeyboardButtonClass{
+			&tg.KeyboardButtonCallback{
+				Text: "К категориям",
+				Data: []byte("rights_list"),
+			},
+		},
 	})
 
-	return gotgbot.InlineKeyboardMarkup{InlineKeyboard: rows}
+	return &tg.ReplyInlineMarkup{Rows: rows}
 }
 
 func FormatEditCommandRights(key string, currentStatus model.Status, commands []*command.Command) string {
+	eb := &entity.Builder{}
+	WriteEditCommandRights(eb, key, currentStatus, commands)
+	res, _ := eb.Complete()
+	return res
+}
+
+func WriteEditCommandRights(eb *entity.Builder, key string, currentStatus model.Status, commands []*command.Command) {
 	var config *command.Command
 	for _, c := range commands {
 		if c.Name() == key {
@@ -92,24 +124,28 @@ func FormatEditCommandRights(key string, currentStatus model.Status, commands []
 	}
 
 	if config == nil {
-		return "Ошибка: команда не найдена"
+		eb.Plain("Ошибка: команда не найдена")
+		return
 	}
 
 	aliases := append(config.Aliases(), config.Name())
-	formattedAliases := make([]string, len(aliases))
+	eb.Plain("⚙️ ")
+	eb.Plain(config.Description())
+	eb.Plain("\nСинонимы: ")
 	for i, a := range aliases {
-		formattedAliases[i] = "<code>" + a + "</code>"
+		if i > 0 {
+			eb.Plain(", ")
+		}
+		eb.Code(a)
 	}
-
-	return fmt.Sprintf("⚙️ %s\nСинонимы: %s\n\nТекущий уровень: %s %s\n\nВыберите новый уровень доступа:",
-		config.Description(),
-		strings.Join(formattedAliases, ", "),
-		helpers.StatusEmoji(currentStatus),
-		currentStatus.String(),
-	)
+	eb.Plain("\n\nТекущий уровень: ")
+	helpers.WriteStatusEmoji(eb, currentStatus)
+	eb.Plain(" ")
+	eb.Plain(currentStatus.String())
+	eb.Plain("\n\nВыберите новый уровень доступа:")
 }
 
-func GetEditRightsKeyboard(key string, currentStatus model.Status, commands []*command.Command) gotgbot.InlineKeyboardMarkup {
+func GetEditRightsKeyboard(key string, currentStatus model.Status, commands []*command.Command) tg.ReplyMarkupClass {
 	statuses := []model.Status{
 		model.StatusMember,
 		model.StatusModerator,
@@ -119,26 +155,20 @@ func GetEditRightsKeyboard(key string, currentStatus model.Status, commands []*c
 		model.StatusOwner,
 	}
 
-	var rows [][]gotgbot.InlineKeyboardButton
-	var currentRow []gotgbot.InlineKeyboardButton
+	var rows []tg.KeyboardButtonRow
 	for _, s := range statuses {
-		style := ""
+		text := s.Title()
 		if s == currentStatus {
-			style = "primary"
+			text = "✅ " + text
 		}
-		currentRow = append(currentRow, gotgbot.InlineKeyboardButton{
-			Text:              s.Title(),
-			CallbackData:      fmt.Sprintf("rights_set:%s:%d", key, s),
-			Style:             style,
-			IconCustomEmojiId: helpers.StatusEmojiID(s),
+		rows = append(rows, tg.KeyboardButtonRow{
+			Buttons: []tg.KeyboardButtonClass{
+				&tg.KeyboardButtonCallback{
+					Text: text,
+					Data: []byte(fmt.Sprintf("rights_set:%s:%d", key, s)),
+				},
+			},
 		})
-		//if (i+1)%3 == 0 {
-		rows = append(rows, currentRow)
-		currentRow = []gotgbot.InlineKeyboardButton{}
-		//}
-	}
-	if len(currentRow) > 0 {
-		rows = append(rows, currentRow)
 	}
 
 	var backCategory string
@@ -149,9 +179,14 @@ func GetEditRightsKeyboard(key string, currentStatus model.Status, commands []*c
 		}
 	}
 
-	rows = append(rows, []gotgbot.InlineKeyboardButton{
-		{Text: "Назад", CallbackData: "rights_cat:" + backCategory, Style: "danger"},
+	rows = append(rows, tg.KeyboardButtonRow{
+		Buttons: []tg.KeyboardButtonClass{
+			&tg.KeyboardButtonCallback{
+				Text: "Назад",
+				Data: []byte("rights_cat:" + backCategory),
+			},
+		},
 	})
 
-	return gotgbot.InlineKeyboardMarkup{InlineKeyboard: rows}
+	return &tg.ReplyInlineMarkup{Rows: rows}
 }

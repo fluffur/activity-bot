@@ -88,22 +88,9 @@ func (r *UserRepository) SetGender(ctx context.Context, userID int64, gender str
 	})
 }
 
-func (r *UserRepository) SetEmoji(ctx context.Context, userID int64, emoji string) error {
-	return r.queries.SetUserEmoji(ctx, db.SetUserEmojiParams{
-		ID: userID,
-		Emoji: pgtype.Text{
-			String: emoji,
-			Valid:  emoji != "",
-		},
-	})
-}
-
-func (r *UserRepository) SetCustomEmojiID(ctx context.Context, userID int64, emojiID string) error {
-	return r.queries.SetUserCustomEmojiID(ctx, db.SetUserCustomEmojiIDParams{
-		ID: userID,
-		CustomEmojiID: pgtype.Text{
-			String: emojiID,
-			Valid:  emojiID != "",
-		},
+func (r *UserRepository) SetEmoji(ctx context.Context, userID int64, emojis model.Emojis) error {
+	return r.queries.SetUserEmojiJson(ctx, db.SetUserEmojiJsonParams{
+		ID:        userID,
+		EmojiJson: emojis,
 	})
 }

@@ -31,19 +31,15 @@ var (
 )
 
 type Service struct {
-	repo         Repository
-	memberRepo   member.Repository
-	memberStatus ChatMemberStatusProvider
-	moderator    Moderator
-	ownerID      int64
+	repo       Repository
+	memberRepo member.Repository
+	ownerID    int64
 }
 
-func NewService(repo Repository, statusProvider ChatMemberStatusProvider, moderator Moderator, ownerID int64) *Service {
+func NewService(repo Repository, ownerID int64) *Service {
 	return &Service{
-		repo:         repo,
-		memberStatus: statusProvider,
-		moderator:    moderator,
-		ownerID:      ownerID,
+		repo:    repo,
+		ownerID: ownerID,
 	}
 }
 
@@ -62,44 +58,11 @@ func (s *Service) SetStatus(ctx context.Context, sender model.ChatMember, m mode
 		return ErrUserIsAlreadyAdmin
 	}
 
-	if m.Status == 5 {
-		memberStatus, err := s.memberStatus.GetChatMemberStatus(m.ChatID, m.User.ID)
-		if err != nil {
-			return err
-		}
-
-		if memberStatus == "creator" {
-			return ErrUserIsCreator
-		}
-	}
-
 	return s.repo.SetStatus(ctx, m.ChatID, m.User.ID, int16(status))
 }
 
 func (s *Service) SetDevStatus(ctx context.Context, m model.ChatMember, status model.Status) error {
 	return s.repo.SetStatus(ctx, m.ChatID, m.User.ID, int16(status))
-}
-
-func (s *Service) CheckStatus(ctx context.Context, chatID, userID int64, status model.Status) (bool, error) {
-	m, err := s.memberRepo.GetChatMember(ctx, chatID, userID)
-	if err != nil {
-		return false, err
-	}
-
-	if m.Status == status {
-		return true, nil
-	}
-
-	memberStatus, err := s.memberStatus.GetChatMemberStatus(chatID, userID)
-	if err != nil {
-		return false, err
-	}
-
-	if memberStatus == "creator" {
-		return true, nil
-	}
-
-	return false, nil
 }
 
 func (s *Service) GetAdminsEnsured(
@@ -128,19 +91,12 @@ func (s *Service) Kick(ctx context.Context, m model.ChatMember, mod model.ChatMe
 		return ErrUserIsProtected
 	}
 
-	if err := s.moderator.Kick(m.ChatID, m.User.ID); err != nil {
-		return err
-	}
-
 	return s.repo.CreateModerationAction(ctx, "kick", m.ChatID, m.User.ID, mod.User.ID, reason, time.Time{})
 }
 
 func (s *Service) Ban(ctx context.Context, m model.ChatMember, mod model.ChatMember, until time.Time, reason string) error {
 	if !mod.CanModerate(m) {
 		return ErrUserIsProtected
-	}
-	if err := s.moderator.Ban(m.ChatID, m.User.ID, until); err != nil {
-		return err
 	}
 
 	return s.repo.CreateModerationAction(ctx, "ban", m.ChatID, m.User.ID, mod.User.ID, reason, until)
@@ -158,10 +114,6 @@ func (s *Service) Mute(ctx context.Context, m model.ChatMember, mod model.ChatMe
 		if duration < 30*time.Second || duration > 366*24*time.Hour {
 			return ErrInvalidRange
 		}
-	}
-
-	if err := s.moderator.Mute(m.ChatID, m.User.ID, until); err != nil {
-		return err
 	}
 
 	return s.repo.CreateModerationAction(ctx, "mute", m.ChatID, m.User.ID, mod.User.ID, reason, until)
@@ -186,9 +138,6 @@ func (s *Service) Warn(ctx context.Context, m model.ChatMember, mod model.ChatMe
 	}
 
 	if int(count) >= maxWarns {
-		if err := s.moderator.Ban(m.ChatID, m.User.ID, time.Time{}); err != nil {
-			return int(count), true, err
-		}
 		_ = s.repo.CreateModerationAction(ctx, "ban", m.ChatID, m.User.ID, mod.User.ID, "Превышен лимит предупреждений", time.Time{})
 		_ = s.repo.ClearWarns(ctx, m.ChatID, m.User.ID)
 		return int(count), true, nil
@@ -198,15 +147,7 @@ func (s *Service) Warn(ctx context.Context, m model.ChatMember, mod model.ChatMe
 }
 
 func (s *Service) Unban(ctx context.Context, chatID, userID int64) error {
-	if err := s.moderator.Unban(chatID, userID); err != nil {
-		return err
-	}
-
 	return s.repo.RemoveModerationActions(ctx, chatID, userID)
-}
-
-func (s *Service) Unmute(_ context.Context, chatID, userID int64) error {
-	return s.moderator.Unmute(chatID, userID)
 }
 
 func (s *Service) Unwarn(ctx context.Context, chatID, userID int64) (int, error) {

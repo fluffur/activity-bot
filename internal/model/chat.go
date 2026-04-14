@@ -5,6 +5,8 @@ import (
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+
+	"github.com/gotd/td/tg"
 )
 
 type Chat struct {
@@ -25,6 +27,12 @@ type Chat struct {
 	TagsEnabled         bool
 	WeekStartTime       string
 	MaxWarns            int32
+}
+
+func (c Chat) AsInputChannel() *tg.InputChannel {
+	return &tg.InputChannel{
+		ChannelID: c.ID,
+	}
 }
 
 type Status int16
@@ -89,6 +97,7 @@ type ChatMember struct {
 	Tag        string
 	Status     Status
 	Emoji      string
+	Emojis     Emojis
 	JoinedAt   time.Time
 	LeftAt     time.Time
 }
@@ -103,6 +112,12 @@ func (cm ChatMember) StatusGranted(s Status) bool {
 
 func (cm ChatMember) IsRestActive(now time.Time) bool {
 	return !cm.RestUntil.IsZero() && cm.RestUntil.After(now)
+}
+
+func (cm ChatMember) AsInputChannel() *tg.InputChannel {
+	return &tg.InputChannel{
+		ChannelID: cm.ChatID,
+	}
 }
 
 type ChatWithoutNorm struct {

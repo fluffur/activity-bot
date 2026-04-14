@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"activity-bot/internal/adapter"
 	"activity-bot/internal/admin"
 	service "activity-bot/internal/call"
 	"activity-bot/internal/call/view"
@@ -11,17 +10,17 @@ import (
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
 	memberview "activity-bot/internal/member/view"
+	"activity-bot/internal/options"
 	"activity-bot/internal/user"
-	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"math/rand"
-	"strings"
-	"time"
 	"unicode/utf8"
 
-	"github.com/PaulSonOfLars/gotgbot/v2"
-	"golang.org/x/time/rate"
+	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/telegram/message/entity"
+	"github.com/gotd/td/tg"
 )
 
 type Handler struct {
@@ -36,39 +35,40 @@ func New(service *member.Service, chatService *chat.Service, userService *user.S
 	return &Handler{service, chatService, userService, callService, adminService}
 }
 
-func (h *Handler) UpdateMembersList(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) UpdateMembersList(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 	count, err := h.service.SyncChatMembers(ctx.StdContext(), c.ID)
 	if err != nil {
-		_ = ctx.Reply(b, "Не удалось обновить данные чата", nil)
+		_ = ctx.ReplyOnly(u, options.WithText("Не удалось обновить данные чата"))
 		return err
 	}
 
-	return ctx.Reply(b, memberview.FormatSyncResult(count), nil)
+	return ctx.ReplyOnly(u, options.WithText(memberview.FormatSyncResult(count)))
 }
 
-func (h *Handler) ListRoles(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) ListRoles(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 	members, err := h.service.GetMembersWithTitle(ctx.StdContext(), c.ID)
 	if err != nil {
-		_ = ctx.Reply(b, "Не удалось получить список ролей", nil)
+		_ = ctx.ReplyOnly(u, options.WithText("Не удалось получить список ролей"))
 		return err
 	}
 
 	if len(members) == 0 {
-		return ctx.Reply(b, "В чате нет установленных ролей", nil)
+		return ctx.ReplyOnly(u, options.WithText("В чате нет установленных ролей"))
 	}
-
-	return ctx.ReplyHTML(b, memberview.FormatRolesList(members))
+	eb := &entity.Builder{}
+	memberview.WriteRolesList(eb, members)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
-func (h *Handler) SetRole(b *gotgbot.Bot, ctx *command.Context) error {
-	u, err := ctx.AnyUser()
+func (h *Handler) SetRole(ctx *command.Context, u *ext.Update) error {
+	cm, err := ctx.AnyUser()
 	if err != nil {
 		return err
 	}
@@ -78,131 +78,149 @@ func (h *Handler) SetRole(b *gotgbot.Bot, ctx *command.Context) error {
 	}
 
 	if utf8.RuneCountInString(tag) > 16 {
-		return ctx.Reply(b, "Слишком длинная роль (максимум 16 символа)", nil)
+		return ctx.ReplyOnly(u, options.WithText("Слишком длинная роль (максимум 16 символа)"))
 	}
 
-	if err := h.service.SetMemberTitle(ctx.StdContext(), u.ChatID, u.User.ID, tag); err != nil {
-		if errors.Is(err, adapter.ErrChatMemberNotFound) {
-			return ctx.Reply(b, fmt.Sprintf("Участник не найден\n\nTelegram: %s", err.Error()), nil)
-		} else if errors.Is(err, adapter.ErrChatMemberCantBeEdited) {
-			return ctx.Reply(b, fmt.Sprintf("Я не могу изменить роль этого участника\n\nTelegram: %s", err.Error()), nil)
-		} else if errors.Is(err, adapter.ErrChatMemberIsRestricted) {
-			return ctx.Reply(b, fmt.Sprintf("Пользователь не является полноправным участником чата\n\nTelegram: %s", err.Error()), nil)
-		} else if errors.Is(err, adapter.ErrChatMemberIsCreator) {
-			return ctx.Reply(b, "Я не могу менять роль создателя чата", nil)
-		}
-
-		_ = ctx.Reply(b, fmt.Sprintf("Не удалось установить роль: %s", err.Error()), nil)
-
+	if err := h.service.SetMemberTitle(ctx.StdContext(), cm.ChatID, cm.User.ID, tag); err != nil {
 		return fmt.Errorf("failed to set member title: %w", err)
 	}
 
-	return ctx.ReplyHTML(b, memberview.FormatRoleUpdated(*u, tag))
-}
-
-func (h *Handler) RestoreRoles(b *gotgbot.Bot, ctx *command.Context) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
-	members, err := h.service.GetAnyMembersWithTitle(ctx.StdContext(), c.ID)
-	if err != nil {
-		_ = ctx.Reply(b, "Не удалось получить список ролей из базы", nil)
-		return err
-	}
 
-	if len(members) == 0 {
-		return ctx.Reply(b, "В базе данных нет сохраненных ролей для этого чата", nil)
-	}
-
-	var restoredCount int
-	limiter := rate.NewLimiter(rate.Every(500*time.Millisecond), 1)
-
-	for _, m := range members {
-		if err := limiter.Wait(ctx.StdContext()); err != nil {
-			return err
+	if c.TagsEnabled {
+		if _, err := ctx.Raw.MessagesEditChatParticipantRank(ctx.StdContext(), &tg.MessagesEditChatParticipantRankRequest{
+			Peer:        u.GetChannel().AsInputPeer(),
+			Participant: &tg.InputPeerUser{UserID: cm.User.ID},
+			Rank:        tag,
+		}); err != nil {
+			_ = ctx.ReplyOnly(u, options.WithText(
+				fmt.Sprintf("Телеграм не позволил установить роль участнику.\nПроверьте, есть ли у бота право на изменение тегов участников\n\n%s", err.Error()),
+			))
+			return fmt.Errorf("failed to set rank: %w", err)
 		}
-
-		if ok, err := b.PromoteChatMember(c.ID, m.User.ID, &gotgbot.PromoteChatMemberOpts{
-			CanManageChat:   true,
-			CanPostMessages: true,
-			CanEditMessages: true,
-		}); err != nil || !ok {
-			logger.L.Warn("failed to promote chat member", "chatID", c.ID, "userID", m.User.ID, "error", err)
-			continue
-		}
-
-		restoredCount++
-	}
-
-	msgText := fmt.Sprintf("%s Восстановление завершено.\n\nВосстановлено: %d", helpers.SuccessEmoji(), restoredCount)
-
-	return ctx.Reply(b, msgText, nil)
-}
-
-func (h *Handler) ShowRole(b *gotgbot.Bot, ctx *command.Context) error {
-	u, err := ctx.AnyUser()
-	if err != nil {
-		return err
-	}
-
-	if u.Tag == "" {
-		return ctx.ReplyHTML(b, fmt.Sprintf("У участника %s нет роли", helpers.UserLink(u.User)))
-	}
-
-	return ctx.ReplyHTML(b, memberview.FormatMemberRole(u.User, u.Tag))
-}
-
-func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *command.Context) error {
-	joinedMembers := ctx.EffectiveMessage.NewChatMembers
-	for _, u := range joinedMembers {
-		if u.Id == b.User.Id {
-			return h.OnBotPromote(b, ctx)
-		}
-		if u.IsBot {
-			continue
-		}
-		slog.Info("member joined", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id)
-		if _, err := h.service.EnsureMemberExists(ctx.StdContext(), ctx.EffectiveChat.Id, u.Id, u.Username, u.FirstName, u.LastName, ctx.EffectiveMessage.SenderTag); err != nil {
+	} else {
+		if _, err := ctx.Raw.ChannelsEditAdmin(ctx, &tg.ChannelsEditAdminRequest{
+			Channel: u.GetChannel().AsInput(),
+			UserID:  &tg.InputUser{UserID: cm.User.ID},
+			AdminRights: tg.ChatAdminRights{
+				Other: true,
+			},
+			Rank: tag,
+		}); err != nil {
+			_ = ctx.ReplyOnly(u, options.WithText(
+				fmt.Sprintf("Телеграм не позволил установить роль участнику.\nПроверьте, есть ли у бота право на добавление администраторов\n\n%s", err.Error()),
+			))
 			return err
 		}
 	}
 
-	chatData, err := h.chatService.GetChat(ctx.StdContext(), ctx.EffectiveChat.Id)
+	eb := &entity.Builder{}
+	memberview.WriteRoleUpdated(eb, *cm, tag)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
+}
+
+func (h *Handler) ShowRole(ctx *command.Context, u *ext.Update) error {
+	cm, err := ctx.AnyUser()
 	if err != nil {
 		return err
 	}
 
-	if chatData.CallOnJoin {
-		members, err := h.callService.GetAllMembers(ctx.StdContext(), ctx.EffectiveChat.Id)
+	if cm.Tag == "" {
+		eb := &entity.Builder{}
+		eb.Plain("У участника ")
+		helpers.WriteRoleEmojiLink(eb, *cm)
+		eb.Plain("еще не установлена роль\n\nПопробуйте установить командой: ")
+		eb.Code("!роль @участник Название Роли")
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
+	}
+
+	return ctx.ReplyOnly(u, options.WithText(memberview.FormatMemberRole(cm.Tag)))
+}
+
+func (h *Handler) OnJoinMember(ctx *command.Context, u *ext.Update) error {
+	msg := u.EffectiveMessage
+	if msg.Action == nil {
+		return nil
+	}
+
+	effectiveChat := u.EffectiveChat()
+	effectiveUser := u.EffectiveUser()
+
+	var userIDs []int64
+
+	switch action := msg.Action.(type) {
+
+	case *tg.MessageActionChatAddUser:
+		userIDs = action.Users
+
+	case *tg.MessageActionChatJoinedByLink,
+		*tg.MessageActionChatJoinedByRequest:
+		userIDs = []int64{effectiveUser.ID}
+
+	default:
+		return nil
+	}
+
+	for _, id := range userIDs {
+		if id == ctx.Self.ID {
+			return h.OnBotPromote(ctx, u)
+		}
+
+		log.Println("member joined", id, effectiveChat, effectiveUser)
+
+		if _, err := h.service.EnsureMemberExists(
+			ctx.StdContext(),
+			effectiveChat.GetID(),
+			id,
+			effectiveUser.Username,
+			effectiveUser.FirstName,
+			effectiveUser.LastName,
+			"",
+		); err != nil {
+			return err
+		}
+	}
+
+	switch msg.Action.(type) {
+	case *tg.MessageActionChatJoinedByLink,
+		*tg.MessageActionChatJoinedByRequest:
+
+		chatData, err := ctx.Chat()
 		if err != nil {
 			return err
 		}
 
-		mentionsLimit := int(chatData.MentionsPerMessage)
-		if mentionsLimit <= 0 {
-			mentionsLimit = 5
-		}
-
-		message := chatData.WelcomeCallMessage
-		if message != "" {
-			message = view.ReplaceMentionsWithLinks(message)
-		}
-
-		for i := 0; i < len(members); i += mentionsLimit {
-			end := i + mentionsLimit
-			if end > len(members) {
-				end = len(members)
+		if chatData.CallOnJoin {
+			members, err := h.callService.GetAllMembers(ctx.StdContext(), effectiveChat.GetID())
+			if err != nil {
+				return err
 			}
 
-			chunkText := view.FormatCallChunk(message, members[i:end], chatData.MentionTypes)
-			if _, sendErr := ctx.EffectiveMessage.Reply(b, chunkText, &gotgbot.SendMessageOpts{
-				ParseMode: gotgbot.ParseModeHTML,
-				LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-					IsDisabled: true,
-				},
-			}); sendErr != nil {
-				return sendErr
+			mentionsLimit := int(chatData.MentionsPerMessage)
+			if mentionsLimit <= 0 {
+				mentionsLimit = 5
+			}
+
+			message := chatData.WelcomeCallMessage
+			if message != "" {
+				message = view.ReplaceMentionsWithLinks(message)
+			}
+
+			for i := 0; i < len(members); i += mentionsLimit {
+				end := i + mentionsLimit
+				if end > len(members) {
+					end = len(members)
+				}
+
+				eb := &entity.Builder{}
+				view.FormatCallChunkBuilder(eb, message, members[i:end], chatData.MentionTypes)
+
+				if err := ctx.ReplyOnly(u, options.WithBuilder(eb)); err != nil {
+					logger.L.Error("failed to send on join call chuck", "error", err)
+				}
 			}
 		}
 	}
@@ -210,52 +228,58 @@ func (h *Handler) OnJoinMember(b *gotgbot.Bot, ctx *command.Context) error {
 	return nil
 }
 
-func (h *Handler) OnLeftMember(b *gotgbot.Bot, ctx *command.Context) error {
-	u := ctx.Message.LeftChatMember
-	slog.Info("member left", "chat_id", ctx.EffectiveChat.Id, "user_id", u.Id)
-	if u.IsBot {
+func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
+	msg := u.EffectiveMessage
+	if msg.Action == nil {
 		return nil
 	}
-	m, err := h.service.ProcessLeftMember(ctx.StdContext(), ctx.EffectiveChat.Id, u.Id)
+	c, err := ctx.Chat()
 	if err != nil {
 		return err
+	}
+	action, ok := msg.Action.(*tg.MessageActionChatDeleteUser)
+	if !ok {
+		return nil
 	}
 
-	admins, err := h.adminService.GetAdminsEnsured(ctx.StdContext(), ctx.EffectiveChat.Id, h.service.SyncChatMembers)
+	userID := action.UserID
+	slog.Info("member left", "chat_id", u.EffectiveChat().GetID(), "user_id", userID)
+
+	m, err := h.service.ProcessLeftMember(ctx.StdContext(), u.EffectiveChat().GetID(), userID)
 	if err != nil {
 		return err
 	}
-	var sb strings.Builder
+	eb := &entity.Builder{}
+	eb.Plain("🕊 ")
+	helpers.WriteRoleEmojiLink(eb, m)
+	eb.Plain(fmt.Sprintf(" %s нас", helpers.Gendered(m.User.Gender, "покинул", "покинула")))
+	admins, err := h.adminService.GetAdminsEnsured(ctx.StdContext(), u.EffectiveChat().GetID(), h.service.SyncChatMembers)
+	if err != nil {
+		return err
+	}
+	eb.Plain("\n\n")
 	for _, a := range admins {
-		sb.WriteString(helpers.Mention(a.User.ID, "​"))
+		view.RenderMention(eb, a, c.MentionTypes)
 	}
-	_, err = ctx.EffectiveChat.SendMessage(b, fmt.Sprintf("🕊 %s %s нас..."+sb.String(),
-		helpers.RoleEmojiLink(m),
-		helpers.Gendered(m.User.Gender, "покинул", "покинула"),
-	), &gotgbot.SendMessageOpts{
-		ParseMode: gotgbot.ParseModeHTML,
-		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-			IsDisabled: true,
-		},
-	})
 
-	return err
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
-func (h *Handler) OnBotPromote(_ *gotgbot.Bot, ctx *command.Context) error {
-	count, err := h.service.SyncChatMembers(ctx.StdContext(), ctx.EffectiveChat.Id)
+func (h *Handler) OnBotPromote(ctx *command.Context, u *ext.Update) error {
+	effectiveChat := u.GetChat()
+	count, err := h.service.SyncChatMembers(ctx.StdContext(), effectiveChat.GetID())
 	if err != nil {
 		return err
 	}
-	if err := h.chatService.SetTitle(ctx.StdContext(), ctx.EffectiveChat.Id, ctx.EffectiveChat.Title); err != nil {
+	if err := h.chatService.SetTitle(ctx.StdContext(), effectiveChat.GetID(), effectiveChat.GetTitle()); err != nil {
 		return err
 	}
 
-	slog.Info("updated chat members on bot join", "chat_id", ctx.EffectiveChat.Id, "count", count)
+	slog.Info("updated chat members on bot join", "chat_id", effectiveChat.GetID(), "count", count)
 	return nil
 }
 
-func (h *Handler) ShipRandom(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) ShipRandom(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
@@ -279,50 +303,99 @@ func (h *Handler) ShipRandom(b *gotgbot.Bot, ctx *command.Context) error {
 
 	first := members[0]
 	second := members[1]
-
-	text := fmt.Sprintf("%s <b>Шипперим рандом</b>: %s + %s\n%s", helpers.CustomEmoji("5258276353949575281", "❤️"), helpers.RoleMentionEmoji(first), helpers.RoleMentionEmoji(second), phrase)
-
-	return ctx.ReplyHTML(b, text)
+	eb := &entity.Builder{}
+	helpers.WriteCustomEmoji(eb, "5258276353949575281", "❤️")
+	eb.Bold(" Шипперим рандом: ")
+	helpers.WriteRoleEmojiMention(eb, first)
+	eb.Plain(" + ")
+	helpers.WriteRoleEmojiMention(eb, second)
+	eb.Plain("\n" + phrase)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
-func (h *Handler) ShowEmoji(b *gotgbot.Bot, ctx *command.Context) error {
-	m, err := ctx.AnyUser()
-	if err != nil {
-		return err
-	}
-	if m.Emoji == "" {
-		return ctx.ReplyHTML(b, fmt.Sprintf("У %s еще нет значка чата\n\nДобавить значок: <code>!значок @участник 😘</code>", helpers.RoleEmojiLink(*m)))
-
-	}
-	return ctx.ReplyHTML(b, fmt.Sprintf("Значок %s: %s", helpers.RoleLink(*m), m.Emoji))
-}
-
-func (h *Handler) SetEmoji(b *gotgbot.Bot, ctx *command.Context) error {
-	m, err := ctx.AnyUser()
+func (h *Handler) ShowEmoji(ctx *command.Context, u *ext.Update) error {
+	cm, err := ctx.AnyUser()
 	if err != nil {
 		return err
 	}
 
-	graphemes := helpers.ParseEmojis(ctx.RawArgsHTML)
-	emojis := strings.Join(graphemes, "")
-	if len(graphemes) > 3 {
-		return ctx.Reply(b, "❌ Можно указать не более 3 значков на участника", nil)
+	eb := &entity.Builder{}
+
+	if len(cm.Emojis) == 0 {
+		eb.Plain("У ")
+		helpers.WriteUserMention(eb, cm.User)
+		eb.Plain(" еще нет значка чата\n\nДобавить: ")
+		eb.Code("!значок @участник 💤")
+
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
-	if err := h.service.SetChatMemberEmoji(ctx.StdContext(), m.ChatID, m.User.ID, emojis); err != nil {
+
+	eb.Plain("Значок ")
+	helpers.WriteUserMention(eb, cm.User)
+	eb.Plain(": ")
+	helpers.DisplayEmoji(eb, cm.Emojis)
+
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
+}
+
+func (h *Handler) SetEmoji(ctx *command.Context, u *ext.Update) error {
+	cm, err := ctx.AnyUser()
+	if err != nil {
+		return err
+	}
+
+	emojis := helpers.ExtractEmoji(ctx.RawArgs, ctx.RawArgsEntities)
+
+	if len(emojis) == 0 {
+		return ctx.ReplyOnly(u, options.WithText("Отправьте emoji"))
+	}
+
+	if len(emojis) > 3 {
+		return ctx.ReplyOnly(u, options.WithText("❌ Можно указать не более 3 значков"))
+	}
+
+	if err := h.service.SetChatMemberEmoji(
+		ctx.StdContext(),
+		cm.ChatID,
+		cm.User.ID,
+		emojis,
+	); err != nil {
 		return fmt.Errorf("failed to set chat member emoji: %w", err)
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Значок %s для %s успешно установлен", emojis, helpers.RoleLink(*m)))
+	eb := &entity.Builder{}
+	eb.Plain("Значок ")
+	helpers.DisplayEmoji(eb, emojis)
+	eb.Plain(" установлен для ")
+	helpers.WriteUserMention(eb, cm.User)
+
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
-func (h *Handler) RemoveEmoji(b *gotgbot.Bot, ctx *command.Context) error {
-	m, err := ctx.AnyUser()
+func (h *Handler) RemoveEmoji(ctx *command.Context, u *ext.Update) error {
+	cm, err := ctx.AnyUser()
 	if err != nil {
 		return err
 	}
-	if err := h.service.SetChatMemberEmoji(ctx.StdContext(), m.ChatID, m.User.ID, ""); err != nil {
-		return fmt.Errorf("failed to set remove member emoji: %w", err)
+
+	if len(cm.Emojis) == 0 {
+		return ctx.ReplyOnly(u, options.WithText("У пользователя нет значка"))
 	}
 
-	return ctx.ReplyHTML(b, fmt.Sprintf("Значок %s для %s успешно удалён", "", helpers.RoleLink(*m)))
+	if err := h.service.SetChatMemberEmoji(
+		ctx.StdContext(),
+		cm.ChatID,
+		cm.User.ID,
+		nil,
+	); err != nil {
+		return fmt.Errorf("failed to remove member emoji: %w", err)
+	}
+
+	eb := &entity.Builder{}
+	eb.Plain("Значок ")
+	helpers.DisplayEmoji(eb, cm.Emojis)
+	eb.Plain(" удалён у ")
+	helpers.WriteUserMention(eb, cm.User)
+
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }

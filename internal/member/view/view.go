@@ -5,29 +5,47 @@ import (
 	"activity-bot/internal/model"
 	"fmt"
 	"html"
-	"strings"
+
+	"github.com/gotd/td/telegram/message/entity"
 )
 
 func FormatRolesList(members []model.ChatMember) string {
-	var sb strings.Builder
-	sb.WriteString("🎭 Роли всех участников:\n\n")
-	sb.WriteString("<blockquote expandable>")
-
-	for i, m := range members {
-		sb.WriteString(fmt.Sprintf("%d. %s <code>@%s</code>\n", i+1, helpers.RoleEmojiLink(m), m.User.DisplayName()))
-	}
-	sb.WriteString("</blockquote>")
-	sb.WriteString("\nЧтобы изменить роль участника введите <code>!роль @участник название</code>")
-
-	return sb.String()
+	eb := &entity.Builder{}
+	WriteRolesList(eb, members)
+	res, _ := eb.Complete()
+	return res
 }
 
 func FormatRoleUpdated(user model.ChatMember, role string) string {
-	return fmt.Sprintf("Роль %s обновлена на \"%s\"", helpers.RoleEmojiLink(user), html.EscapeString(role))
+	eb := &entity.Builder{}
+	WriteRoleUpdated(eb, user, role)
+	res, _ := eb.Complete()
+	return res
 }
 
-func FormatMemberRole(user model.User, title string) string {
-	return fmt.Sprintf("Роль участника %s — %s", helpers.UserLink(user), html.EscapeString(title))
+func WriteRolesList(eb *entity.Builder, members []model.ChatMember) {
+	eb.Plain("🎭 Роли всех участников:\n\n")
+	for i, m := range members {
+		eb.Plain(fmt.Sprintf("%d. ", i+1))
+		helpers.WriteRoleEmojiLink(eb, m)
+		eb.Plain(" @")
+		eb.Plain(m.User.DisplayName())
+		eb.Plain("\n")
+	}
+	eb.Plain("\nЧтобы изменить роль участника введите ")
+	eb.Code("!роль @участник название")
+}
+
+func WriteRoleUpdated(eb *entity.Builder, user model.ChatMember, role string) {
+	eb.Plain("Роль ")
+	helpers.WriteRoleEmojiLink(eb, user)
+	eb.Plain(" обновлена на \"")
+	eb.Plain(html.EscapeString(role))
+	eb.Plain("\"")
+}
+
+func FormatMemberRole(title string) string {
+	return fmt.Sprintf("Роль участника: %s", title)
 }
 
 func FormatSyncResult(count int) string {

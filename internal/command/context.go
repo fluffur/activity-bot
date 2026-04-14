@@ -2,24 +2,29 @@ package command
 
 import (
 	"activity-bot/internal/model"
+	"activity-bot/internal/options"
 	"context"
 	"errors"
 	"time"
 
-	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
+	"github.com/celestix/gotgproto/ext"
+	"github.com/celestix/gotgproto/types"
+	"github.com/gotd/td/tg"
 )
 
+var ErrNoValueDate = errors.New("no date found")
+var ErrNoValueUser = errors.New("no user found")
+var ErrNoValueChat = errors.New("no chat found")
 var ErrNoValue = errors.New("no value found")
 
-type Response func(b *gotgbot.Bot, ctx *Context) error
+type Response func(ctx *Context, u *ext.Update) error
 
 type Context struct {
-	stdContext context.Context
 	*ext.Context
-	RawArgs     string
-	RawArgsHTML string
-	tokens      []string
+	Command         *Command
+	RawArgs         string
+	RawArgsEntities []tg.MessageEntityClass
+	tokens          []string
 
 	usedOffsets []Offset
 
@@ -38,30 +43,13 @@ type Context struct {
 }
 
 func (c *Context) StdContext() context.Context {
-	return c.stdContext
-}
-
-func (c *Context) Reply(b *gotgbot.Bot, text string, opts *gotgbot.SendMessageOpts) error {
-	_, err := c.EffectiveMessage.Reply(b, text, opts)
-
-	return err
-}
-
-func (c *Context) ReplyHTML(b *gotgbot.Bot, text string) error {
-	_, err := c.EffectiveMessage.Reply(b, text, &gotgbot.SendMessageOpts{
-		ParseMode: "HTML",
-		LinkPreviewOptions: &gotgbot.LinkPreviewOptions{
-			IsDisabled: true,
-		},
-	})
-
-	return err
+	return c.Context.Context
 }
 
 func (c *Context) Chat() (model.Chat, error) {
 	chat := c.chat
 	if chat == nil {
-		return model.Chat{}, ErrNoValue
+		return model.Chat{}, ErrNoValueChat
 	}
 	return *chat, nil
 }
@@ -82,7 +70,7 @@ func (c *Context) NumberOrDefault(def int) int {
 
 func (c *Context) Date() (time.Time, error) {
 	if len(c.dates) == 0 {
-		return time.Time{}, ErrNoValue
+		return time.Time{}, ErrNoValueDate
 	}
 	return c.dates[0], nil
 }
@@ -114,14 +102,14 @@ func (c *Context) TextOrDefault(def string) string {
 
 func (c *Context) User() (*model.ChatMember, error) {
 	if len(c.chatMembers) == 0 {
-		return nil, ErrNoValue
+		return nil, ErrNoValueUser
 	}
 	return &c.chatMembers[0], nil
 }
 
 func (c *Context) ReplyUser() (*model.ChatMember, error) {
 	if c.replyChatMember == nil {
-		return nil, ErrNoValue
+		return nil, ErrNoValueUser
 	}
 	return c.replyChatMember, nil
 }
@@ -142,7 +130,7 @@ func (c *Context) AnyUser() (*model.ChatMember, error) {
 
 func (c *Context) Sender() (*model.ChatMember, error) {
 	if c.senderChatMember == nil {
-		return c.senderChatMember, ErrNoValue
+		return c.senderChatMember, ErrNoValueUser
 	}
 	return c.senderChatMember, nil
 }
@@ -154,7 +142,7 @@ func (c *Context) UserOrSender() (*model.ChatMember, error) {
 	if c.senderChatMember != nil {
 		return c.senderChatMember, nil
 	}
-	return nil, ErrNoValue
+	return nil, ErrNoValueUser
 }
 
 func (c *Context) UserOrReply() (*model.ChatMember, error) {
@@ -164,9 +152,37 @@ func (c *Context) UserOrReply() (*model.ChatMember, error) {
 	if c.replyChatMember != nil {
 		return c.replyChatMember, nil
 	}
-	return nil, ErrNoValue
+	return nil, ErrNoValueUser
 }
 
 func (c *Context) RequiredStatus() model.Status {
 	return c.requiredStatus
+}
+
+func (c *Context) Reply(u *ext.Update, opts ...options.SendMessageOption) (*types.Message, error) {
+	var msgID int
+
+	switch {
+	case u.EffectiveMessage != nil:
+		msgID = u.EffectiveMessage.GetID()
+	case u.CallbackQuery != nil:
+		msgID = u.CallbackQuery.GetMsgID()
+	default:
+		return nil, errors.New("no effective message")
+	}
+
+	req := &tg.MessagesSendMessageRequest{}
+	req.SetNoWebpage(true)
+	req.ReplyTo = &tg.InputReplyToMessage{ReplyToMsgID: msgID}
+
+	for _, opt := range opts {
+		opt(req)
+	}
+
+	return c.SendMessage(u.EffectiveChat().GetID(), req)
+}
+
+func (c *Context) ReplyOnly(u *ext.Update, opts ...options.SendMessageOption) error {
+	_, err := c.Reply(u, opts...)
+	return err
 }

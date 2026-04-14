@@ -16,3 +16,11 @@ sql:
         overrides:
           - db_type: "uuid"
             go_type: "github.com/google/uuid.UUID"
+          - column: "chat_members.emoji_json"
+            go_type:
+              import: "activity-bot/internal/model"
+              type: "Emojis"
+          - column: "users.emoji_json"
+            go_type:
+              import: "activity-bot/internal/model"
+              type: "Emojis"

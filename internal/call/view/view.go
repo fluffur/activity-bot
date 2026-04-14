@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"regexp"
 	"strings"
+
+	"github.com/gotd/td/telegram/message/entity"
 )
 
 const (
@@ -62,13 +64,12 @@ func ReplaceMentionsWithLinks(input string) string {
 	return sb.String()
 }
 
-func FormatCallChunk(message string, members []model.ChatMember, mentionTypes int32) string {
-	var sb strings.Builder
+func FormatCallChunkBuilder(eb *entity.Builder, message string, members []model.ChatMember, mentionTypes int32) {
 	if message != "" {
-		sb.WriteString(message)
+		eb.Plain(message)
 
 		if mentionTypes != 0 {
-			sb.WriteString("\n\n")
+			eb.Plain("\n\n")
 		}
 	}
 
@@ -78,83 +79,63 @@ func FormatCallChunk(message string, members []model.ChatMember, mentionTypes in
 	}
 
 	for j, m := range members {
-		var parts []string
-		emptyStr := "​"
-		if j == 0 && message == "" {
-			emptyStr = "ㅤ"
-		}
-
-		emoji := userEmoji(m)
-
-		if mentionTypes&MentionTypeEmoji > 0 && !hasCustomEmoji(emoji) {
-			parts = append(parts, emoji)
-		}
-		if mentionTypes&MentionTypeName > 0 {
-			parts = append(parts, m.User.DisplayName())
-		}
-		if mentionTypes&MentionTypeRole > 0 && m.Tag != "" {
-			parts = append(parts, m.Tag)
-		}
-
-		if len(parts) == 0 && !(mentionTypes&MentionTypeEmoji > 0 && hasCustomEmoji(emoji)) {
-			parts = append(parts, emptyStr)
-		}
-
-		title := strings.Join(parts, " ")
-		if strings.TrimSpace(title) == "" {
-			title = emptyStr
-		}
-
-		if mentionTypes&MentionTypeEmoji > 0 && hasCustomEmoji(emoji) {
-			sb.WriteString(emoji)
-			sb.WriteString(" ")
-			if title != "" {
-				sb.WriteString(helpers.Mention(m.User.ID, title))
-			} else {
-				sb.WriteString(helpers.Mention(m.User.ID, "ㅤ"))
-			}
-		} else {
-			sb.WriteString(helpers.Mention(m.User.ID, title))
-		}
+		RenderMention(eb, m, mentionTypes)
 
 		if j < len(members)-1 {
-			sb.WriteString(separator)
+			eb.Plain(separator)
 		}
 	}
-
-	return sb.String()
-}
-
-func FormatWelcomeCallMessageSet() string {
-	return "Новое сообщение для call установлено"
-}
-
-func FormatCallOnJoinEnabled() string {
-	return "Теперь при инвайте новых участников будет вызываться call"
-}
-
-func FormatCallOnJoinDisabled() string {
-	return "Теперь при инвайте новых участников не будет вызываться call"
 }
 
 func FormatWelcomeCallMessage(message string) string {
 	if message == "" {
 		return "Сообщение ещё не указано"
 	}
-	return "Сообщение: " + message
+	return ": " + message
 }
 
-func userEmoji(m model.ChatMember) string {
-	if m.Emoji != "" {
-		return m.Emoji
-	}
-	if m.User.Emoji != "" {
-		return m.User.Emoji
+func userEmojis(m model.ChatMember) model.Emojis {
+	if len(m.Emojis) != 0 {
+		return m.Emojis
 	}
 
-	return callEmojis[rand.Intn(len(callEmojis))]
+	if len(m.User.Emojis) != 0 {
+		return m.User.Emojis
+	}
+
+	return model.Emojis{
+		{
+			Type: model.EmojiTypeUnicode,
+			Char: callEmojis[rand.Intn(len(callEmojis))],
+		},
+	}
 }
 
-func hasCustomEmoji(s string) bool {
-	return strings.Contains(s, "<tg-emoji")
+func RenderMention(eb *entity.Builder, m model.ChatMember, mentionTypes int32) {
+	hasEmoji := mentionTypes&MentionTypeEmoji > 0
+	hasName := mentionTypes&MentionTypeName > 0
+	hasRole := mentionTypes&MentionTypeRole > 0
+
+	if hasEmoji {
+		emojis := userEmojis(m)
+		helpers.MentionEmoji(eb, m.User, emojis)
+	}
+
+	var parts []string
+
+	if hasName {
+		parts = append(parts, m.User.DisplayName())
+	}
+
+	if hasRole && m.Tag != "" {
+		parts = append(parts, m.Tag)
+	}
+
+	title := strings.Join(parts, " ")
+
+	if title == "" {
+		title = "\u200B"
+	}
+
+	helpers.WriteMention(eb, m.User.ID, title)
 }

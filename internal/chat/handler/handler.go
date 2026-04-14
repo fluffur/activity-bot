@@ -6,16 +6,19 @@ import (
 	"activity-bot/internal/chat/view"
 	"activity-bot/internal/command"
 	"activity-bot/internal/helpers"
-	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
+	"activity-bot/internal/options"
 	"activity-bot/internal/session"
+	"errors"
 	"fmt"
-	"html"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/PaulSonOfLars/gotgbot/v2"
+	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/telegram/message/entity"
+	"github.com/gotd/td/tg"
 )
 
 type Handler struct {
@@ -35,47 +38,52 @@ func New(service *chat.Service, adminService *admin.Service, memberService *memb
 	return &Handler{service, adminService, memberService, sessionService, dateParser}
 }
 
-func (h *Handler) ShowNorm(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) ShowNorm(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatNorm(c.NormWarn, c.NormBan))
+	eb := &entity.Builder{}
+	view.WriteNorm(eb, c.NormWarn, c.NormBan)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
-func (h *Handler) SetNorm(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) SetNorm(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
-	norm, err := ctx.Number()
+	normInt, err := ctx.Number()
 	if err != nil {
 		return err
 	}
+	norm := int32(normInt)
 	action := ctx.TextOrDefault("варн")
 	validActions := map[string]bool{
 		"варн": true,
 		"бан":  true,
 	}
 	if !validActions[action] {
-		return ctx.Reply(b, fmt.Sprintf("❌ Неверное действие: '%s'. Допустимые: 'варн', 'бан'", action), nil)
+		return ctx.ReplyOnly(u,
+			options.WithText(fmt.Sprintf("❌ Неверное действие: '%s'. Допустимые: 'варн', 'бан'", action)),
+		)
 	}
 
 	if action == "варн" {
-		if err := h.service.SetWarnNorm(ctx.StdContext(), c.ID, norm); err != nil {
+		if err := h.service.SetWarnNorm(ctx.StdContext(), c.ID, int(norm)); err != nil {
 			return err
 		}
 	} else {
-		if err := h.service.SetBanNorm(ctx.StdContext(), c.ID, norm); err != nil {
+		if err := h.service.SetBanNorm(ctx.StdContext(), c.ID, int(norm)); err != nil {
 			return err
 		}
 	}
 
-	return ctx.Reply(b, view.FormatNormSet(norm, action), nil)
+	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Установлена новая норма чата: %d на %s", norm, action)))
 }
 
-func (h *Handler) RemoveNorm(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) RemoveNorm(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
@@ -96,77 +104,79 @@ func (h *Handler) RemoveNorm(b *gotgbot.Bot, ctx *command.Context) error {
 			return h.service.SetBanNorm(ctx.StdContext(), c.ID, 0)
 		}
 	default:
-		return ctx.Reply(b, "❌ Неверное действие. Допустимые: 'варн', 'бан'", nil)
+		return ctx.ReplyOnly(u, options.WithText("❌ Неверное действие. Допустимые: 'варн', 'бан'"))
 	}
 
 	if oldNorm == 0 {
-		return ctx.Reply(b, fmt.Sprintf("❌ Норма на %s не была установлена", action), nil)
+		return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("❌ Норма на %s не была установлена", action)))
 	}
 
 	if err := setFn(); err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, fmt.Sprintf("Норма %d (%s) удалена", oldNorm, action), nil)
+	return ctx.ReplyOnly(u, options.WithText(fmt.Sprintf("Норма %d (%s) удалена", oldNorm, action)))
 }
 
-func (h *Handler) ShowNewbieThreshold(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) ShowNewbieThreshold(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, view.FormatNewbieThreshold(c.NewbieThresholdDays), nil)
+	return ctx.ReplyOnly(u, options.WithText(view.FormatNewbieThreshold(c.NewbieThresholdDays)))
 }
-
-func (h *Handler) SetNewbieThreshold(b *gotgbot.Bot, ctx *command.Context) error {
-	days, err := ctx.Number()
-	if err != nil {
-		return err
-	}
+func (h *Handler) SetNewbieThreshold(ctx *command.Context, u *ext.Update) error {
+	days := int32(ctx.NumberOrDefault(3))
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
-	if err := h.service.SetNewbieThreshold(ctx.StdContext(), c.ID, int32(days)); err != nil {
+	if days < 0 {
+		return ctx.ReplyOnly(u, options.WithText("Дата не может быть в прошлом!"))
+	}
+
+	if err := h.service.SetNewbieThreshold(ctx.StdContext(), c.ID, days); err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, view.FormatNewbieThresholdSet(int32(days)), nil)
+	return ctx.ReplyOnly(u, options.WithText(view.FormatNewbieThresholdSet(days)))
 }
 
-func (h *Handler) SetPrompt(b *gotgbot.Bot, ctx *command.Context) error {
-	c, err := ctx.Chat()
-	if err != nil {
-		return err
-	}
-
-	if err := h.service.SetChatPrompt(ctx.StdContext(), c.ID, ctx.RawArgsHTML); err != nil {
-		return err
-	}
-
-	return ctx.Reply(b, "Промпт установлен успешно", nil)
-}
-
-func (h *Handler) ShowPrompt(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) SetPrompt(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, view.FormatPrompt(c.AISystemPrompt), nil)
+	if err := h.service.SetChatPrompt(ctx.StdContext(), c.ID, ctx.RawArgs); err != nil {
+		return err
+	}
+
+	return ctx.ReplyOnly(u, options.WithText("Промпт установлен успешно"))
 }
 
-func (h *Handler) ShowWeekStart(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) ShowPrompt(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatWeekStart(int(c.WeekStartDay), c.WeekStartTime))
+	return ctx.ReplyOnly(u, options.WithText(view.FormatPrompt(c.AISystemPrompt)))
 }
 
-func (h *Handler) SetWeekStart(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) ShowWeekStart(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+
+	eb := &entity.Builder{}
+	view.WriteWeekStart(eb, int(c.WeekStartDay), c.WeekStartTime)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
+}
+
+func (h *Handler) SetWeekStart(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
@@ -177,6 +187,9 @@ func (h *Handler) SetWeekStart(b *gotgbot.Bot, ctx *command.Context) error {
 		return err
 	}
 	weekday := date.Weekday()
+	if weekday == time.Sunday {
+		weekday = 7
+	}
 	hour := date.Hour()
 	minute := date.Minute()
 	if err := h.service.SetWeekStartDay(ctx.StdContext(), c.ID, int(weekday)); err != nil {
@@ -187,72 +200,42 @@ func (h *Handler) SetWeekStart(b *gotgbot.Bot, ctx *command.Context) error {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatWeekStartSet(int(weekday), newTime))
+	eb := &entity.Builder{}
+	view.WriteWeekStartSet(eb, int(weekday), newTime)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
-func parseTime(arg string) (int, int, bool) {
-	var h, m int
-	if _, err := fmt.Sscanf(arg, "%d:%d", &h, &m); err == nil {
-		if h >= 0 && h <= 23 && m >= 0 && m <= 59 {
-			return h, m, true
-		}
-	}
-	if _, err := fmt.Sscanf(arg, "%d", &h); err == nil {
-		if h >= 0 && h <= 23 {
-			return h, 0, true
-		}
-	}
-	return 0, 0, false
-}
-
-func parseWeekStartDay(arg string) (int, bool) {
-	switch strings.ToLower(arg) {
-	case "1", "пн", "понедельник":
-		return 1, true
-	case "2", "вт", "вторник":
-		return 2, true
-	case "3", "ср", "среда":
-		return 3, true
-	case "4", "чт", "четверг":
-		return 4, true
-	case "5", "пт", "пятница":
-		return 5, true
-	case "6", "сб", "суббота":
-		return 6, true
-	case "7", "вс", "воскресенье":
-		return 7, true
-	default:
-		return 0, false
-	}
-}
-
-func (h *Handler) ShowPrefix(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) ShowPrefix(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, view.FormatPrefix(c.CommandPrefix), nil)
+	eb := &entity.Builder{}
+	view.WritePrefix(eb, c.CommandPrefix)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
-func (h *Handler) SetPrefix(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) SetPrefix(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 	prefix := ctx.TextOrDefault("")
 	if prefix == "" {
-		return ctx.Reply(b, "❌ Укажите префикс", nil)
+		return ctx.ReplyOnly(u, options.WithText("❌ Укажите префикс"))
 	}
 
 	if err := h.service.SetCommandPrefix(ctx.StdContext(), c.ID, prefix); err != nil {
 		return err
 	}
 
-	return ctx.Reply(b, view.FormatPrefixSet(prefix), nil)
+	eb := &entity.Builder{}
+	view.WritePrefixSet(eb, prefix)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
-func (h *Handler) DisablePrefixOnly(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) DisablePrefixOnly(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
@@ -261,10 +244,12 @@ func (h *Handler) DisablePrefixOnly(b *gotgbot.Bot, ctx *command.Context) error 
 	if err := h.service.SetAllowPrefixless(ctx.StdContext(), c.ID, true); err != nil {
 		return err
 	}
-	return ctx.ReplyHTML(b, view.FormatPrefixlessToggle(true))
+	eb := &entity.Builder{}
+	view.WritePrefixlessToggle(eb, true)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
-func (h *Handler) EnablePrefixOnly(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) EnablePrefixOnly(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
@@ -273,25 +258,29 @@ func (h *Handler) EnablePrefixOnly(b *gotgbot.Bot, ctx *command.Context) error {
 		return err
 	}
 
-	return ctx.ReplyHTML(b, view.FormatPrefixlessToggle(false))
+	eb := &entity.Builder{}
+	view.WritePrefixlessToggle(eb, false)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
-func (h *Handler) ShowPrefixlessStatus(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) ShowPrefixlessStatus(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
-	return ctx.ReplyHTML(b, view.FormatPrefixlessStatus(c.AllowPrefixless))
+	eb := &entity.Builder{}
+	view.WritePrefixlessStatus(eb, c.AllowPrefixless)
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
-func (h *Handler) Manage(b *gotgbot.Bot, ctx *command.Context) error {
-	chatIDs, err := h.service.GetUserManagedChats(ctx.StdContext(), ctx.EffectiveUser.Id, h.adminService.OwnerID())
+func (h *Handler) Manage(ctx *command.Context, u *ext.Update) error {
+	chatIDs, err := h.service.GetUserManagedChats(ctx.StdContext(), u.EffectiveUser().GetID(), h.adminService.OwnerID())
 	if err != nil {
 		return err
 	}
 
 	if len(chatIDs) == 0 {
-		return h.SendDM(b, ctx, "❌ У вас нет доступных чатов для управления", nil)
+		return h.SendDM(ctx, u, "❌ У вас нет доступных чатов для управления", nil)
 	}
 
 	chats := make([]chatInfo, 0)
@@ -305,31 +294,31 @@ func (h *Handler) Manage(b *gotgbot.Bot, ctx *command.Context) error {
 	}
 
 	if len(chats) == 0 {
-		return h.SendDM(b, ctx, "❌ Не удалось получить информацию о ваших чатах", nil)
+		return h.SendDM(ctx, u, "❌ Не удалось получить информацию о ваших чатах", nil)
 	}
 
-	return h.SendDM(b, ctx, "Выберите чат для управления:", h.getManageKeyboard(chats, 1))
+	return h.SendDM(ctx, u, "Выберите чат для управления:", h.getManageKeyboard(chats, 1))
 }
 
-func (h *Handler) SendDM(b *gotgbot.Bot, ctx *command.Context, text string, replyMarkup gotgbot.ReplyMarkup) error {
-	opts := &gotgbot.SendMessageOpts{
-		MessageThreadId: ctx.EffectiveMessage.MessageThreadId,
+func (h *Handler) SendDM(ctx *command.Context, u *ext.Update, text string, replyMarkup tg.ReplyMarkupClass) error {
+	if u.EffectiveChat().GetID() == u.EffectiveUser().GetID() {
+		return ctx.ReplyOnly(u, options.WithText(text), options.WithMarkup(replyMarkup))
 	}
-	if replyMarkup != nil {
-		opts.ReplyMarkup = replyMarkup
-	}
-	_, err := b.SendMessage(ctx.EffectiveSender.Id(), text, opts)
+
+	_, err := ctx.SendMessage(
+		u.EffectiveUser().GetID(),
+		&tg.MessagesSendMessageRequest{
+			Message:     text,
+			ReplyMarkup: replyMarkup,
+		},
+	)
 	if err != nil {
-		return ctx.Reply(b, "Не удалось отправить сообщение в лс", nil)
+		return ctx.ReplyOnly(u, options.WithText("Не удалось отправить сообщение в лс"))
 	}
-	if ctx.EffectiveChat.Type != gotgbot.ChatTypePrivate {
-		return ctx.Reply(b, "Ответ отправлен в лс", nil)
-	}
-	return nil
-
+	return ctx.ReplyOnly(u, options.WithText("Ответ отправлен в лс"))
 }
 
-func (h *Handler) getManageKeyboard(chats []chatInfo, page int) gotgbot.InlineKeyboardMarkup {
+func (h *Handler) getManageKeyboard(chats []chatInfo, page int) tg.ReplyMarkupClass {
 	const itemsPerPage = 8
 
 	totalPages := (len(chats) + itemsPerPage - 1) / itemsPerPage
@@ -346,52 +335,54 @@ func (h *Handler) getManageKeyboard(chats []chatInfo, page int) gotgbot.InlineKe
 		endIdx = len(chats)
 	}
 
-	var buttons [][]gotgbot.InlineKeyboardButton
+	var rows []tg.KeyboardButtonRow
 	for _, c := range chats[startIdx:endIdx] {
-		buttons = append(buttons, []gotgbot.InlineKeyboardButton{
-			{Text: c.Title, CallbackData: "manage:" + strconv.FormatInt(c.ID, 10)},
+		rows = append(rows, tg.KeyboardButtonRow{
+			Buttons: []tg.KeyboardButtonClass{
+				&tg.KeyboardButtonCallback{
+					Text: c.Title,
+					Data: []byte("manage:" + strconv.FormatInt(c.ID, 10)),
+				},
+			},
 		})
 	}
 
-	var navButtons []gotgbot.InlineKeyboardButton
+	var navButtons []tg.KeyboardButtonClass
 	if page > 1 {
-		navButtons = append(navButtons, gotgbot.InlineKeyboardButton{
-			Text:         "< Назад",
-			CallbackData: "manage_page:" + strconv.Itoa(page-1),
-			Style:        "primary",
+		navButtons = append(navButtons, &tg.KeyboardButtonCallback{
+			Text: "< Назад",
+			Data: []byte("manage_page:" + strconv.Itoa(page-1)),
 		})
 	}
 	if page < totalPages {
-		navButtons = append(navButtons, gotgbot.InlineKeyboardButton{
-			Text:         "Вперед >",
-			CallbackData: "manage_page:" + strconv.Itoa(page+1),
-			Style:        "primary",
+		navButtons = append(navButtons, &tg.KeyboardButtonCallback{
+			Text: "Вперед >",
+			Data: []byte("manage_page:" + strconv.Itoa(page+1)),
 		})
 	}
 
 	if len(navButtons) > 0 {
-		buttons = append(buttons, navButtons)
+		rows = append(rows, tg.KeyboardButtonRow{Buttons: navButtons})
 	}
 
-	return gotgbot.InlineKeyboardMarkup{InlineKeyboard: buttons}
+	return &tg.ReplyInlineMarkup{Rows: rows}
 }
 
-func (h *Handler) CallbackManagePage(b *gotgbot.Bot, ctx *command.Context) error {
-	data := ctx.CallbackQuery.Data
-	pageStr := strings.TrimPrefix(data, "manage_page:")
+func (h *Handler) CallbackManagePage(ctx *command.Context, u *ext.Update) error {
+	data, _ := u.CallbackQuery.GetData()
+	pageStr := strings.TrimPrefix(string(data), "manage_page:")
 	page, err := strconv.Atoi(pageStr)
 	if err != nil {
 		return err
 	}
 
-	chatIDs, err := h.service.GetUserManagedChats(ctx.StdContext(), ctx.EffectiveUser.Id, h.adminService.OwnerID())
+	chatIDs, err := h.service.GetUserManagedChats(ctx.StdContext(), u.EffectiveUser().GetID(), h.adminService.OwnerID())
 	if err != nil {
 		return err
 	}
 
 	chats := make([]chatInfo, 0)
 	for _, c := range chatIDs {
-
 		title := c.Title
 		if title == "" {
 			title = "Чат без названия"
@@ -401,29 +392,37 @@ func (h *Handler) CallbackManagePage(b *gotgbot.Bot, ctx *command.Context) error
 	}
 
 	if len(chats) == 0 {
-		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text: "У вас нет доступных чатов для управления",
+		_, err := ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			Message: "У вас нет доступных чатов для управления",
 		})
 		return err
 	}
 
-	_, _, err = ctx.EffectiveMessage.EditReplyMarkup(b, &gotgbot.EditMessageReplyMarkupOpts{
+	_, err = ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
+		ID:          u.CallbackQuery.GetMsgID(),
 		ReplyMarkup: h.getManageKeyboard(chats, page),
 	})
-	if err != nil && !strings.Contains(err.Error(), "message is not modified") {
+	if err != nil && !strings.Contains(err.Error(), "MESSAGE_NOT_MODIFIED") {
 		return err
 	}
 
-	_, err = ctx.CallbackQuery.Answer(b, nil)
-	return err
+	_, _ = ctx.AnswerCallback(nil)
+	return nil
 }
 
-func (h *Handler) OnNewChatTitle(_ *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) OnNewChatTitle(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
-	newTitle := ctx.EffectiveMessage.NewChatTitle
+	if u.EffectiveMessage.Action == nil {
+		return nil
+	}
+	sc, ok := u.EffectiveMessage.Action.(*tg.MessageActionChatEditTitle)
+	if !ok {
+		return nil
+	}
+	newTitle := sc.Title
 	if newTitle == "" {
 		return nil
 	}
@@ -432,67 +431,70 @@ func (h *Handler) OnNewChatTitle(_ *gotgbot.Bot, ctx *command.Context) error {
 	return err
 }
 
-func (h *Handler) CallbackManage(b *gotgbot.Bot, ctx *command.Context) error {
-	data := ctx.CallbackQuery.Data
-	chatIDStr := strings.TrimPrefix(data, "manage:")
+func (h *Handler) CallbackManage(ctx *command.Context, u *ext.Update) error {
+	effectiveUser := u.EffectiveUser()
+	if effectiveUser == nil {
+		return errors.New("no effective user")
+	}
+
+	data, _ := u.CallbackQuery.GetData()
+	chatIDStr := strings.TrimPrefix(string(data), "manage:")
 	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
 	if err != nil {
 		return err
 	}
-	m, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, ctx.EffectiveUser.Id)
-	if err != nil {
-		return err
+	var m model.ChatMember
+	if h.adminService.OwnerID() == effectiveUser.ID {
+		m, err = h.memberService.EnsureMemberExists(ctx.StdContext(), chatID, effectiveUser.GetID(), effectiveUser.Username, effectiveUser.FirstName, effectiveUser.LastName, "")
+		if err != nil {
+			return err
+		}
+	} else {
+		m, err = h.memberService.GetChatMember(ctx.StdContext(), chatID, u.EffectiveUser().GetID())
+		if err != nil {
+			return err
+		}
 	}
 	if !m.StatusGranted(model.StatusModerator) && h.adminService.OwnerID() != m.User.ID {
-		_, err := ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text:      "У вас больше нет прав администратора в этом чате",
-			ShowAlert: true,
+		_, err := ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			Message: "У вас больше нет прав администратора в этом чате",
+			Alert:   true,
 		})
 		return err
 	}
 
-	if err := h.sessionService.SetActiveChat(ctx.StdContext(), ctx.EffectiveUser.Id, chatID); err != nil {
+	if err := h.sessionService.SetActiveChat(ctx.StdContext(), u.EffectiveUser().GetID(), chatID); err != nil {
 		return err
 	}
 
-	cht, err := b.GetChat(chatID, nil)
+	title := "Chat"
+	ch, err := h.service.GetChat(ctx.StdContext(), chatID)
 	if err != nil {
-		_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-			Text: "Ошибка: " + err.Error(),
-		})
 		return err
 	}
-	title := cht.Title
-
-	_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-		Text: "Выбран чат: " + title,
+	title = ch.Title
+	_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+		Message: "Выбран чат: " + title,
 	})
-	if err != nil {
-		return err
-	}
 
-	_, _, err = ctx.EffectiveMessage.EditText(b, "Теперь вы управляете чатом: **"+title+"**\nВсе команды настроек теперь будут применяться к этому чату.", &gotgbot.EditMessageTextOpts{
-		ParseMode: gotgbot.ParseModeMarkdown,
+	_, err = ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
+		ID:      u.CallbackQuery.GetMsgID(),
+		Message: "Теперь вы управляете чатом: " + title + "\nВсе команды настроек теперь будут применяться к этому чату.",
 	})
 	return err
 }
 
-func (h *Handler) UserChats(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) UserChats(ctx *command.Context, u *ext.Update) error {
 	chats, err := h.service.ListChatsWithoutNorm(
 		ctx.StdContext(),
-		ctx.EffectiveSender.Id(),
+		u.EffectiveUser().GetID(),
 	)
 	if err != nil {
 		return err
 	}
-	logger.L.Info("chats", "chats", chats)
+
 	if len(chats) == 0 {
-		_, err := ctx.EffectiveChat.SendMessage(
-			b,
-			fmt.Sprintf("%s Все недельные нормы выполнены.", helpers.SuccessEmoji()),
-			nil,
-		)
-		return err
+		return ctx.ReplyOnly(u, options.WithText("✅ Все недельные нормы выполнены"))
 	}
 
 	var warnChats []model.ChatWithoutNorm
@@ -509,94 +511,90 @@ func (h *Handler) UserChats(b *gotgbot.Bot, ctx *command.Context) error {
 		}
 	}
 
-	var text strings.Builder
-	text.WriteString("📉 <b>Невыполненные нормы</b>\n\n")
+	f := func(eb *entity.Builder) error {
+		eb.Plain("📉 ")
+		eb.Bold("Невыполненные нормы")
+		eb.Plain("\n\n")
 
-	if len(banChats) > 0 {
-		text.WriteString("🚫 <b>Бан</b>\n")
-		text.WriteString("<blockquote expandable>")
+		if len(banChats) > 0 {
+			eb.Plain("🚫 ")
+			eb.Bold("Бан")
+			eb.Plain("\n")
+			token := eb.Token()
 
-		for i, c := range banChats {
-			text.WriteString(fmt.Sprintf(
-				"<a href=\"%s\">%s</a>\n",
-				chatLink(c.ID),
-				html.EscapeString(c.Title),
-			))
+			for i, c := range banChats {
+				eb.TextURL(c.Title, chatLink(c.ID))
+				eb.Plain("\n")
 
-			writeNormInfo(&text, c)
+				writeNormInfoEB(eb, c)
 
-			text.WriteString(fmt.Sprintf(
-				"Сообщений: %d\n",
-				c.WeekCount,
-			))
-			if i < len(banChats)-1 {
-				text.WriteString("\n")
-			}
-		}
-
-		text.WriteString("</blockquote>")
-	}
-
-	if len(warnChats) > 0 {
-		text.WriteString("⚠ <b>Варн</b>\n")
-		text.WriteString("<blockquote expandable>")
-
-		for i, c := range warnChats {
-			text.WriteString(fmt.Sprintf(
-				"<a href=\"%s\">%s</a>\n",
-				chatLink(c.ID),
-				html.EscapeString(c.Title),
-			))
-
-			writeNormInfo(&text, c)
-
-			text.WriteString(fmt.Sprintf(
-				"Сообщений: %d\n",
-				c.WeekCount,
-			))
-			if i < len(warnChats)-1 {
-				text.WriteString("\n")
+				eb.Plain(fmt.Sprintf("Сообщений: %d\n", c.WeekCount))
+				if i < len(banChats)-1 {
+					eb.Plain("\n")
+				}
 			}
 
+			token.Apply(eb, entity.Blockquote(true))
 		}
 
-		text.WriteString("</blockquote>\n")
+		if len(warnChats) > 0 {
+			eb.Plain("⚠️ ")
+			eb.Bold("Варн")
+			eb.Plain("\n")
+			token := eb.Token()
+
+			for i, c := range warnChats {
+				eb.TextURL(c.Title, chatLink(c.ID))
+				eb.Plain("\n")
+
+				writeNormInfoEB(eb, c)
+
+				eb.Plain(fmt.Sprintf("Сообщений: %d\n", c.WeekCount))
+				if i < len(warnChats)-1 {
+					eb.Plain("\n")
+				}
+			}
+
+			token.Apply(eb, entity.Blockquote(true))
+			eb.Plain("\n")
+		}
+
+		eb.Plain("Всего проблемных чатов: ")
+		eb.Bold(strconv.Itoa(len(banChats) + len(warnChats)))
+		return nil
 	}
 
-	text.WriteString(fmt.Sprintf(
-		"Всего проблемных чатов: <b>%d</b>",
-		len(banChats)+len(warnChats),
-	))
+	eb := &entity.Builder{}
+	if err := f(eb); err != nil {
+		return err
+	}
+	msg, entities := eb.Complete()
 
-	if _, err = b.SendMessage(
-		ctx.EffectiveSender.Id(),
-		text.String(),
-		&gotgbot.SendMessageOpts{
-			ParseMode: "HTML",
+	_, err = ctx.SendMessage(
+		u.EffectiveUser().GetID(),
+		&tg.MessagesSendMessageRequest{
+			Message:  msg,
+			Entities: entities,
 		},
-	); err != nil {
-		if ctx.EffectiveChat.Type != "private" {
-			return ctx.Reply(
-				b,
-				"Не удалось отправить список норм в личные сообщения, убедитесь в том, что бот имеет доступ к личным сообщениям",
-				nil,
-			)
+	)
+	if err != nil {
+		if u.EffectiveChat().GetID() != u.EffectiveUser().GetID() {
+			return ctx.ReplyOnly(u, options.WithText("Не удалось отправить список норм в личные сообщения, убедитесь в том, что бот имеет доступ к личным сообщениям"))
 		}
 
 		return err
 	}
 
-	if ctx.EffectiveChat.Type != "private" {
-		return ctx.ReplyHTML(
-			b,
-			fmt.Sprintf("Список невыполненных норм отправлен вам в личные сообщения %s", helpers.SuccessEmoji()),
-		)
+	if u.EffectiveChat().GetID() != u.EffectiveUser().GetID() {
+		eb := &entity.Builder{}
+		eb.Plain("✅ Список невыполненных норм отправлен вам в личные сообщения")
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 
 	return nil
 }
 
-func (h *Handler) EnableTags(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) EnableTags(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
@@ -606,10 +604,10 @@ func (h *Handler) EnableTags(b *gotgbot.Bot, ctx *command.Context) error {
 		return err
 	}
 
-	return ctx.Reply(b, "Поддержка тегов в чате включена. Теперь при установке роли админка не выдается", nil)
+	return ctx.ReplyOnly(u, options.WithText("Поддержка тегов в чате включена. Теперь при установке роли админка не выдается"))
 }
 
-func (h *Handler) DisableTags(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) DisableTags(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
@@ -619,41 +617,43 @@ func (h *Handler) DisableTags(b *gotgbot.Bot, ctx *command.Context) error {
 		return err
 	}
 
-	return ctx.Reply(b, "Поддержка тегов в чате выключена. Теперь при установке роли выдается админка с минимальными правами", nil)
+	return ctx.ReplyOnly(u, options.WithText("Поддержка тегов в чате выключена. Теперь при установке роли выдается админка с минимальными правами"))
 }
 
-func (h *Handler) ShowTags(b *gotgbot.Bot, ctx *command.Context) error {
+func (h *Handler) ShowTags(ctx *command.Context, u *ext.Update) error {
 	c, err := ctx.Chat()
 	if err != nil {
 		return err
 	}
 
 	if c.TagsEnabled {
-		return ctx.ReplyHTML(b, fmt.Sprintf("%s В чате поддерживаются теги. Это значит, что при установке роли пользователю устанавливается телеграм-тег, а не минимальные права администратора с подписью", helpers.SuccessEmoji()))
+		eb := &entity.Builder{}
+		eb.Plain("✅ В чате поддерживаются теги. Это значит, что при установке роли пользователю устанавливается телеграм-тег, а не минимальные права администратора с подписью")
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 
-	return ctx.Reply(b, "❌ В чате не поддерживаются теги. Это значит, что при установке роли пользователю выдаются минимальные права администратора с подписью, а не телеграм-тег", nil)
+	return ctx.ReplyOnly(u, options.WithText("❌ В чате не поддерживаются теги. Это значит, что при установке роли пользователю выдаются минимальные права администратора с подписью, а не телеграм-тег"))
 }
 
-func writeNormInfo(text *strings.Builder, c model.ChatWithoutNorm) {
+func writeNormInfoEB(eb *entity.Builder, c model.ChatWithoutNorm) {
 	var normParts []string
 
 	if c.NormWarn > 0 {
 		normParts = append(normParts,
-			fmt.Sprintf("&lt;%d – варн", c.NormWarn),
+			fmt.Sprintf("<%d – варн", c.NormWarn),
 		)
 	}
 
 	if c.NormBan > 0 {
 		normParts = append(normParts,
-			fmt.Sprintf("&lt;%d – бан", c.NormBan),
+			fmt.Sprintf("<%d – бан", c.NormBan),
 		)
 	}
 
 	if len(normParts) > 0 {
-		text.WriteString(fmt.Sprintf("Норма: %d (", c.NormWarn))
-		text.WriteString(strings.Join(normParts, ", "))
-		text.WriteString(")\n")
+		eb.Plain(fmt.Sprintf("Норма: %d (", c.NormWarn))
+		eb.Plain(strings.Join(normParts, ", "))
+		eb.Plain(")\n")
 	}
 }
 

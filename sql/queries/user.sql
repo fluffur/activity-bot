@@ -37,6 +37,11 @@ UPDATE users
 SET emoji = $2
 WHERE id = $1;
 
+-- name: SetUserEmojiJson :exec
+UPDATE users
+SET emoji_json = $2
+WHERE id = $1;
+
 -- name: SetUserCustomEmojiID :exec
 UPDATE users
 SET custom_emoji_id = $2

@@ -2,142 +2,135 @@ package command
 
 import (
 	"activity-bot/internal/logger"
-	"activity-bot/internal/model"
-	"context"
 	"fmt"
 	"strings"
 
-	"github.com/PaulSonOfLars/gotgbot/v2"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
+	"github.com/celestix/gotgproto/dispatcher"
+	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
+	"github.com/celestix/gotgproto/ext"
+	"github.com/go-faster/errors"
+	"github.com/gotd/td/tg"
 )
 
-func (c *Command) WrapCallback() func(b *gotgbot.Bot, ctx *ext.Context) error {
-	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		stdCtx := context.Background()
+type HandlerFunc func(ctx *ext.Context, u *ext.Update) error
 
-		cq := ctx.CallbackQuery
-		if cq == nil {
+func (f HandlerFunc) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
+	return f(ctx, u)
+}
+
+func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
+	return func(ctx *ext.Context, u *ext.Update) error {
+		if u.CallbackQuery == nil {
+			return nil
+		}
+		if filter != nil && !filter(u.CallbackQuery) {
 			return nil
 		}
 
-		handlerCtx := &Context{Context: ctx, stdContext: stdCtx}
+		cb := u.CallbackQuery
+		if cb == nil {
+			return nil
+		}
+
+		handlerCtx := Context{
+			Context: ctx,
+		}
 
 		if c.scope == ScopeChat {
-			chat, err := c.getChat(ctx, stdCtx)
+			chat, err := c.getChat(ctx, u)
 			if err != nil {
-				logger.L.Warn("WrapCallback: get chat failed", "error", err)
-			} else {
-				handlerCtx.chat = &chat
+				return errors.Wrap(err, "callback: get chat failed")
 			}
-		}
+			handlerCtx.chat = &chat
 
-		var senderMember *model.ChatMember
-		if ctx.Data != nil && ctx.Data["_cached_sender"] != nil {
-			if cached, ok := ctx.Data["_cached_sender"].(*model.ChatMember); ok {
-				senderMember = cached
+			if s, err := c.chatProvider.GetCommandPermission(ctx.Context, chat.ID, c.name); err == nil {
+				c.requiredStatus = s
 			}
+			handlerCtx.requiredStatus = c.requiredStatus
 		}
-		if senderMember == nil && ctx.EffectiveUser != nil {
-			member, err := c.resolveMember(stdCtx, handlerCtx.chat, ctx.EffectiveUser)
-			if err != nil {
-				logger.L.Warn("WrapCallback: resolve sender failed", "error", err)
-			} else {
-				senderMember = member
-				if ctx.Data == nil {
-					ctx.Data = make(map[string]interface{})
-				}
-				ctx.Data["_cached_sender"] = senderMember
-			}
+		member, err := c.resolveMember(ctx, handlerCtx.chat, u.EffectiveUser())
+		if err != nil {
+			return errors.Wrap(err, "callback: resolve sender failed")
 		}
-		handlerCtx.senderChatMember = senderMember
+		handlerCtx.senderChatMember = member
 
-		if c.requiredStatus > 0 && handlerCtx.senderChatMember != nil && !handlerCtx.senderChatMember.StatusGranted(c.requiredStatus) {
-			_, err := cq.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
-				Text: fmt.Sprintf("[%d/%d] Недостаточно прав для выполнения команды", handlerCtx.senderChatMember.Status, c.requiredStatus),
+		if !handlerCtx.senderChatMember.StatusGranted(c.requiredStatus) {
+			_, err = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+				Message: fmt.Sprintf("Требуются права: %s", c.requiredStatus),
+				Alert:   true,
+				QueryID: cb.QueryID,
 			})
-			return err
+			if err != nil {
+				return errors.Wrap(err, "callback: answer failed")
+			}
+			return dispatcher.EndGroups
 		}
 
-		data := cq.Data
+		data := string(cb.Data)
 		if idx := strings.Index(data, ":"); idx != -1 {
 			handlerCtx.RawArgs = data[idx+1:]
+		} else {
+			handlerCtx.RawArgs = data
 		}
+
 		handlerCtx.texts = strings.Fields(handlerCtx.RawArgs)
 
-		if err := c.response(b, handlerCtx); err != nil {
+		for _, middleware := range c.middlewares {
+			if err := middleware.CheckUpdate(&handlerCtx, u); err != nil {
+				if errors.Is(err, ErrStop) {
+					return dispatcher.SkipCurrentGroup
+				}
+				logger.L.Error("middleware", err)
+				return dispatcher.SkipCurrentGroup
+			}
+		}
+
+		if err = c.response(&handlerCtx, u); err != nil {
 			return err
 		}
 
-		_, _ = cq.Answer(b, nil)
-		return nil
+		return dispatcher.SkipCurrentGroup
 	}
 }
 
-func (c *Command) WrapEvent() func(b *gotgbot.Bot, ctx *ext.Context) error {
-	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		stdCtx := context.Background()
-		msg := ctx.Message
+func (c *Command) WrapEvent() HandlerFunc {
+	return func(ctx *ext.Context, u *ext.Update) error {
+		msg := u.EffectiveMessage
 		if msg == nil {
 			return nil
 		}
 
-		handlerCtx := &Context{Context: ctx, stdContext: stdCtx}
+		handlerCtx := &Context{Context: ctx}
 
 		if c.scope == ScopeChat {
-			chat, err := c.getChat(ctx, stdCtx)
+			chat, err := c.getChat(ctx, u)
 			if err != nil {
-				logger.L.Warn("WrapEvent: get chat failed", "error", err)
-			} else {
-				handlerCtx.chat = &chat
+				return fmt.Errorf("wrap event failed to get chat: %w", err)
 			}
+
+			handlerCtx.chat = &chat
 		}
 
-		var senderMember *model.ChatMember
-		if ctx.Data != nil && ctx.Data["_cached_sender"] != nil {
-			if cached, ok := ctx.Data["_cached_sender"].(*model.ChatMember); ok {
-				senderMember = cached
-			}
-		}
-		if senderMember == nil && ctx.EffectiveUser != nil {
-			member, err := c.resolveMember(stdCtx, handlerCtx.chat, ctx.EffectiveUser)
-			if err != nil {
-				logger.L.Warn("WrapEvent: resolve sender failed", "error", err)
-			} else {
-				senderMember = member
-				if ctx.Data == nil {
-					ctx.Data = make(map[string]interface{})
-				}
-				ctx.Data["_cached_sender"] = senderMember
-			}
+		senderMember, err := c.resolveMember(ctx, handlerCtx.chat, u.EffectiveUser())
+		if err != nil {
+			return err
 		}
 		handlerCtx.senderChatMember = senderMember
 
-		var eventUsers []gotgbot.User
-		switch {
-		case len(msg.NewChatMembers) > 0:
-			eventUsers = msg.NewChatMembers
-		case msg.LeftChatMember != nil:
-			eventUsers = []gotgbot.User{*msg.LeftChatMember}
-		}
-
-		for _, u := range eventUsers {
-			if u.IsBot {
-				continue
-			}
-			m, err := c.resolveMember(stdCtx, handlerCtx.chat, &u)
-			if err != nil {
-				m = &model.ChatMember{
-					User: model.User{
-						ID:        u.Id,
-						Username:  u.Username,
-						FirstName: u.FirstName,
-						LastName:  u.LastName,
-					},
+		for _, middleware := range c.middlewares {
+			if err := middleware.CheckUpdate(handlerCtx, u); err != nil {
+				if errors.Is(err, ErrStop) {
+					return dispatcher.SkipCurrentGroup
 				}
+				logger.L.Error("middleware", err)
+				return dispatcher.SkipCurrentGroup
 			}
-			handlerCtx.chatMembers = append(handlerCtx.chatMembers, *m)
 		}
 
-		return c.response(b, handlerCtx)
+		if err = c.response(handlerCtx, u); err != nil {
+			return err
+		}
+
+		return nil
 	}
 }
