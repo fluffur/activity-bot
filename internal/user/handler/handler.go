@@ -30,7 +30,7 @@ func (h *Handler) SetGender(ctx *command.Context, u *ext.Update) error {
 	case "ж", "жен", "женский", "female", "f":
 		gender = model.GenderFemale
 	default:
-		return ctx.ReplyOnly(u, options.WithText("Неизвестный пол. Используйте: м или ж"))
+		return nil
 	}
 
 	if err := h.service.SetGender(ctx.StdContext(), u.EffectiveUser().GetID(), gender); err != nil {
@@ -74,6 +74,9 @@ func (h *Handler) SetEmoji(ctx *command.Context, u *ext.Update) error {
 		return ctx.ReplyOnly(u, options.WithText("Нельзя менять эмоджи других пользователей. Для эмоджи в рамках чата есть значки. Попробуйте через команду значок"))
 	}
 	emojis := helpers.ExtractEmoji(ctx.RawArgs, ctx.RawArgsEntities)
+	if len(emojis) == 0 {
+		return nil
+	}
 	if len(emojis) > 3 {
 		return ctx.ReplyOnly(u, options.WithText("❌ Нужно отправить не более 3 эмоджи на пользователя"))
 	}

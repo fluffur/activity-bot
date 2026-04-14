@@ -10,6 +10,7 @@ import (
 	db "activity-bot/internal/db/postgres/sqlc"
 	helpH "activity-bot/internal/help/handler"
 	"activity-bot/internal/helpers"
+	"activity-bot/internal/logger"
 	"activity-bot/internal/middleware"
 	"activity-bot/internal/model"
 	"activity-bot/internal/rest"
@@ -17,6 +18,7 @@ import (
 	"activity-bot/internal/session"
 	"activity-bot/internal/stats"
 	statsH "activity-bot/internal/stats/handler"
+	"context"
 	time "time"
 
 	adminH "activity-bot/internal/admin/handler"
@@ -27,6 +29,7 @@ import (
 	userH "activity-bot/internal/user/handler"
 
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
+	"github.com/gotd/td/tg"
 )
 
 func (a *App) RegisterHandlers() {
@@ -140,7 +143,7 @@ func (a *App) RegisterHandlers() {
 		SetCategory(command.CategoryGeneral).
 		SetAliases("tags", "теги", "тэги"))
 
-	a.dp.AddHandler(f.New("chats", chatHandler.UserChats).SetDescription("Список активных чатов").SetCategory(command.CategoryAdmin).
+	a.dp.AddHandler(f.New("my_norms", chatHandler.UserChats).SetDescription("Список норм во всех чатах").SetCategory(command.CategoryAdmin).
 		SetAliases("чаты", "нормы", "чаты без нормы"))
 
 	a.dp.AddHandler(f.New("set_prompt", chatHandler.SetPrompt).SetAliases("промпт").
@@ -579,11 +582,11 @@ func (a *App) RegisterHandlers() {
 		SetAliases("фейклив", "фейк лив").SetArgRules(command.AnyUserRule()))
 
 	a.dp.AddHandler(f.New("set_gender", userHandler.SetGender).SetDescription("Установить пол").SetCategory(command.CategoryProfile).
-		SetAliases("пол", "установить пол").SetScope(command.ScopeUser).
+		SetAliases("мой пол", "установить пол").SetScope(command.ScopeUser).
 		SetArgRules(command.TextRule()),
 	)
 	a.dp.AddHandler(f.New("gender", userHandler.ShowGender).SetDescription("Посмотреть пол").SetCategory(command.CategoryProfile).
-		SetAliases("пол").SetScope(command.ScopeUser).
+		SetAliases("мой пол").SetScope(command.ScopeUser).
 		SetArgRules(command.AnyUserRule()))
 	a.dp.AddHandler(f.New("set_emoji", userHandler.SetEmoji).SetDescription("Установить эмодзи").SetCategory(command.CategoryProfile).
 		SetAliases("эмоджи", "эмодзи").
@@ -646,12 +649,33 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(
 		f.New("message", messageHandler.Message).WrapEvent(),
 	)
-	//a.Bot.API().BotsSetBotCommands(ctx, &tg.BotsSetBotCommandsRequest{
-	//	Scope:    nil,
-	//	LangCode: "",
-	//	Commands: nil,
-	//})
-	//for _, cmd := range f.ConfigurableCommands() {
-	//
-	//}
+
+	var userScopeBotCommands []tg.BotCommand
+	var chatScopeBotCommands []tg.BotCommand
+
+	for _, cmd := range f.ConfigurableCommands() {
+		bc := tg.BotCommand{
+			Command:     cmd.Name(),
+			Description: cmd.Description(),
+		}
+		if cmd.Scope() == command.ScopeUser {
+			userScopeBotCommands = append(userScopeBotCommands, bc)
+		} else {
+			chatScopeBotCommands = append(chatScopeBotCommands, bc)
+		}
+	}
+
+	if _, err := a.Bot.API().BotsSetBotCommands(context.Background(), &tg.BotsSetBotCommandsRequest{
+		Scope:    &tg.BotCommandScopeUsers{},
+		Commands: userScopeBotCommands,
+	}); err != nil {
+		logger.L.Error("bot command users", "error", err)
+	}
+
+	if _, err := a.Bot.API().BotsSetBotCommands(context.Background(), &tg.BotsSetBotCommandsRequest{
+		Scope:    &tg.BotCommandScopeChats{},
+		Commands: chatScopeBotCommands,
+	}); err != nil {
+		logger.L.Error("bot command chats", "error", err)
+	}
 }

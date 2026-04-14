@@ -106,6 +106,10 @@ func (c *Command) SetScope(scope Scope) *Command {
 	return c
 }
 
+func (c *Command) Scope() Scope {
+	return c.scope
+}
+
 func (c *Command) SetArgRules(rules ...ArgRule) *Command {
 	c.argRules = rules
 
@@ -392,7 +396,12 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	}
 
 	if !c.checkStatusDisabled && !handlerCtx.senderChatMember.StatusGranted(c.RequiredStatus()) {
-		return handlerCtx.ReplyOnly(u, options.WithText(fmt.Sprintf("Требуются права: %s", c.RequiredStatus())))
+
+		if err := handlerCtx.ReplyOnly(u, options.WithText(fmt.Sprintf("Требуются права: %s", c.RequiredStatus()))); err != nil {
+			logger.L.Error("reply status", "error", err)
+		}
+
+		return dispatcher.SkipCurrentGroup
 	}
 
 	for _, middleware := range c.middlewares {

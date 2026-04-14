@@ -103,6 +103,10 @@ func (s *Service) SyncChatMembers(ctx context.Context, chatID int64) (int, error
 		userIDs[i] = m.User.ID
 	}
 
+	if err := s.repo.MarkLeftNotInList(ctx, chatID, userIDs); err != nil {
+		return 0, fmt.Errorf("failed to mark left members: %w", err)
+	}
+
 	return len(members), nil
 }
 

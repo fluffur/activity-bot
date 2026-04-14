@@ -10,6 +10,7 @@ import (
 	"activity-bot/internal/model"
 	"activity-bot/internal/options"
 	"activity-bot/internal/session"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -431,15 +432,28 @@ func (h *Handler) OnNewChatTitle(ctx *command.Context, u *ext.Update) error {
 }
 
 func (h *Handler) CallbackManage(ctx *command.Context, u *ext.Update) error {
+	effectiveUser := u.EffectiveUser()
+	if effectiveUser == nil {
+		return errors.New("no effective user")
+	}
+
 	data, _ := u.CallbackQuery.GetData()
 	chatIDStr := strings.TrimPrefix(string(data), "manage:")
 	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
 	if err != nil {
 		return err
 	}
-	m, err := h.memberService.GetChatMember(ctx.StdContext(), chatID, u.EffectiveUser().GetID())
-	if err != nil {
-		return err
+	var m model.ChatMember
+	if h.adminService.OwnerID() == effectiveUser.ID {
+		m, err = h.memberService.EnsureMemberExists(ctx.StdContext(), chatID, effectiveUser.GetID(), effectiveUser.Username, effectiveUser.FirstName, effectiveUser.LastName, "")
+		if err != nil {
+			return err
+		}
+	} else {
+		m, err = h.memberService.GetChatMember(ctx.StdContext(), chatID, u.EffectiveUser().GetID())
+		if err != nil {
+			return err
+		}
 	}
 	if !m.StatusGranted(model.StatusModerator) && h.adminService.OwnerID() != m.User.ID {
 		_, err := ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
