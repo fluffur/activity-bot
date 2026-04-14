@@ -2,6 +2,7 @@ package command
 
 import (
 	"activity-bot/internal/helpers"
+	"activity-bot/internal/logger"
 	"activity-bot/internal/model"
 	"activity-bot/internal/options"
 	"context"
@@ -391,7 +392,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	err = c.response(&handlerCtx, u)
 
 	if err != nil {
-		return err
+		logger.L.Error("response", "error", err)
 	}
 	return dispatcher.SkipCurrentGroup
 }

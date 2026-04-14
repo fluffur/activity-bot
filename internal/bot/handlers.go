@@ -216,7 +216,7 @@ func (a *App) RegisterHandlers() {
 	)
 
 	a.dp.AddHandler(f.New("enable_prefix_only", chatHandler.EnablePrefixOnly).
-		SetAliases("+префиксы").
+		SetAliases("+префиксы", "с префиксами").
 		SetRequiredStatus(model.StatusSeniorAdmin).
 		SetDescription("Включить обязательный префикс").
 		SetCategory(command.CategorySettings),

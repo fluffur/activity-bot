@@ -85,26 +85,36 @@ func (h *Handler) SetRole(ctx *command.Context, u *ext.Update) error {
 		return fmt.Errorf("failed to set member title: %w", err)
 	}
 
-	chatPeer, err := ctx.ResolveInputPeerById(u.EffectiveChat().GetID())
+	c, err := ctx.Chat()
 	if err != nil {
-		return fmt.Errorf("failed to resolve chat peer: %w", err)
-	}
-	channelPeer, ok := chatPeer.(*tg.InputPeerChannel)
-	if !ok {
-		return fmt.Errorf("chat %d is not a channel/supergroup", u.EffectiveChat().GetID())
+		return err
 	}
 
-	participantPeer, err := ctx.ResolveInputPeerById(cm.User.ID)
-	if err != nil {
-		return fmt.Errorf("failed to resolve participant peer: %w", err)
-	}
-
-	if _, err := ctx.Raw.MessagesEditChatParticipantRank(ctx.StdContext(), &tg.MessagesEditChatParticipantRankRequest{
-		Peer:        channelPeer,
-		Participant: participantPeer,
-		Rank:        tag,
-	}); err != nil {
-		return fmt.Errorf("failed to set rank: %w", err)
+	if c.TagsEnabled {
+		if _, err := ctx.Raw.MessagesEditChatParticipantRank(ctx.StdContext(), &tg.MessagesEditChatParticipantRankRequest{
+			Peer:        u.GetChannel().AsInputPeer(),
+			Participant: &tg.InputPeerUser{UserID: cm.User.ID},
+			Rank:        tag,
+		}); err != nil {
+			_ = ctx.ReplyOnly(u, options.WithText(
+				fmt.Sprintf("Телеграм не позволил установить роль участнику.\nПроверьте, есть ли у бота право на изменение тегов участников\n\n%s", err.Error()),
+			))
+			return fmt.Errorf("failed to set rank: %w", err)
+		}
+	} else {
+		if _, err := ctx.Raw.ChannelsEditAdmin(ctx, &tg.ChannelsEditAdminRequest{
+			Channel: u.GetChannel().AsInput(),
+			UserID:  &tg.InputUser{UserID: cm.User.ID},
+			AdminRights: tg.ChatAdminRights{
+				Other: true,
+			},
+			Rank: tag,
+		}); err != nil {
+			_ = ctx.ReplyOnly(u, options.WithText(
+				fmt.Sprintf("Телеграм не позволил установить роль участнику.\nПроверьте, есть ли у бота право на добавление администраторов\n\n%s", err.Error()),
+			))
+			return err
+		}
 	}
 
 	eb := &entity.Builder{}
