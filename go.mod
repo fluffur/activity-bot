@@ -3,7 +3,6 @@ module activity-bot
 go 1.25.0
 
 require (
-	github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.34.0.20260304074212-fe657d2344e0
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/celestix/gotgproto v1.0.0-beta22
 	github.com/cohesion-org/deepseek-go v1.3.3
@@ -12,7 +11,6 @@ require (
 	github.com/gotd/td v0.142.0
 	github.com/hibiken/asynq v0.26.0
 	github.com/jackc/pgx/v5 v5.8.0
-	github.com/joho/godotenv v1.5.1
 	github.com/makeworld-the-better-one/go-isemoji v1.3.0
 	github.com/pressly/goose/v3 v3.26.0
 	github.com/redis/go-redis/v9 v9.18.0
@@ -47,6 +45,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect

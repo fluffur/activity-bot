@@ -15,13 +15,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/dispatcher"
 	"github.com/celestix/gotgproto/sessionMaker"
 	"github.com/cohesion-org/deepseek-go"
 	"github.com/glebarez/sqlite"
-	"github.com/gotd/td/telegram"
 	"github.com/hibiken/asynq"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -34,11 +32,8 @@ type App struct {
 	Deepseek    *deepseek.Client
 	Bot         *gotgproto.Client
 	dp          dispatcher.Dispatcher
-	Updater     *ext.Updater
 	AsyncClient *asynq.Client
 	AsyncServer *asynq.Server
-	GotdClient  *telegram.Client
-	GotdReady   chan struct{}
 
 	MemberService *member.Service
 	AdminService  *admin.Service
@@ -100,11 +95,8 @@ func NewApp(cfg config.Config) (*App, error) {
 		Deepseek:      deepseek.NewClient(cfg.DeepseekAPIKey),
 		Bot:           bot,
 		dp:            dp,
-		Updater:       nil,
 		AsyncClient:   client,
 		AsyncServer:   srv,
-		GotdClient:    nil,
-		GotdReady:     nil,
 		MemberService: memberService,
 		AdminService:  adminService,
 		UserService:   userService,

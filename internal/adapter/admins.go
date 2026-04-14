@@ -4,7 +4,6 @@ import (
 	"activity-bot/internal/model"
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/celestix/gotgproto"
@@ -38,8 +37,7 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 	}
 	chats := d.GetChats()
 	if len(chats) == 0 {
-		log.Println("wtf")
-		return nil, errors.New("chat not found")
+		return nil, errors.New("chat not found s")
 	}
 	ch := chats[0]
 	fullChannel, ok := ch.(*tg.Channel)
