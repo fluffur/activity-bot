@@ -14,7 +14,6 @@ import (
 	"activity-bot/internal/user"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/celestix/gotgproto/ext"
@@ -344,7 +343,6 @@ func (h *Handler) ListInactive(ctx *command.Context, u *ext.Update) error {
 	if err != nil {
 		return err
 	}
-	log.Println(ctx.Date())
 
 	members, err := h.service.GetInactiveMembers(ctx.StdContext(), c.ID)
 	if err != nil {

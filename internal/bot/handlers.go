@@ -377,6 +377,11 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Отчёт в чате").
 		SetCategory(command.CategoryStats),
 	)
+	a.dp.AddHandler(f.New("inactive", statsHandler.ListInactive).
+		SetAliases("неактив", "инактив").
+		SetDescription("Список неактивных участников сроком более суток").
+		SetCategory(command.CategoryStats),
+	)
 	a.dp.AddHandler(f.New("stats_graph", statsHandler.ShowChatActivityGraph).SetDescription("График активности чата").SetCategory(command.CategoryStats).
 		SetAliases("график").
 		SetArgRules(command.OptionalDateRangeRule()),
