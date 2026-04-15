@@ -610,7 +610,6 @@ func (h *Handler) handleCallWithMessage(
 }
 
 func (h *Handler) HandleCallInactiveMessage(ctx *command.Context, u *ext.Update) error {
-	log.Println("saasas")
 	return h.handleCallWithMessage(ctx, u, func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
 		return h.service.GetInactiveMembers(stdCtx, chatID)
 	})
