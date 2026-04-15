@@ -9,6 +9,29 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+
+      - name: Build App binary
+        run: CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o bot cmd/bot/main.go
+
+      - name: Build Migrate binary
+        run: CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o migrate cmd/migrate/main.go
+
+      - name: Copy binaries to VDS
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: ${{ secrets.VDS_USER }}
+          key: ${{ secrets.VDS_SSH_KEY }}
+          source: "bot,migrate"
+          target: "/root/activity-bot"
+
       - name: Deploy to VDS
         uses: appleboy/ssh-action@v0.1.6
         with:
@@ -19,6 +42,9 @@ jobs:
             set -e
             echo "Starting deployment..."
             cd /root/activity-bot
+
+            # Make sure binaries are executable
+            chmod +x bot migrate || true
 
             mkdir -p backups
             ls -1t backups/*.sql 2>/dev/null | tail -n +4 | xargs -r rm -f || true
