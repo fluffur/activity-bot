@@ -3,6 +3,7 @@ package command
 import (
 	"activity-bot/internal/logger"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/celestix/gotgproto/dispatcher"
@@ -21,15 +22,15 @@ func (f HandlerFunc) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 	return func(ctx *ext.Context, u *ext.Update) error {
 		if u.CallbackQuery == nil {
-			return nil
+			return dispatcher.ContinueGroups
 		}
 		if filter != nil && !filter(u.CallbackQuery) {
-			return nil
+			return dispatcher.ContinueGroups
 		}
 
 		cb := u.CallbackQuery
 		if cb == nil {
-			return nil
+			return dispatcher.ContinueGroups
 		}
 
 		handlerCtx := Context{
@@ -96,9 +97,9 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 func (c *Command) WrapEvent(filter filters.UpdateFilter) HandlerFunc {
 	return func(ctx *ext.Context, u *ext.Update) error {
 		if filter != nil && !filter(u) {
-			return nil
+			return dispatcher.ContinueGroups
 		}
-
+		log.Println("event " + c.name)
 		msg := u.EffectiveMessage
 		if msg == nil {
 			return nil

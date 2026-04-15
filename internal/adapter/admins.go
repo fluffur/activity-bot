@@ -63,7 +63,7 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 				ChannelID:  fullChannel.ID,
 				AccessHash: fullChannel.AccessHash,
 			},
-			Filter: &tg.ChannelParticipantsRecent{},
+			Filter: &tg.ChannelParticipantsSearch{},
 			Offset: offset,
 			Limit:  limit,
 		})

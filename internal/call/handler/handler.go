@@ -509,6 +509,7 @@ func (h *Handler) startCallConversation(
 	text, entities := eb.Complete()
 	promptMsg, err := ctx.SendMessage(u.EffectiveChat().GetID(), &tg.MessagesSendMessageRequest{
 		ReplyMarkup: markup,
+		NoWebpage:   true,
 		ReplyTo:     &tg.InputReplyToMessage{TopMsgID: u.CallbackQuery.GetMsgID()},
 		Message:     text,
 		Entities:    entities,
@@ -529,7 +530,7 @@ func (h *Handler) startCallConversation(
 		_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{QueryID: u.CallbackQuery.QueryID})
 	}
 
-	log.Println("next state", nextState)
+	log.Println("next state", nextState, chatID, uid)
 	return conversation.SetState(ctx.StdContext(), h.storage, chatID, uid, nextState, time.Hour)
 }
 

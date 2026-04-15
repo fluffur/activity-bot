@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/options"
 	"context"
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -183,10 +184,11 @@ func (c *Command) WithMiddlewares(middlewares ...Middleware) *Command {
 }
 
 func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
+	log.Println("handling", c.name)
 	handlerCtx := Context{Context: ctx, Command: c}
 	m := u.EffectiveMessage
 	if m == nil || m.Text == "" {
-		return nil
+		return dispatcher.ContinueGroups
 	}
 
 	text := m.Text
@@ -196,7 +198,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	prefix := c.findPrefix(text)
 	alias := c.findAlias(text, prefix, ctx.Self.Username)
 	if alias == "" {
-		return nil
+		return dispatcher.ContinueGroups
 	}
 
 	if c.scope == ScopeChat {
@@ -214,7 +216,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 		}
 	}
 	if c.requirePrefix && prefix == "" {
-		return nil
+		return dispatcher.ContinueGroups
 	}
 
 	// sender
@@ -229,7 +231,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	textNoCommand := strings.TrimSpace(trimPrefixIgnoreCase(trimPrefixIgnoreCase(textNoPrefix, alias), "@"+ctx.Self.Username))
 
 	if len(c.argRules) == 0 && textNoCommand != "" {
-		return nil
+		return dispatcher.ContinueGroups
 	}
 
 	handlerCtx.RawArgs = textNoCommand
@@ -255,19 +257,19 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 		switch rule.Type {
 		case ArgTypeOnlyUserSender:
 			if _, ok := getReplyToMessageID(m); ok {
-				return nil
+				return dispatcher.ContinueGroups
 			}
 			members, _, err := c.extractMembersFromEntities(ctx, handlerCtx.chat, text, entities)
 			if err != nil {
 				return errors.Wrap(err, "failed to extract users")
 			}
 			if len(members) > 0 {
-				return nil
+				return dispatcher.ContinueGroups
 			}
 
 		case ArgTypeAnyUser, ArgTypeMentionedUser:
 			if err := c.resolveUsers(ctx, &handlerCtx, m, text, entities); err != nil {
-				return nil
+				return err
 			}
 			if c.scope == ScopeChat && handlerCtx.chat != nil && len(handlerCtx.chatMembers) == 0 && handlerCtx.replyChatMember == nil {
 				toks := freeTokens(handlerCtx.RawArgs, handlerCtx.usedOffsets)
@@ -306,7 +308,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 					totalUsers = append(totalUsers, *replyUser)
 				}
 				if len(totalUsers) < rule.Min {
-					return nil
+					return dispatcher.ContinueGroups
 				}
 			}
 		case ArgTypeNumber:
@@ -324,7 +326,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 				}
 			}
 			if parsed < rule.Min {
-				return nil
+				return dispatcher.ContinueGroups
 			}
 
 		case ArgTypeDate:
@@ -362,7 +364,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 				}
 			}
 			if parsed < rule.Min {
-				return nil
+				return dispatcher.ContinueGroups
 			}
 
 		case ArgTypeText:
@@ -373,7 +375,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 				}
 				joined := strings.Join(parts, " ")
 				if joined == "" && rule.Min > 0 {
-					return nil
+					return dispatcher.ContinueGroups
 				}
 				if joined != "" {
 					handlerCtx.texts = append(handlerCtx.texts, joined)
@@ -389,7 +391,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 					}
 				}
 				if parsed < rule.Min {
-					return nil
+					return dispatcher.ContinueGroups
 				}
 			}
 		}
@@ -401,16 +403,16 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 			logger.L.Error("reply status", "error", err)
 		}
 
-		return dispatcher.SkipCurrentGroup
+		return dispatcher.EndGroups
 	}
 
 	for _, middleware := range c.middlewares {
 		if err := middleware.CheckUpdate(&handlerCtx, u); err != nil {
 			if errors.Is(err, ErrStop) {
-				return dispatcher.SkipCurrentGroup
+				return dispatcher.EndGroups
 			}
 			logger.L.Error("middleware", err)
-			return dispatcher.SkipCurrentGroup
+			return dispatcher.EndGroups
 		}
 	}
 
@@ -419,7 +421,8 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	if err != nil {
 		logger.L.Error("response", "error", err)
 	}
-	return dispatcher.SkipCurrentGroup
+	log.Println("update handled", c.name)
+	return nil
 }
 
 func (c *Command) resolveUsers(ctx *ext.Context, handlerCtx *Context, msg *types.Message, text string, entities []tg.MessageEntityClass) error {

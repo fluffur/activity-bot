@@ -3,6 +3,7 @@ package conversation
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/celestix/gotgproto/dispatcher"
@@ -63,7 +64,6 @@ func (c *Conversation) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	}
 
 	if state != "" {
-		// CheckUpdate exits first
 		for _, exit := range c.Exits {
 			if err := exit.CheckUpdate(ctx, u); err == nil || !errors.Is(err, dispatcher.ContinueGroups) {
 				// If handler matched (didn't return Skip/Continue)
@@ -72,10 +72,11 @@ func (c *Conversation) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 			}
 		}
 
-		// CheckUpdate state handlers
-		if handlers, ok := c.States[state]; ok {
+		handlers, ok := c.States[state]
+		log.Println("hanlders ok", handlers, ok)
+		if ok {
 			for _, h := range handlers {
-				if err := h.CheckUpdate(ctx, u); err == nil || err != dispatcher.ContinueGroups {
+				if err := h.CheckUpdate(ctx, u); err == nil || !errors.Is(err, dispatcher.ContinueGroups) {
 					return err
 				}
 			}
