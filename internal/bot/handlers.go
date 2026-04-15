@@ -90,14 +90,14 @@ func (a *App) RegisterHandlers() {
 		SetRequiredStatus(model.StatusSeniorAdmin).
 		SetArgRules(command.NumberRule(), command.TextRule().SetVariadic(true).SetRange(0, 1)),
 	)
-	a.dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).
-		SetDescription("Удалить норму").
-		SetCategory(command.CategorySettings).
-		SetAliases("норма", "quota").
-		AddPrefixes("-").
-		SetRequiredStatus(model.StatusSeniorAdmin).
-		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)),
-	)
+	//a.dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).
+	//	SetDescription("Удалить норму").
+	//	SetCategory(command.CategorySettings).
+	//	SetAliases("норма", "quota").
+	//	AddPrefixes("-").
+	//	SetRequiredStatus(model.StatusSeniorAdmin).
+	//	SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)),
+	//)
 
 	a.dp.AddHandler(
 		f.New("new_members", memberHandler.OnJoinMember).WrapEvent(joinMemberFilter),
