@@ -14,21 +14,15 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
-
-	"github.com/gotd/contrib/middleware/floodwait"
-	"github.com/gotd/contrib/middleware/ratelimit"
 
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/dispatcher"
 	"github.com/celestix/gotgproto/sessionMaker"
 	"github.com/cohesion-org/deepseek-go"
 	"github.com/glebarez/sqlite"
-	"github.com/gotd/td/telegram"
 	"github.com/hibiken/asynq"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-	"golang.org/x/time/rate"
 )
 
 type App struct {
@@ -53,22 +47,11 @@ func NewApp(cfg config.Config) (*App, error) {
 
 	logger.Init(cfg.Debug)
 
-	waiter := floodwait.NewWaiter().WithCallback(func(ctx context.Context, wait floodwait.FloodWait) {
-		fmt.Printf("Waiting for flood, dur: %d\n", wait.Duration)
-	})
-	ratelimiter := ratelimit.New(rate.Every(time.Millisecond*100), 30)
-
 	bot, err := gotgproto.NewClient(
 		cfg.AppID,
 		cfg.AppHash,
 		gotgproto.ClientTypeBot(cfg.BotToken),
 		&gotgproto.ClientOpts{
-			Middlewares: []telegram.Middleware{waiter, ratelimiter},
-			RunMiddleware: func(origRun func(ctx context.Context, f func(ctx context.Context) error) (err error), ctx context.Context, f func(ctx context.Context) (err error)) (err error) {
-				return origRun(ctx, func(ctx context.Context) error {
-					return waiter.Run(ctx, f)
-				})
-			},
 			Session: sessionMaker.SqlSession(sqlite.Open(cfg.SQLSessionPath)),
 		},
 	)

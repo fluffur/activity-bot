@@ -8,7 +8,6 @@ require (
 	github.com/cohesion-org/deepseek-go v1.3.3
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-faster/errors v0.7.1
-	github.com/gotd/contrib v0.21.1
 	github.com/gotd/td v0.142.0
 	github.com/hibiken/asynq v0.26.0
 	github.com/jackc/pgx/v5 v5.8.0
@@ -48,6 +47,7 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

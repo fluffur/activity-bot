@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/options"
 	"context"
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -200,63 +201,49 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 
 	text := m.Text
 	entities := m.Entities
+
+	// command validation
 	currentPrefixes := make([]string, len(c.prefixes))
 	copy(currentPrefixes, c.prefixes)
 	requirePrefix := c.requirePrefix
 
-	initialPrefix := c.findPrefixInList(text, currentPrefixes)
-	alias := c.findAlias(text, initialPrefix, ctx.Self.Username)
-
-	if alias == "" && requirePrefix {
-		return dispatcher.ContinueGroups
-	}
-
 	if c.scope == ScopeChat {
-		handlerCtx.requiredStatus = c.requiredStatus
-
-		var chat model.Chat
-		if val := ctx.Context.Value("cached_chat"); val != nil {
-			chat = val.(model.Chat)
-		} else {
-			var err error
-			chat, err = c.getChat(ctx, u)
-			if err != nil {
-				return errors.Wrap(err, "get chat failed")
-			}
-			ctx.Context = context.WithValue(ctx.Context, "cached_chat", chat)
+		chat, err := c.getChat(ctx, u)
+		if err != nil {
+			return errors.Wrap(err, "get chat failed")
 		}
 		handlerCtx.chat = &chat
 
-		if chat.CommandPrefix != "" && chat.CommandPrefix != initialPrefix {
-			if hasPrefixIgnoreCase(text, chat.CommandPrefix) {
-				initialPrefix = chat.CommandPrefix
-				alias = c.findAlias(text, initialPrefix, ctx.Self.Username)
-			}
-
-			if alias == "" {
-				return dispatcher.ContinueGroups
-			}
-
-			requirePrefix = !chat.AllowPrefixless
-			if requirePrefix && initialPrefix == "" {
-				return dispatcher.ContinueGroups
-			}
+		if chat.CommandPrefix != "" {
+			currentPrefixes = append(currentPrefixes, chat.CommandPrefix)
 		}
-
+		log.Println(currentPrefixes)
+		requirePrefix = !chat.AllowPrefixless
+		handlerCtx.requiredStatus = c.requiredStatus
 		if s, err := c.chatProvider.GetCommandPermission(ctx.Context, chat.ID, c.name); err == nil {
 			handlerCtx.requiredStatus = s
 		}
-	} else if alias == "" {
+	}
+
+	prefix := c.findPrefixInList(text, currentPrefixes)
+	alias := c.findAlias(text, prefix, ctx.Self.Username)
+	if alias == "" {
 		return dispatcher.ContinueGroups
 	}
 
+	if requirePrefix && prefix == "" {
+		return dispatcher.ContinueGroups
+	}
+
+	// sender
 	member, err := c.resolveMember(ctx, handlerCtx.chat, u.EffectiveUser())
 	if err != nil {
 		logger.L.Error("resolve sender failed", "error", err)
 	}
 	handlerCtx.senderChatMember = member
 
-	textNoPrefix := strings.TrimSpace(trimPrefixIgnoreCase(text, initialPrefix))
+	// args validation
+	textNoPrefix := strings.TrimSpace(trimPrefixIgnoreCase(text, prefix))
 	textNoCommand := strings.TrimSpace(trimPrefixIgnoreCase(trimPrefixIgnoreCase(textNoPrefix, alias), "@"+ctx.Self.Username))
 
 	if len(c.argRules) == 0 && textNoCommand != "" {
@@ -265,7 +252,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 
 	handlerCtx.RawArgs = textNoCommand
 	if textNoCommand != "" {
-		trimmedText := trimPrefixIgnoreCase(text, initialPrefix)
+		trimmedText := trimPrefixIgnoreCase(text, prefix)
 		trimmedText = strings.TrimLeft(trimmedText, " \t\n\r")
 		trimmedText = trimPrefixIgnoreCase(trimmedText, alias)
 		if strings.HasPrefix(trimmedText, "@") {
@@ -427,7 +414,11 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	}
 
 	if !c.checkStatusDisabled && handlerCtx.senderChatMember != nil && !handlerCtx.senderChatMember.StatusGranted(handlerCtx.requiredStatus) {
-		_ = handlerCtx.ReplyOnly(u, options.WithText(fmt.Sprintf("Требуются права: %s", handlerCtx.requiredStatus)))
+
+		if err := handlerCtx.ReplyOnly(u, options.WithText(fmt.Sprintf("Требуются права: %s", handlerCtx.requiredStatus))); err != nil {
+			logger.L.Error("reply status", "error", err)
+		}
+
 		return dispatcher.EndGroups
 	}
 
@@ -441,9 +432,12 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 		}
 	}
 
-	if err := c.response(&handlerCtx, u); err != nil {
+	err = c.response(&handlerCtx, u)
+
+	if err != nil {
 		logger.L.Error("response", "error", err)
 	}
+	log.Println("update handled", c.name)
 	return dispatcher.EndGroups
 }
 
