@@ -120,7 +120,7 @@ func MicrosecondsToTime(micros int64) string {
 }
 
 func FormattedDate(eb *entity.Builder, date time.Time) {
-	eb.FormattedDate("default",
+	eb.FormattedDate(FormatToHumanDateTime(date),
 		false,
 		true,
 		false,
@@ -129,4 +129,25 @@ func FormattedDate(eb *entity.Builder, date time.Time) {
 		true,
 		int(date.Unix()),
 	)
+}
+
+func FormatToHumanDateTime(date time.Time) string {
+	date = date.Local()
+	now := time.Now()
+
+	months := [...]string{
+		"января", "февраля", "марта", "апреля", "мая", "июня",
+		"июля", "августа", "сентября", "октября", "ноября", "декабря",
+	}
+
+	var text string
+	if now.Year() == date.Year() && now.YearDay() == date.YearDay() {
+		text = "сегодня"
+	} else if now.Year() == date.Year() {
+		text = fmt.Sprintf("%d %s", date.Day(), months[date.Month()-1])
+	} else {
+		text = fmt.Sprintf("%d %s %d", date.Day(), months[date.Month()-1], date.Year())
+	}
+
+	return text
 }
