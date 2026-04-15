@@ -106,6 +106,14 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 			case *tg.ChannelParticipantAdmin:
 				userID = p.UserID
 				tag = p.Rank
+			case *tg.ChannelParticipantBanned:
+				peer := p.GetPeer()
+				u, ok := peer.(*tg.PeerUser)
+				if !ok {
+					continue
+				}
+				userID = u.UserID
+				tag = p.Rank
 			default:
 				continue
 			}
