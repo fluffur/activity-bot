@@ -262,7 +262,7 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(f.New("call_no_norm", callHandler.CallNoNorm).
 		SetAliases("калл без нормы", "созвать без нормы").
 		SetRequiredStatus(model.StatusModerator).
-		SetDescription("Сбор тех, кто без нормы").
+		SetDescription("Сбор тех, без нормы").
 		SetCategory(command.CategoryCall),
 	)
 
@@ -361,6 +361,12 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(f.New("who_am_i", statsHandler.WhoAmI).
 		SetDescription("Мой профиль").
 		SetCategory(command.CategoryProfile).
+		SetAliases("ктоя", "кто я", "профиль"),
+	)
+	a.dp.AddHandler(f.New("who_are_u", statsHandler.WhoAreYou).
+		SetDescription("Мой профиль").
+		SetCategory(command.CategoryProfile).
+		SetArgRules(command.MentionedUserRule()).
 		SetAliases("ктоя", "кто я", "профиль"),
 	)
 	a.dp.AddHandler(f.New("callback_all_activity", statsHandler.CallbackAllActivity).
