@@ -367,7 +367,7 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Мой профиль").
 		SetCategory(command.CategoryProfile).
 		SetArgRules(command.MentionedUserRule()).
-		SetAliases("ктоя", "кто я", "профиль"),
+		SetAliases("ктоты", "кто ты", "профиль"),
 	)
 	a.dp.AddHandler(f.New("callback_all_activity", statsHandler.CallbackAllActivity).
 		WrapCallback(filters.CallbackQuery.Prefix("profile_activity:")),
