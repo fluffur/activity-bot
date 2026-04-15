@@ -33,7 +33,7 @@ func MemberDisplayName(cm model.ChatMember) string {
 
 func WriteMention(eb *entity.Builder, id int64, value string) {
 	if value == "" {
-		value = "—"
+		value = "​"
 	}
 	eb.MentionName(value, &tg.InputUser{UserID: id})
 }

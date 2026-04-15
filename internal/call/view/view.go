@@ -3,6 +3,7 @@ package view
 import (
 	"activity-bot/internal/helpers"
 	"activity-bot/internal/model"
+	"fmt"
 	"math/rand"
 	"regexp"
 	"strings"
@@ -85,6 +86,8 @@ func FormatCallChunkBuilder(eb *entity.Builder, message string, members []model.
 			eb.Plain(separator)
 		}
 	}
+	eb.Plain("ㅤ")
+
 }
 
 func FormatWelcomeCallMessage(message string) string {
@@ -116,26 +119,20 @@ func RenderMention(eb *entity.Builder, m model.ChatMember, mentionTypes int32) {
 	hasName := mentionTypes&MentionTypeName > 0
 	hasRole := mentionTypes&MentionTypeRole > 0
 
-	if hasEmoji {
-		emojis := userEmojis(m)
-		helpers.MentionEmoji(eb, m.User, emojis)
+	var resultTitle string
+	if hasName && hasRole {
+		resultTitle = fmt.Sprintf("%s (%s)", m.User.FirstName, m.Tag)
+	} else if hasName {
+		resultTitle = m.User.FirstName
+	} else if hasRole {
+		resultTitle = m.Tag
 	}
 
-	var parts []string
-
-	if hasName {
-		parts = append(parts, m.User.DisplayName())
+	if !hasEmoji {
+		helpers.WriteMention(eb, m.User.ID, resultTitle)
+		return
 	}
 
-	if hasRole && m.Tag != "" {
-		parts = append(parts, m.Tag)
-	}
+	helpers.MentionEmoji(eb, m.User, userEmojis(m), resultTitle)
 
-	title := strings.Join(parts, " ")
-
-	if title == "" {
-		title = "ㅤ"
-	}
-
-	helpers.WriteMention(eb, m.User.ID, title)
 }

@@ -79,7 +79,7 @@ func DisplayEmoji(eb *entity.Builder, emojis model.Emojis) {
 	}
 }
 
-func MentionEmoji(eb *entity.Builder, user model.User, emojis model.Emojis) {
+func MentionEmoji(eb *entity.Builder, user model.User, emojis model.Emojis, title string) {
 	var hasNormalEmoji bool
 	for _, emoji := range emojis {
 		switch emoji.Type {
@@ -87,14 +87,20 @@ func MentionEmoji(eb *entity.Builder, user model.User, emojis model.Emojis) {
 			eb.CustomEmoji(emoji.Char, emoji.ID)
 		case model.EmojiTypeUnicode:
 			if !hasNormalEmoji {
-				WriteMention(eb, user.ID, emoji.Char)
+				if title == "" {
+					WriteMention(eb, user.ID, emoji.Char)
+				} else {
+					eb.Plain(emoji.Char)
+				}
 				hasNormalEmoji = true
 			} else {
 				eb.Plain(emoji.Char)
 			}
 		}
 	}
-	if !hasNormalEmoji {
+	if title != "" {
+		WriteMention(eb, user.ID, title)
+	} else if !hasNormalEmoji {
 		WriteMention(eb, user.ID, "​")
 	}
 }

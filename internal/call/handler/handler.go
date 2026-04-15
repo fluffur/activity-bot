@@ -210,7 +210,12 @@ func (h *Handler) doCall(
 		finalText, chunkEntities := eb.Complete()
 		finalEntities := append(entities, chunkEntities...)
 
-		if err := ctx.ReplyOnly(u, options.WithText(finalText), options.WithEntities(finalEntities)); err != nil {
+		opts := []options.SendMessageOption{options.WithText(finalText), options.WithEntities(finalEntities)}
+		if i == len(members)-mentionsLimit || len(members) < mentionsLimit {
+			opts = append(opts, options.WithMarkup(h.getCallTypesKeyboard(c.MentionTypes)))
+		}
+
+		if err := ctx.ReplyOnly(u, opts...); err != nil {
 			return fmt.Errorf("do call: send chunk: %w", err)
 		}
 	}
@@ -604,6 +609,7 @@ func (h *Handler) handleCallWithMessage(
 }
 
 func (h *Handler) HandleCallInactiveMessage(ctx *command.Context, u *ext.Update) error {
+	log.Println("saasas")
 	return h.handleCallWithMessage(ctx, u, func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
 		return h.service.GetInactiveMembers(stdCtx, chatID)
 	})
