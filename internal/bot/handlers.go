@@ -77,12 +77,6 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Настройка срока новичка").
 		SetCategory(command.CategorySettings),
 	)
-	a.dp.AddHandler(f.New("show_newbie_treshold", chatHandler.ShowNewbieThreshold).
-		SetDescription("Порог новичка").
-		SetCategory(command.CategorySettings).
-		SetAliases("новички срок", "новички после").
-		SetRequiredStatus(model.StatusSeniorAdmin),
-	)
 	a.dp.AddHandler(f.New("norm", chatHandler.ShowNorm).
 		SetDescription("Посмотреть норму сообщений").
 		SetCategory(command.CategorySettings).
@@ -105,9 +99,6 @@ func (a *App) RegisterHandlers() {
 		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)),
 	)
 
-	a.dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).
-		SetDescription("Системный ИИ промпт").
-		SetCategory(command.CategorySettings))
 	a.dp.AddHandler(
 		f.New("new_members", memberHandler.OnJoinMember).WrapEvent(joinMemberFilter),
 	)
@@ -186,32 +177,11 @@ func (a *App) RegisterHandlers() {
 		SetCategory(command.CategorySettings),
 	)
 
-	a.dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).SetDescription("Удалить норму").SetCategory(command.CategorySettings).
-		SetAliases("норма").
-		AddPrefixes("-").
-		SetRequiredStatus(model.StatusSeniorAdmin).
-		SetDescription("Удалить норму").
-		SetCategory(command.CategorySettings),
-	)
-
 	a.dp.AddHandler(f.New("prompt", chatHandler.ShowPrompt).
 		SetDescription("Системный ИИ промпт").
 		SetCategory(command.CategorySettings).
 		SetAliases("промпт").
 		SetDescription("Показать текущий AI-промпт").
-		SetCategory(command.CategorySettings),
-	)
-
-	a.dp.AddHandler(f.New("week_start", chatHandler.ShowWeekStart).SetDescription("Начало недели для нормы").SetCategory(command.CategorySettings).
-		SetAliases("начало недели").
-		SetDescription("Показать начало недели").
-		SetCategory(command.CategorySettings),
-	)
-
-	a.dp.AddHandler(f.New("custom_prefix", chatHandler.ShowPrefix).
-		SetAliases("префикс").
-		SetRequiredStatus(model.StatusSeniorAdmin).
-		SetDescription("Показать префиксы команд").
 		SetCategory(command.CategorySettings),
 	)
 
@@ -296,10 +266,6 @@ func (a *App) RegisterHandlers() {
 		SetCategory(command.CategoryCall),
 	)
 
-	a.dp.AddHandler(f.New("call_no_norm_warn", callHandler.CallNoNormWarn).
-		SetAliases("калл без нормы варн", "созвать без нормы варн").
-		SetRequiredStatus(model.StatusModerator),
-	)
 	a.dp.AddHandler(f.New("call_no_norm_ban", callHandler.CallNoNormBan).
 		SetAliases("калл без нормы бан").
 		SetRequiredStatus(model.StatusModerator).

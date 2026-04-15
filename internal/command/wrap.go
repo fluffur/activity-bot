@@ -45,9 +45,8 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 			handlerCtx.chat = &chat
 
 			if s, err := c.chatProvider.GetCommandPermission(ctx.Context, chat.ID, c.name); err == nil {
-				c.requiredStatus = s
+				handlerCtx.requiredStatus = s
 			}
-			handlerCtx.requiredStatus = c.requiredStatus
 		}
 		member, err := c.resolveMember(ctx, handlerCtx.chat, u.EffectiveUser())
 		if err != nil {
@@ -55,9 +54,9 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 		}
 		handlerCtx.senderChatMember = member
 
-		if !handlerCtx.senderChatMember.StatusGranted(c.requiredStatus) {
+		if !handlerCtx.senderChatMember.StatusGranted(handlerCtx.requiredStatus) {
 			_, err = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
-				Message: fmt.Sprintf("Требуются права: %s", c.requiredStatus),
+				Message: fmt.Sprintf("Требуются права: %s", handlerCtx.requiredStatus),
 				Alert:   true,
 				QueryID: cb.QueryID,
 			})
@@ -90,7 +89,7 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 			return errors.Wrap(err, "callback: response failed")
 		}
 
-		return dispatcher.SkipCurrentGroup
+		return dispatcher.EndGroups
 	}
 }
 

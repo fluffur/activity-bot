@@ -183,8 +183,16 @@ func (c *Command) WithMiddlewares(middlewares ...Middleware) *Command {
 	return c
 }
 
+func (c *Command) findPrefixInList(text string, prefixes []string) string {
+	for _, t := range prefixes {
+		if hasPrefixIgnoreCase(text, t) {
+			return t
+		}
+	}
+	return ""
+}
+
 func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
-	log.Println("handling", c.name)
 	handlerCtx := Context{Context: ctx, Command: c}
 	m := u.EffectiveMessage
 	if m == nil || m.Text == "" {
@@ -195,11 +203,9 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	entities := m.Entities
 
 	// command validation
-	prefix := c.findPrefix(text)
-	alias := c.findAlias(text, prefix, ctx.Self.Username)
-	if alias == "" {
-		return dispatcher.ContinueGroups
-	}
+	currentPrefixes := make([]string, len(c.prefixes))
+	copy(currentPrefixes, c.prefixes)
+	requirePrefix := c.requirePrefix
 
 	if c.scope == ScopeChat {
 		chat, err := c.getChat(ctx, u)
@@ -207,15 +213,25 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 			return errors.Wrap(err, "get chat failed")
 		}
 		handlerCtx.chat = &chat
-		c.prefixes = append(c.prefixes, chat.CommandPrefix)
-		c.requirePrefix = !chat.AllowPrefixless
+
+		if chat.CommandPrefix != "" {
+			currentPrefixes = append(currentPrefixes, chat.CommandPrefix)
+		}
+		log.Println(currentPrefixes)
+		requirePrefix = !chat.AllowPrefixless
 		handlerCtx.requiredStatus = c.requiredStatus
 		if s, err := c.chatProvider.GetCommandPermission(ctx.Context, chat.ID, c.name); err == nil {
-			c.requiredStatus = s
 			handlerCtx.requiredStatus = s
 		}
 	}
-	if c.requirePrefix && prefix == "" {
+
+	prefix := c.findPrefixInList(text, currentPrefixes)
+	alias := c.findAlias(text, prefix, ctx.Self.Username)
+	if alias == "" {
+		return dispatcher.ContinueGroups
+	}
+
+	if requirePrefix && prefix == "" {
 		return dispatcher.ContinueGroups
 	}
 
@@ -397,9 +413,9 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 		}
 	}
 
-	if !c.checkStatusDisabled && handlerCtx.senderChatMember != nil && !handlerCtx.senderChatMember.StatusGranted(c.RequiredStatus()) {
+	if !c.checkStatusDisabled && handlerCtx.senderChatMember != nil && !handlerCtx.senderChatMember.StatusGranted(handlerCtx.requiredStatus) {
 
-		if err := handlerCtx.ReplyOnly(u, options.WithText(fmt.Sprintf("Требуются права: %s", c.RequiredStatus()))); err != nil {
+		if err := handlerCtx.ReplyOnly(u, options.WithText(fmt.Sprintf("Требуются права: %s", handlerCtx.requiredStatus))); err != nil {
 			logger.L.Error("reply status", "error", err)
 		}
 
@@ -422,7 +438,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 		logger.L.Error("response", "error", err)
 	}
 	log.Println("update handled", c.name)
-	return nil
+	return dispatcher.EndGroups
 }
 
 func (c *Command) resolveUsers(ctx *ext.Context, handlerCtx *Context, msg *types.Message, text string, entities []tg.MessageEntityClass) error {

@@ -81,7 +81,11 @@ func GetCommandsByCategoryKeyboard(category command.Category, commands []*comman
 			continue
 		}
 
-		icon, _ := strconv.ParseInt(helpers.StatusEmojiID(c.RequiredStatus()), 10, 64)
+		status := c.RequiredStatus()
+		if s, ok := perms[c.Name()]; ok {
+			status = s
+		}
+		icon, _ := strconv.ParseInt(helpers.StatusEmojiID(status), 10, 64)
 		rows = append(rows, tg.KeyboardButtonRow{
 			Buttons: []tg.KeyboardButtonClass{
 				&tg.KeyboardButtonCallback{
