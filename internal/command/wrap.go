@@ -36,6 +36,7 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 		handlerCtx := Context{
 			Context: ctx,
 		}
+		handlerCtx.requiredStatus = c.requiredStatus
 
 		if c.scope == ScopeChat {
 			chat, err := c.getChat(ctx, u)
@@ -43,7 +44,6 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 				return errors.Wrap(err, "callback: get chat failed")
 			}
 			handlerCtx.chat = &chat
-
 			if s, err := c.chatProvider.GetCommandPermission(ctx.Context, chat.ID, c.name); err == nil {
 				handlerCtx.requiredStatus = s
 			}
