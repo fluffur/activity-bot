@@ -334,6 +334,7 @@ func (a *App) RegisterHandlers() {
 		SetRequiredStatus(model.StatusModerator).
 		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)).
 		SetDescription("Общий сбор чата").
+		WithMiddlewares(middleware.NewRateLimiter(a.Rdb, 1, 10*time.Second)).
 		SetCategory(command.CategoryCall),
 	)
 	a.dp.AddHandler(f.New("stats", statsHandler.ShowStats).

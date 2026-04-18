@@ -23,6 +23,7 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/entity"
 	"github.com/gotd/td/tg"
+	"golang.org/x/time/rate"
 )
 
 type Handler struct {
@@ -197,8 +198,14 @@ func (h *Handler) doCall(
 	if message == "" {
 		message = c.WelcomeCallMessage
 	}
-
+	var chatLimiter = rate.NewLimiter(rate.Every(1100*time.Millisecond), 1)
+	if len(members) > 100 {
+		return ctx.ReplyOnly(u, options.WithText("Бот пока не поддерживает созывы в чатах, где больше 100 участников"))
+	}
 	for i := 0; i < len(members); i += mentionsLimit {
+		if err := chatLimiter.Wait(ctx.StdContext()); err != nil {
+			return err
+		}
 		end := i + mentionsLimit
 		if end > len(members) {
 			end = len(members)
@@ -211,7 +218,7 @@ func (h *Handler) doCall(
 		finalEntities := append(entities, chunkEntities...)
 
 		opts := []options.SendMessageOption{options.WithText(finalText), options.WithEntities(finalEntities)}
-		if i == len(members)-mentionsLimit || len(members) < mentionsLimit {
+		if end == len(members) {
 			opts = append(opts, options.WithMarkup(h.getCallTypesKeyboard(c.MentionTypes)))
 		}
 
@@ -610,7 +617,6 @@ func (h *Handler) handleCallWithMessage(
 }
 
 func (h *Handler) HandleCallInactiveMessage(ctx *command.Context, u *ext.Update) error {
-	log.Println("saasas")
 	return h.handleCallWithMessage(ctx, u, func(stdCtx context.Context, chatID int64) ([]model.ChatMember, error) {
 		return h.service.GetInactiveMembers(stdCtx, chatID)
 	})

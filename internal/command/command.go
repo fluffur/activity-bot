@@ -217,7 +217,6 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 		if chat.CommandPrefix != "" {
 			currentPrefixes = append(currentPrefixes, chat.CommandPrefix)
 		}
-		log.Println(currentPrefixes)
 		requirePrefix = !chat.AllowPrefixless
 		handlerCtx.requiredStatus = c.requiredStatus
 		if s, err := c.chatProvider.GetCommandPermission(ctx.Context, chat.ID, c.name); err == nil {
