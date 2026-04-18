@@ -658,6 +658,7 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(
 		f.New("call_unreg", callHandler.ExcludeMemberFromCall).
 			SetAliases("анрег", "-калл").
+			SetDescription("Добавить участника в исключения созыва").
 			SetImportant(true).
 			SetArgRules(command.AnyUserRule()).
 			SetCategory(command.CategorySettings),
@@ -666,6 +667,7 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(
 		f.New("call_reg", callHandler.IncludeMemberInCall).
 			SetAliases("рег", "+калл").
+			SetDescription("Убрать участника из исключений созыва").
 			SetArgRules(command.AnyUserRule()).
 			SetImportant(true).
 			SetCategory(command.CategorySettings),

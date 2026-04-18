@@ -62,7 +62,9 @@ func (h *Handler) CallbackManageRights(ctx *command.Context, u *ext.Update) erro
 			Entities:    entities,
 			ReplyMarkup: view.GetCommandsByCategoryKeyboard(category, configCmds, perms),
 		})
-		return fmt.Errorf("manage rights: show category commands: %w", err)
+		if err != nil {
+			return fmt.Errorf("manage rights: show category commands: %w", err)
+		}
 
 	case "rights_edit":
 		if len(parts) < 2 {
