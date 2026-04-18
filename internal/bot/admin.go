@@ -124,7 +124,6 @@ func (a *App) registerAdminHandlers(f *command.Factory) {
 		SetArgRules(command.AnyUserRule(), command.NumberRule()),
 	)
 	a.dp.AddHandler(f.New("update_chats", adminHandler.UpdateChats).
-		SetDescription("Обновить кэш чатов").
 		SetCategory(command.CategoryAdmin).
 		SetDevCommand(true))
 

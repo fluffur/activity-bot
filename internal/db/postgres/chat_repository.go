@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/model"
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -274,5 +275,15 @@ func (r *ChatRepository) SetCommandPermission(ctx context.Context, chatID int64,
 		ChatID:         chatID,
 		CommandKey:     key,
 		RequiredStatus: int16(status),
+	})
+}
+
+func (r *ChatRepository) Remove(ctx context.Context, chatID int64) error {
+	return r.queries.RemoveChat(ctx, db.RemoveChatParams{
+		RemovedAt: pgtype.Timestamptz{
+			Time:  time.Now(),
+			Valid: true,
+		},
+		ID: chatID,
 	})
 }

@@ -17,11 +17,11 @@ WITH ins AS (
         VALUES ($1, $2)
         ON CONFLICT (id) DO UPDATE
             SET title = COALESCE(NULLIF(EXCLUDED.title, ''), chats.title)
-        RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled)
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled
+        RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled, removed_at)
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled, removed_at
 FROM ins
 UNION ALL
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled, removed_at
 FROM chats
 WHERE id = $1
 LIMIT 1
@@ -33,24 +33,25 @@ type EnsureChatExistsParams struct {
 }
 
 type EnsureChatExistsRow struct {
-	ID                  int64       `db:"id" json:"id"`
-	NormWarn            pgtype.Int4 `db:"norm_warn" json:"normWarn"`
-	NewbieThresholdDays int32       `db:"newbie_threshold_days" json:"newbieThresholdDays"`
-	AiSystemPrompt      pgtype.Text `db:"ai_system_prompt" json:"aiSystemPrompt"`
-	MaxLadder           int32       `db:"max_ladder" json:"maxLadder"`
-	CallOnJoin          bool        `db:"call_on_join" json:"callOnJoin"`
-	WelcomeCallMessage  pgtype.Text `db:"welcome_call_message" json:"welcomeCallMessage"`
-	WeekStartDay        int16       `db:"week_start_day" json:"weekStartDay"`
-	MaxWarns            int32       `db:"max_warns" json:"maxWarns"`
-	NormBan             pgtype.Int4 `db:"norm_ban" json:"normBan"`
-	CommandPrefix       pgtype.Text `db:"command_prefix" json:"commandPrefix"`
-	AllowPrefixless     bool        `db:"allow_prefixless" json:"allowPrefixless"`
-	MentionsPerMessage  int32       `db:"mentions_per_message" json:"mentionsPerMessage"`
-	MentionTypes        int32       `db:"mention_types" json:"mentionTypes"`
-	Title               string      `db:"title" json:"title"`
-	TagsEnabled         bool        `db:"tags_enabled" json:"tagsEnabled"`
-	WeekStartTime       pgtype.Time `db:"week_start_time" json:"weekStartTime"`
-	BroadcastEnabled    bool        `db:"broadcast_enabled" json:"broadcastEnabled"`
+	ID                  int64              `db:"id" json:"id"`
+	NormWarn            pgtype.Int4        `db:"norm_warn" json:"normWarn"`
+	NewbieThresholdDays int32              `db:"newbie_threshold_days" json:"newbieThresholdDays"`
+	AiSystemPrompt      pgtype.Text        `db:"ai_system_prompt" json:"aiSystemPrompt"`
+	MaxLadder           int32              `db:"max_ladder" json:"maxLadder"`
+	CallOnJoin          bool               `db:"call_on_join" json:"callOnJoin"`
+	WelcomeCallMessage  pgtype.Text        `db:"welcome_call_message" json:"welcomeCallMessage"`
+	WeekStartDay        int16              `db:"week_start_day" json:"weekStartDay"`
+	MaxWarns            int32              `db:"max_warns" json:"maxWarns"`
+	NormBan             pgtype.Int4        `db:"norm_ban" json:"normBan"`
+	CommandPrefix       pgtype.Text        `db:"command_prefix" json:"commandPrefix"`
+	AllowPrefixless     bool               `db:"allow_prefixless" json:"allowPrefixless"`
+	MentionsPerMessage  int32              `db:"mentions_per_message" json:"mentionsPerMessage"`
+	MentionTypes        int32              `db:"mention_types" json:"mentionTypes"`
+	Title               string             `db:"title" json:"title"`
+	TagsEnabled         bool               `db:"tags_enabled" json:"tagsEnabled"`
+	WeekStartTime       pgtype.Time        `db:"week_start_time" json:"weekStartTime"`
+	BroadcastEnabled    bool               `db:"broadcast_enabled" json:"broadcastEnabled"`
+	RemovedAt           pgtype.Timestamptz `db:"removed_at" json:"removedAt"`
 }
 
 func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsParams) (EnsureChatExistsRow, error) {
@@ -75,12 +76,13 @@ func (q *Queries) EnsureChatExists(ctx context.Context, arg EnsureChatExistsPara
 		&i.TagsEnabled,
 		&i.WeekStartTime,
 		&i.BroadcastEnabled,
+		&i.RemovedAt,
 	)
 	return i, err
 }
 
 const getAllChats = `-- name: GetAllChats :many
-SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled
+SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at
 FROM chats c
 WHERE c.id < 0
   AND c.title <> ''
@@ -117,6 +119,7 @@ func (q *Queries) GetAllChats(ctx context.Context) ([]Chat, error) {
 			&i.TagsEnabled,
 			&i.WeekStartTime,
 			&i.BroadcastEnabled,
+			&i.RemovedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -198,7 +201,7 @@ func (q *Queries) GetAllUserChatsWithoutNorm(ctx context.Context, userID int64) 
 }
 
 const getChat = `-- name: GetChat :one
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled, removed_at
 FROM chats
 WHERE id = $1
 `
@@ -225,6 +228,7 @@ func (q *Queries) GetChat(ctx context.Context, id int64) (Chat, error) {
 		&i.TagsEnabled,
 		&i.WeekStartTime,
 		&i.BroadcastEnabled,
+		&i.RemovedAt,
 	)
 	return i, err
 }
@@ -244,7 +248,7 @@ func (q *Queries) GetChatMaxLadder(ctx context.Context, chatID int64) (int32, er
 }
 
 const getChatsWithEnabledBroadcast = `-- name: GetChatsWithEnabledBroadcast :many
-SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled
+SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at
 FROM chats c
 WHERE c.id < 0
   AND c.title <> ''
@@ -279,6 +283,7 @@ func (q *Queries) GetChatsWithEnabledBroadcast(ctx context.Context) ([]Chat, err
 			&i.TagsEnabled,
 			&i.WeekStartTime,
 			&i.BroadcastEnabled,
+			&i.RemovedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -291,10 +296,11 @@ func (q *Queries) GetChatsWithEnabledBroadcast(ctx context.Context) ([]Chat, err
 }
 
 const getChatsWithoutTitle = `-- name: GetChatsWithoutTitle :many
-SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled, removed_at
 FROM chats
 WHERE title = ''
   AND id < 0
+  AND removed_at IS NULL
 `
 
 func (q *Queries) GetChatsWithoutTitle(ctx context.Context) ([]Chat, error) {
@@ -325,6 +331,7 @@ func (q *Queries) GetChatsWithoutTitle(ctx context.Context) ([]Chat, error) {
 			&i.TagsEnabled,
 			&i.WeekStartTime,
 			&i.BroadcastEnabled,
+			&i.RemovedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -339,7 +346,8 @@ func (q *Queries) GetChatsWithoutTitle(ctx context.Context) ([]Chat, error) {
 const getCommandPermission = `-- name: GetCommandPermission :one
 SELECT chat_id, command_key, required_status
 FROM command_permissions
-WHERE chat_id = $1 AND command_key = $2
+WHERE chat_id = $1
+  AND command_key = $2
 `
 
 type GetCommandPermissionParams struct {
@@ -385,7 +393,7 @@ INSERT INTO chats(id, title, norm_warn)
 VALUES ($1, $2, $3)
 ON CONFLICT(id) DO UPDATE SET norm_warn = chats.norm_warn,
                               title     = COALESCE(NULLIF(EXCLUDED.title, ''), chats.title)
-RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled
+RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled, removed_at
 `
 
 type GetOrCreateChatParams struct {
@@ -416,12 +424,13 @@ func (q *Queries) GetOrCreateChat(ctx context.Context, arg GetOrCreateChatParams
 		&i.TagsEnabled,
 		&i.WeekStartTime,
 		&i.BroadcastEnabled,
+		&i.RemovedAt,
 	)
 	return i, err
 }
 
 const getUserManagedChats = `-- name: GetUserManagedChats :many
-SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled
+SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at
 FROM chats c
          JOIN chat_members cm ON c.id = cm.chat_id
 WHERE c.id < 0
@@ -458,6 +467,7 @@ func (q *Queries) GetUserManagedChats(ctx context.Context, userID int64) ([]Chat
 			&i.TagsEnabled,
 			&i.WeekStartTime,
 			&i.BroadcastEnabled,
+			&i.RemovedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -467,6 +477,22 @@ func (q *Queries) GetUserManagedChats(ctx context.Context, userID int64) ([]Chat
 		return nil, err
 	}
 	return items, nil
+}
+
+const removeChat = `-- name: RemoveChat :exec
+UPDATE chats
+SET removed_at = $1
+WHERE id = $2
+`
+
+type RemoveChatParams struct {
+	RemovedAt pgtype.Timestamptz `db:"removed_at" json:"removedAt"`
+	ID        int64              `db:"id" json:"id"`
+}
+
+func (q *Queries) RemoveChat(ctx context.Context, arg RemoveChatParams) error {
+	_, err := q.db.Exec(ctx, removeChat, arg.RemovedAt, arg.ID)
+	return err
 }
 
 const setChatAISystemPrompt = `-- name: SetChatAISystemPrompt :exec
@@ -537,7 +563,7 @@ const setCommandPermission = `-- name: SetCommandPermission :exec
 INSERT INTO command_permissions (chat_id, command_key, required_status)
 VALUES ($1, $2, $3)
 ON CONFLICT (chat_id, command_key) DO UPDATE
-SET required_status = EXCLUDED.required_status
+    SET required_status = EXCLUDED.required_status
 `
 
 type SetCommandPermissionParams struct {

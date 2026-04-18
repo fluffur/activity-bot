@@ -151,7 +151,8 @@ ORDER BY week_count;
 SELECT *
 FROM chats
 WHERE title = ''
-  AND id < 0;
+  AND id < 0
+  AND removed_at IS NULL;
 
 -- name: GetUserManagedChats :many
 SELECT c.*
@@ -182,10 +183,16 @@ WHERE chat_id = $1;
 -- name: GetCommandPermission :one
 SELECT *
 FROM command_permissions
-WHERE chat_id = $1 AND command_key = $2;
+WHERE chat_id = $1
+  AND command_key = $2;
 
 -- name: SetCommandPermission :exec
 INSERT INTO command_permissions (chat_id, command_key, required_status)
 VALUES ($1, $2, $3)
 ON CONFLICT (chat_id, command_key) DO UPDATE
-SET required_status = EXCLUDED.required_status;
+    SET required_status = EXCLUDED.required_status;
+
+-- name: RemoveChat :exec
+UPDATE chats
+SET removed_at = $1
+WHERE id = $2;

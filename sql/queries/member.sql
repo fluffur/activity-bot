@@ -29,6 +29,8 @@ WHERE cm.chat_id = @chat_id
   AND cm.tag <> ''
 ORDER BY cm.tag COLLATE "und-x-icu";
 
+
+
 -- name: GetAnyChatMembersWithTitles :many
 SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm

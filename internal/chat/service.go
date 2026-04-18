@@ -126,3 +126,7 @@ func (s *Service) GetCommandPermission(ctx context.Context, chatID int64, key st
 func (s *Service) SetCommandPermission(ctx context.Context, chatID int64, key string, status model.Status) error {
 	return s.repo.SetCommandPermission(ctx, chatID, key, status)
 }
+
+func (s *Service) RemoveChat(ctx context.Context, chatID int64) error {
+	return s.repo.Remove(ctx, chatID)
+}

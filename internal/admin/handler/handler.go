@@ -594,6 +594,9 @@ func (h *Handler) UpdateChats(ctx *command.Context, u *ext.Update) error {
 		ch, err := ctx.Raw.MessagesGetFullChat(ctx, c.ID)
 		if err != nil {
 			slog.Error("failed to get chat", "chat", c, "err", err)
+			if err := h.chatService.RemoveChat(ctx, c.ID); err != nil {
+				return err
+			}
 			continue
 		}
 		title := ""
@@ -602,13 +605,22 @@ func (h *Handler) UpdateChats(ctx *command.Context, u *ext.Update) error {
 				if chObj, ok := chat.(*tg.Chat); ok {
 					title = chObj.Title
 				}
+				if chObj, ok := chat.(*tg.Channel); ok {
+					title = chObj.Title
+				}
 				break
 			}
 		}
 
 		logger.L.Info("found chat title", "title", title, "id", c.ID)
-		if err := h.chatService.SetTitle(ctx.StdContext(), c.ID, title); err != nil {
-			return err
+		if title != "" {
+			if err := h.chatService.SetTitle(ctx.StdContext(), c.ID, title); err != nil {
+				return err
+			}
+		} else {
+			if err := h.chatService.RemoveChat(ctx, c.ID); err != nil {
+				return err
+			}
 		}
 	}
 	return ctx.ReplyOnly(u, options.WithText("Чаты обновлены"))
