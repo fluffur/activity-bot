@@ -289,3 +289,11 @@ func (r *MemberRepository) SetEmoji(ctx context.Context, chatID, userID int64, e
 func (r *MemberRepository) ResetCreators(ctx context.Context, chatID int64) error {
 	return r.queries.ResetChatMemberCreators(ctx, chatID)
 }
+
+func (r *MemberRepository) SetExcludeFromCall(ctx context.Context, chatID int64, userID int64, excludeFromCall bool) error {
+	return r.queries.SetChatMemberExcludeFromCall(ctx, db.SetChatMemberExcludeFromCallParams{
+		ExcludeFromCall: excludeFromCall,
+		UserID:          userID,
+		ChatID:          chatID,
+	})
+}

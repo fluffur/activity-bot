@@ -20,7 +20,7 @@ WITH filtered_messages AS (
       AND ($3::timestamptz IS NULL OR m.created_at < $3::timestamptz)
 )
 SELECT
-    cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json,
+    cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call,
     u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json,
     COUNT(fm.chat_id) AS messages_count,
     c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled
@@ -70,6 +70,7 @@ func (q *Queries) ChatMemberMessageStatsByChat(ctx context.Context, arg ChatMemb
 			&i.ChatMember.Emoji,
 			&i.ChatMember.Status,
 			&i.ChatMember.EmojiJson,
+			&i.ChatMember.ExcludeFromCall,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,
@@ -117,7 +118,7 @@ WITH user_messages AS (
       AND m.user_id = $2
 )
 SELECT
-    cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json,
+    cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call,
     u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json,
     c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled,
     COUNT(*) FILTER (WHERE m.created_at >= date_trunc('day', now()))          AS day_count,
@@ -171,6 +172,7 @@ func (q *Queries) ChatMemberMessageStatsByUser(ctx context.Context, arg ChatMemb
 		&i.ChatMember.Emoji,
 		&i.ChatMember.Status,
 		&i.ChatMember.EmojiJson,
+		&i.ChatMember.ExcludeFromCall,
 		&i.User.ID,
 		&i.User.Username,
 		&i.User.FirstName,

@@ -75,6 +75,7 @@ type Command struct {
 	chatProvider       ChatProvider
 	sessionService     SessionService
 
+	important  bool
 	dateParser *helpers.DateParser
 }
 
@@ -115,6 +116,20 @@ func (c *Command) SetArgRules(rules ...ArgRule) *Command {
 	c.argRules = rules
 
 	return c
+}
+
+func (c *Command) ArgRules() []ArgRule {
+	return c.argRules
+}
+
+func (c *Command) SetImportant(flag bool) *Command {
+	c.important = flag
+
+	return c
+}
+
+func (c *Command) Important() bool {
+	return c.important
 }
 
 func (c *Command) IsDevCommand() bool {

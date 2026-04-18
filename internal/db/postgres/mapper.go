@@ -51,15 +51,16 @@ func mapChatMember(m db.ChatMember) model.ChatMember {
 		User: model.User{
 			ID: m.UserID,
 		},
-		ChatID:     m.ChatID,
-		RestUntil:  m.RestUntil.Time,
-		RestReason: m.RestReason.String,
-		Tag:        m.Tag.String,
-		Status:     model.Status(m.Status),
-		Emoji:      m.Emoji.String,
-		Emojis:     m.EmojiJson,
-		JoinedAt:   m.JoinedAt.Time,
-		LeftAt:     m.LeftAt.Time,
+		ChatID:          m.ChatID,
+		RestUntil:       m.RestUntil.Time,
+		RestReason:      m.RestReason.String,
+		Tag:             m.Tag.String,
+		Status:          model.Status(m.Status),
+		Emoji:           m.Emoji.String,
+		Emojis:          m.EmojiJson,
+		JoinedAt:        m.JoinedAt.Time,
+		LeftAt:          m.LeftAt.Time,
+		ExcludeFromCall: m.ExcludeFromCall,
 	}
 }
 

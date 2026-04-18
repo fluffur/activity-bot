@@ -127,16 +127,17 @@ type Chat struct {
 }
 
 type ChatMember struct {
-	ChatID     int64              `db:"chat_id" json:"chatId"`
-	UserID     int64              `db:"user_id" json:"userId"`
-	JoinedAt   pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
-	RestUntil  pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
-	Tag        pgtype.Text        `db:"tag" json:"tag"`
-	LeftAt     pgtype.Timestamptz `db:"left_at" json:"leftAt"`
-	RestReason pgtype.Text        `db:"rest_reason" json:"restReason"`
-	Emoji      pgtype.Text        `db:"emoji" json:"emoji"`
-	Status     int16              `db:"status" json:"status"`
-	EmojiJson  model.Emojis       `db:"emoji_json" json:"emojiJson"`
+	ChatID          int64              `db:"chat_id" json:"chatId"`
+	UserID          int64              `db:"user_id" json:"userId"`
+	JoinedAt        pgtype.Timestamptz `db:"joined_at" json:"joinedAt"`
+	RestUntil       pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
+	Tag             pgtype.Text        `db:"tag" json:"tag"`
+	LeftAt          pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	RestReason      pgtype.Text        `db:"rest_reason" json:"restReason"`
+	Emoji           pgtype.Text        `db:"emoji" json:"emoji"`
+	Status          int16              `db:"status" json:"status"`
+	EmojiJson       model.Emojis       `db:"emoji_json" json:"emojiJson"`
+	ExcludeFromCall bool               `db:"exclude_from_call" json:"excludeFromCall"`
 }
 
 type ChatMemberNorm struct {

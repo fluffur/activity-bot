@@ -90,16 +90,17 @@ func (s Status) Title() string {
 }
 
 type ChatMember struct {
-	User       User
-	ChatID     int64
-	RestUntil  time.Time
-	RestReason string
-	Tag        string
-	Status     Status
-	Emoji      string
-	Emojis     Emojis
-	JoinedAt   time.Time
-	LeftAt     time.Time
+	User            User
+	ChatID          int64
+	RestUntil       time.Time
+	RestReason      string
+	Tag             string
+	Status          Status
+	Emoji           string
+	Emojis          Emojis
+	JoinedAt        time.Time
+	LeftAt          time.Time
+	ExcludeFromCall bool
 }
 
 func (cm ChatMember) CanModerate(c ChatMember) bool {

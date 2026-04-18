@@ -66,8 +66,15 @@ func (a *App) RegisterHandlers() {
 
 	rateLimiterMiddleware := middleware.NewRateLimiter(a.Rdb, 3, 10*time.Second)
 
-	a.dp.AddHandler(f.New("start", helpHandler.Start).SetScope(command.ScopeUser))
-	a.dp.AddHandler(f.New("help", helpHandler.Help).SetScope(command.ScopeUser))
+	a.dp.AddHandler(f.New("start", helpHandler.Start).
+		SetScope(command.ScopeUser),
+	)
+	a.dp.AddHandler(f.New("help", helpHandler.Help).
+		SetScope(command.ScopeUser).
+		SetImportant(true).
+		SetCategory(command.CategorySettings).
+		SetDescription("Помощь по боту"),
+	)
 
 	a.dp.AddHandler(f.New("set_newbie_treshold", chatHandler.SetNewbieThreshold).
 		SetAliases("новички срок", "новички после").
@@ -79,25 +86,27 @@ func (a *App) RegisterHandlers() {
 	)
 	a.dp.AddHandler(f.New("norm", chatHandler.ShowNorm).
 		SetDescription("Посмотреть норму сообщений").
+		SetImportant(true).
 		SetCategory(command.CategorySettings).
 		SetAliases("норма какая", "а норма какая", "норма", "норма?", "quota", "какая норма", "а какая норма"),
 	)
 	a.dp.AddHandler(f.New("set_norm", chatHandler.SetNorm).
 		SetDescription("Установка нормы").
+		SetImportant(true).
 		SetCategory(command.CategorySettings).
 		SetAliases("норма", "quota").
 		AddPrefixes("+").
 		SetRequiredStatus(model.StatusSeniorAdmin).
 		SetArgRules(command.NumberRule(), command.TextRule().SetVariadic(true).SetRange(0, 1)),
 	)
-	//a.dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).
-	//	SetDescription("Удалить норму").
-	//	SetCategory(command.CategorySettings).
-	//	SetAliases("норма", "quota").
-	//	AddPrefixes("-").
-	//	SetRequiredStatus(model.StatusSeniorAdmin).
-	//	SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)),
-	//)
+	a.dp.AddHandler(f.New("remove_norm", chatHandler.RemoveNorm).
+		SetDescription("Удалить норму").
+		SetCategory(command.CategorySettings).
+		SetAliases("норма", "quota").
+		AddPrefixes("-").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)),
+	)
 
 	a.dp.AddHandler(
 		f.New("new_members", memberHandler.OnJoinMember).WrapEvent(joinMemberFilter),
@@ -108,6 +117,7 @@ func (a *App) RegisterHandlers() {
 		SetDescription("Управление чатом").
 		SetCategory(command.CategorySettings).
 		SetAliases("управление").
+		SetImportant(true).
 		SetScope(command.ScopeUser),
 	)
 
@@ -125,6 +135,7 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(f.New("enable_tags", chatHandler.EnableTags).
 		SetAliases("+tags", "+теги", "+тэги").
 		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetImportant(true).
 		SetDescription("Включение тегов").
 		SetCategory(command.CategorySettings),
 	)
@@ -187,6 +198,7 @@ func (a *App) RegisterHandlers() {
 
 	a.dp.AddHandler(f.New("prefix_only", chatHandler.ShowPrefixlessStatus).
 		SetAliases("префиксы").
+		SetImportant(true).
 		SetDescription("Статус обязательного префикса").
 		SetCategory(command.CategorySettings),
 	)
@@ -240,6 +252,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.dp.AddHandler(f.New("call_type", callHandler.ShowCallTypes).
 		SetAliases("калл тип").
+		SetImportant(true).
 		SetDescription("Показать типы сбора").
 		SetCategory(command.CategoryCall),
 	)
@@ -261,6 +274,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.dp.AddHandler(f.New("call_no_norm", callHandler.CallNoNorm).
 		SetAliases("калл без нормы", "созвать без нормы").
+		SetImportant(true).
 		SetRequiredStatus(model.StatusModerator).
 		SetDescription("Сбор тех, без нормы").
 		SetCategory(command.CategoryCall),
@@ -286,6 +300,7 @@ func (a *App) RegisterHandlers() {
 	)
 
 	a.dp.AddHandler(f.New("call_inactive", callHandler.CallInactive).
+		SetImportant(true).
 		SetAliases("калл инактив", "калл неактив", "созвать неактивных").
 		SetRequiredStatus(model.StatusModerator).
 		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)).
@@ -331,6 +346,7 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(callConversation)
 	a.dp.AddHandler(f.New("call", callHandler.Call).
 		SetAliases("калл", "колл", "all", "каллалл").
+		SetImportant(true).
 		SetRequiredStatus(model.StatusModerator).
 		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)).
 		SetDescription("Общий сбор чата").
@@ -339,6 +355,7 @@ func (a *App) RegisterHandlers() {
 	)
 	a.dp.AddHandler(f.New("stats", statsHandler.ShowStats).
 		SetAliases("отчёт", "отчет", "стата").
+		SetImportant(true).
 		SetArgRules(command.OptionalDateRangeRule()).
 		//WithGuards(groupGuard, middleware.NewRateLimiter(a.Rdb, 2, 4*time.Second, sessionService)).
 		SetDescription("Отчёт в чате").
@@ -356,16 +373,19 @@ func (a *App) RegisterHandlers() {
 	)
 	a.dp.AddHandler(f.New("rests", statsHandler.ShowRestList).
 		SetDescription("Список участников в ресте").
+		SetImportant(true).
 		SetAliases("ресты"),
 	)
 
 	a.dp.AddHandler(f.New("who_am_i", statsHandler.WhoAmI).
 		SetDescription("Мой профиль").
+		SetImportant(true).
 		SetCategory(command.CategoryProfile).
 		SetAliases("ктоя", "кто я", "профиль"),
 	)
 	a.dp.AddHandler(f.New("who_are_u", statsHandler.WhoAreYou).
-		SetDescription("Мой профиль").
+		SetImportant(true).
+		SetDescription("Профиль участника").
 		SetCategory(command.CategoryProfile).
 		SetArgRules(command.MentionedUserRule()).
 		SetAliases("ктоты", "кто ты", "профиль"),
@@ -377,7 +397,8 @@ func (a *App) RegisterHandlers() {
 		WrapCallback(filters.CallbackQuery.Prefix("profile_graph:")),
 	)
 	a.dp.AddHandler(f.New("ship_random", memberHandler.ShipRandom).
-		SetDescription("Случайный шипперинг").
+		SetDescription("Случайный шип").
+		SetImportant(true).
 		SetCategory(command.CategoryGeneral).
 		SetAliases("рандом шипперим", "шипперим"))
 
@@ -399,10 +420,12 @@ func (a *App) RegisterHandlers() {
 		DisableCheckStatus().
 		SetAliases("рест", "rest", "установить рест").
 		AddPrefixes("+").
+		SetImportant(true).
 		SetArgRules(command.AnyUserRule(), command.OneDateRule()),
 	)
 	a.dp.AddHandler(f.New("rest", restHandler.ShowRest).SetDescription("Информация о ресте").SetCategory(command.CategoryProfile).
 		SetAliases("рест", "rest").
+		SetImportant(true).
 		SetArgRules(command.AnyUserRule()),
 	)
 	a.dp.AddHandler(f.New("remove_rest", restHandler.RemoveRestRequest).SetDescription("Удалить рест").SetCategory(command.CategoryModeration).
@@ -424,6 +447,7 @@ func (a *App) RegisterHandlers() {
 			WrapCallback(filters.CallbackQuery.Prefix("reject:")),
 	)
 	a.dp.AddHandler(f.New("admins", adminHandler.ListAdmins).SetDescription("Список администрации").SetCategory(command.CategoryGeneral).
+		SetImportant(true).
 		SetAliases("админы", "модеры", "mods"),
 	)
 
@@ -489,9 +513,14 @@ func (a *App) RegisterHandlers() {
 	)
 	a.dp.AddHandler(f.New("warns", adminHandler.ShowWarns).SetDescription("Список предупреждений").SetCategory(command.CategoryProfile).
 		SetArgRules(command.AnyUserRule()).
+		SetImportant(true).
 		SetAliases("варны", "преды"),
 	)
-	a.dp.AddHandler(f.New("warnlist", adminHandler.WarnList).SetDescription("Предупреждения в чате").SetCategory(command.CategoryModeration).SetAliases("варнлист", "предывсе"))
+	a.dp.AddHandler(f.New("warnlist", adminHandler.WarnList).
+		SetDescription("Предупреждения в чате").
+		SetCategory(command.CategoryModeration).
+		SetAliases("варнлист", "все преды").
+		SetImportant(true))
 	a.dp.AddHandler(f.New("warn", adminHandler.Warn).
 		SetAliases("варн", "пред").
 		SetArgRules(command.MentionedUserRule(), command.TextRule().SetVariadic(true).SetRange(0, 1)).
@@ -564,10 +593,12 @@ func (a *App) RegisterHandlers() {
 
 	a.dp.AddHandler(f.New("set_gender", userHandler.SetGender).SetDescription("Установить пол").SetCategory(command.CategoryProfile).
 		SetAliases("мой пол", "установить пол").SetScope(command.ScopeUser).
+		SetImportant(true).
 		SetArgRules(command.TextRule()),
 	)
 	a.dp.AddHandler(f.New("gender", userHandler.ShowGender).SetDescription("Посмотреть пол").SetCategory(command.CategoryProfile).
 		SetAliases("мой пол").SetScope(command.ScopeUser).
+		SetImportant(true).
 		SetArgRules(command.AnyUserRule()))
 	a.dp.AddHandler(f.New("set_emoji", userHandler.SetEmoji).SetDescription("Установить эмодзи").SetCategory(command.CategoryProfile).
 		SetAliases("эмоджи", "эмодзи").
@@ -625,6 +656,22 @@ func (a *App) RegisterHandlers() {
 	)
 
 	a.dp.AddHandler(
+		f.New("call_unreg", callHandler.ExcludeMemberFromCall).
+			SetAliases("анрег", "-калл").
+			SetImportant(true).
+			SetArgRules(command.AnyUserRule()).
+			SetCategory(command.CategorySettings),
+	)
+
+	a.dp.AddHandler(
+		f.New("call_reg", callHandler.IncludeMemberInCall).
+			SetAliases("рег", "+калл").
+			SetArgRules(command.AnyUserRule()).
+			SetImportant(true).
+			SetCategory(command.CategorySettings),
+	)
+
+	a.dp.AddHandler(
 		f.New("message", messageHandler.Message).WrapEvent(textMessageFilter),
 	)
 
@@ -632,12 +679,16 @@ func (a *App) RegisterHandlers() {
 	var chatScopeBotCommands []tg.BotCommand
 
 	for _, cmd := range f.ConfigurableCommands() {
+		if !cmd.Important() {
+			continue
+		}
 		bc := tg.BotCommand{
 			Command:     cmd.Name(),
 			Description: cmd.Description(),
 		}
 		if cmd.Scope() == command.ScopeUser {
 			userScopeBotCommands = append(userScopeBotCommands, bc)
+			chatScopeBotCommands = append(chatScopeBotCommands, bc)
 		} else {
 			chatScopeBotCommands = append(chatScopeBotCommands, bc)
 		}

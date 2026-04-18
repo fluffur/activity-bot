@@ -370,7 +370,7 @@ func (h *Handler) WarnList(ctx *command.Context, u *ext.Update) error {
 	}
 	warns, err := h.service.GetWarnsByChat(ctx.StdContext(), c.ID)
 	if err != nil {
-		return ctx.ReplyOnly(u, options.WithText("Не удалось получить список предупреждений"))
+		return err
 	}
 
 	maxWarns, err := h.service.GetMaxWarns(ctx.StdContext(), c.ID)

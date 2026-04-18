@@ -790,3 +790,51 @@ func (h *Handler) NoMessageCallConversation(ctx *command.Context, u *ext.Update)
 
 	return conversation.StopConversation(stdCtx, h.storage, c.ID, uid)
 }
+
+func (h *Handler) ExcludeMemberFromCall(ctx *command.Context, u *ext.Update) error {
+	m, err := ctx.AnyUser()
+	if err != nil {
+		return err
+	}
+	sender, err := ctx.Sender()
+	if err != nil {
+		return err
+	}
+	if sender.User.ID != m.User.ID && !sender.CanModerate(*m) {
+		return ctx.ReplyOnly(u, options.WithText("Вы можете исключить из созыва только себя или участника со статусом ниже"))
+	}
+
+	if err := h.memberService.ExcludeFromCall(ctx, m.ChatID, m.User.ID, true); err != nil {
+		return fmt.Errorf("failed to exclude from call: %w", err)
+	}
+
+	eb := &entity.Builder{}
+	eb.Plain("Участник ")
+	helpers.WriteRoleEmojiMention(eb, *m)
+	eb.Plain(" добавлен в исключения созывов\n\nЧтобы убрать из исключений можно ввести +калл или рег")
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
+}
+
+func (h *Handler) IncludeMemberInCall(ctx *command.Context, u *ext.Update) error {
+	m, err := ctx.AnyUser()
+	if err != nil {
+		return err
+	}
+	sender, err := ctx.Sender()
+	if err != nil {
+		return err
+	}
+	if sender.User.ID != m.User.ID && !sender.CanModerate(*m) {
+		return ctx.ReplyOnly(u, options.WithText("Вы можете убрать из исключений созывов только себя или участника со статусом ниже"))
+	}
+
+	if err := h.memberService.ExcludeFromCall(ctx, m.ChatID, m.User.ID, false); err != nil {
+		return fmt.Errorf("failed to include in call: %w", err)
+	}
+
+	eb := &entity.Builder{}
+	eb.Plain("Участник ")
+	helpers.WriteRoleEmojiMention(eb, *m)
+	eb.Plain(" убран из исключений созывов\n\nЧтобы добавить обратно можно ввести -калл или анрег")
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
+}

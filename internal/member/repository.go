@@ -31,4 +31,5 @@ type Repository interface {
 	GetByUsername(ctx context.Context, chatID int64, username string) (model.ChatMember, error)
 	SetEmoji(ctx context.Context, chatID, userID int64, emoji model.Emojis) error
 	ResetCreators(ctx context.Context, chatID int64) error
+	SetExcludeFromCall(ctx context.Context, chatID int64, userID int64, excludeFromCall bool) error
 }

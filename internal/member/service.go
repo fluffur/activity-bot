@@ -47,6 +47,10 @@ func (s *Service) GetChatMembers(ctx context.Context, chatID int64) ([]model.Cha
 	return s.repo.FindByChatID(ctx, chatID)
 }
 
+func (s *Service) GetCallChatMembers(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
+	return s.repo.FindByChatID(ctx, chatID)
+}
+
 func (s *Service) UpdateChatMembers(ctx context.Context, chatID int64, members []model.ChatMemberUpdate) error {
 	if _, err := s.chatRepo.Ensure(ctx, model.Chat{ID: chatID}); err != nil {
 		return fmt.Errorf("failed to ensure chat: %w", err)
@@ -140,4 +144,8 @@ func (s *Service) GetChatMemberByUsername(ctx context.Context, chatID int64, use
 
 func (s *Service) SetChatMemberEmoji(ctx context.Context, chatID int64, userID int64, emojis model.Emojis) error {
 	return s.repo.SetEmoji(ctx, chatID, userID, emojis)
+}
+
+func (s *Service) ExcludeFromCall(ctx context.Context, chatID int64, userID int64, excludeFromCall bool) error {
+	return s.repo.SetExcludeFromCall(ctx, chatID, userID, excludeFromCall)
 }

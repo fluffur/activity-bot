@@ -80,6 +80,9 @@ func FormatCallChunkBuilder(eb *entity.Builder, message string, members []model.
 	}
 
 	for j, m := range members {
+		if m.ExcludeFromCall {
+			continue
+		}
 		RenderMention(eb, m, mentionTypes)
 
 		if j < len(members)-1 {

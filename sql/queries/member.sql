@@ -8,8 +8,8 @@ WHERE chat_id = $1
 SELECT sqlc.embed(chat_members), sqlc.embed(users)
 FROM chat_members
          JOIN users ON users.id = user_id
-  AND chat_id = $1
-  AND user_id = $2;
+    AND chat_id = $1
+    AND user_id = $2;
 
 -- name: GetChatMembers :many
 SELECT sqlc.embed(cm), sqlc.embed(u)
@@ -61,14 +61,14 @@ WITH chat_upsert AS (
     INSERT INTO chats (id)
         VALUES (@chat_id)
         ON CONFLICT (id) DO NOTHING
-        RETURNING id
-),
-     chat_id_resolve AS (
-         SELECT id FROM chat_upsert
-         UNION ALL
-         SELECT id FROM chats WHERE id = @chat_id
-         LIMIT 1
-     ),
+        RETURNING id),
+     chat_id_resolve AS (SELECT id
+                         FROM chat_upsert
+                         UNION ALL
+                         SELECT id
+                         FROM chats
+                         WHERE id = @chat_id
+                         LIMIT 1),
      user_upsert AS (
          INSERT INTO users (id, username, first_name, last_name)
              VALUES (@user_id, @username, @first_name, @last_name)
@@ -76,14 +76,14 @@ WITH chat_upsert AS (
                  SET username = EXCLUDED.username,
                      first_name = EXCLUDED.first_name,
                      last_name = EXCLUDED.last_name
-             RETURNING id
-     ),
+             RETURNING id),
      member_upsert AS (
          INSERT INTO chat_members (chat_id, user_id, tag)
              SELECT chat_id_resolve.id,
                     user_upsert.id,
                     @tag
-             FROM chat_id_resolve, user_upsert
+             FROM chat_id_resolve,
+                  user_upsert
              ON CONFLICT (chat_id, user_id) DO UPDATE
                  SET tag = CASE
                                WHEN @tag IS NOT NULL AND @tag <> ''
@@ -91,11 +91,9 @@ WITH chat_upsert AS (
                                ELSE chat_members.tag
                      END,
                      left_at = NULL
-             RETURNING *
-     )
-SELECT
-    sqlc.embed(chat_members),
-    sqlc.embed(users)
+             RETURNING *)
+SELECT sqlc.embed(chat_members),
+       sqlc.embed(users)
 FROM member_upsert cm
          JOIN chat_members ON chat_members.chat_id = cm.chat_id
     AND chat_members.user_id = cm.user_id
@@ -239,3 +237,9 @@ GROUP BY cm.user_id, u.id, u.first_name, u.last_name, u.username, cm.tag, cm.sta
 HAVING MAX(m.created_at) IS NULL
     OR MAX(m.created_at) < NOW() - INTERVAL '1 days'
 ORDER BY MAX(m.created_at) NULLS FIRST;
+
+-- name: SetChatMemberExcludeFromCall :exec
+UPDATE chat_members
+SET exclude_from_call = $1
+WHERE user_id = $2
+  AND chat_id = $3;
