@@ -548,6 +548,10 @@ func (a *App) RegisterHandlers() {
 		SetDevCommand(true).
 		SetArgRules(command.AnyUserRule(), command.NumberRule()),
 	)
+	a.dp.AddHandler(f.New("failed_norm", statsHandler.ShowFailedNorm).
+		SetAliases("без нормы").
+		SetDescription("Список участников без нормы").
+		SetCategory(command.CategoryStats))
 	a.dp.AddHandler(f.New("update_chats", adminHandler.UpdateChats).
 		SetDescription("Обновить кэш чатов").
 		SetCategory(command.CategoryAdmin).
