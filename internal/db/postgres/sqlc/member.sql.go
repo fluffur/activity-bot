@@ -397,6 +397,7 @@ FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
   AND cm.left_at IS NULL
+ORDER BY cm.joined_at
 `
 
 type GetChatMembersRow struct {

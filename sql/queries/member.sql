@@ -16,7 +16,8 @@ SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = @chat_id
-  AND cm.left_at IS NULL;
+  AND cm.left_at IS NULL
+ORDER BY cm.joined_at;
 
 -- name: GetChatMembersWithTitles :many
 SELECT sqlc.embed(cm), sqlc.embed(u)
