@@ -55,7 +55,7 @@ func (p *TelegramChatMembersProvider) resolveChat(ctx context.Context, chatID in
 		return chRes.GetChats()[0], nil
 	}
 	logger.L.Warn("no channel found", "error", err)
-	chatRes, err := p.client.API().MessagesGetChats(ctx, []int64{chatID})
+	chatRes, err := p.client.API().MessagesGetChats(ctx, []int64{peerID})
 	if err != nil {
 		return nil, err
 	}
