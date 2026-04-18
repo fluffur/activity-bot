@@ -3,13 +3,17 @@ package bot
 import (
 	"activity-bot/internal/adapter"
 	"activity-bot/internal/admin"
+	"activity-bot/internal/call"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/config"
 	"activity-bot/internal/db/postgres"
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
+	msg "activity-bot/internal/message"
 	"activity-bot/internal/rest"
+	"activity-bot/internal/session"
+	"activity-bot/internal/stats"
 	"activity-bot/internal/user"
 	"context"
 	"fmt"
@@ -41,11 +45,15 @@ type App struct {
 	AsyncClient *asynq.Client
 	AsyncServer *asynq.Server
 
-	MemberService *member.Service
-	AdminService  *admin.Service
-	UserService   *user.Service
-	ChatService   *chat.Service
-	RestService   *rest.Service
+	MemberService  *member.Service
+	AdminService   *admin.Service
+	UserService    *user.Service
+	ChatService    *chat.Service
+	RestService    *rest.Service
+	StatsService   *stats.Service
+	MessageService *msg.Service
+	CallService    *call.Service
+	SessionService *session.Service
 }
 
 func NewApp(cfg config.Config) (*App, error) {
@@ -95,6 +103,9 @@ func NewApp(cfg config.Config) (*App, error) {
 	chatRepo := postgres.NewChatRepository(queries)
 	userRepo := postgres.NewUserRepository(queries)
 	restRepo := postgres.NewRestRepository(queries, pool)
+	statsRepo := postgres.NewStatsRepository(queries)
+	messageRepo := postgres.NewMessageRepository(queries)
+	sessionRepo := postgres.NewSessionRepository(queries)
 
 	adminsProvider := adapter.NewTelegramChatMembersProvider(bot)
 
@@ -103,21 +114,29 @@ func NewApp(cfg config.Config) (*App, error) {
 	adminService := admin.NewService(adminRepo, cfg.BotOwnerID)
 	chatService := chat.NewService(chatRepo)
 	restService := rest.NewService(restRepo)
+	statsService := stats.NewService(statsRepo)
+	messageService := msg.NewService(messageRepo)
+	callService := call.NewService(chatRepo, memberService, statsService)
+	sessionService := session.NewService(sessionRepo)
 
 	return &App{
-		Config:        cfg,
-		Pool:          pool,
-		Rdb:           rdb,
-		Deepseek:      deepseek.NewClient(cfg.DeepseekAPIKey),
-		Bot:           bot,
-		dp:            dp,
-		AsyncClient:   client,
-		AsyncServer:   srv,
-		MemberService: memberService,
-		AdminService:  adminService,
-		UserService:   userService,
-		ChatService:   chatService,
-		RestService:   restService,
+		Config:         cfg,
+		Pool:           pool,
+		Rdb:            rdb,
+		Deepseek:       deepseek.NewClient(cfg.DeepseekAPIKey),
+		Bot:            bot,
+		dp:             dp,
+		AsyncClient:    client,
+		AsyncServer:    srv,
+		MemberService:  memberService,
+		AdminService:   adminService,
+		UserService:    userService,
+		ChatService:    chatService,
+		RestService:    restService,
+		StatsService:   statsService,
+		MessageService: messageService,
+		CallService:    callService,
+		SessionService: sessionService,
 	}, nil
 }
 

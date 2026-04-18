@@ -628,23 +628,6 @@ func (h *Handler) ClearWarns(ctx *command.Context, u *ext.Update) error {
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
-func (h *Handler) FakeLeave(ctx *command.Context, u *ext.Update) error {
-	m, err := ctx.AnyUser()
-	if err != nil {
-		return err
-	}
-	eu := m.User
-
-	eb := &entity.Builder{}
-	eb.Plain("🕊 ")
-	helpers.WriteRoleEmojiLink(eb, *m)
-	eb.Plain(" ")
-	eb.Plain(helpers.Gendered(eu.Gender, "покинул", "покинула"))
-	eb.Plain(" нас...")
-
-	return ctx.ReplyOnly(u, options.WithBuilder(eb))
-}
-
 func (h *Handler) DemoteTgAdmin(ctx *command.Context, u *ext.Update) error {
 	cm, err := ctx.User()
 	if err != nil {

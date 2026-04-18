@@ -84,6 +84,16 @@ func TextRule() ArgRule {
 	}
 }
 
+func OptionalVariadicText() ArgRule {
+	return ArgRule{
+		Name:     "optional_variadic_text",
+		Type:     ArgTypeText,
+		Min:      0,
+		Max:      1,
+		Variadic: true,
+	}
+}
+
 func OptionalDateRangeRule() ArgRule {
 	return ArgRule{
 		Name: "period",

@@ -14,6 +14,7 @@ const (
 	CategorySettings   Category = "Настройки"
 	CategoryStats      Category = "Статистика"
 	CategoryAdmin      Category = "Администрирование"
+	CategoryFun        Category = "Игровые"
 )
 
 func Categories() []Category {
@@ -25,6 +26,7 @@ func Categories() []Category {
 		CategorySettings,
 		CategoryStats,
 		CategoryAdmin,
+		CategoryFun,
 	}
 }
 
