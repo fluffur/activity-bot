@@ -1,10 +1,10 @@
 package adapter
 
 import (
+	"activity-bot/internal/logger"
 	"activity-bot/internal/model"
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/celestix/gotgproto"
@@ -22,7 +22,24 @@ func NewTelegramChatMembersProvider(client *gotgproto.Client) *TelegramChatMembe
 }
 
 func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID int64) ([]model.ChatMemberUpdate, error) {
-	var result []model.ChatMemberUpdate
+	chat, err := p.resolveChat(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	switch ch := chat.(type) {
+	case *tg.Channel:
+		return p.getChannelMembers(ctx, ch)
+
+	case *tg.Chat:
+		return p.getBasicChatMembers(ctx, ch)
+
+	default:
+		return nil, errors.New("unsupported chat type")
+	}
+}
+
+func (p *TelegramChatMembersProvider) resolveChat(ctx context.Context, chatID int64) (tg.ChatClass, error) {
 
 	peerID := chatID
 	if peerID < 0 {
@@ -31,28 +48,31 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 			peerID -= 1000000000000
 		}
 	}
-
-	d, err := p.client.API().ChannelsGetChannels(ctx, []tg.InputChannelClass{&tg.InputChannel{ChannelID: peerID}})
+	chRes, err := p.client.API().ChannelsGetChannels(ctx, []tg.InputChannelClass{
+		&tg.InputChannel{ChannelID: peerID},
+	})
+	if err == nil && len(chRes.GetChats()) > 0 {
+		return chRes.GetChats()[0], nil
+	}
+	logger.L.Warn("no channel found", "error", err)
+	chatRes, err := p.client.API().MessagesGetChats(ctx, []int64{chatID})
 	if err != nil {
 		return nil, err
 	}
-	chats := d.GetChats()
-	if len(chats) == 0 {
-		log.Println(chatID, peerID)
-		c, err := p.client.API().MessagesGetChats(ctx, []int64{chatID})
-		if err != nil {
-			return nil, err
-		}
-		chats = c.GetChats()
-		if len(chats) == 0 {
-			return nil, errors.New("no chats found")
-		}
+
+	if len(chatRes.GetChats()) == 0 {
+		return nil, errors.New("chat not found")
 	}
-	ch := chats[0]
-	fullChannel, ok := ch.(*tg.Channel)
-	if !ok {
-		return nil, errors.New("not a channel")
-	}
+
+	return chatRes.GetChats()[0], nil
+}
+
+func (p *TelegramChatMembersProvider) getChannelMembers(
+	ctx context.Context,
+	fullChannel *tg.Channel,
+) ([]model.ChatMemberUpdate, error) {
+
+	var result []model.ChatMemberUpdate
 
 	offset := 0
 	limit := 200
@@ -63,7 +83,7 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 				ChannelID:  fullChannel.ID,
 				AccessHash: fullChannel.AccessHash,
 			},
-			Filter: &tg.ChannelParticipantsSearch{},
+			Filter: &tg.ChannelParticipantsRecent{},
 			Offset: offset,
 			Limit:  limit,
 		})
@@ -96,16 +116,20 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 			case *tg.ChannelParticipant:
 				userID = p.UserID
 				tag = p.Rank
+
 			case *tg.ChannelParticipantSelf:
 				userID = p.UserID
 				tag = p.Rank
+
 			case *tg.ChannelParticipantCreator:
 				userID = p.UserID
 				tag = p.Rank
 				status = 5
+
 			case *tg.ChannelParticipantAdmin:
 				userID = p.UserID
 				tag = p.Rank
+
 			case *tg.ChannelParticipantBanned:
 				peer := p.GetPeer()
 				u, ok := peer.(*tg.PeerUser)
@@ -114,6 +138,7 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 				}
 				userID = u.UserID
 				tag = p.Rank
+
 			default:
 				continue
 			}
@@ -140,7 +165,71 @@ func (p *TelegramChatMembersProvider) GetChatMembers(ctx context.Context, chatID
 			break
 		}
 
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	return result, nil
+}
+
+func (p *TelegramChatMembersProvider) getBasicChatMembers(ctx context.Context, ch *tg.Chat) ([]model.ChatMemberUpdate, error) {
+	full, err := p.client.API().MessagesGetFullChat(ctx, ch.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	fullChat := full.FullChat.(*tg.ChatFull)
+
+	participants, ok := fullChat.Participants.(*tg.ChatParticipants)
+	if !ok {
+		return nil, errors.New("invalid chat type")
+	}
+
+	userMap := make(map[int64]*tg.User)
+	for _, u := range full.Users {
+		if user, ok := u.(*tg.User); ok {
+			userMap[user.ID] = user
+		}
+	}
+
+	var result []model.ChatMemberUpdate
+
+	for _, p := range participants.Participants {
+		var userID int64
+		var status int16
+		var tag string
+
+		switch cp := p.(type) {
+		case *tg.ChatParticipantCreator:
+			userID = cp.UserID
+			tag = cp.Rank
+			status = 5
+
+		case *tg.ChatParticipantAdmin:
+			userID = cp.UserID
+			tag = cp.Rank
+
+		case *tg.ChatParticipant:
+			userID = cp.UserID
+
+		default:
+			continue
+		}
+
+		u, ok := userMap[userID]
+		if !ok || u.Bot {
+			continue
+		}
+
+		result = append(result, model.ChatMemberUpdate{
+			User: model.User{
+				ID:        u.ID,
+				FirstName: u.FirstName,
+				LastName:  u.LastName,
+				Username:  u.Username,
+			},
+			Tag:    tag,
+			Status: status,
+		})
 	}
 
 	return result, nil

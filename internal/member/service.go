@@ -95,7 +95,7 @@ func (s *Service) EnsureMemberExists(ctx context.Context, chatID int64, userID i
 func (s *Service) SyncChatMembers(ctx context.Context, chatID int64) (int, error) {
 	members, err := s.adminsProvider.GetChatMembers(ctx, chatID)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("get chat members: %w, chat_id = %d", err, chatID)
 	}
 
 	if err := s.UpdateChatMembers(ctx, chatID, members); err != nil {
