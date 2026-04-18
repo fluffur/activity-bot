@@ -656,7 +656,7 @@ func (a *App) RegisterHandlers() {
 	)
 
 	a.dp.AddHandler(
-		f.New("call_unreg", callHandler.ExcludeMemberFromCall).
+		f.New("unreg", callHandler.ExcludeMemberFromCall).
 			SetAliases("анрег", "-калл").
 			SetDescription("Выйти из призыва").
 			SetImportant(true).
@@ -665,7 +665,7 @@ func (a *App) RegisterHandlers() {
 	)
 
 	a.dp.AddHandler(
-		f.New("call_reg", callHandler.IncludeMemberInCall).
+		f.New("reg", callHandler.IncludeMemberInCall).
 			SetAliases("рег", "+калл").
 			SetDescription("Вернуться в призыв").
 			SetArgRules(command.AnyUserRule()).
