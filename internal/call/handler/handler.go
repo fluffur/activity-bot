@@ -199,26 +199,35 @@ func (h *Handler) doCall(
 		message = c.WelcomeCallMessage
 	}
 	var chatLimiter = rate.NewLimiter(rate.Every(1100*time.Millisecond), 1)
-	if len(members) > 100 {
+	var excludedMembers []model.ChatMember
+	var notExcludedMembers []model.ChatMember
+	for _, m := range members {
+		if m.ExcludeFromCall {
+			excludedMembers = append(excludedMembers, m)
+		} else {
+			notExcludedMembers = append(notExcludedMembers, m)
+		}
+	}
+	if len(notExcludedMembers) > 100 {
 		return ctx.ReplyOnly(u, options.WithText("Бот пока не поддерживает призывы в чатах, где больше 100 участников"))
 	}
-	for i := 0; i < len(members); i += mentionsLimit {
+	for i := 0; i < len(notExcludedMembers); i += mentionsLimit {
 		if err := chatLimiter.Wait(ctx.StdContext()); err != nil {
 			return err
 		}
 		end := i + mentionsLimit
-		if end > len(members) {
-			end = len(members)
+		if end > len(notExcludedMembers) {
+			end = len(notExcludedMembers)
 		}
 
 		eb := &entity.Builder{}
-		view.FormatCallChunkBuilder(eb, message, members[i:end], c.MentionTypes)
+		view.FormatCallChunkBuilder(eb, message, notExcludedMembers[i:end], c.MentionTypes)
 
 		finalText, chunkEntities := eb.Complete()
 		finalEntities := append(entities, chunkEntities...)
 
 		opts := []options.SendMessageOption{options.WithText(finalText), options.WithEntities(finalEntities)}
-		if end == len(members) {
+		if end == len(notExcludedMembers) {
 			opts = append(opts, options.WithMarkup(h.getCallTypesKeyboard(c.MentionTypes)))
 		}
 
@@ -227,6 +236,14 @@ func (h *Handler) doCall(
 		}
 	}
 
+	if len(excludedMembers) > 0 {
+		eb := &entity.Builder{}
+		eb.Plain("Не былы призваны: ")
+		view.WriteExcludedMembers(eb, excludedMembers)
+		eb.Plain("Вернуть в призыв: ")
+		eb.Code("рег @участник")
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
+	}
 	return nil
 }
 
@@ -811,7 +828,8 @@ func (h *Handler) ExcludeMemberFromCall(ctx *command.Context, u *ext.Update) err
 	eb := &entity.Builder{}
 	eb.Plain("Участник ")
 	helpers.WriteRoleEmojiMention(eb, *m)
-	eb.Plain(" исключен из призыва\n\nЧтобы вернуть можно ввести +калл или рег")
+	eb.Plain(" исключен из призыва\n\nЧтобы вернуть можно ввести ")
+	eb.Code("рег")
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -835,7 +853,8 @@ func (h *Handler) IncludeMemberInCall(ctx *command.Context, u *ext.Update) error
 	eb := &entity.Builder{}
 	eb.Plain("Участник ")
 	helpers.WriteRoleEmojiMention(eb, *m)
-	eb.Plain(" убран из исключений призывов\n\nЧтобы добавить обратно можно ввести -калл или анрег")
+	eb.Plain(" добавлен в призывы\n\nЧтобы выйти можно ввести ")
+	eb.Code("анрег")
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -857,18 +876,9 @@ func (h *Handler) ListExcludedMembersFromCall(ctx *command.Context, u *ext.Updat
 	if len(unregMembers) == 0 {
 		return ctx.ReplyOnly(u, options.WithText("В этом чате никто не выходил из призыва"))
 	}
-
 	eb := &entity.Builder{}
-
 	eb.Plain("Вышедшие из призыва:\n")
-	t := eb.Token()
-
-	for i, m := range unregMembers {
-		eb.Plain(fmt.Sprintf("%d. ", i+1))
-		helpers.WriteRoleEmojiMention(eb, m)
-		eb.Plain("\n")
-	}
-	t.Apply(eb, entity.Blockquote(true))
+	view.WriteExcludedMembers(eb, unregMembers)
 	eb.Plain("Чтобы выйти из призыва напишите анрег")
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }

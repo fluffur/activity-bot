@@ -80,9 +80,6 @@ func FormatCallChunkBuilder(eb *entity.Builder, message string, members []model.
 	}
 
 	for j, m := range members {
-		if m.ExcludeFromCall {
-			continue
-		}
 		RenderMention(eb, m, mentionTypes)
 
 		if j < len(members)-1 {
@@ -138,4 +135,15 @@ func RenderMention(eb *entity.Builder, m model.ChatMember, mentionTypes int32) {
 
 	helpers.MentionEmoji(eb, m.User, userEmojis(m), resultTitle)
 
+}
+
+func WriteExcludedMembers(eb *entity.Builder, members []model.ChatMember) {
+	t := eb.Token()
+
+	for i, m := range members {
+		eb.Plain(fmt.Sprintf("%d. ", i+1))
+		helpers.WriteRoleEmojiMention(eb, m)
+		eb.Plain("\n")
+	}
+	t.Apply(eb, entity.Blockquote(true))
 }
