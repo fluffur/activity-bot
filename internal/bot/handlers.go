@@ -225,7 +225,7 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(f.New("set_call_message", callHandler.SetWelcomeCallMessage).
 		SetAliases("калл сообщение").
 		AddPrefixes("+").
-		SetDescription("Настройка сообщения сбора").
+		SetDescription("Настройка сообщения призыва").
 		SetCategory(command.CategoryCall).
 		SetRequiredStatus(model.StatusSeniorAdmin).
 		SetArgRules(command.TextRule()),
@@ -233,7 +233,7 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(f.New("show_call_message", callHandler.ShowWelcomeCallMessage).
 		SetAliases("калл сообщение").
 		SetProviders(a.UserService, a.MemberService, a.ChatService, sessionService).
-		SetDescription("Показать сообщение сбора").
+		SetDescription("Показать сообщение призыва").
 		SetCategory(command.CategoryCall),
 	)
 
@@ -247,13 +247,13 @@ func (a *App) RegisterHandlers() {
 		SetAliases("калл сообщение", "удалить калл сообщение").
 		AddPrefixes("-").
 		SetRequiredStatus(model.StatusSeniorAdmin).
-		SetDescription("Удалить сообщение сбора").
+		SetDescription("Удалить сообщение призыва").
 		SetCategory(command.CategoryCall),
 	)
 	a.dp.AddHandler(f.New("call_type", callHandler.ShowCallTypes).
 		SetAliases("калл тип").
 		SetImportant(true).
-		SetDescription("Показать типы сбора").
+		SetDescription("Показать типы призыва").
 		SetCategory(command.CategoryCall),
 	)
 	a.dp.AddHandler(
@@ -269,21 +269,21 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(f.New("call_no_norm_warn", callHandler.CallNoNormWarn).
 		SetAliases("калл без нормы варн").
 		SetRequiredStatus(model.StatusModerator).
-		SetDescription("Сбор без нормы с предупреждением").
+		SetDescription("Призыв без нормы с предупреждением").
 		SetCategory(command.CategoryCall),
 	)
 	a.dp.AddHandler(f.New("call_no_norm", callHandler.CallNoNorm).
 		SetAliases("калл без нормы", "созвать без нормы").
 		SetImportant(true).
 		SetRequiredStatus(model.StatusModerator).
-		SetDescription("Сбор тех, без нормы").
+		SetDescription("Призыв тех, без нормы").
 		SetCategory(command.CategoryCall),
 	)
 
 	a.dp.AddHandler(f.New("call_no_norm_ban", callHandler.CallNoNormBan).
 		SetAliases("калл без нормы бан").
 		SetRequiredStatus(model.StatusModerator).
-		SetDescription("Сбор без нормы с баном").
+		SetDescription("Призыв без нормы с баном").
 		SetCategory(command.CategoryCall),
 	)
 	a.dp.AddHandler(f.New("set_call_limit", callHandler.SetMentionsPerMessage).
@@ -304,7 +304,7 @@ func (a *App) RegisterHandlers() {
 		SetAliases("калл инактив", "калл неактив", "созвать неактивных").
 		SetRequiredStatus(model.StatusModerator).
 		SetArgRules(command.TextRule().SetVariadic(true).SetRange(0, 1)).
-		SetDescription("Сбор неактивных").
+		SetDescription("Призыв неактивных").
 		SetCategory(command.CategoryCall),
 	)
 
@@ -658,19 +658,28 @@ func (a *App) RegisterHandlers() {
 	a.dp.AddHandler(
 		f.New("call_unreg", callHandler.ExcludeMemberFromCall).
 			SetAliases("анрег", "-калл").
-			SetDescription("Добавить участника в исключения созыва").
+			SetDescription("Выйти из призыва").
 			SetImportant(true).
 			SetArgRules(command.AnyUserRule()).
-			SetCategory(command.CategorySettings),
+			SetCategory(command.CategoryCall),
 	)
 
 	a.dp.AddHandler(
 		f.New("call_reg", callHandler.IncludeMemberInCall).
 			SetAliases("рег", "+калл").
-			SetDescription("Убрать участника из исключений созыва").
+			SetDescription("Вернуться в призыв").
 			SetArgRules(command.AnyUserRule()).
 			SetImportant(true).
-			SetCategory(command.CategorySettings),
+			SetCategory(command.CategoryCall),
+	)
+
+	a.dp.AddHandler(
+		f.New("unregs", callHandler.ListExcludedMembersFromCall).
+			SetAliases("анреги").
+			SetDescription("Список вышедших из призыва участников").
+			SetArgRules(command.AnyUserRule()).
+			SetImportant(true).
+			SetCategory(command.CategoryCall),
 	)
 
 	a.dp.AddHandler(

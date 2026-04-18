@@ -200,7 +200,7 @@ func (h *Handler) doCall(
 	}
 	var chatLimiter = rate.NewLimiter(rate.Every(1100*time.Millisecond), 1)
 	if len(members) > 100 {
-		return ctx.ReplyOnly(u, options.WithText("Бот пока не поддерживает созывы в чатах, где больше 100 участников"))
+		return ctx.ReplyOnly(u, options.WithText("Бот пока не поддерживает призывы в чатах, где больше 100 участников"))
 	}
 	for i := 0; i < len(members); i += mentionsLimit {
 		if err := chatLimiter.Wait(ctx.StdContext()); err != nil {
@@ -385,7 +385,7 @@ func (h *Handler) SetWelcomeCallMessage(ctx *command.Context, u *ext.Update) err
 		return err
 	}
 
-	return ctx.ReplyOnly(u, options.WithText("Новое сообщение созыва установлено"))
+	return ctx.ReplyOnly(u, options.WithText("Новое сообщение призыва установлено"))
 }
 
 func (h *Handler) DeleteWelcomeCallMessage(ctx *command.Context, u *ext.Update) error {
@@ -401,7 +401,7 @@ func (h *Handler) DeleteWelcomeCallMessage(ctx *command.Context, u *ext.Update) 
 		return err
 	}
 
-	return ctx.ReplyOnly(u, options.WithText("Сообщение созыва удалено"))
+	return ctx.ReplyOnly(u, options.WithText("Сообщение призыва удалено"))
 }
 
 func (h *Handler) EnableCallOnJoin(ctx *command.Context, u *ext.Update) error {
@@ -414,7 +414,7 @@ func (h *Handler) EnableCallOnJoin(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	return ctx.ReplyOnly(u, options.WithText("Теперь при вступлении новых участников будет выполняться созыв"))
+	return ctx.ReplyOnly(u, options.WithText("Теперь при вступлении новых участников будет выполняться призыв"))
 }
 
 func (h *Handler) DisableCallOnJoin(ctx *command.Context, u *ext.Update) error {
@@ -427,7 +427,7 @@ func (h *Handler) DisableCallOnJoin(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	return ctx.ReplyOnly(u, options.WithText("Теперь при инвайте новых участников не будет выполняться созыв"))
+	return ctx.ReplyOnly(u, options.WithText("Теперь при инвайте новых участников не будет выполняться призыв"))
 }
 
 func (h *Handler) ShowWelcomeCallMessage(ctx *command.Context, u *ext.Update) error {
@@ -485,7 +485,7 @@ func (h *Handler) startCallConversation(
 	helpers.WriteRoleEmojiLink(eb, *sender)
 
 	eb.Plain(fmt.Sprintf(
-		", введите сообщение созыва %s: ",
+		", введите сообщение призыва %s: ",
 		callType,
 	))
 
@@ -596,7 +596,7 @@ func (h *Handler) handleCallWithMessage(
 	}
 
 	if len(members) == 0 {
-		if err := ctx.ReplyOnly(u, options.WithText("Не найдено пользователей для созыва")); err != nil {
+		if err := ctx.ReplyOnly(u, options.WithText("Не найдено пользователей для призыва")); err != nil {
 			return err
 		}
 		return conversation.StopConversation(stdCtx, h.storage, c.ID, uid)
@@ -699,10 +699,10 @@ func (h *Handler) CancelCallConversation(ctx *command.Context, u *ext.Update) er
 	if u.CallbackQuery != nil {
 		_, _ = ctx.EditMessage(c.ID, &tg.MessagesEditMessageRequest{
 			ID:      u.CallbackQuery.GetMsgID(),
-			Message: "❌ Операция созыва отменена.",
+			Message: "❌ Операция призыва отменена.",
 		})
 		_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
-			Message: "Созыв отменён",
+			Message: "Призыв отменён",
 			QueryID: u.CallbackQuery.QueryID,
 		})
 	}
@@ -765,7 +765,7 @@ func (h *Handler) NoMessageCallConversation(ctx *command.Context, u *ext.Update)
 	if len(members) == 0 {
 		if u.CallbackQuery != nil {
 			_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
-				Message: "Нет участников для созыва.",
+				Message: "Нет участников для призыва",
 				Alert:   true,
 				QueryID: u.CallbackQuery.QueryID,
 			})
@@ -779,7 +779,7 @@ func (h *Handler) NoMessageCallConversation(ctx *command.Context, u *ext.Update)
 
 	if u.CallbackQuery != nil {
 		_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
-			Message: "Созыв отправлен без сообщения.",
+			Message: "Призыв отправлен без сообщения.",
 			QueryID: u.CallbackQuery.QueryID,
 		})
 		_, _ = ctx.EditMessage(c.ID, &tg.MessagesEditMessageRequest{
@@ -801,7 +801,7 @@ func (h *Handler) ExcludeMemberFromCall(ctx *command.Context, u *ext.Update) err
 		return err
 	}
 	if sender.User.ID != m.User.ID && !sender.CanModerate(*m) {
-		return ctx.ReplyOnly(u, options.WithText("Вы можете исключить из созыва только себя или участника со статусом ниже"))
+		return ctx.ReplyOnly(u, options.WithText("Вы не можете исключить из призыва участника с рангом выше или равным вашему"))
 	}
 
 	if err := h.memberService.ExcludeFromCall(ctx, m.ChatID, m.User.ID, true); err != nil {
@@ -811,7 +811,7 @@ func (h *Handler) ExcludeMemberFromCall(ctx *command.Context, u *ext.Update) err
 	eb := &entity.Builder{}
 	eb.Plain("Участник ")
 	helpers.WriteRoleEmojiMention(eb, *m)
-	eb.Plain(" добавлен в исключения созывов\n\nЧтобы убрать из исключений можно ввести +калл или рег")
+	eb.Plain(" исключен из призыва\n\nЧтобы вернуть можно ввести +калл или рег")
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -825,7 +825,7 @@ func (h *Handler) IncludeMemberInCall(ctx *command.Context, u *ext.Update) error
 		return err
 	}
 	if sender.User.ID != m.User.ID && !sender.CanModerate(*m) {
-		return ctx.ReplyOnly(u, options.WithText("Вы можете убрать из исключений созывов только себя или участника со статусом ниже"))
+		return ctx.ReplyOnly(u, options.WithText("Вы не вернуть в призыв участника с рангом выше или равным вашему"))
 	}
 
 	if err := h.memberService.ExcludeFromCall(ctx, m.ChatID, m.User.ID, false); err != nil {
@@ -835,6 +835,40 @@ func (h *Handler) IncludeMemberInCall(ctx *command.Context, u *ext.Update) error
 	eb := &entity.Builder{}
 	eb.Plain("Участник ")
 	helpers.WriteRoleEmojiMention(eb, *m)
-	eb.Plain(" убран из исключений созывов\n\nЧтобы добавить обратно можно ввести -калл или анрег")
+	eb.Plain(" убран из исключений призывов\n\nЧтобы добавить обратно можно ввести -калл или анрег")
+	return ctx.ReplyOnly(u, options.WithBuilder(eb))
+}
+
+func (h *Handler) ListExcludedMembersFromCall(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	members, err := h.memberService.GetChatMembers(ctx, c.ID)
+	if err != nil {
+		return err
+	}
+	var unregMembers []model.ChatMember
+	for _, m := range members {
+		if m.ExcludeFromCall {
+			unregMembers = append(unregMembers, m)
+		}
+	}
+	if len(unregMembers) == 0 {
+		return ctx.ReplyOnly(u, options.WithText("В этом чате никто не выходил из призыва"))
+	}
+
+	eb := &entity.Builder{}
+
+	eb.Plain("Вышедшие из призыва:\n")
+	t := eb.Token()
+
+	for i, m := range unregMembers {
+		eb.Plain(fmt.Sprintf("%d. ", i+1))
+		helpers.WriteRoleEmojiMention(eb, m)
+		eb.Plain("\n")
+	}
+	t.Apply(eb, entity.Blockquote(true))
+	eb.Plain("Чтобы выйти из призыва напишите анрег")
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
