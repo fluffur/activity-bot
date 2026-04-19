@@ -47,7 +47,7 @@ func (a *App) registerAdminHandlers(f *command.Factory) {
 		SetCategory(command.CategoryModeration),
 	)
 	a.dp.AddHandler(f.New("unwarn", adminHandler.Unwarn).
-		SetAliases("снять пред", "-варн", "-пред").
+		SetAliases("снять пред", "снять варн", "-варн", "-пред").
 		SetArgRules(command.MentionedUserRule()).
 		SetRequiredStatus(model.StatusAdmin).
 		SetDescription("Снять предупреждение").
