@@ -16,6 +16,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -211,6 +212,14 @@ func (h *Handler) doCall(
 	if len(notExcludedMembers) > 100 {
 		return ctx.ReplyOnly(u, options.WithText("Бот пока не поддерживает призывы в чатах, где больше 100 участников"))
 	}
+
+	chatPeer, err := ctx.ResolveInputPeerById(u.EffectiveChat().GetID())
+	if err != nil {
+		return fmt.Errorf("do call: resolve peer: %w", err)
+	}
+
+	mediaMessages := h.getMediaMessages(ctx, u)
+
 	for i := 0; i < len(notExcludedMembers); i += mentionsLimit {
 		if err := chatLimiter.Wait(ctx.StdContext()); err != nil {
 			return err
@@ -226,13 +235,86 @@ func (h *Handler) doCall(
 		finalText, chunkEntities := eb.Complete()
 		finalEntities := append(entities, chunkEntities...)
 
-		opts := []options.SendMessageOption{options.WithText(finalText), options.WithEntities(finalEntities)}
-		if end == len(notExcludedMembers) {
-			opts = append(opts, options.WithMarkup(h.getCallTypesKeyboard(c.MentionTypes)))
+		replyToMsgID := 0
+		if u.EffectiveMessage != nil {
+			replyToMsgID = u.EffectiveMessage.ID
+		} else if u.CallbackQuery != nil {
+			replyToMsgID = u.CallbackQuery.MsgID
 		}
 
-		if err := ctx.ReplyOnly(u, opts...); err != nil {
-			return fmt.Errorf("do call: send chunk: %w", err)
+		var sentWithMedia bool
+		if i == 0 && len(mediaMessages) > 0 {
+			if len(mediaMessages) == 1 {
+				inputMedia := h.extractInputMedia(mediaMessages[0].Media)
+				if inputMedia != nil {
+					req := &tg.MessagesSendMediaRequest{
+						Peer:     chatPeer,
+						RandomID: rand.Int63(),
+						Media:    inputMedia,
+						Message:  finalText,
+						Entities: finalEntities,
+					}
+					if replyToMsgID != 0 {
+						req.ReplyTo = &tg.InputReplyToMessage{ReplyToMsgID: replyToMsgID}
+					}
+					if end == len(notExcludedMembers) {
+						req.ReplyMarkup = h.getCallTypesKeyboard(c.MentionTypes)
+					}
+					if _, err := ctx.SendMedia(u.EffectiveChat().GetID(), req); err != nil {
+						return fmt.Errorf("do call: send chunk media: %w", err)
+					}
+					sentWithMedia = true
+				}
+			} else {
+				var multiMedia []tg.InputSingleMedia
+				for j, msg := range mediaMessages {
+					inputMedia := h.extractInputMedia(msg.Media)
+					if inputMedia == nil {
+						continue
+					}
+					single := tg.InputSingleMedia{
+						Media:    inputMedia,
+						RandomID: rand.Int63(),
+					}
+					if j == 0 {
+						single.Message = finalText
+						single.Entities = finalEntities
+					}
+					multiMedia = append(multiMedia, single)
+				}
+				if len(multiMedia) > 0 {
+					req := &tg.MessagesSendMultiMediaRequest{
+						Peer:       chatPeer,
+						MultiMedia: multiMedia,
+					}
+					if replyToMsgID != 0 {
+						req.ReplyTo = &tg.InputReplyToMessage{ReplyToMsgID: replyToMsgID}
+					}
+					if _, err := ctx.SendMultiMedia(u.EffectiveChat().GetID(), req); err != nil {
+						return fmt.Errorf("do call: send chunk multimedia: %w", err)
+					}
+					sentWithMedia = true
+
+					if end == len(notExcludedMembers) {
+						opts := []options.SendMessageOption{
+							options.WithText("Настройки призыва:"),
+							options.WithMarkup(h.getCallTypesKeyboard(c.MentionTypes)),
+						}
+						_ = ctx.ReplyOnly(u, opts...)
+					}
+				}
+			}
+		}
+
+		if !sentWithMedia {
+			opts := []options.SendMessageOption{options.WithText(finalText), options.WithEntities(finalEntities)}
+			if end == len(notExcludedMembers) {
+				opts = append(opts, options.WithMarkup(h.getCallTypesKeyboard(c.MentionTypes)))
+			}
+
+			if err := ctx.ReplyOnly(u, opts...); err != nil {
+				return fmt.Errorf("do call: send chunk: %w", err)
+			}
 		}
 	}
 
@@ -245,6 +327,81 @@ func (h *Handler) doCall(
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 	return nil
+}
+
+func (h *Handler) extractInputMedia(media tg.MessageMediaClass) tg.InputMediaClass {
+	if media == nil {
+		return nil
+	}
+	switch m := media.(type) {
+	case *tg.MessageMediaPhoto:
+		if p, ok := m.Photo.(*tg.Photo); ok {
+			return &tg.InputMediaPhoto{
+				ID: &tg.InputPhoto{
+					ID:            p.ID,
+					AccessHash:    p.AccessHash,
+					FileReference: p.FileReference,
+				},
+			}
+		}
+	case *tg.MessageMediaDocument:
+		if d, ok := m.Document.(*tg.Document); ok {
+			return &tg.InputMediaDocument{
+				ID: &tg.InputDocument{
+					ID:            d.ID,
+					AccessHash:    d.AccessHash,
+					FileReference: d.FileReference,
+				},
+			}
+		}
+	}
+	return nil
+}
+
+func (h *Handler) getMediaMessages(ctx *command.Context, u *ext.Update) []*tg.Message {
+	if u.EffectiveMessage == nil {
+		return nil
+	}
+
+	targetMsg := u.EffectiveMessage.Message
+	if targetMsg.Media == nil {
+		if header, ok := targetMsg.GetReplyTo(); ok {
+			if replyToMsg, ok := header.(*tg.MessageReplyHeader); ok {
+				msgs, err := ctx.GetMessages(u.EffectiveChat().GetID(), []tg.InputMessageClass{&tg.InputMessageID{ID: replyToMsg.ReplyToMsgID}})
+				if err == nil && len(msgs) > 0 {
+					if msg, ok := msgs[0].(*tg.Message); ok && msg.Media != nil {
+						targetMsg = msg
+					}
+				}
+			}
+		}
+	}
+
+	if targetMsg.Media == nil {
+		return nil
+	}
+
+	var mediaMessages []*tg.Message
+	if targetMsg.GroupedID != 0 {
+		var msgIDs []tg.InputMessageClass
+		for i := -9; i <= 9; i++ {
+			msgIDs = append(msgIDs, &tg.InputMessageID{ID: targetMsg.ID + i})
+		}
+		msgs, err := ctx.GetMessages(u.EffectiveChat().GetID(), msgIDs)
+		if err == nil {
+			for _, m := range msgs {
+				if msg, ok := m.(*tg.Message); ok {
+					if msg.GroupedID == targetMsg.GroupedID && msg.Media != nil {
+						mediaMessages = append(mediaMessages, msg)
+					}
+				}
+			}
+		}
+	} else {
+		mediaMessages = append(mediaMessages, targetMsg)
+	}
+
+	return mediaMessages
 }
 
 func (h *Handler) SetMentionsPerMessage(ctx *command.Context, u *ext.Update) error {
