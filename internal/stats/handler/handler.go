@@ -79,6 +79,10 @@ func ResolveRange(
 		loc,
 	)
 
+	if now.Before(from) {
+		from = from.AddDate(0, 0, -7)
+	}
+
 	to := from.AddDate(0, 0, 7)
 
 	return from, to, nil
