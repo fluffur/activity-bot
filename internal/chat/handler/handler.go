@@ -274,7 +274,8 @@ func (h *Handler) ShowPrefixlessStatus(ctx *command.Context, u *ext.Update) erro
 }
 
 func (h *Handler) Manage(ctx *command.Context, u *ext.Update) error {
-	chatIDs, err := h.service.GetUserManagedChats(ctx.StdContext(), u.EffectiveUser().GetID(), h.adminService.OwnerID())
+	text := ctx.TextOrDefault("")
+	chatIDs, err := h.service.GetUserManagedChats(ctx.StdContext(), u.EffectiveUser().GetID(), h.adminService.OwnerID(), text)
 	if err != nil {
 		return err
 	}
@@ -376,7 +377,7 @@ func (h *Handler) CallbackManagePage(ctx *command.Context, u *ext.Update) error 
 		return err
 	}
 
-	chatIDs, err := h.service.GetUserManagedChats(ctx.StdContext(), u.EffectiveUser().GetID(), h.adminService.OwnerID())
+	chatIDs, err := h.service.GetUserManagedChats(ctx.StdContext(), u.EffectiveUser().GetID(), h.adminService.OwnerID(), "")
 	if err != nil {
 		return err
 	}

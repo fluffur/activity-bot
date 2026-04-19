@@ -205,8 +205,11 @@ func (r *ChatRepository) GetChatsWithoutTitle(ctx context.Context) ([]model.Chat
 	return mapMany(chats, mapChat), nil
 }
 
-func (r *ChatRepository) GetUserManagedChats(ctx context.Context, userID int64) ([]model.Chat, error) {
-	chats, err := r.queries.GetUserManagedChats(ctx, userID)
+func (r *ChatRepository) GetUserManagedChats(ctx context.Context, userID int64, text string) ([]model.Chat, error) {
+	chats, err := r.queries.GetUserManagedChats(ctx, db.GetUserManagedChatsParams{
+		UserID: userID,
+		Title:  text,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -219,8 +222,8 @@ func (r *ChatRepository) GetUserManagedChats(ctx context.Context, userID int64) 
 	return mapped, nil
 }
 
-func (r *ChatRepository) GetAllChats(ctx context.Context) ([]model.Chat, error) {
-	chats, err := r.queries.GetAllChats(ctx)
+func (r *ChatRepository) GetAllChats(ctx context.Context, text string) ([]model.Chat, error) {
+	chats, err := r.queries.GetAllChats(ctx, text)
 	if err != nil {
 		return nil, err
 	}

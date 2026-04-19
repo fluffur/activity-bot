@@ -86,13 +86,14 @@ SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_lad
 FROM chats c
 WHERE c.id < 0
   AND c.title <> ''
+  AND ($1::text IS NULL OR c.title ILIKE '%' || $1::text || '%')
 ORDER BY (SELECT COUNT(*)
           FROM messages m
           WHERE m.chat_id = c.id) DESC
 `
 
-func (q *Queries) GetAllChats(ctx context.Context) ([]Chat, error) {
-	rows, err := q.db.Query(ctx, getAllChats)
+func (q *Queries) GetAllChats(ctx context.Context, title string) ([]Chat, error) {
+	rows, err := q.db.Query(ctx, getAllChats, title)
 	if err != nil {
 		return nil, err
 	}
@@ -437,10 +438,16 @@ WHERE c.id < 0
   AND cm.user_id = $1
   AND cm.status > 0
   AND title <> ''
+  AND ($2::text IS NULL OR c.title LIKE '%' || $2::text || '%')
 `
 
-func (q *Queries) GetUserManagedChats(ctx context.Context, userID int64) ([]Chat, error) {
-	rows, err := q.db.Query(ctx, getUserManagedChats, userID)
+type GetUserManagedChatsParams struct {
+	UserID int64  `db:"user_id" json:"userId"`
+	Title  string `db:"title" json:"title"`
+}
+
+func (q *Queries) GetUserManagedChats(ctx context.Context, arg GetUserManagedChatsParams) ([]Chat, error) {
+	rows, err := q.db.Query(ctx, getUserManagedChats, arg.UserID, arg.Title)
 	if err != nil {
 		return nil, err
 	}

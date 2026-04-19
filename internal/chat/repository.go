@@ -28,8 +28,8 @@ type Repository interface {
 	SetWeekStartTime(ctx context.Context, chatID int64, time string) error
 
 	GetChatsWithoutTitle(ctx context.Context) ([]model.Chat, error)
-	GetUserManagedChats(ctx context.Context, userID int64) ([]model.Chat, error)
-	GetAllChats(ctx context.Context) ([]model.Chat, error)
+	GetUserManagedChats(ctx context.Context, userID int64, text string) ([]model.Chat, error)
+	GetAllChats(ctx context.Context, text string) ([]model.Chat, error)
 	GetChatsWithEnabledBroadcast(ctx context.Context) ([]model.Chat, error)
 	SetChatBroadcast(ctx context.Context, chatID int64, enabled bool) error
 

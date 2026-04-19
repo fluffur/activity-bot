@@ -47,6 +47,7 @@ SELECT c.*
 FROM chats c
 WHERE c.id < 0
   AND c.title <> ''
+  AND (@title::text IS NULL OR c.title ILIKE '%' || @title::text || '%')
 ORDER BY (SELECT COUNT(*)
           FROM messages m
           WHERE m.chat_id = c.id) DESC;
@@ -161,7 +162,8 @@ FROM chats c
 WHERE c.id < 0
   AND cm.user_id = $1
   AND cm.status > 0
-  AND title <> '';
+  AND title <> ''
+  AND (@title::text IS NULL OR c.title LIKE '%' || @title::text || '%');
 
 -- name: GetChatsWithEnabledBroadcast :many
 SELECT c.*

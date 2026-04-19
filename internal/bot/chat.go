@@ -50,6 +50,7 @@ func (a *App) registerChatHandlers(f *command.Factory) {
 	a.dp.AddHandler(f.New("manage", chatHandler.Manage).
 		SetDescription("Управление чатом").
 		SetCategory(command.CategorySettings).
+		SetArgRules(command.OptionalVariadicText()).
 		SetAliases("управление").
 		SetImportant(true).
 		SetScope(command.ScopeUser),

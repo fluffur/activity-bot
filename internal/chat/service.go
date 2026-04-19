@@ -92,11 +92,11 @@ func (s *Service) GetChatsWithEnabledBroadcast(ctx context.Context) ([]model.Cha
 	return s.repo.GetChatsWithEnabledBroadcast(ctx)
 }
 
-func (s *Service) GetUserManagedChats(ctx context.Context, userID int64, ownerID int64) ([]model.Chat, error) {
+func (s *Service) GetUserManagedChats(ctx context.Context, userID int64, ownerID int64, text string) ([]model.Chat, error) {
 	if userID == ownerID {
-		return s.repo.GetAllChats(ctx)
+		return s.repo.GetAllChats(ctx, text)
 	}
-	return s.repo.GetUserManagedChats(ctx, userID)
+	return s.repo.GetUserManagedChats(ctx, userID, text)
 }
 
 func (s *Service) DisableBroadcast(ctx context.Context, chatID int64) error {
