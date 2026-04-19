@@ -92,7 +92,7 @@ func (a *App) registerAdminHandlers(f *command.Factory) {
 		SetImportant(true))
 	a.dp.AddHandler(f.New("warn", adminHandler.Warn).
 		SetAliases("варн", "пред").
-		SetArgRules(command.MentionedUserRule(), command.OptionalVariadicText()).
+		SetArgRules(command.MentionedUserRule(), command.OptionalDateRangeRule(), command.OptionalVariadicText()).
 		SetRequiredStatus(model.StatusAdmin).
 		SetDescription("Предупреждение").
 		SetCategory(command.CategoryModeration),
