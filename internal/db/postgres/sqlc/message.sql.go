@@ -111,29 +111,14 @@ func (q *Queries) ChatMemberMessageStatsByChat(ctx context.Context, arg ChatMemb
 const chatMemberMessageStatsByUser = `-- name: ChatMemberMessageStatsByUser :one
 WITH user_messages AS (SELECT m.created_at
                        FROM messages m
-                       WHERE m.chat_id = $1
-                         AND m.user_id = $2)
+                       WHERE m.chat_id = $2
+                         AND m.user_id = $3)
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call,
        u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json,
        c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at,
        COUNT(*) FILTER (WHERE m.created_at >= date_trunc('day', now()))   AS day_count,
        COUNT(*) FILTER (WHERE m.created_at >= now() - interval '1 day')   AS day_rolling_count,
-       COUNT(*) FILTER (
-           WHERE m.created_at >= (
-                                     date_trunc('week', now())
-                                         + (c.week_start_day - 1) * interval '1 day'
-                                         + c.week_start_time
-                                     )
-               - CASE
-                     WHEN now() < (
-                         date_trunc('week', now())
-                             + (c.week_start_day - 1) * interval '1 day'
-                             + c.week_start_time
-                         )
-                         THEN interval '7 days'
-                     ELSE interval '0 days'
-                                     END
-           )                                                              AS week_count,
+       COUNT(*) FILTER (WHERE m.created_at >= $1)                 AS week_count,
        COUNT(*) FILTER (WHERE m.created_at >= now() - interval '7 days')  AS week_rolling_count,
        COUNT(*) FILTER (WHERE m.created_at >= date_trunc('month', now())) AS month_count,
        COUNT(*) FILTER (WHERE m.created_at >= now() - interval '30 days') AS month_rolling_count,
@@ -142,14 +127,15 @@ FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
          LEFT JOIN user_messages m ON TRUE
-WHERE cm.chat_id = $1
-  AND cm.user_id = $2
+WHERE cm.chat_id = $2
+  AND cm.user_id = $3
 GROUP BY cm.chat_id, cm.user_id, u.id, c.id
 `
 
 type ChatMemberMessageStatsByUserParams struct {
-	ChatID int64 `db:"chat_id" json:"chatId"`
-	UserID int64 `db:"user_id" json:"userId"`
+	FromDate pgtype.Timestamptz `db:"from_date" json:"fromDate"`
+	ChatID   int64              `db:"chat_id" json:"chatId"`
+	UserID   int64              `db:"user_id" json:"userId"`
 }
 
 type ChatMemberMessageStatsByUserRow struct {
@@ -166,7 +152,7 @@ type ChatMemberMessageStatsByUserRow struct {
 }
 
 func (q *Queries) ChatMemberMessageStatsByUser(ctx context.Context, arg ChatMemberMessageStatsByUserParams) (ChatMemberMessageStatsByUserRow, error) {
-	row := q.db.QueryRow(ctx, chatMemberMessageStatsByUser, arg.ChatID, arg.UserID)
+	row := q.db.QueryRow(ctx, chatMemberMessageStatsByUser, arg.FromDate, arg.ChatID, arg.UserID)
 	var i ChatMemberMessageStatsByUserRow
 	err := row.Scan(
 		&i.ChatMember.ChatID,

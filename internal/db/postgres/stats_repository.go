@@ -46,10 +46,14 @@ func (r *StatsRepository) ChatMemberMessageStatsByChat(ctx context.Context, chat
 	return result, nil
 }
 
-func (r *StatsRepository) ChatMemberMessageStatsByUser(ctx context.Context, chatID int64, userID int64) (model.ChatMemberStats, error) {
+func (r *StatsRepository) ChatMemberMessageStatsByUser(ctx context.Context, chatID int64, userID int64, from time.Time) (model.ChatMemberStats, error) {
 	row, err := r.queries.ChatMemberMessageStatsByUser(ctx, db.ChatMemberMessageStatsByUserParams{
 		ChatID: chatID,
 		UserID: userID,
+		FromDate: pgtype.Timestamptz{
+			Time:  from,
+			Valid: !from.IsZero(),
+		},
 	})
 	if err != nil {
 		return model.ChatMemberStats{}, err

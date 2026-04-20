@@ -24,8 +24,8 @@ func (s *Service) GetChatMembersStats(ctx context.Context, chatID int64, from, t
 	return s.repo.ChatMemberMessageStatsByChat(ctx, chatID, from, to)
 }
 
-func (s *Service) GetChatMemberStats(ctx context.Context, chatID, userID int64) (model.ChatMemberStats, error) {
-	return s.repo.ChatMemberMessageStatsByUser(ctx, chatID, userID)
+func (s *Service) GetChatMemberStats(ctx context.Context, chatID, userID int64, from time.Time) (model.ChatMemberStats, error) {
+	return s.repo.ChatMemberMessageStatsByUser(ctx, chatID, userID, from)
 }
 
 func (s *Service) GetChatActivityGraph(ctx context.Context, chatID int64, from, to *time.Time) (*bytes.Buffer, error) {

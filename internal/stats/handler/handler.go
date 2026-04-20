@@ -200,7 +200,17 @@ func (h *Handler) WhoAreUser(ctx *command.Context, u *ext.Update, userID int64) 
 		return err
 	}
 
-	m, err := h.service.GetChatMemberStats(ctx, c.ID, userID)
+	now := time.Now().In(helpers.MoscowLocation)
+
+	from, _, err := ResolveRange(
+		ctx.Dates(),
+		now,
+		c.WeekStartDay,
+		c.WeekStartTime,
+		helpers.MoscowLocation,
+	)
+
+	m, err := h.service.GetChatMemberStats(ctx, c.ID, userID, from)
 	if err != nil {
 		return err
 	}
@@ -310,7 +320,17 @@ func (h *Handler) CallbackAllActivity(ctx *command.Context, u *ext.Update) error
 		return err
 	}
 
-	m, err := h.service.GetChatMemberStats(ctx.StdContext(), c.ID, userID)
+	now := time.Now().In(helpers.MoscowLocation)
+
+	from, _, err := ResolveRange(
+		ctx.Dates(),
+		now,
+		c.WeekStartDay,
+		c.WeekStartTime,
+		helpers.MoscowLocation,
+	)
+
+	m, err := h.service.GetChatMemberStats(ctx.StdContext(), c.ID, userID, from)
 	if err != nil {
 		return err
 	}
