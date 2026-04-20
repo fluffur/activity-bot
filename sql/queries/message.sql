@@ -26,26 +26,35 @@ GROUP BY cm.chat_id, cm.user_id, u.id, c.id
 ORDER BY messages_count DESC;
 
 -- name: ChatMemberMessageStatsByUser :one
-WITH user_messages AS (
-    SELECT m.created_at
-    FROM messages m
-    WHERE m.chat_id = @chat_id
-      AND m.user_id = @user_id
-)
-SELECT
-    sqlc.embed(cm),
-    sqlc.embed(u),
-    sqlc.embed(c),
-    COUNT(*) FILTER (WHERE m.created_at >= date_trunc('day', now()))          AS day_count,
-    COUNT(*) FILTER (WHERE m.created_at >= now() - interval '1 day')         AS day_rolling_count,
-    COUNT(*) FILTER (
-        WHERE m.created_at >= date_trunc('week', now())
-            + (c.week_start_day - 1) * interval '1 day'
-        )                                                                       AS week_count,
-    COUNT(*) FILTER (WHERE m.created_at >= now() - interval '7 days')         AS week_rolling_count,
-    COUNT(*) FILTER (WHERE m.created_at >= date_trunc('month', now()))        AS month_count,
-    COUNT(*) FILTER (WHERE m.created_at >= now() - interval '30 days')       AS month_rolling_count,
-    COUNT(*)                                                                 AS all_time_count
+WITH user_messages AS (SELECT m.created_at
+                       FROM messages m
+                       WHERE m.chat_id = @chat_id
+                         AND m.user_id = @user_id)
+SELECT sqlc.embed(cm),
+       sqlc.embed(u),
+       sqlc.embed(c),
+       COUNT(*) FILTER (WHERE m.created_at >= date_trunc('day', now()))   AS day_count,
+       COUNT(*) FILTER (WHERE m.created_at >= now() - interval '1 day')   AS day_rolling_count,
+       COUNT(*) FILTER (
+           WHERE m.created_at >= (
+                                     date_trunc('week', now())
+                                         + (c.week_start_day - 1) * interval '1 day'
+                                         + c.week_start_time
+                                     )
+               - CASE
+                     WHEN now() < (
+                         date_trunc('week', now())
+                             + (c.week_start_day - 1) * interval '1 day'
+                             + c.week_start_time
+                         )
+                         THEN interval '7 days'
+                     ELSE interval '0 days'
+                                     END
+           )                                                              AS week_count,
+       COUNT(*) FILTER (WHERE m.created_at >= now() - interval '7 days')  AS week_rolling_count,
+       COUNT(*) FILTER (WHERE m.created_at >= date_trunc('month', now())) AS month_count,
+       COUNT(*) FILTER (WHERE m.created_at >= now() - interval '30 days') AS month_rolling_count,
+       COUNT(*)                                                           AS all_time_count
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
