@@ -120,6 +120,10 @@ func MicrosecondsToTime(micros int64) string {
 }
 
 func FormattedDate(eb *entity.Builder, date time.Time) {
+	if date.Year() > time.Now().Year()+8 {
+		eb.Plain(FormatToHumanDateTime(date))
+		return
+	}
 	eb.FormattedDate(FormatToHumanDateTime(date),
 		false,
 		true,
