@@ -41,17 +41,12 @@ func (h *Handler) RequestMarriage(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	isBotTarget, err := h.isBotUser(ctx, user.User.ID)
-	if err != nil {
-		return ctx.ReplyOnly(u, options.WithText("Не удалось проверить, является ли цель ботом"))
-	}
-
 	outcome, err := h.service.HandleMarriageRequest(
 		ctx.StdContext(),
 		sender.ChatID,
 		sender.User.ID,
 		user.User.ID,
-		isBotTarget,
+		false,
 	)
 	if err != nil {
 		switch {
