@@ -213,6 +213,9 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	if m == nil || m.Text == "" {
 		return dispatcher.ContinueGroups
 	}
+	if m.EditDate != 0 {
+		return dispatcher.ContinueGroups
+	}
 
 	text := m.Text
 	entities := m.Entities
