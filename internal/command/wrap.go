@@ -3,7 +3,6 @@ package command
 import (
 	"activity-bot/internal/logger"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/celestix/gotgproto/dispatcher"
@@ -98,7 +97,6 @@ func (c *Command) WrapEvent(filter filters.UpdateFilter) HandlerFunc {
 		if filter != nil && !filter(u) {
 			return dispatcher.ContinueGroups
 		}
-		log.Println("event " + c.name)
 		msg := u.EffectiveMessage
 		if msg == nil {
 			return nil
