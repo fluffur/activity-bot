@@ -90,6 +90,23 @@ func formatLastSeenHuman(t time.Time) string {
 func FormatLastSeenPlain(t time.Time) string {
 	return formatLastSeenHuman(t)
 }
+
+func FormattedLastSeenDate(eb *entity.Builder, date time.Time) {
+	if date.Year() > time.Now().Year()+2 {
+		eb.Plain(FormatLastSeenPlain(date))
+		return
+	}
+	eb.FormattedDate(FormatLastSeenPlain(date),
+		true,
+		false,
+		false,
+		false,
+		false,
+		false,
+		int(date.Unix()),
+	)
+}
+
 func pluralRu(n int, one, few, many string) string {
 	n = n % 100
 	if n >= 11 && n <= 14 {

@@ -101,10 +101,7 @@ func (c *Context) TextOrDefault(def string) string {
 }
 
 func (c *Context) User() (*model.ChatMember, error) {
-	if len(c.chatMembers) == 0 {
-		return nil, ErrNoValueUser
-	}
-	return &c.chatMembers[0], nil
+	return c.UserOrReply()
 }
 
 func (c *Context) ReplyUser() (*model.ChatMember, error) {

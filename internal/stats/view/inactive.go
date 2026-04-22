@@ -21,7 +21,7 @@ func WriteInactiveMembers(eb *entity.Builder, members []model.InactiveMember) {
 		eb.Plain(" — ")
 
 		if !m.LastActivity.IsZero() {
-			eb.FormattedDate(helpers.FormatLastSeenPlain(m.LastActivity), true, false, false, false, false, false, int(m.LastActivity.Unix()))
+			helpers.FormattedLastSeenDate(eb, m.LastActivity)
 		} else {
 			eb.Plain("не писал ни разу")
 		}

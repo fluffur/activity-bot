@@ -23,7 +23,7 @@ func (a *App) RegisterHandlers() {
 	a.registerRestHandlers(f)
 	a.registerMessageHandlers(f)
 	a.registerChannelHandlers(f)
-
+	a.registerMarriageHandlers(f)
 	a.setBotCommands(f)
 }
 

@@ -9,6 +9,7 @@ import (
 	"activity-bot/internal/db/postgres"
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/logger"
+	"activity-bot/internal/marriage"
 	"activity-bot/internal/member"
 	msg "activity-bot/internal/message"
 	"activity-bot/internal/rest"
@@ -45,15 +46,16 @@ type App struct {
 	AsyncClient *asynq.Client
 	AsyncServer *asynq.Server
 
-	MemberService  *member.Service
-	AdminService   *admin.Service
-	UserService    *user.Service
-	ChatService    *chat.Service
-	RestService    *rest.Service
-	StatsService   *stats.Service
-	MessageService *msg.Service
-	CallService    *call.Service
-	SessionService *session.Service
+	MemberService   *member.Service
+	AdminService    *admin.Service
+	UserService     *user.Service
+	ChatService     *chat.Service
+	RestService     *rest.Service
+	StatsService    *stats.Service
+	MessageService  *msg.Service
+	CallService     *call.Service
+	SessionService  *session.Service
+	MarriageService *marriage.Service
 }
 
 func NewApp(cfg config.Config) (*App, error) {
@@ -106,6 +108,7 @@ func NewApp(cfg config.Config) (*App, error) {
 	statsRepo := postgres.NewStatsRepository(queries)
 	messageRepo := postgres.NewMessageRepository(queries)
 	sessionRepo := postgres.NewSessionRepository(queries)
+	marriageRepo := postgres.NewMarriageRepository(queries)
 
 	adminsProvider := adapter.NewTelegramChatMembersProvider(bot)
 
@@ -118,25 +121,27 @@ func NewApp(cfg config.Config) (*App, error) {
 	messageService := msg.NewService(messageRepo)
 	callService := call.NewService(chatRepo, memberService, statsService)
 	sessionService := session.NewService(sessionRepo)
+	marriageService := marriage.NewService(marriageRepo)
 
 	return &App{
-		Config:         cfg,
-		Pool:           pool,
-		Rdb:            rdb,
-		Deepseek:       deepseek.NewClient(cfg.DeepseekAPIKey),
-		Bot:            bot,
-		dp:             dp,
-		AsyncClient:    client,
-		AsyncServer:    srv,
-		MemberService:  memberService,
-		AdminService:   adminService,
-		UserService:    userService,
-		ChatService:    chatService,
-		RestService:    restService,
-		StatsService:   statsService,
-		MessageService: messageService,
-		CallService:    callService,
-		SessionService: sessionService,
+		Config:          cfg,
+		Pool:            pool,
+		Rdb:             rdb,
+		Deepseek:        deepseek.NewClient(cfg.DeepseekAPIKey),
+		Bot:             bot,
+		dp:              dp,
+		AsyncClient:     client,
+		AsyncServer:     srv,
+		MemberService:   memberService,
+		AdminService:    adminService,
+		UserService:     userService,
+		ChatService:     chatService,
+		RestService:     restService,
+		StatsService:    statsService,
+		MessageService:  messageService,
+		CallService:     callService,
+		SessionService:  sessionService,
+		MarriageService: marriageService,
 	}, nil
 }
 
