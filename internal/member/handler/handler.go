@@ -300,30 +300,69 @@ func (h *Handler) ShipRandom(ctx *command.Context, u *ext.Update) error {
 	if err != nil {
 		return fmt.Errorf("ship random: get chat members: %w", err)
 	}
-	if len(members) < 2 {
-		return ctx.ReplyOnly(u, options.WithText("Недостаточно участников для шипа"))
+	if len(members) == 0 {
+		return ctx.ReplyOnly(u, options.WithText("Нет участников для шипа"))
 	}
 
-	rand.Shuffle(len(members), func(i, j int) {
-		members[i], members[j] = members[j], members[i]
-	})
+	first := members[rand.Intn(len(members))]
+	second := members[rand.Intn(len(members))]
 
 	phrases := []string{
 		"Любите друг друга и берегите",
 		"Кажется, это судьба",
+		"Это выглядит подозрительно идеально",
 	}
 
-	phrase := phrases[rand.Intn(len(phrases))]
+	selfPhrases := []string{
+		"Самодостаточность — новый тренд",
+		"Любовь начинается с себя ❤️",
+		"Ну тут без вариантов",
+	}
 
-	first := members[0]
-	second := members[1]
+	botPhrases := []string{
+		"Любовь с машиной? Будущее наступило",
+		"Главное — не забудь обновить прошивку отношений",
+	}
+
+	botBotPhrases := []string{
+		"💞 Союз машин заключён. Человечеству стоит насторожиться...",
+		"Два бота нашли друг друга. Скайнет близко",
+		"01001100 01001111 01010110 01000101",
+	}
+
 	eb := &entity.Builder{}
 	helpers.WriteCustomEmoji(eb, "5258276353949575281", "❤️")
 	eb.Bold(" Шипперим рандом: ")
+
 	helpers.WriteRoleEmojiMention(eb, first)
 	eb.Plain(" + ")
 	helpers.WriteRoleEmojiMention(eb, second)
-	eb.Plain("\n" + phrase)
+	eb.Plain("\n\n")
+
+	if first.User.ID == second.User.ID {
+		phrase := selfPhrases[rand.Intn(len(selfPhrases))]
+		eb.Plain(phrase)
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
+	}
+
+	isBot1 := first.User.IsBot
+	isBot2 := second.User.IsBot
+
+	if isBot1 && isBot2 {
+		phrase := botBotPhrases[rand.Intn(len(botBotPhrases))]
+		eb.Plain(phrase)
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
+	}
+
+	if isBot1 || isBot2 {
+		phrase := botPhrases[rand.Intn(len(botPhrases))]
+		eb.Plain(phrase)
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
+	}
+
+	phrase := phrases[rand.Intn(len(phrases))]
+	eb.Plain(phrase)
+
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
