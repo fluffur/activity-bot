@@ -46,6 +46,21 @@ func (c *Context) StdContext() context.Context {
 	return c.Context.Context
 }
 
+type UserStrategy int
+
+const (
+	UserFromArgs UserStrategy = iota
+	UserFromReply
+	UserFromSender
+)
+
+type UserFilter int
+
+const (
+	AllowBots UserFilter = iota
+	OnlyHumans
+)
+
 func (c *Context) Chat() (model.Chat, error) {
 	chat := c.chat
 	if chat == nil {
@@ -101,55 +116,15 @@ func (c *Context) TextOrDefault(def string) string {
 }
 
 func (c *Context) User() (*model.ChatMember, error) {
-	return c.UserOrReply()
-}
-
-func (c *Context) ReplyUser() (*model.ChatMember, error) {
-	if c.replyChatMember == nil {
-		return nil, ErrNoValueUser
-	}
-	return c.replyChatMember, nil
+	return c.ResolveUser(OnlyHumans, UserFromArgs, UserFromReply)
 }
 
 func (c *Context) AnyUser() (*model.ChatMember, error) {
-	if len(c.chatMembers) > 0 {
-		return &c.chatMembers[0], nil
-	}
-	if c.replyChatMember != nil {
-		return c.replyChatMember, nil
-	}
-	if c.senderChatMember != nil {
-		return c.senderChatMember, nil
-	}
-	return nil, ErrNoValue
-
+	return c.ResolveUser(OnlyHumans, UserFromArgs, UserFromReply, UserFromSender)
 }
 
 func (c *Context) Sender() (*model.ChatMember, error) {
-	if c.senderChatMember == nil {
-		return c.senderChatMember, ErrNoValueUser
-	}
-	return c.senderChatMember, nil
-}
-
-func (c *Context) UserOrSender() (*model.ChatMember, error) {
-	if len(c.chatMembers) > 0 {
-		return &c.chatMembers[0], nil
-	}
-	if c.senderChatMember != nil {
-		return c.senderChatMember, nil
-	}
-	return nil, ErrNoValueUser
-}
-
-func (c *Context) UserOrReply() (*model.ChatMember, error) {
-	if len(c.chatMembers) > 0 {
-		return &c.chatMembers[0], nil
-	}
-	if c.replyChatMember != nil {
-		return c.replyChatMember, nil
-	}
-	return nil, ErrNoValueUser
+	return c.ResolveUser(OnlyHumans, UserFromSender)
 }
 
 func (c *Context) RequiredStatus() model.Status {
@@ -179,6 +154,34 @@ func (c *Context) Reply(u *ext.Update, opts ...options.SendMessageOption) (*type
 	return c.SendMessage(u.EffectiveChat().GetID(), req)
 }
 
+func (c *Context) ResolveUser(filter UserFilter, strategies ...UserStrategy) (*model.ChatMember, error) {
+	for _, s := range strategies {
+		var u *model.ChatMember
+
+		switch s {
+		case UserFromArgs:
+			if len(c.chatMembers) > 0 {
+				u = &c.chatMembers[0]
+			}
+		case UserFromReply:
+			u = c.replyChatMember
+		case UserFromSender:
+			u = c.senderChatMember
+		}
+
+		if u == nil {
+			continue
+		}
+
+		if filter == OnlyHumans && u.User.IsBot {
+			continue
+		}
+
+		return u, nil
+	}
+
+	return nil, ErrNoValueUser
+}
 func (c *Context) ReplyOnly(u *ext.Update, opts ...options.SendMessageOption) error {
 	_, err := c.Reply(u, opts...)
 	return err

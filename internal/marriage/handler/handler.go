@@ -36,7 +36,7 @@ func (h *Handler) RequestMarriage(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	user, err := ctx.UserOrReply()
+	user, err := ctx.ResolveUser(command.AllowBots, command.UserFromReply, command.UserFromArgs)
 	if err != nil {
 		return err
 	}

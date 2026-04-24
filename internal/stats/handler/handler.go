@@ -186,7 +186,7 @@ func (h *Handler) WhoAmI(ctx *command.Context, u *ext.Update) error {
 }
 
 func (h *Handler) WhoAreYou(ctx *command.Context, u *ext.Update) error {
-	target, err := ctx.UserOrReply()
+	target, err := ctx.User()
 	if err != nil {
 		return err
 	}
