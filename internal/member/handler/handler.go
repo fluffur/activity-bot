@@ -180,6 +180,7 @@ func (h *Handler) OnJoinMember(ctx *command.Context, u *ext.Update) error {
 			effectiveUser.FirstName,
 			effectiveUser.LastName,
 			"",
+			false,
 		); err != nil {
 			return fmt.Errorf("join member: ensure member exists: %w", err)
 		}
@@ -295,9 +296,12 @@ func (h *Handler) ShipRandom(ctx *command.Context, u *ext.Update) error {
 		return fmt.Errorf("ship random: get chat: %w", err)
 	}
 
-	members, err := h.service.GetChatMembers(ctx.StdContext(), c.ID)
+	members, err := h.service.GetChatMembersIncludingBots(ctx.StdContext(), c.ID)
 	if err != nil {
 		return fmt.Errorf("ship random: get chat members: %w", err)
+	}
+	if len(members) < 2 {
+		return ctx.ReplyOnly(u, options.WithText("Недостаточно участников для шипа"))
 	}
 
 	rand.Shuffle(len(members), func(i, j int) {

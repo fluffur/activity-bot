@@ -47,6 +47,10 @@ func (s *Service) GetChatMembers(ctx context.Context, chatID int64) ([]model.Cha
 	return s.repo.FindByChatID(ctx, chatID)
 }
 
+func (s *Service) GetChatMembersIncludingBots(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
+	return s.repo.FindByChatIDIncludingBots(ctx, chatID)
+}
+
 func (s *Service) GetCallChatMembers(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
 	return s.repo.FindByChatID(ctx, chatID)
 }
@@ -88,8 +92,8 @@ func (s *Service) ProcessLeftMember(ctx context.Context, chatID int64, userID in
 	return member, nil
 }
 
-func (s *Service) EnsureMemberExists(ctx context.Context, chatID int64, userID int64, username, firstName, lastName, role string) (model.ChatMember, error) {
-	return s.repo.EnsureFull(ctx, chatID, userID, role, firstName, lastName, username)
+func (s *Service) EnsureMemberExists(ctx context.Context, chatID int64, userID int64, username, firstName, lastName, role string, isBot bool) (model.ChatMember, error) {
+	return s.repo.EnsureFull(ctx, chatID, userID, role, firstName, lastName, username, isBot)
 }
 
 func (s *Service) SyncChatMembers(ctx context.Context, chatID int64) (int, error) {

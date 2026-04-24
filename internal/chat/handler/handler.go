@@ -446,7 +446,7 @@ func (h *Handler) CallbackManage(ctx *command.Context, u *ext.Update) error {
 	}
 	var m model.ChatMember
 	if h.adminService.OwnerID() == effectiveUser.ID {
-		m, err = h.memberService.EnsureMemberExists(ctx.StdContext(), chatID, effectiveUser.GetID(), effectiveUser.Username, effectiveUser.FirstName, effectiveUser.LastName, "")
+		m, err = h.memberService.EnsureMemberExists(ctx.StdContext(), chatID, effectiveUser.GetID(), effectiveUser.Username, effectiveUser.FirstName, effectiveUser.LastName, "", false)
 		if err != nil {
 			return fmt.Errorf("failed to ensure %w", err)
 		}

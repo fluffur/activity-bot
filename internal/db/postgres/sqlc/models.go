@@ -265,6 +265,7 @@ type User struct {
 	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
 	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
 	EmojiJson     model.Emojis       `db:"emoji_json" json:"emojiJson"`
+	IsBot         bool               `db:"is_bot" json:"isBot"`
 }
 
 type UserPmSession struct {

@@ -17,7 +17,7 @@ func NewUserRepository(queries *db.Queries) user.Repository {
 	return &UserRepository{queries}
 }
 
-func (r *UserRepository) Ensure(ctx context.Context, id int64, username, firstName, lastName string) (model.User, error) {
+func (r *UserRepository) Ensure(ctx context.Context, id int64, username, firstName, lastName string, isBot bool) (model.User, error) {
 	u, err := r.queries.EnsureUserExists(ctx, db.EnsureUserExistsParams{
 		ID: id,
 		Username: pgtype.Text{
@@ -32,6 +32,7 @@ func (r *UserRepository) Ensure(ctx context.Context, id int64, username, firstNa
 			String: lastName,
 			Valid:  lastName != "",
 		},
+		IsBot: isBot,
 	})
 	if err != nil {
 		return model.User{}, err
@@ -63,6 +64,7 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []model.User) er
 	usernames := make([]string, len(users))
 	firstNames := make([]string, len(users))
 	lastNames := make([]string, len(users))
+	isBots := make([]bool, len(users))
 
 	for i, u := range users {
 		ids[i] = u.ID
@@ -71,6 +73,7 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []model.User) er
 		}
 		firstNames[i] = u.FirstName
 		lastNames[i] = u.LastName
+		isBots[i] = u.IsBot
 	}
 
 	return r.queries.UpsertUsers(ctx, db.UpsertUsersParams{
@@ -78,6 +81,7 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []model.User) er
 		Usernames:  usernames,
 		FirstNames: firstNames,
 		LastNames:  lastNames,
+		IsBots:     isBots,
 	})
 }
 

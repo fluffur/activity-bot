@@ -24,13 +24,13 @@ import (
 type UserProvider interface {
 	GetUser(ctx context.Context, id int64) (model.User, error)
 	GetByUsername(ctx context.Context, username string) (model.User, error)
-	EnsureUserExists(ctx context.Context, id int64, username, firstName, lastName string) (model.User, error)
+	EnsureUserExists(ctx context.Context, id int64, username, firstName, lastName string, isBot bool) (model.User, error)
 }
 
 type ChatMemberProvider interface {
 	GetChatMember(ctx context.Context, chatID, userId int64) (model.ChatMember, error)
 	GetChatMemberByUsername(ctx context.Context, chatID int64, username string) (model.ChatMember, error)
-	EnsureMemberExists(ctx context.Context, chatID int64, userID int64, username, firstName, lastName, role string) (model.ChatMember, error)
+	EnsureMemberExists(ctx context.Context, chatID int64, userID int64, username, firstName, lastName, role string, isBot bool) (model.ChatMember, error)
 	FindChatMembersByTag(ctx context.Context, chatID int64, tag string) ([]model.ChatMember, error)
 }
 
@@ -592,6 +592,7 @@ func (c *Command) resolveMember(ctx *ext.Context, chat *model.Chat, u any) (*mod
 			userObj.FirstName,
 			userObj.LastName,
 			"",
+			userObj.Bot,
 		)
 		if err != nil {
 			return nil, err
@@ -605,6 +606,7 @@ func (c *Command) resolveMember(ctx *ext.Context, chat *model.Chat, u any) (*mod
 		userObj.Username,
 		userObj.FirstName,
 		userObj.LastName,
+		userObj.Bot,
 	)
 	if err != nil {
 		return nil, err

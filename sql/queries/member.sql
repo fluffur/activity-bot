@@ -9,9 +9,19 @@ SELECT sqlc.embed(chat_members), sqlc.embed(users)
 FROM chat_members
          JOIN users ON users.id = user_id
     AND chat_id = $1
-    AND user_id = $2;
+    AND user_id = $2
+    AND users.is_bot = FALSE;
 
 -- name: GetChatMembers :many
+SELECT sqlc.embed(cm), sqlc.embed(u)
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = @chat_id
+  AND cm.left_at IS NULL
+  AND u.is_bot = FALSE
+ORDER BY cm.joined_at;
+
+-- name: GetChatMembersIncludingBots :many
 SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
@@ -27,6 +37,7 @@ WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL
   AND cm.tag IS NOT NULL
   AND cm.tag <> ''
+  AND u.is_bot = FALSE
 ORDER BY cm.tag COLLATE "und-x-icu";
 
 
@@ -37,7 +48,8 @@ FROM chat_members cm
 WHERE cm.chat_id = @chat_id
   AND cm.tag IS NOT NULL
   AND cm.tag <> ''
-  AND cm.left_at IS NULL;
+  AND cm.left_at IS NULL
+  AND u.is_bot = FALSE;
 
 -- name: UpdateChatMemberTitle :exec
 UPDATE chat_members
@@ -72,12 +84,13 @@ WITH chat_upsert AS (
                          WHERE id = @chat_id
                          LIMIT 1),
      user_upsert AS (
-         INSERT INTO users (id, username, first_name, last_name)
-             VALUES (@user_id, @username, @first_name, @last_name)
+         INSERT INTO users (id, username, first_name, last_name, is_bot)
+             VALUES (@user_id, @username, @first_name, @last_name, @is_bot)
              ON CONFLICT (id) DO UPDATE
                  SET username = EXCLUDED.username,
                      first_name = EXCLUDED.first_name,
-                     last_name = EXCLUDED.last_name
+                     last_name = EXCLUDED.last_name,
+                     is_bot = EXCLUDED.is_bot
              RETURNING id),
      member_upsert AS (
          INSERT INTO chat_members (chat_id, user_id, tag)
@@ -158,6 +171,7 @@ FROM chat_members cm
 WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
+  AND u.is_bot = FALSE
   AND (
     (@mode = 'warn' AND (c.norm_ban IS NULL OR COALESCE(m.msg_count, 0) > c.norm_ban) AND
      COALESCE(m.msg_count, 0) < c.norm_warn)
@@ -170,6 +184,7 @@ SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = @chat_id
+  AND u.is_bot = FALSE
   AND (
     (length(@tag::text) < 2 AND lower(cm.tag::text) = lower(@tag::text))
         OR
@@ -184,6 +199,7 @@ FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
   AND u.username ILIKE $2
+  AND u.is_bot = FALSE
 LIMIT 1;
 
 -- name: SetChatMemberEmoji :exec
@@ -212,15 +228,18 @@ FROM chat_members cm
 WHERE cm.chat_id = $1
   AND cm.status > 0
   AND cm.left_at IS NULL
+  AND u.is_bot = FALSE
 ORDER BY cm.joined_at;
 
 -- name: GetMembersWithExpiredMute :many
-SELECT sqlc.embed(cm)
+SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM moderation_actions ma
          JOIN chat_members cm ON ma.chat_id = cm.chat_id AND ma.user_id = cm.user_id
+         JOIN users u ON u.id = cm.user_id
 WHERE ma.type = 'mute'
   AND ma.revoked_at IS NULL
-  AND ma.expires_at <= NOW();
+  AND ma.expires_at <= NOW()
+  AND u.is_bot = FALSE;
 
 
 -- name: InactiveChatMembers :many
@@ -236,7 +255,8 @@ FROM chat_members cm
 WHERE cm.left_at IS NULL
   AND cm.chat_id = $1
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
-GROUP BY cm.user_id, u.id, u.first_name, u.last_name, u.username, cm.tag, cm.status, cm.rest_until
+  AND u.is_bot = FALSE
+GROUP BY cm.user_id, u.id, cm.tag, cm.status, cm.rest_until
 HAVING MAX(m.created_at) IS NULL
     OR MAX(m.created_at) < NOW() - INTERVAL '1 days'
 ORDER BY MAX(m.created_at) NULLS FIRST;

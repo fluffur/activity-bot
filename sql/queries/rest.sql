@@ -6,6 +6,7 @@ WHERE cm.chat_id = $1
   AND cm.left_at IS NULL
   AND cm.rest_until IS NOT NULL
   AND cm.rest_until >= now()
+  AND u.is_bot = FALSE
 ORDER BY cm.rest_until;
 
 
@@ -62,6 +63,7 @@ FROM rest_requests rr
          JOIN chat_members cm ON cm.user_id = u.id AND cm.chat_id = rr.chat_id
 WHERE rr.user_id = $1
   AND rr.chat_id = $2
+  AND u.is_bot = FALSE
 ORDER BY rr.requested_at DESC;
 
 -- name: DeleteRestRequest :exec

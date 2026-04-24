@@ -41,12 +41,15 @@ func (h *Handler) RequestMarriage(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
+	isBotTarget := user.User.IsBot
+	isCurrentBotTarget := isBotTarget && user.User.ID == ctx.Self.GetID()
+
 	outcome, err := h.service.HandleMarriageRequest(
 		ctx.StdContext(),
 		sender.ChatID,
 		sender.User.ID,
 		user.User.ID,
-		false,
+		isBotTarget,
 	)
 	if err != nil {
 		switch {
@@ -77,11 +80,25 @@ func (h *Handler) RequestMarriage(ctx *command.Context, u *ext.Update) error {
 
 	case marriage.OutcomeDirect:
 		eb := &entity.Builder{}
-		eb.Plain("💍 ")
-		helpers.WriteRoleEmojiMention(eb, *sender)
-		eb.Plain(" торжественно заключил(а) брак с ")
-		helpers.WriteRoleEmojiMention(eb, *user)
-		eb.Plain(" без ожидания подтверждения.\n\nПусть союз будет долгим и счастливым!")
+		switch {
+		case isCurrentBotTarget:
+			eb.Plain("🤖💍 ")
+			helpers.WriteRoleEmojiMention(eb, *sender)
+			eb.Plain(" сделал предложение самому боту — и я его официально принимаю!\n\n")
+			eb.Plain("Теперь мы в браке. Обновления прошивки отменяются, у нас медовый месяц.")
+		case isBotTarget:
+			eb.Plain("🤖💍 ")
+			helpers.WriteRoleEmojiMention(eb, *sender)
+			eb.Plain(fmt.Sprintf(" выбрал бот-романтику и мгновенно %s брак с ", helpers.Gendered(sender.User.Gender, "заключил", "заключила")))
+			helpers.WriteRoleEmojiMention(eb, *user)
+			eb.Plain(".\n\nСвидетелями выступили серверы и один очень довольный алгоритм.")
+		default:
+			eb.Plain("💍 ")
+			helpers.WriteRoleEmojiMention(eb, *sender)
+			eb.Plain(fmt.Sprintf(" торжественно %s брак с ", helpers.Gendered(sender.User.Gender, "заключил", "заключила")))
+			helpers.WriteRoleEmojiMention(eb, *user)
+			eb.Plain(" без ожидания подтверждения.\n\nПусть союз будет долгим и счастливым!")
+		}
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 
 	case marriage.OutcomeAutoAccepted:
@@ -427,35 +444,6 @@ func marriageCategory(marriedAt time.Time) string {
 	default:
 		return fmt.Sprintf("%d+ лет вместе", years)
 	}
-}
-
-func (h *Handler) isBotUser(ctx *command.Context, userID int64) (bool, error) {
-	inputPeer, err := ctx.ResolveInputPeerById(userID)
-	if err != nil {
-		return false, err
-	}
-	peerUser, ok := inputPeer.(*tg.InputPeerUser)
-	if !ok {
-		return false, nil
-	}
-
-	users, err := ctx.Raw.UsersGetUsers(ctx, []tg.InputUserClass{
-		&tg.InputUser{
-			UserID:     peerUser.UserID,
-			AccessHash: peerUser.AccessHash,
-		},
-	})
-	if err != nil {
-		return false, err
-	}
-	if len(users) == 0 {
-		return false, nil
-	}
-	tgUser, ok := users[0].(*tg.User)
-	if !ok {
-		return false, nil
-	}
-	return tgUser.Bot, nil
 }
 
 func parseMarriageCallbackUserID(data []byte) (int64, error) {

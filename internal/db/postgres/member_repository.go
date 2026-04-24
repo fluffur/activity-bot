@@ -134,6 +134,20 @@ func (r *MemberRepository) FindByChatID(ctx context.Context, chatID int64) ([]mo
 	return result, nil
 }
 
+func (r *MemberRepository) FindByChatIDIncludingBots(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
+	members, err := r.queries.GetChatMembersIncludingBots(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]model.ChatMember, len(members))
+	for i, m := range members {
+		result[i] = mapChatMemberFull(m.ChatMember, m.User)
+	}
+
+	return result, nil
+}
+
 func (r *MemberRepository) GetWithCustomTitles(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
 	members, err := r.queries.GetChatMembersWithTitles(ctx, chatID)
 	if err != nil {
@@ -195,7 +209,7 @@ func (r *MemberRepository) Remove(ctx context.Context, chatID int64, userID int6
 	})
 }
 
-func (r *MemberRepository) EnsureFull(ctx context.Context, chatID, userID int64, role, firstName, lastName, username string) (model.ChatMember, error) {
+func (r *MemberRepository) EnsureFull(ctx context.Context, chatID, userID int64, role, firstName, lastName, username string, isBot bool) (model.ChatMember, error) {
 	m, err := r.queries.EnsureMemberFull(ctx, db.EnsureMemberFullParams{
 		Tag: pgtype.Text{
 			String: role,
@@ -215,6 +229,7 @@ func (r *MemberRepository) EnsureFull(ctx context.Context, chatID, userID int64,
 			String: lastName,
 			Valid:  lastName != "",
 		},
+		IsBot: isBot,
 	})
 	if err != nil {
 		return model.ChatMember{}, err

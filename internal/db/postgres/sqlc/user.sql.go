@@ -13,12 +13,13 @@ import (
 )
 
 const ensureUserExists = `-- name: EnsureUserExists :one
-INSERT INTO users(id, username, first_name, last_name)
-VALUES ($1, $2, $3, $4)
+INSERT INTO users(id, username, first_name, last_name, is_bot)
+VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (id) DO UPDATE SET username   = $2,
                                first_name = $3,
-                               last_name  = $4
-RETURNING id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json
+                               last_name  = $4,
+                               is_bot     = $5
+RETURNING id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json, is_bot
 `
 
 type EnsureUserExistsParams struct {
@@ -26,6 +27,7 @@ type EnsureUserExistsParams struct {
 	Username  pgtype.Text `db:"username" json:"username"`
 	FirstName pgtype.Text `db:"first_name" json:"firstName"`
 	LastName  pgtype.Text `db:"last_name" json:"lastName"`
+	IsBot     bool        `db:"is_bot" json:"isBot"`
 }
 
 func (q *Queries) EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) (User, error) {
@@ -34,6 +36,7 @@ func (q *Queries) EnsureUserExists(ctx context.Context, arg EnsureUserExistsPara
 		arg.Username,
 		arg.FirstName,
 		arg.LastName,
+		arg.IsBot,
 	)
 	var i User
 	err := row.Scan(
@@ -46,12 +49,13 @@ func (q *Queries) EnsureUserExists(ctx context.Context, arg EnsureUserExistsPara
 		&i.Emoji,
 		&i.CustomEmojiID,
 		&i.EmojiJson,
+		&i.IsBot,
 	)
 	return i, err
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json
+SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json, is_bot
 FROM users
 WHERE id = $1
 `
@@ -69,12 +73,13 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.Emoji,
 		&i.CustomEmojiID,
 		&i.EmojiJson,
+		&i.IsBot,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json
+SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json, is_bot
 FROM users
 WHERE LOWER(username) = LOWER($1)
 `
@@ -92,6 +97,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, lower string) (User, er
 		&i.Emoji,
 		&i.CustomEmojiID,
 		&i.EmojiJson,
+		&i.IsBot,
 	)
 	return i, err
 }
@@ -161,14 +167,16 @@ func (q *Queries) SetUserGender(ctx context.Context, arg SetUserGenderParams) er
 }
 
 const upsertUsers = `-- name: UpsertUsers :exec
-INSERT INTO users(id, username, first_name, last_name)
+INSERT INTO users(id, username, first_name, last_name, is_bot)
 SELECT unnest($1::bigint[]),
        unnest($2::text[]),
        unnest($3::text[]),
-       unnest($4::text[])
+       unnest($4::text[]),
+       unnest($5::boolean[])
 ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
                                first_name = EXCLUDED.first_name,
-                               last_name  = EXCLUDED.last_name
+                               last_name  = EXCLUDED.last_name,
+                               is_bot     = EXCLUDED.is_bot
 `
 
 type UpsertUsersParams struct {
@@ -176,6 +184,7 @@ type UpsertUsersParams struct {
 	Usernames  []string `db:"usernames" json:"usernames"`
 	FirstNames []string `db:"first_names" json:"firstNames"`
 	LastNames  []string `db:"last_names" json:"lastNames"`
+	IsBots     []bool   `db:"is_bots" json:"isBots"`
 }
 
 func (q *Queries) UpsertUsers(ctx context.Context, arg UpsertUsersParams) error {
@@ -184,6 +193,7 @@ func (q *Queries) UpsertUsers(ctx context.Context, arg UpsertUsersParams) error 
 		arg.Usernames,
 		arg.FirstNames,
 		arg.LastNames,
+		arg.IsBots,
 	)
 	return err
 }

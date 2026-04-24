@@ -20,6 +20,7 @@ type User struct {
 	Emoji         string
 	Emojis        Emojis
 	CustomEmojiID string
+	IsBot         bool
 }
 
 func (u User) DisplayName() string {

@@ -144,7 +144,7 @@ func (p *TelegramChatMembersProvider) getChannelMembers(
 			}
 
 			u, ok := userMap[userID]
-			if !ok || u.Bot {
+			if !ok {
 				continue
 			}
 
@@ -154,6 +154,7 @@ func (p *TelegramChatMembersProvider) getChannelMembers(
 					FirstName: u.FirstName,
 					LastName:  u.LastName,
 					Username:  u.Username,
+					IsBot:     u.Bot,
 				},
 				Tag:    tag,
 				Status: status,
@@ -216,7 +217,7 @@ func (p *TelegramChatMembersProvider) getBasicChatMembers(ctx context.Context, c
 		}
 
 		u, ok := userMap[userID]
-		if !ok || u.Bot {
+		if !ok {
 			continue
 		}
 
@@ -226,6 +227,7 @@ func (p *TelegramChatMembersProvider) getBasicChatMembers(ctx context.Context, c
 				FirstName: u.FirstName,
 				LastName:  u.LastName,
 				Username:  u.Username,
+				IsBot:     u.Bot,
 			},
 			Tag:    tag,
 			Status: status,

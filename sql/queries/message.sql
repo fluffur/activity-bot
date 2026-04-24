@@ -22,6 +22,7 @@ FROM chat_members cm
 WHERE cm.chat_id = @chat_id
   AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
+  AND u.is_bot = FALSE
 GROUP BY cm.chat_id, cm.user_id, u.id, c.id
 ORDER BY messages_count DESC;
 
@@ -46,6 +47,7 @@ FROM chat_members cm
          LEFT JOIN user_messages m ON TRUE
 WHERE cm.chat_id = @chat_id
   AND cm.user_id = @user_id
+  AND u.is_bot = FALSE
 GROUP BY cm.chat_id, cm.user_id, u.id, c.id;
 
 -- name: UserMessageActivityDaily :many

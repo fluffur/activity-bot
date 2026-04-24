@@ -124,13 +124,14 @@ func (q *Queries) GetAllActiveRests(ctx context.Context) ([]GetAllActiveRestsRow
 }
 
 const getRestMembers = `-- name: GetRestMembers :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot
 FROM chat_members cm
          JOIN users u ON u.id = cm.user_id
 WHERE cm.chat_id = $1
   AND cm.left_at IS NULL
   AND cm.rest_until IS NOT NULL
   AND cm.rest_until >= now()
+  AND u.is_bot = FALSE
 ORDER BY cm.rest_until
 `
 
@@ -169,6 +170,7 @@ func (q *Queries) GetRestMembers(ctx context.Context, chatID int64) ([]GetRestMe
 			&i.User.Emoji,
 			&i.User.CustomEmojiID,
 			&i.User.EmojiJson,
+			&i.User.IsBot,
 		); err != nil {
 			return nil, err
 		}
@@ -212,12 +214,13 @@ func (q *Queries) GetRestRequest(ctx context.Context, arg GetRestRequestParams) 
 }
 
 const getUserRestRequests = `-- name: GetUserRestRequests :many
-SELECT rr.chat_id, rr.user_id, rr.requested_at, rr.rest_until, rr.status, rr.message_id, rr.reason, rr.id, rr.updated_at, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call
+SELECT rr.chat_id, rr.user_id, rr.requested_at, rr.rest_until, rr.status, rr.message_id, rr.reason, rr.id, rr.updated_at, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot, cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call
 FROM rest_requests rr
          JOIN users u ON u.id = rr.user_id
          JOIN chat_members cm ON cm.user_id = u.id AND cm.chat_id = rr.chat_id
 WHERE rr.user_id = $1
   AND rr.chat_id = $2
+  AND u.is_bot = FALSE
 ORDER BY rr.requested_at DESC
 `
 
@@ -260,6 +263,7 @@ func (q *Queries) GetUserRestRequests(ctx context.Context, arg GetUserRestReques
 			&i.User.Emoji,
 			&i.User.CustomEmojiID,
 			&i.User.EmojiJson,
+			&i.User.IsBot,
 			&i.ChatMember.ChatID,
 			&i.ChatMember.UserID,
 			&i.ChatMember.JoinedAt,

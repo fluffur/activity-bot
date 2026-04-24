@@ -20,6 +20,7 @@ FROM moderation_actions ma
 WHERE ma.chat_id = $1
   AND ma.user_id = $2
   AND ma.type = 'warn'
+  AND u.is_bot = FALSE
 ORDER BY ma.created_at;
 
 -- name: ClearWarns :exec
@@ -66,4 +67,5 @@ FROM moderation_actions ma
          JOIN users u ON u.id = ma.user_id
 WHERE ma.chat_id = $1
   AND ma.type = 'warn'
+  AND u.is_bot = FALSE
 ORDER BY ma.created_at;
