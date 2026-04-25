@@ -243,7 +243,7 @@ func (h *Handler) doCall(
 		}
 
 		var sentWithMedia bool
-		if i == 0 && len(mediaMessages) > 0 {
+		if len(mediaMessages) > 0 {
 			if len(mediaMessages) == 1 {
 				inputMedia := h.extractInputMedia(mediaMessages[0].Media)
 				if inputMedia != nil {
