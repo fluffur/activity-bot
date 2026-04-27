@@ -380,12 +380,12 @@ func (h *Handler) ListMarriages(ctx *command.Context, u *ext.Update) error {
 		eb.Plain("\n")
 		for i, m := range items {
 			eb.Plain(fmt.Sprintf("%d. ", i+1))
-			helpers.WriteRoleEmojiMention(eb, m.User1)
-			eb.Plain(" ❤ ")
+			helpers.WriteRoleEmojiLink(eb, m.User1)
+			eb.Plain(" + ")
 			if m.User1.User.ID == m.User2.User.ID {
-				eb.Plain("себя")
+				eb.Plain(fmt.Sprintf("%s же %s", helpers.Gendered(m.User1.User.Gender, "он", "она"), helpers.Gendered(m.User1.User.Gender, "сам", "сама")))
 			} else {
-				helpers.WriteRoleEmojiMention(eb, m.User2)
+				helpers.WriteRoleEmojiLink(eb, m.User2)
 			}
 			if !m.MarriedAt.IsZero() {
 				eb.Plain(" — вместе ")
