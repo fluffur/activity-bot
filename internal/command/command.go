@@ -460,6 +460,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 
 func (c *Command) resolveUsers(ctx *ext.Context, handlerCtx *Context, msg *types.Message, text string, entities []tg.MessageEntityClass) error {
 	// reply user
+	log.Println("resolve users")
 	if msgID, ok := getReplyToMessageID(msg); ok {
 		messages, err := ctx.GetMessages(handlerCtx.chat.ID, []tg.InputMessageClass{&tg.InputMessageID{ID: msgID}})
 		if err != nil {
@@ -468,37 +469,9 @@ func (c *Command) resolveUsers(ctx *ext.Context, handlerCtx *Context, msg *types
 		if len(messages) == 0 {
 			return errors.New("no reply message")
 		}
-		reply, ok := messages[0].(*tg.Message)
-		if !ok {
-			return nil
-		}
-
-		fromID, ok := reply.GetFromID()
-		if !ok {
-			return nil
-		}
-		fromUser, ok := fromID.(*tg.PeerUser)
-		inputPeer, err := ctx.ResolveInputPeerById(fromUser.UserID)
+		user, err := c.extractUserFromMessage(ctx, messages[0])
 		if err != nil {
-			return err
-		}
-		pUser, ok := inputPeer.(*tg.InputPeerUser)
-		if !ok {
-			return errors.New("replyToMessage FromUser is not a User")
-		}
-		uSlice, err := ctx.Raw.UsersGetUsers(ctx, []tg.InputUserClass{&tg.InputUser{
-			UserID:     pUser.UserID,
-			AccessHash: pUser.AccessHash,
-		}})
-		if err != nil {
-			return err
-		}
-		if len(uSlice) == 0 {
-			return errors.New("replyToMessage must have a FromUser")
-		}
-		user, ok := uSlice[0].(*tg.User)
-		if !ok {
-			return errors.New("replyToMessage FromUser is not a User")
+			return errors.Wrap(err, "extract user from reply failed")
 		}
 		replyMember, err := c.resolveMember(ctx, handlerCtx.chat, user)
 		if err != nil {
@@ -528,6 +501,88 @@ func (c *Command) resolveUsers(ctx *ext.Context, handlerCtx *Context, msg *types
 	}
 
 	return nil
+}
+
+func (c *Command) extractUserFromMessage(
+	ctx *ext.Context,
+	msg tg.MessageClass,
+) (*tg.User, error) {
+
+	var userID int64
+
+	switch m := msg.(type) {
+
+	case *tg.Message:
+		fromID, ok := m.GetFromID()
+		if !ok {
+			return nil, errors.New("message has no FromID")
+		}
+
+		peerUser, ok := fromID.(*tg.PeerUser)
+		if !ok {
+			return nil, errors.New("FromID is not PeerUser")
+		}
+
+		userID = peerUser.UserID
+
+	case *tg.MessageService:
+
+		switch action := m.Action.(type) {
+		case *tg.MessageActionChatJoinedByLink:
+			peerUser, ok := m.FromID.(*tg.PeerUser)
+
+			if !ok {
+				return nil, errors.New("PeerID is not PeerUser")
+			}
+			userID = peerUser.UserID
+
+		case *tg.MessageActionChatAddUser:
+			if len(action.Users) == 0 {
+				return nil, errors.New("no users in ChatAddUser")
+			}
+			userID = action.Users[0]
+
+		case *tg.MessageActionChatDeleteUser:
+			userID = action.UserID
+
+		default:
+			return nil, errors.New("unsupported service action")
+		}
+
+	default:
+		return nil, errors.New("unsupported message type")
+	}
+
+	inputPeer, err := ctx.ResolveInputPeerById(userID)
+	if err != nil {
+		return nil, errors.Wrap(err, "resolve input peer failed")
+	}
+
+	pUser, ok := inputPeer.(*tg.InputPeerUser)
+	if !ok {
+		return nil, errors.New("not InputPeerUser")
+	}
+
+	users, err := ctx.Raw.UsersGetUsers(ctx, []tg.InputUserClass{
+		&tg.InputUser{
+			UserID:     pUser.UserID,
+			AccessHash: pUser.AccessHash,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(users) == 0 {
+		return nil, errors.New("user not found")
+	}
+
+	user, ok := users[0].(*tg.User)
+	if !ok {
+		return nil, errors.New("not tg.User")
+	}
+
+	return user, nil
 }
 
 func (c *Command) SetRequiredStatus(status model.Status) *Command {

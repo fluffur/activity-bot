@@ -130,9 +130,9 @@ func (h *Handler) ShowRole(ctx *command.Context, u *ext.Update) error {
 
 	if cm.Tag == "" {
 		eb := &entity.Builder{}
-		eb.Plain("У участника ")
+		eb.Plain("У ")
 		helpers.WriteRoleEmojiLink(eb, *cm)
-		eb.Plain("еще не установлена роль\n\nПопробуйте установить командой: ")
+		eb.Plain(" еще не установлена роль\n\nПопробуйте установить командой: ")
 		eb.Code("!роль @участник Название Роли")
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
