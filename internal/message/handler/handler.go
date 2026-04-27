@@ -78,7 +78,7 @@ func (h *Handler) Message(ctx *command.Context, u *ext.Update) error {
 		effectiveSender.Username,
 		effectiveSender.FirstName,
 		effectiveSender.LastName,
-		"",
+		msg.FromRank,
 		effectiveSender.Bot,
 	); err != nil {
 		return fmt.Errorf("message: ensure member exists: %w", err)
