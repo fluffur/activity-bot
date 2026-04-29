@@ -261,11 +261,11 @@ func renderRPTemplate(eb *entity.Builder, cmd model.RPCommand, actor model.ChatM
 
 	if len(cmd.Emoji) > 0 {
 		helpers.DisplayEmoji(eb, cmd.Emoji)
-		eb.Plain("|")
+		eb.Plain("| ")
 	}
 	template := rptemplate.Normalize(strings.TrimSpace(cmd.Template))
 	if template == "" {
-		helpers.WriteMemberMention(eb, actor)
+		helpers.WriteRoleEmojiMention(eb, actor)
 		eb.Plain(" ")
 		if len(cmd.Emoji) > 0 {
 			helpers.DisplayEmoji(eb, cmd.Emoji)
@@ -274,7 +274,7 @@ func renderRPTemplate(eb *entity.Builder, cmd model.RPCommand, actor model.ChatM
 		eb.Plain("использует действие «")
 		eb.Plain(cmd.Trigger)
 		eb.Plain("» на ")
-		helpers.WriteMemberMention(eb, target)
+		helpers.WriteRoleEmojiMention(eb, target)
 		return
 	}
 
