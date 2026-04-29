@@ -13,6 +13,7 @@ import (
 	"activity-bot/internal/member"
 	msg "activity-bot/internal/message"
 	"activity-bot/internal/rest"
+	"activity-bot/internal/rp"
 	"activity-bot/internal/session"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/user"
@@ -53,6 +54,7 @@ type App struct {
 	RestService     *rest.Service
 	StatsService    *stats.Service
 	MessageService  *msg.Service
+	RPService       *rp.Service
 	CallService     *call.Service
 	SessionService  *session.Service
 	MarriageService *marriage.Service
@@ -107,6 +109,7 @@ func NewApp(cfg config.Config) (*App, error) {
 	restRepo := postgres.NewRestRepository(queries, pool)
 	statsRepo := postgres.NewStatsRepository(queries)
 	messageRepo := postgres.NewMessageRepository(queries)
+	rpRepo := postgres.NewRPRepository(queries)
 	sessionRepo := postgres.NewSessionRepository(queries)
 	marriageRepo := postgres.NewMarriageRepository(queries)
 
@@ -119,6 +122,7 @@ func NewApp(cfg config.Config) (*App, error) {
 	restService := rest.NewService(restRepo)
 	statsService := stats.NewService(statsRepo)
 	messageService := msg.NewService(messageRepo)
+	rpService := rp.NewService(rpRepo)
 	callService := call.NewService(chatRepo, memberService, statsService)
 	sessionService := session.NewService(sessionRepo)
 	marriageService := marriage.NewService(marriageRepo)
@@ -139,6 +143,7 @@ func NewApp(cfg config.Config) (*App, error) {
 		RestService:     restService,
 		StatsService:    statsService,
 		MessageService:  messageService,
+		RPService:       rpService,
 		CallService:     callService,
 		SessionService:  sessionService,
 		MarriageService: marriageService,

@@ -11,7 +11,7 @@ import (
 
 func (a *App) registerChatHandlers(f *command.Factory) {
 	dateParser := helpers.NewDateParser()
-	chatHandler := chatH.New(a.ChatService, a.AdminService, a.MemberService, a.SessionService, dateParser)
+	chatHandler := chatH.New(a.ChatService, a.AdminService, a.MemberService, a.SessionService, a.RPService, dateParser)
 
 	a.dp.AddHandler(f.New("set_newbie_treshold", chatHandler.SetNewbieThreshold).
 		SetAliases("новички срок", "новички после").
@@ -156,4 +156,33 @@ func (a *App) registerChatHandlers(f *command.Factory) {
 		SetDescription("Отключить обязательный префикс").
 		SetCategory(command.CategorySettings),
 	)
+	a.dp.AddHandler(f.New("rp_preview", chatHandler.PreviewRPTemplate).
+		SetAliases("рп превью").
+		SetArgRules(command.OptionalVariadicText()).
+		SetDescription("Превью РП-шаблона").
+		SetCategory(command.CategoryGeneral),
+	)
+
+	a.dp.AddHandler(f.New("set_rp_command", chatHandler.SetRPCommand).
+		SetAliases("+рп").
+		SetArgRules(command.OptionalVariadicText()).
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Добавить РП-команду").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.dp.AddHandler(f.New("remove_rp_command", chatHandler.RemoveRPCommand).
+		SetAliases("-рп").
+		SetArgRules(command.OptionalVariadicText()).
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetDescription("Удалить РП-команду").
+		SetCategory(command.CategorySettings),
+	)
+
+	a.dp.AddHandler(f.New("rp_commands", chatHandler.ListRPCommands).
+		SetAliases("рп").
+		SetDescription("Список РП-команд").
+		SetCategory(command.CategoryGeneral),
+	)
+
 }

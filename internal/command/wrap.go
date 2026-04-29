@@ -122,6 +122,69 @@ func (c *Command) WrapEvent(filter filters.UpdateFilter) HandlerFunc {
 		}
 		handlerCtx.senderChatMember = senderMember
 
+		for _, rule := range c.argRules {
+			switch rule.Type {
+			case ArgTypeOnlyUserSender:
+				if _, ok := getReplyToMessageID(msg); ok {
+					return dispatcher.ContinueGroups
+				}
+				members, _, err := c.extractMembersFromEntities(ctx, handlerCtx.chat, msg.Text, msg.Entities)
+				if err != nil {
+					return errors.Wrap(err, "failed to extract users")
+				}
+				if len(members) > 0 {
+					return dispatcher.ContinueGroups
+				}
+
+			case ArgTypeAnyUser, ArgTypeMentionedUser:
+				if err := c.resolveUsers(ctx, handlerCtx, msg, msg.Text, msg.Entities); err != nil {
+					return err
+				}
+				if c.scope == ScopeChat && handlerCtx.chat != nil && len(handlerCtx.chatMembers) == 0 && handlerCtx.replyChatMember == nil {
+					toks := freeTokens(handlerCtx.RawArgs, handlerCtx.usedOffsets)
+					matched := false
+					for i := 0; i < len(toks) && !matched; {
+						for width := 3; width >= 1; width-- {
+							if i+width > len(toks) {
+								continue
+							}
+							words := make([]string, width)
+							for k := 0; k < width; k++ {
+								words[k] = toks[i+k].text
+							}
+							tag := strings.Join(words, " ")
+							if len([]rune(tag)) <= 16 {
+								members, err := c.chatMemberProvider.FindChatMembersByTag(ctx.Context, handlerCtx.chat.ID, tag)
+								if err == nil && len(members) > 0 {
+									handlerCtx.chatMembers = append(handlerCtx.chatMembers, members...)
+									for k := 0; k < width; k++ {
+										handlerCtx.usedOffsets = append(handlerCtx.usedOffsets, Offset{toks[i+k].start, toks[i+k].end})
+									}
+									matched = true
+									break
+								}
+							}
+						}
+						if !matched {
+							i++
+						}
+					}
+				}
+
+				if rule.Type == ArgTypeMentionedUser {
+					totalUsers := handlerCtx.chatMembers
+					if replyUser := handlerCtx.replyChatMember; replyUser != nil {
+						totalUsers = append(totalUsers, *replyUser)
+					}
+					if len(totalUsers) < rule.Min {
+						return dispatcher.ContinueGroups
+					}
+				}
+			default:
+			}
+
+		}
+
 		for _, middleware := range c.middlewares {
 			if err := middleware.CheckUpdate(handlerCtx, u); err != nil {
 				if errors.Is(err, ErrStop) {

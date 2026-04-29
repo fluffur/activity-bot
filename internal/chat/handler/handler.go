@@ -9,6 +9,7 @@ import (
 	"activity-bot/internal/member"
 	"activity-bot/internal/model"
 	"activity-bot/internal/options"
+	"activity-bot/internal/rp"
 	"activity-bot/internal/session"
 	"errors"
 	"fmt"
@@ -26,6 +27,7 @@ type Handler struct {
 	adminService   *admin.Service
 	memberService  *member.Service
 	sessionService *session.Service
+	rpService      *rp.Service
 	dateParser     *helpers.DateParser
 }
 
@@ -34,8 +36,8 @@ type chatInfo struct {
 	Title string
 }
 
-func New(service *chat.Service, adminService *admin.Service, memberService *member.Service, sessionService *session.Service, dateParser *helpers.DateParser) *Handler {
-	return &Handler{service, adminService, memberService, sessionService, dateParser}
+func New(service *chat.Service, adminService *admin.Service, memberService *member.Service, sessionService *session.Service, rpService *rp.Service, dateParser *helpers.DateParser) *Handler {
+	return &Handler{service, adminService, memberService, sessionService, rpService, dateParser}
 }
 
 func (h *Handler) ShowNorm(ctx *command.Context, u *ext.Update) error {

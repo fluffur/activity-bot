@@ -444,7 +444,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 			if errors.Is(err, ErrStop) {
 				return dispatcher.EndGroups
 			}
-			logger.L.Error("middleware", err)
+			logger.L.Error("middleware", "error", err)
 			return dispatcher.EndGroups
 		}
 	}

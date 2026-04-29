@@ -198,6 +198,17 @@ type ChatNorm struct {
 	Value  int32  `db:"value" json:"value"`
 }
 
+type ChatRpCommand struct {
+	ChatID            int64              `db:"chat_id" json:"chatId"`
+	Trigger           string             `db:"trigger" json:"trigger"`
+	TriggerNormalized string             `db:"trigger_normalized" json:"triggerNormalized"`
+	Template          pgtype.Text        `db:"template" json:"template"`
+	EmojiJson         []byte             `db:"emoji_json" json:"emojiJson"`
+	CreatedBy         int64              `db:"created_by" json:"createdBy"`
+	CreatedAt         pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	UpdatedAt         pgtype.Timestamptz `db:"updated_at" json:"updatedAt"`
+}
+
 type CommandPermission struct {
 	ChatID         int64  `db:"chat_id" json:"chatId"`
 	CommandKey     string `db:"command_key" json:"commandKey"`

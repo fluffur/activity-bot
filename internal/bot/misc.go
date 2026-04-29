@@ -25,7 +25,7 @@ func (a *App) registerHelpHandlers(f *command.Factory) {
 }
 
 func (a *App) registerMessageHandlers(f *command.Factory) {
-	messageHandler := messageH.New(a.MessageService, a.MemberService, a.ChatService, a.Deepseek)
+	messageHandler := messageH.New(a.MessageService, a.MemberService, a.ChatService, a.RPService, a.Deepseek)
 
 	a.dp.AddHandler(f.New("ask_ai", messageHandler.Bot).
 		SetDescription("Вопрос к ИИ").
@@ -34,6 +34,10 @@ func (a *App) registerMessageHandlers(f *command.Factory) {
 		SetArgRules(command.OptionalVariadicText()),
 	)
 
+	a.dp.AddHandlerToGroup(
+		f.New("rp_event", messageHandler.HandleRPCommand).
+			SetArgRules(command.MentionedUserRule()).WrapEvent(textMessageFilter), 1,
+	)
 	a.dp.AddHandlerToGroup(
 		f.New("message", messageHandler.Message).WrapEvent(textMessageFilter), 1,
 	)
