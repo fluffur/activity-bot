@@ -261,7 +261,7 @@ func renderRPTemplate(eb *entity.Builder, cmd model.RPCommand, actor model.ChatM
 
 	if len(cmd.Emoji) > 0 {
 		helpers.DisplayEmoji(eb, cmd.Emoji)
-		eb.Plain("| ")
+		eb.Plain(" ")
 	}
 	template := rptemplate.Normalize(strings.TrimSpace(cmd.Template))
 	if template == "" {
@@ -289,11 +289,11 @@ func renderRPTemplate(eb *entity.Builder, cmd model.RPCommand, actor model.ChatM
 				eb.Plain(chunk)
 			}
 			if j < len(targetParts)-1 {
-				helpers.WriteMemberMention(eb, target)
+				helpers.WriteRoleEmojiMention(eb, target)
 			}
 		}
 		if i < len(parts)-1 {
-			helpers.WriteMemberMention(eb, actor)
+			helpers.WriteRoleEmojiMention(eb, actor)
 		}
 	}
 
