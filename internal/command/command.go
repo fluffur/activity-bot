@@ -460,7 +460,6 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 
 func (c *Command) resolveUsers(ctx *ext.Context, handlerCtx *Context, msg *types.Message, text string, entities []tg.MessageEntityClass) error {
 	// reply user
-	log.Println("resolve users")
 	if msgID, ok := getReplyToMessageID(msg); ok {
 		messages, err := ctx.GetMessages(handlerCtx.chat.ID, []tg.InputMessageClass{&tg.InputMessageID{ID: msgID}})
 		if err != nil {
