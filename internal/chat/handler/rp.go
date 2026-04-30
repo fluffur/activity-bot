@@ -82,13 +82,13 @@ func (h *Handler) PreviewRPTemplate(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb.Plain("♂♂: ")
-	eb.Plain(render("Алексей", model.GenderMale, "Дмитрий", model.GenderMale))
+	eb.Plain(render("Мужчина", model.GenderMale, "м", model.GenderMale))
 	eb.Plain("\n♂♀: ")
-	eb.Plain(render("Алексей", model.GenderMale, "Анна", model.GenderFemale))
+	eb.Plain(render("Мужчина", model.GenderMale, "Женщина", model.GenderFemale))
 	eb.Plain("\n♀♂: ")
-	eb.Plain(render("Анна", model.GenderFemale, "Дмитрий", model.GenderMale))
+	eb.Plain(render("Женщина", model.GenderFemale, "Мужчина", model.GenderMale))
 	eb.Plain("\n♀♀: ")
-	eb.Plain(render("Анна", model.GenderFemale, "Мария", model.GenderFemale))
+	eb.Plain(render("Женщина", model.GenderFemale, "Женщина", model.GenderFemale))
 
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
