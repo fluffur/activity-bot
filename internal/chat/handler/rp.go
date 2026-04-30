@@ -82,7 +82,7 @@ func (h *Handler) PreviewRPTemplate(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb.Plain("♂♂: ")
-	eb.Plain(render("Мужчина", model.GenderMale, "м", model.GenderMale))
+	eb.Plain(render("Мужчина", model.GenderMale, "Мужчина", model.GenderMale))
 	eb.Plain("\n♂♀: ")
 	eb.Plain(render("Мужчина", model.GenderMale, "Женщина", model.GenderFemale))
 	eb.Plain("\n♀♂: ")
