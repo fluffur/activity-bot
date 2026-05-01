@@ -587,7 +587,7 @@ func (c *Command) extractUserFromMessage(
 		}
 
 	default:
-		slog.Error("unsupported msg type", "msg", m)
+		slog.Error("unsupported msg type", "msg", fmt.Sprintf("%#v", m))
 		return nil, errors.New("unsupported message type")
 	}
 
