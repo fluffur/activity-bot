@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"reflect"
 	"strconv"
 	"strings"
@@ -549,6 +550,7 @@ func (c *Command) extractUserFromMessage(
 		}
 
 	default:
+		slog.Error("unsupported msg type", "msg", m)
 		return nil, errors.New("unsupported message type")
 	}
 
