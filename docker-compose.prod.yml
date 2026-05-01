@@ -57,8 +57,45 @@ services:
       - ./migrations:/app/migrations
     entrypoint: [ "./migrate" ]
 
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: activity_loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - ./monitoring/loki-config.yaml:/etc/loki/local-config.yaml
+      - lokidata:/tmp/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: activity_promtail
+    volumes:
+      - ./monitoring/promtail-config.yaml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: activity_grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafanadata:/var/lib/grafana
+    restart: unless-stopped
+
 volumes:
   pgdata:
     name: activity_pgdata
   redisdata:
     name: activity_redisdata
+  lokidata:
+    name: activity_lokidata
+  grafanadata:
+    name: activity_grafanadata
