@@ -74,8 +74,9 @@ func NewApp(cfg config.Config) (*App, error) {
 		cfg.AppHash,
 		gotgproto.ClientTypeBot(cfg.BotToken),
 		&gotgproto.ClientOpts{
-			Session:     sessionMaker.SqlSession(sqlite.Open(cfg.SQLSessionPath)),
-			Middlewares: []telegram.Middleware{waiter, ratelimiter},
+			Session:      sessionMaker.SqlSession(sqlite.Open(cfg.SQLSessionPath)),
+			ErrorHandler: telegramDispatchErrorHandler,
+			Middlewares:  []telegram.Middleware{waiter, ratelimiter},
 			RunMiddleware: func(origRun func(ctx context.Context, f func(ctx context.Context) error) (err error), ctx context.Context, f func(ctx context.Context) (err error)) (err error) {
 				return origRun(ctx, func(ctx context.Context) error {
 					return waiter.Run(ctx, f)

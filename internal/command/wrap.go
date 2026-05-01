@@ -88,6 +88,7 @@ func (c *Command) WrapCallback(filter filters.CallbackQueryFilter) HandlerFunc {
 			return errors.Wrap(err, "callback: response failed")
 		}
 
+		logCommandHandled(c, u, handlerCtx.chat, cb.MsgID, string(cb.Data), handlerCtx.RawArgs, "callback", nil)
 		return dispatcher.EndGroups
 	}
 }

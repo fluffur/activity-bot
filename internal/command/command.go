@@ -7,7 +7,6 @@ import (
 	"activity-bot/internal/options"
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"reflect"
 	"strconv"
@@ -455,8 +454,46 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 	if err != nil {
 		logger.L.Error("response", "error", err)
 	}
-	log.Println("update handled", c.name)
+	logCommandHandled(c, u, handlerCtx.chat, m.ID, text, handlerCtx.RawArgs, "message", err)
 	return dispatcher.EndGroups
+}
+
+func logCommandHandled(c *Command, u *ext.Update, chat *model.Chat, messageID int, fullText, rawArgs, via string, respErr error) {
+	chatID := u.EffectiveChat().GetID()
+	chatTitle := ""
+	if chat != nil {
+		chatID = chat.ID
+		chatTitle = chat.Title
+	}
+	scope := "user"
+	if c.scope == ScopeChat {
+		scope = "chat"
+	}
+	args := []any{
+		"command", c.name,
+		"via", via,
+		"scope", scope,
+		"chat_id", chatID,
+		"message_id", messageID,
+		"text", logger.Truncate(fullText, 4096),
+		"raw_args", logger.Truncate(rawArgs, 2048),
+	}
+	if chatTitle != "" {
+		args = append(args, "chat_title", chatTitle)
+	}
+	if usr := u.EffectiveUser(); usr != nil {
+		args = append(args, "user_id", usr.ID)
+		if usr.Username != "" {
+			args = append(args, "username", usr.Username)
+		}
+	}
+	if cb := u.CallbackQuery; cb != nil {
+		args = append(args, "callback_data", logger.Truncate(string(cb.Data), 512))
+	}
+	if respErr != nil {
+		args = append(args, "response_error", respErr.Error())
+	}
+	logger.L.Info("command handled", args...)
 }
 
 func (c *Command) resolveUsers(ctx *ext.Context, handlerCtx *Context, msg *types.Message, text string, entities []tg.MessageEntityClass) error {
