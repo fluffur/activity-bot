@@ -586,6 +586,9 @@ func (c *Command) extractUserFromMessage(
 			return nil, errors.New("unsupported service action")
 		}
 
+	case *tg.MessageEmpty:
+		return nil, errors.New("сообщение удалено или недоступно")
+
 	default:
 		slog.Error("unsupported msg type", "msg", fmt.Sprintf("%#v", m))
 		return nil, errors.New("unsupported message type")
