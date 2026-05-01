@@ -60,6 +60,7 @@ services:
   loki:
     image: grafana/loki:3.0.0
     container_name: activity_loki
+    user: "0"
     ports:
       - "127.0.0.1:3100:3100"
     volumes:
@@ -81,6 +82,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: activity_grafana
+    user: "0"
     ports:
       - "3000:3000"
     environment:
