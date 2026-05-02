@@ -123,7 +123,7 @@ func (h *Handler) ShowStats(ctx *command.Context, u *ext.Update) error {
 	eb := &entity.Builder{}
 	view.WriteStats(eb, report, restMembers, c.NewbieThresholdDays, &from, &to)
 
-	return ctx.ReplyOnly(u, options.WithBuilder(eb), options.WithMarkup(getCallKeyboard(c)))
+	return ctx.ReplyOnly(u, options.WithBuilder(eb)) //options.WithMarkup(getCallKeyboard(c)))
 }
 
 func (h *Handler) ShowChatActivityGraph(ctx *command.Context, u *ext.Update) error {
