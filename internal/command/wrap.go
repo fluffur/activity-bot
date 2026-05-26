@@ -139,7 +139,7 @@ func (c *Command) WrapEvent(filter filters.UpdateFilter) HandlerFunc {
 
 			case ArgTypeAnyUser, ArgTypeMentionedUser:
 				if err := c.resolveUsers(ctx, handlerCtx, msg, msg.Text, msg.Entities); err != nil {
-					return err
+					return fmt.Errorf("failed to resolve users event: %w", err)
 				}
 				if c.scope == ScopeChat && handlerCtx.chat != nil && len(handlerCtx.chatMembers) == 0 && handlerCtx.replyChatMember == nil {
 					toks := freeTokens(handlerCtx.RawArgs, handlerCtx.usedOffsets)

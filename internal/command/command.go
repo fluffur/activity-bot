@@ -302,7 +302,7 @@ func (c *Command) CheckUpdate(ctx *ext.Context, u *ext.Update) error {
 
 		case ArgTypeAnyUser, ArgTypeMentionedUser:
 			if err := c.resolveUsers(ctx, &handlerCtx, m, text, entities); err != nil {
-				return err
+				return fmt.Errorf("failed to resolve users command: %w", err)
 			}
 			if c.scope == ScopeChat && handlerCtx.chat != nil && len(handlerCtx.chatMembers) == 0 && handlerCtx.replyChatMember == nil {
 				toks := freeTokens(handlerCtx.RawArgs, handlerCtx.usedOffsets)
