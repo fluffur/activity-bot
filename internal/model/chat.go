@@ -27,6 +27,7 @@ type Chat struct {
 	TagsEnabled         bool
 	WeekStartTime       string
 	MaxWarns            int32
+	EmojisEnabled       bool
 }
 
 func (c Chat) AsInputChannel() *tg.InputChannel {
@@ -91,6 +92,7 @@ func (s Status) Title() string {
 
 type ChatMember struct {
 	User            User
+	Chat            Chat
 	ChatID          int64
 	RestUntil       time.Time
 	RestReason      string

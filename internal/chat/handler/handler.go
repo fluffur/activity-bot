@@ -639,6 +639,28 @@ func (h *Handler) ShowTags(ctx *command.Context, u *ext.Update) error {
 	return ctx.ReplyOnly(u, options.WithText("❌ В чате не поддерживаются теги. Это значит, что при установке роли пользователю выдаются минимальные права администратора с подписью, а не телеграм-тег"))
 }
 
+func (h *Handler) DisableEmojis(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	if err := h.service.SetEmojisEnabled(ctx.StdContext(), c.ID, false); err != nil {
+		return err
+	}
+	return ctx.ReplyOnly(u, options.WithText("Эмоджи в чате выключены"))
+}
+
+func (h *Handler) EnableEmojis(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return err
+	}
+	if err := h.service.SetEmojisEnabled(ctx.StdContext(), c.ID, true); err != nil {
+		return err
+	}
+	return ctx.ReplyOnly(u, options.WithText("Эмоджи в чате включены"))
+}
+
 func writeNormInfoEB(eb *entity.Builder, c model.ChatWithoutNorm) {
 	var normParts []string
 

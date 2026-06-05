@@ -185,4 +185,15 @@ func (a *App) registerChatHandlers(f *command.Factory) {
 		SetCategory(command.CategoryGeneral),
 	)
 
+	a.dp.AddHandler(f.New("disable_emojis", chatHandler.DisableEmojis).
+		SetAliases("-эмоджи", "-эмодзи").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetCategory(command.CategoryGeneral),
+	)
+
+	a.dp.AddHandler(f.New("enable_emojis", chatHandler.EnableEmojis).
+		SetAliases("+эмоджи", "+эмодзи").
+		SetRequiredStatus(model.StatusSeniorAdmin).
+		SetCategory(command.CategoryGeneral),
+	)
 }

@@ -17,6 +17,13 @@ type ChatRepository struct {
 	queries *db.Queries
 }
 
+func (r *ChatRepository) SetEmojisEnabled(ctx context.Context, chatID int64, enabled bool) error {
+	return r.queries.SetChatEmojisEnabled(ctx, db.SetChatEmojisEnabledParams{
+		EmojisEnabled: enabled,
+		ID:            chatID,
+	})
+}
+
 func NewChatRepository(queries *db.Queries) chat.Repository {
 	return &ChatRepository{queries}
 }

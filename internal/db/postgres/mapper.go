@@ -40,6 +40,7 @@ func mapChat(c db.Chat) model.Chat {
 		MentionTypes:        c.MentionTypes,
 		TagsEnabled:         c.TagsEnabled,
 		WeekStartTime:       helpers.MicrosecondsToTime(c.WeekStartTime.Microseconds),
+		EmojisEnabled:       c.EmojisEnabled,
 	}
 }
 

@@ -1,24 +1,25 @@
 -- name: EnsureChatExists :one
 WITH ins AS (
-    INSERT INTO chats (id, title)
-        VALUES ($1, $2)
-        ON CONFLICT (id) DO UPDATE
-            SET title = COALESCE(NULLIF(EXCLUDED.title, ''), chats.title)
-        RETURNING *)
+INSERT
+INTO chats (id, title)
+VALUES ($1, $2)
+ON CONFLICT (id) DO
+UPDATE
+    SET title = COALESCE (NULLIF (EXCLUDED.title, ''), chats.title)
+    RETURNING *)
 SELECT *
 FROM ins
 UNION ALL
 SELECT *
 FROM chats
-WHERE id = $1
-LIMIT 1;
+WHERE id = $1 LIMIT 1;
 
 -- name: GetOrCreateChat :one
 INSERT INTO chats(id, title, norm_warn)
-VALUES ($1, $2, $3)
-ON CONFLICT(id) DO UPDATE SET norm_warn = chats.norm_warn,
-                              title     = COALESCE(NULLIF(EXCLUDED.title, ''), chats.title)
-RETURNING *;
+VALUES ($1, $2, $3) ON CONFLICT(id) DO
+UPDATE SET norm_warn = chats.norm_warn,
+    title = COALESCE (NULLIF (EXCLUDED.title, ''), chats.title)
+    RETURNING *;
 
 -- name: UpdateChatWarnNorm :exec
 UPDATE chats
@@ -65,8 +66,7 @@ WHERE id = @chat_id;
 -- name: GetChatMaxLadder :one
 SELECT max_ladder
 FROM chats
-WHERE id = @chat_id
-LIMIT 1;
+WHERE id = @chat_id LIMIT 1;
 
 -- name: SetChatMaxLadder :exec
 UPDATE chats
@@ -133,11 +133,13 @@ FROM chats c
                        AND m.created_at >= (
                                                date_trunc('day', now())
                                                    - ((extract(isodow from now())::int - c.week_start_day + 7) % 7) *
-                                                     interval '1 day'
-                                                   + c.week_start_time::interval
-                                               ) - CASE
-                                                       WHEN now()::time < c.week_start_time THEN interval '7 days'
-                                                       ELSE interval '0 days' END
+    interval '1 day'
+    + c.week_start_time:: interval
+    ) - CASE
+    WHEN now():: time
+   < c.week_start_time THEN interval '7 days'
+    ELSE interval '0 days'
+END
 
 WHERE c.id < 0
   AND c.title <> ''
@@ -190,11 +192,16 @@ WHERE chat_id = $1
 
 -- name: SetCommandPermission :exec
 INSERT INTO command_permissions (chat_id, command_key, required_status)
-VALUES ($1, $2, $3)
-ON CONFLICT (chat_id, command_key) DO UPDATE
+VALUES ($1, $2, $3) ON CONFLICT (chat_id, command_key) DO
+UPDATE
     SET required_status = EXCLUDED.required_status;
 
 -- name: RemoveChat :exec
 UPDATE chats
 SET removed_at = $1
+WHERE id = $2;
+
+-- name: SetChatEmojisEnabled :exec
+UPDATE chats
+SET emojis_enabled = $1
 WHERE id = $2;

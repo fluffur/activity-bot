@@ -80,6 +80,10 @@ func (s *Service) EnableTags(ctx context.Context, chatID int64, enabled bool) er
 	return s.repo.SetTagsEnabled(ctx, chatID, enabled)
 }
 
+func (s *Service) SetEmojisEnabled(ctx context.Context, chatID int64, enabled bool) error {
+	return s.repo.SetEmojisEnabled(ctx, chatID, enabled)
+}
+
 func (s *Service) SetWeekStartTime(ctx context.Context, chatID int64, time string) error {
 	return s.repo.SetWeekStartTime(ctx, chatID, time)
 }
