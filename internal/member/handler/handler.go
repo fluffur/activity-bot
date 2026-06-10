@@ -10,12 +10,14 @@ import (
 	"activity-bot/internal/logger"
 	"activity-bot/internal/member"
 	memberview "activity-bot/internal/member/view"
+	"activity-bot/internal/model"
 	"activity-bot/internal/options"
 	"activity-bot/internal/user"
 	"fmt"
 	"log"
 	"log/slog"
 	"math/rand"
+	"time"
 	"unicode/utf8"
 
 	"github.com/celestix/gotgproto/ext"
@@ -244,14 +246,27 @@ func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
 	return h.handleMemberLeft(ctx.Context, u, u.EffectiveChat().GetID(), action.UserID)
 }
 
-func (h *Handler) OnParticipantLeft(ctx *ext.Context, u *ext.Update) error {
+func (h *Handler) OnMemberLeftUpdate(ctx *ext.Context, u *ext.Update) error {
 	chatID, userID, ok := member.LeaveFromUpdate(u)
 	if !ok {
 		return nil
 	}
 
-	slog.Info("member left (participant update)", "chat_id", chatID, "user_id", userID)
+	slog.Info("member left update", "chat_id", chatID, "user_id", userID, "update_type", fmt.Sprintf("%T", u.UpdateClass))
 	return h.handleMemberLeft(ctx, u, chatID, userID)
+}
+
+func (h *Handler) TryDetectLeftMembers(ctx *ext.Context, chatID int64) error {
+	left, err := h.service.DetectLeftMembersIfStale(ctx.Context, chatID, 15*time.Minute)
+	if err != nil {
+		return fmt.Errorf("detect left members: %w", err)
+	}
+	for _, m := range left {
+		if err := h.announceMemberLeft(ctx, nil, chatID, m); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (h *Handler) handleMemberLeft(ctx *ext.Context, u *ext.Update, chatID, userID int64) error {
@@ -263,21 +278,27 @@ func (h *Handler) handleMemberLeft(ctx *ext.Context, u *ext.Update, chatID, user
 		return nil
 	}
 
+	m, err := h.service.ProcessLeftMember(ctx.Context, chatID, userID)
+	if err != nil {
+		return fmt.Errorf("left member: process leave: %w", err)
+	}
+
+	return h.announceMemberLeft(ctx, u, chatID, m)
+}
+
+func (h *Handler) announceMemberLeft(ctx *ext.Context, u *ext.Update, chatID int64, m model.ChatMember) error {
 	title := ""
-	if ch := u.GetChannel(); ch != nil {
-		title = ch.Title
-	} else if ch := u.GetChat(); ch != nil {
-		title = ch.Title
+	if u != nil {
+		if ch := u.GetChannel(); ch != nil {
+			title = ch.Title
+		} else if ch := u.GetChat(); ch != nil {
+			title = ch.Title
+		}
 	}
 
 	c, err := h.chatService.EnsureChatExists(ctx.Context, chatID, title)
 	if err != nil {
 		return fmt.Errorf("left member: ensure chat: %w", err)
-	}
-
-	m, err := h.service.ProcessLeftMember(ctx.Context, chatID, userID)
-	if err != nil {
-		return fmt.Errorf("left member: process leave: %w", err)
 	}
 
 	eb := &entity.Builder{}
