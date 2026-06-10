@@ -1,6 +1,8 @@
 package bot
 
 import (
+	"activity-bot/internal/member"
+
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/tg"
 )
@@ -40,5 +42,10 @@ func leftMemberFilter(u *ext.Update) bool {
 	}
 
 	_, ok := msg.Action.(*tg.MessageActionChatDeleteUser)
+	return ok
+}
+
+func leftParticipantFilter(u *ext.Update) bool {
+	_, _, ok := member.LeaveFromUpdate(u)
 	return ok
 }
