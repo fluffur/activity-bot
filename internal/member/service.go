@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/user"
 	"context"
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -18,10 +19,19 @@ type Service struct {
 	chatRepo       chat.Repository
 	userRepo       user.Repository
 	adminsProvider ChatMembersProvider
+
+	syncMu   sync.Mutex
+	lastSync map[int64]time.Time
 }
 
 func NewService(repo Repository, chatRepo chat.Repository, userRepo user.Repository, adminsProvider ChatMembersProvider) *Service {
-	return &Service{repo, chatRepo, userRepo, adminsProvider}
+	return &Service{
+		repo:           repo,
+		chatRepo:       chatRepo,
+		userRepo:       userRepo,
+		adminsProvider: adminsProvider,
+		lastSync:       make(map[int64]time.Time),
+	}
 }
 
 func (s *Service) SetMemberTitle(ctx context.Context, chatID int64, userID int64, title string) error {
@@ -116,6 +126,54 @@ func (s *Service) SyncChatMembers(ctx context.Context, chatID int64) (int, error
 	}
 
 	return len(members), nil
+}
+
+func (s *Service) DetectLeftMembers(ctx context.Context, chatID int64) ([]model.ChatMember, error) {
+	apiMembers, err := s.adminsProvider.GetChatMembers(ctx, chatID)
+	if err != nil {
+		return nil, fmt.Errorf("get chat members: %w", err)
+	}
+
+	apiIDs := make([]int64, len(apiMembers))
+	apiSet := make(map[int64]struct{}, len(apiMembers))
+	for i, m := range apiMembers {
+		apiIDs[i] = m.User.ID
+		apiSet[m.User.ID] = struct{}{}
+	}
+
+	active, err := s.repo.FindByChatID(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	var left []model.ChatMember
+	for _, m := range active {
+		if _, still := apiSet[m.User.ID]; !still {
+			left = append(left, m)
+		}
+	}
+
+	if len(left) == 0 {
+		return nil, nil
+	}
+
+	if err := s.repo.MarkLeftNotInList(ctx, chatID, apiIDs); err != nil {
+		return nil, fmt.Errorf("mark left members: %w", err)
+	}
+
+	return left, nil
+}
+
+func (s *Service) DetectLeftMembersIfStale(ctx context.Context, chatID int64, minInterval time.Duration) ([]model.ChatMember, error) {
+	s.syncMu.Lock()
+	if last, ok := s.lastSync[chatID]; ok && time.Since(last) < minInterval {
+		s.syncMu.Unlock()
+		return nil, nil
+	}
+	s.lastSync[chatID] = time.Now()
+	s.syncMu.Unlock()
+
+	return s.DetectLeftMembers(ctx, chatID)
 }
 
 func (s *Service) SetOnlyNewbies(ctx context.Context, chatID int64, users []*model.User) error {
