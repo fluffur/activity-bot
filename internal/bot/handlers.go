@@ -3,7 +3,6 @@ package bot
 import (
 	"activity-bot/internal/command"
 	"activity-bot/internal/logger"
-	memberH "activity-bot/internal/member/handler"
 	"activity-bot/internal/middleware"
 	"context"
 	"time"
@@ -13,17 +12,16 @@ import (
 
 func (a *App) RegisterHandlers() {
 	f := a.createCommandFactory()
-	memberHandler := memberH.New(a.MemberService, a.ChatService, a.UserService, a.CallService, a.AdminService)
 
 	a.registerHelpHandlers(f)
 	a.registerChatHandlers(f)
 	a.registerAdminHandlers(f)
 	a.registerStatsHandlers(f)
 	a.registerCallHandlers(f)
-	a.registerMemberHandlers(f, memberHandler)
+	a.registerMemberHandlers(f)
 	a.registerUserHandlers(f)
 	a.registerRestHandlers(f)
-	a.registerMessageHandlers(f, memberHandler)
+	a.registerMessageHandlers(f)
 	a.registerChannelHandlers(f)
 	a.registerMarriageHandlers(f)
 	a.setBotCommands(f)

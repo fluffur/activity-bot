@@ -4,7 +4,6 @@ import (
 	channelH "activity-bot/internal/channel/handler"
 	"activity-bot/internal/command"
 	helpH "activity-bot/internal/help/handler"
-	memberH "activity-bot/internal/member/handler"
 	messageH "activity-bot/internal/message/handler"
 	"activity-bot/internal/model"
 
@@ -25,8 +24,8 @@ func (a *App) registerHelpHandlers(f *command.Factory) {
 	)
 }
 
-func (a *App) registerMessageHandlers(f *command.Factory, memberHandler *memberH.Handler) {
-	messageHandler := messageH.New(a.MessageService, a.MemberService, a.ChatService, a.RPService, a.Deepseek, memberHandler)
+func (a *App) registerMessageHandlers(f *command.Factory) {
+	messageHandler := messageH.New(a.MessageService, a.MemberService, a.ChatService, a.RPService, a.Deepseek)
 
 	a.dp.AddHandler(f.New("ask_ai", messageHandler.Bot).
 		SetDescription("Вопрос к ИИ").
