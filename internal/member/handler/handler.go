@@ -235,27 +235,56 @@ func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
 	if msg.Action == nil {
 		return nil
 	}
-	c, err := ctx.Chat()
-	if err != nil {
-		return fmt.Errorf("left member: get chat: %w", err)
-	}
 	action, ok := msg.Action.(*tg.MessageActionChatDeleteUser)
 	if !ok {
 		return nil
 	}
 
-	userID := action.UserID
-	slog.Info("member left", "chat_id", u.EffectiveChat().GetID(), "user_id", userID)
+	slog.Info("member left", "chat_id", u.EffectiveChat().GetID(), "user_id", action.UserID)
+	return h.handleMemberLeft(ctx.Context, u, u.EffectiveChat().GetID(), action.UserID)
+}
 
-	m, err := h.service.ProcessLeftMember(ctx.StdContext(), u.EffectiveChat().GetID(), userID)
+func (h *Handler) OnParticipantLeft(ctx *ext.Context, u *ext.Update) error {
+	chatID, userID, ok := member.LeaveFromUpdate(u)
+	if !ok {
+		return nil
+	}
+
+	slog.Info("member left (participant update)", "chat_id", chatID, "user_id", userID)
+	return h.handleMemberLeft(ctx, u, chatID, userID)
+}
+
+func (h *Handler) handleMemberLeft(ctx *ext.Context, u *ext.Update, chatID, userID int64) error {
+	existing, err := h.service.GetChatMember(ctx.Context, chatID, userID)
+	if err != nil {
+		return nil
+	}
+	if !existing.LeftAt.IsZero() {
+		return nil
+	}
+
+	title := ""
+	if ch := u.GetChannel(); ch != nil {
+		title = ch.Title
+	} else if ch := u.GetChat(); ch != nil {
+		title = ch.Title
+	}
+
+	c, err := h.chatService.EnsureChatExists(ctx.Context, chatID, title)
+	if err != nil {
+		return fmt.Errorf("left member: ensure chat: %w", err)
+	}
+
+	m, err := h.service.ProcessLeftMember(ctx.Context, chatID, userID)
 	if err != nil {
 		return fmt.Errorf("left member: process leave: %w", err)
 	}
+
 	eb := &entity.Builder{}
 	eb.Plain("🕊 ")
 	helpers.WriteRoleEmojiLink(eb, m, c.EmojisEnabled)
 	eb.Plain(fmt.Sprintf(" %s нас", helpers.Gendered(m.User.Gender, "покинул", "покинула")))
-	admins, err := h.adminService.GetAdminsEnsured(ctx.StdContext(), u.EffectiveChat().GetID(), h.service.SyncChatMembers)
+	admins, err := h.adminService.GetAdminsEnsured(ctx.Context, chatID, h.service.SyncChatMembers)
 	if err != nil {
 		return fmt.Errorf("left member: get admins ensured: %w", err)
 	}
@@ -264,7 +293,12 @@ func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
 		view.RenderMention(eb, a, c.MentionTypes, c.EmojisEnabled)
 	}
 
-	return ctx.ReplyOnly(u, options.WithBuilder(eb))
+	msg, entities := eb.Complete()
+	_, err = ctx.SendMessage(chatID, &tg.MessagesSendMessageRequest{
+		Message:  msg,
+		Entities: entities,
+	})
+	return err
 }
 
 func (h *Handler) OnBotPromote(ctx *command.Context, u *ext.Update) error {
