@@ -316,8 +316,9 @@ func (h *Handler) announceMemberLeft(ctx *ext.Context, u *ext.Update, chatID int
 
 	msg, entities := eb.Complete()
 	_, err = ctx.SendMessage(chatID, &tg.MessagesSendMessageRequest{
-		Message:  msg,
-		Entities: entities,
+		Message:   msg,
+		Entities:  entities,
+		NoWebpage: true,
 	})
 	return err
 }
@@ -520,7 +521,7 @@ func (h *Handler) FakeLeave(ctx *command.Context, u *ext.Update) error {
 	helpers.WriteRoleEmojiLink(eb, *m, ctx.EmojisEnabled())
 	eb.Plain(" ")
 	eb.Plain(helpers.Gendered(eu.Gender, "покинул", "покинула"))
-	eb.Plain(" нас...")
+	eb.Plain(" нас")
 
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
