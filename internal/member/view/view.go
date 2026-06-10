@@ -9,12 +9,12 @@ import (
 	"github.com/gotd/td/telegram/message/entity"
 )
 
-func WriteRolesList(eb *entity.Builder, members []model.ChatMember) {
+func WriteRolesList(eb *entity.Builder, members []model.ChatMember, emojisEnabled bool) {
 	eb.Plain("🎭 Роли всех участников:\n\n")
 	t := eb.Token()
 	for i, m := range members {
 		eb.Plain(fmt.Sprintf("%d. ", i+1))
-		helpers.WriteRoleEmojiLink(eb, m)
+		helpers.WriteRoleEmojiLink(eb, m, emojisEnabled)
 		eb.Code(" @" + m.User.DisplayName())
 		eb.Plain("\n")
 	}
@@ -23,9 +23,9 @@ func WriteRolesList(eb *entity.Builder, members []model.ChatMember) {
 	eb.Code("!роль @участник название")
 }
 
-func WriteRoleUpdated(eb *entity.Builder, user model.ChatMember, role string) {
+func WriteRoleUpdated(eb *entity.Builder, user model.ChatMember, role string, emojisEnabled bool) {
 	eb.Plain("Роль ")
-	helpers.WriteRoleEmojiLink(eb, user)
+	helpers.WriteRoleEmojiLink(eb, user, emojisEnabled)
 	eb.Plain(" обновлена на \"")
 	eb.Plain(html.EscapeString(role))
 	eb.Plain("\"")

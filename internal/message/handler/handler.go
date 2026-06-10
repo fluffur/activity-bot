@@ -141,7 +141,7 @@ func (h *Handler) HandleRPCommand(ctx *command.Context, u *ext.Update) error {
 	detail, speech := extractRPRefinements(text, cmd.Trigger, msg.Text, msg.Entities, target.User.ID, target.User.Username)
 
 	eb := &entity.Builder{}
-	renderRPTemplate(eb, cmd, actor, *target, detail, speech)
+	renderRPTemplate(eb, cmd, actor, *target, detail, speech, ctx.EmojisEnabled())
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -257,7 +257,7 @@ func parseMentionUsername(text string, mention *tg.MessageEntityMention) string 
 	return strings.TrimPrefix(segment, "@")
 }
 
-func renderRPTemplate(eb *entity.Builder, cmd model.RPCommand, actor model.ChatMember, target model.ChatMember, detail, speech string) {
+func renderRPTemplate(eb *entity.Builder, cmd model.RPCommand, actor model.ChatMember, target model.ChatMember, detail, speech string, emojisEnabled bool) {
 
 	if len(cmd.Emoji) > 0 {
 		helpers.DisplayEmoji(eb, cmd.Emoji)
@@ -265,7 +265,7 @@ func renderRPTemplate(eb *entity.Builder, cmd model.RPCommand, actor model.ChatM
 	}
 	template := rptemplate.Normalize(strings.TrimSpace(cmd.Template))
 	if template == "" {
-		helpers.WriteRoleEmojiMention(eb, actor)
+		helpers.WriteRoleEmojiMention(eb, actor, emojisEnabled)
 		eb.Plain(" ")
 		if len(cmd.Emoji) > 0 {
 			helpers.DisplayEmoji(eb, cmd.Emoji)
@@ -274,7 +274,7 @@ func renderRPTemplate(eb *entity.Builder, cmd model.RPCommand, actor model.ChatM
 		eb.Plain("использует действие «")
 		eb.Plain(cmd.Trigger)
 		eb.Plain("» на ")
-		helpers.WriteRoleEmojiMention(eb, target)
+		helpers.WriteRoleEmojiMention(eb, target, emojisEnabled)
 		return
 	}
 
@@ -289,11 +289,11 @@ func renderRPTemplate(eb *entity.Builder, cmd model.RPCommand, actor model.ChatM
 				eb.Plain(chunk)
 			}
 			if j < len(targetParts)-1 {
-				helpers.WriteRoleEmojiMention(eb, target)
+				helpers.WriteRoleEmojiMention(eb, target, emojisEnabled)
 			}
 		}
 		if i < len(parts)-1 {
-			helpers.WriteRoleEmojiMention(eb, actor)
+			helpers.WriteRoleEmojiMention(eb, actor, emojisEnabled)
 		}
 	}
 

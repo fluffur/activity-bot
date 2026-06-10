@@ -70,7 +70,7 @@ func (h *Handler) RequestMarriage(ctx *command.Context, u *ext.Update) error {
 	case marriage.OutcomeSelf:
 		eb := &entity.Builder{}
 		eb.Plain("💍 ")
-		helpers.WriteRoleEmojiMention(eb, *sender)
+		helpers.WriteRoleEmojiMention(eb, *sender, ctx.EmojisEnabled())
 		eb.Plain(fmt.Sprintf(
 			" торжественно вступил%s в брак с %s собой.\n\nСамодостаточность наше все 💪",
 			helpers.Gendered(sender.User.Gender, "", "а"),
@@ -83,20 +83,20 @@ func (h *Handler) RequestMarriage(ctx *command.Context, u *ext.Update) error {
 		switch {
 		case isCurrentBotTarget:
 			eb.Plain("🤖💍 ")
-			helpers.WriteRoleEmojiMention(eb, *sender)
+			helpers.WriteRoleEmojiMention(eb, *sender, ctx.EmojisEnabled())
 			eb.Plain(" сделал предложение самому боту — и я его официально принимаю!\n\n")
 			eb.Plain("Теперь мы в браке. Обновления прошивки отменяются, у нас медовый месяц.")
 		case isBotTarget:
 			eb.Plain("🤖💍 ")
-			helpers.WriteRoleEmojiMention(eb, *sender)
+			helpers.WriteRoleEmojiMention(eb, *sender, ctx.EmojisEnabled())
 			eb.Plain(fmt.Sprintf(" выбрал бот-романтику и мгновенно %s брак с ", helpers.Gendered(sender.User.Gender, "заключил", "заключила")))
-			helpers.WriteRoleEmojiMention(eb, *user)
+			helpers.WriteRoleEmojiMention(eb, *user, ctx.EmojisEnabled())
 			eb.Plain(".\n\nСвидетелями выступили серверы и один очень довольный алгоритм.")
 		default:
 			eb.Plain("💍 ")
-			helpers.WriteRoleEmojiMention(eb, *sender)
+			helpers.WriteRoleEmojiMention(eb, *sender, ctx.EmojisEnabled())
 			eb.Plain(fmt.Sprintf(" торжественно %s брак с ", helpers.Gendered(sender.User.Gender, "заключил", "заключила")))
-			helpers.WriteRoleEmojiMention(eb, *user)
+			helpers.WriteRoleEmojiMention(eb, *user, ctx.EmojisEnabled())
 			eb.Plain(" без ожидания подтверждения.\n\nПусть союз будет долгим и счастливым!")
 		}
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
@@ -104,20 +104,20 @@ func (h *Handler) RequestMarriage(ctx *command.Context, u *ext.Update) error {
 	case marriage.OutcomeAutoAccepted:
 		eb := &entity.Builder{}
 		eb.Plain("💍 ")
-		helpers.WriteRoleEmojiMention(eb, *sender)
+		helpers.WriteRoleEmojiMention(eb, *sender, ctx.EmojisEnabled())
 		eb.Plain(" и ")
-		helpers.WriteRoleEmojiMention(eb, *user)
+		helpers.WriteRoleEmojiMention(eb, *user, ctx.EmojisEnabled())
 		eb.Plain(" одновременно сделали предложение и сразу вступили в брак!\n\nВот это синхрон 😏")
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 
 	case marriage.OutcomeRequestCreated:
 		eb := &entity.Builder{}
-		helpers.WriteRoleEmojiMention(eb, *sender)
+		helpers.WriteRoleEmojiMention(eb, *sender, ctx.EmojisEnabled())
 		eb.Plain(fmt.Sprintf(
 			" %s предложение руки и сердца ",
 			helpers.Gendered(sender.User.Gender, "сделал", "сделала"),
 		))
-		helpers.WriteRoleEmojiMention(eb, *user)
+		helpers.WriteRoleEmojiMention(eb, *user, ctx.EmojisEnabled())
 		eb.Plain("\nПринять или отклонить?")
 
 		markup := &tg.ReplyInlineMarkup{
@@ -159,7 +159,7 @@ func (h *Handler) ShowMarriage(ctx *command.Context, u *ext.Update) error {
 
 	if m.User1.User.ID == m.User2.User.ID {
 		eb := &entity.Builder{}
-		helpers.WriteRoleEmojiMention(eb, *user)
+		helpers.WriteRoleEmojiMention(eb, *user, ctx.EmojisEnabled())
 		eb.Plain(fmt.Sprintf(" в браке с %s собой", helpers.Gendered(user.User.Gender, "самим", "самой")))
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
@@ -169,9 +169,9 @@ func (h *Handler) ShowMarriage(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	helpers.WriteRoleEmojiMention(eb, *user)
+	helpers.WriteRoleEmojiMention(eb, *user, ctx.EmojisEnabled())
 	eb.Plain(" в браке с ")
-	helpers.WriteRoleEmojiMention(eb, partner)
+	helpers.WriteRoleEmojiMention(eb, partner, ctx.EmojisEnabled())
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -220,9 +220,9 @@ func (h *Handler) AcceptMarriageRequest(ctx *command.Context, u *ext.Update) err
 
 	announce := &entity.Builder{}
 	announce.Plain("🎉 ")
-	helpers.WriteRoleEmojiMention(announce, fromMember)
+	helpers.WriteRoleEmojiMention(announce, fromMember, ctx.EmojisEnabled())
 	announce.Plain(" и ")
-	helpers.WriteRoleEmojiMention(announce, toMember)
+	helpers.WriteRoleEmojiMention(announce, toMember, ctx.EmojisEnabled())
 	announce.Plain(" официально вступили в брак!\n\nГорько! 💐")
 	_ = ctx.ReplyOnly(u, options.WithBuilder(announce))
 	return nil
@@ -322,7 +322,7 @@ func (h *Handler) Divorce(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	helpers.WriteRoleEmojiMention(eb, *sender)
+	helpers.WriteRoleEmojiMention(eb, *sender, ctx.EmojisEnabled())
 	if partner.User.ID == sender.User.ID {
 		eb.Plain(fmt.Sprintf(" %s с %s собой",
 			helpers.Gendered(sender.User.Gender, "развелся", "развелась"),
@@ -330,7 +330,7 @@ func (h *Handler) Divorce(ctx *command.Context, u *ext.Update) error {
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 	eb.Plain(" больше не в браке с ")
-	helpers.WriteRoleEmojiMention(eb, partner)
+	helpers.WriteRoleEmojiMention(eb, partner, ctx.EmojisEnabled())
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -380,12 +380,12 @@ func (h *Handler) ListMarriages(ctx *command.Context, u *ext.Update) error {
 		eb.Plain("\n")
 		for i, m := range items {
 			eb.Plain(fmt.Sprintf("%d. ", i+1))
-			helpers.WriteRoleEmojiLink(eb, m.User1)
+			helpers.WriteRoleEmojiLink(eb, m.User1, ctx.EmojisEnabled())
 			eb.Plain(" + ")
 			if m.User1.User.ID == m.User2.User.ID {
 				eb.Plain(fmt.Sprintf("%s же %s", helpers.Gendered(m.User1.User.Gender, "он", "она"), helpers.Gendered(m.User1.User.Gender, "сам", "сама")))
 			} else {
-				helpers.WriteRoleEmojiLink(eb, m.User2)
+				helpers.WriteRoleEmojiLink(eb, m.User2, ctx.EmojisEnabled())
 			}
 			if !m.MarriedAt.IsZero() {
 				eb.Plain(" — вместе ")

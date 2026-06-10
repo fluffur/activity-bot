@@ -24,7 +24,7 @@ func WriteProfile(eb *entity.Builder, m model.ChatMemberStats, full bool) {
 
 	helpers.WriteCustomEmoji(eb, "5316727448644103237", "👤")
 	eb.Plain(" Информация о ")
-	helpers.WriteRoleEmojiLink(eb, m.ChatMember)
+	helpers.WriteRoleEmojiLink(eb, m.ChatMember, m.Chat.EmojisEnabled)
 	eb.Plain("\n")
 
 	eb.Plain("• Ранг ")

@@ -9,7 +9,7 @@ import (
 	"github.com/gotd/td/telegram/message/entity"
 )
 
-func WriteStats(eb *entity.Builder, report []model.ChatMemberMessageCount, restMembers []model.ChatMember, newbieThresholdDays int32, from, to *time.Time) {
+func WriteStats(eb *entity.Builder, report []model.ChatMemberMessageCount, restMembers []model.ChatMember, newbieThresholdDays int32, from, to *time.Time, emojisEnabled bool) {
 	WritePeriodHeader(eb, from, to)
 	eb.Plain("\n\n")
 
@@ -78,7 +78,7 @@ func WriteStats(eb *entity.Builder, report []model.ChatMemberMessageCount, restM
 		if len(sections.InRest) > 0 {
 			for i, r := range sections.InRest {
 				eb.Plain(fmt.Sprintf("%d. ", i+1))
-				writeRestLine(eb, r)
+				writeRestLine(eb, r, emojisEnabled)
 				eb.Plain("\n")
 			}
 		} else {
@@ -106,7 +106,7 @@ func WriteStats(eb *entity.Builder, report []model.ChatMemberMessageCount, restM
 	eb.Plain("\n")
 }
 
-func WriteRestList(eb *entity.Builder, restMembers []model.ChatMember) {
+func WriteRestList(eb *entity.Builder, restMembers []model.ChatMember, emojisEnabled bool) {
 	if len(restMembers) == 0 {
 		helpers.WriteRestEmoji(eb)
 		eb.Plain(" ")
@@ -121,7 +121,7 @@ func WriteRestList(eb *entity.Builder, restMembers []model.ChatMember) {
 
 	for i, r := range restMembers {
 		eb.Plain(fmt.Sprintf("%d. ", i+1))
-		writeRestLine(eb, r)
+		writeRestLine(eb, r, emojisEnabled)
 		eb.Plain("\n")
 	}
 }
@@ -230,8 +230,8 @@ func prepareReportSections(report []model.ChatMemberMessageCount, restMembers []
 	return s
 }
 
-func writeRestLine(eb *entity.Builder, r model.ChatMember) {
-	helpers.WriteRoleEmojiLink(eb, r)
+func writeRestLine(eb *entity.Builder, r model.ChatMember, emojisEnabled bool) {
+	helpers.WriteRoleEmojiLink(eb, r, emojisEnabled)
 	eb.Plain(" до ")
 	if !r.RestUntil.IsZero() {
 		helpers.FormattedDate(eb, r.RestUntil)
@@ -262,7 +262,7 @@ func WritePeriodHeader(eb *entity.Builder, from, to *time.Time) {
 func writeNumberedList(eb *entity.Builder, items []model.ChatMemberMessageCount) {
 	for i, item := range items {
 		eb.Plain(fmt.Sprintf("%d. ", i+1))
-		helpers.WriteRoleEmojiLink(eb, item.ChatMember)
+		helpers.WriteRoleEmojiLink(eb, item.ChatMember, item.Chat.EmojisEnabled)
 		eb.Plain(" — ")
 		eb.Code(fmt.Sprintf("%d", item.MessageCount))
 		eb.Plain("\n")

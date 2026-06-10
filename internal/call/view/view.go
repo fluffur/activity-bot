@@ -65,7 +65,7 @@ func ReplaceMentionsWithLinks(input string) string {
 	return sb.String()
 }
 
-func FormatCallChunkBuilder(eb *entity.Builder, message string, members []model.ChatMember, mentionTypes int32) {
+func FormatCallChunkBuilder(eb *entity.Builder, message string, members []model.ChatMember, mentionTypes int32, emojisEnabled bool) {
 	if message != "" {
 		eb.Plain(message)
 
@@ -80,7 +80,7 @@ func FormatCallChunkBuilder(eb *entity.Builder, message string, members []model.
 	}
 
 	for j, m := range members {
-		RenderMention(eb, m, mentionTypes)
+		RenderMention(eb, m, mentionTypes, emojisEnabled)
 
 		if j < len(members)-1 {
 			eb.Plain(separator)
@@ -97,13 +97,9 @@ func FormatWelcomeCallMessage(message string) string {
 	return ": " + message
 }
 
-func userEmojis(m model.ChatMember) model.Emojis {
-	if len(m.Emojis) != 0 {
-		return m.Emojis
-	}
-
-	if len(m.User.Emojis) != 0 {
-		return m.User.Emojis
+func userEmojis(m model.ChatMember, emojisEnabled bool) model.Emojis {
+	if emojis := helpers.MemberDisplayEmojis(m, emojisEnabled); len(emojis) != 0 {
+		return emojis
 	}
 
 	return model.Emojis{
@@ -114,7 +110,7 @@ func userEmojis(m model.ChatMember) model.Emojis {
 	}
 }
 
-func RenderMention(eb *entity.Builder, m model.ChatMember, mentionTypes int32) {
+func RenderMention(eb *entity.Builder, m model.ChatMember, mentionTypes int32, emojisEnabled bool) {
 	hasEmoji := mentionTypes&MentionTypeEmoji > 0
 	hasName := mentionTypes&MentionTypeName > 0
 	hasRole := mentionTypes&MentionTypeRole > 0
@@ -133,16 +129,16 @@ func RenderMention(eb *entity.Builder, m model.ChatMember, mentionTypes int32) {
 		return
 	}
 
-	helpers.MentionEmoji(eb, m.User, userEmojis(m), resultTitle)
+	helpers.MentionEmoji(eb, m.User, userEmojis(m, emojisEnabled), resultTitle)
 
 }
 
-func WriteExcludedMembers(eb *entity.Builder, members []model.ChatMember) {
+func WriteExcludedMembers(eb *entity.Builder, members []model.ChatMember, emojisEnabled bool) {
 	t := eb.Token()
 
 	for i, m := range members {
 		eb.Plain(fmt.Sprintf("%d. ", i+1))
-		helpers.WriteRoleEmojiMention(eb, m)
+		helpers.WriteRoleEmojiMention(eb, m, emojisEnabled)
 		eb.Plain("\n")
 	}
 	t.Apply(eb, entity.Blockquote(true))

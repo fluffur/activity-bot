@@ -16,14 +16,14 @@ func StatusTitle(status model.Status, count int) string {
 
 	return status.PluralTitle()
 }
-func FormatAdminsList(admins []model.ChatMember) string {
+func FormatAdminsList(admins []model.ChatMember, emojisEnabled bool) string {
 	eb := &entity.Builder{}
-	WriteAdminsList(eb, admins)
+	WriteAdminsList(eb, admins, emojisEnabled)
 	res, _ := eb.Complete()
 	return res
 }
 
-func WriteAdminsList(eb *entity.Builder, admins []model.ChatMember) {
+func WriteAdminsList(eb *entity.Builder, admins []model.ChatMember, emojisEnabled bool) {
 	categories := map[model.Status][]model.ChatMember{}
 
 	for _, a := range admins {
@@ -46,7 +46,7 @@ func WriteAdminsList(eb *entity.Builder, admins []model.ChatMember) {
 
 		for _, m := range members {
 			eb.Plain("▸ ")
-			helpers.WriteRoleEmojiLink(eb, m)
+			helpers.WriteRoleEmojiLink(eb, m, emojisEnabled)
 			eb.Plain("\n")
 		}
 	}
@@ -55,29 +55,29 @@ func WriteAdminsList(eb *entity.Builder, admins []model.ChatMember) {
 	eb.Code("фм повысить @участник ранг")
 }
 
-func WriteAdminAdded(eb *entity.Builder, user model.ChatMember, status model.Status) {
+func WriteAdminAdded(eb *entity.Builder, user model.ChatMember, status model.Status, emojisEnabled bool) {
 	eb.Plain("Участнику ")
-	helpers.WriteRoleEmojiLink(eb, user)
+	helpers.WriteRoleEmojiLink(eb, user, emojisEnabled)
 	eb.Plain(" ")
 	eb.Plain(helpers.Gendered(user.User.Gender, "назначен", "назначена"))
 	eb.Plain(fmt.Sprintf(" ранг %d (%s)", status, status.String()))
 }
 
-func WriteAdminRemoved(eb *entity.Builder, user model.ChatMember) {
-	helpers.WriteRoleEmojiLink(eb, user)
+func WriteAdminRemoved(eb *entity.Builder, user model.ChatMember, emojisEnabled bool) {
+	helpers.WriteRoleEmojiLink(eb, user, emojisEnabled)
 	eb.Plain(" ")
 	eb.Plain(helpers.Gendered(user.User.Gender, "удален", "удалена"))
 	eb.Plain(" из администраторов бота")
 }
 
-func FormatAdminAdded(user model.ChatMember, status model.Status) string {
+func FormatAdminAdded(user model.ChatMember, status model.Status, emojisEnabled bool) string {
 	eb := &entity.Builder{}
-	WriteAdminAdded(eb, user, status)
+	WriteAdminAdded(eb, user, status, emojisEnabled)
 	res, _ := eb.Complete()
 	return res
 }
 
-func WriteModerationAction(eb *entity.Builder, user model.ChatMember, action string, until time.Time, reason string) {
+func WriteModerationAction(eb *entity.Builder, user model.ChatMember, action string, until time.Time, reason string, emojisEnabled bool) {
 	var actionText string
 	switch action {
 	case "ban":
@@ -90,7 +90,7 @@ func WriteModerationAction(eb *entity.Builder, user model.ChatMember, action str
 		actionText = action
 	}
 
-	helpers.WriteRoleEmojiLink(eb, user)
+	helpers.WriteRoleEmojiLink(eb, user, emojisEnabled)
 	eb.Plain(" ")
 	eb.Plain(actionText)
 
@@ -109,16 +109,16 @@ func WriteModerationAction(eb *entity.Builder, user model.ChatMember, action str
 	}
 }
 
-func FormatModerationAction(user model.ChatMember, action string, until time.Time, reason string) string {
+func FormatModerationAction(user model.ChatMember, action string, until time.Time, reason string, emojisEnabled bool) string {
 	eb := &entity.Builder{}
-	WriteModerationAction(eb, user, action, until, reason)
+	WriteModerationAction(eb, user, action, until, reason, emojisEnabled)
 	res, _ := eb.Complete()
 	return res
 }
 
-func WriteWarnInfo(eb *entity.Builder, user model.ChatMember, count, maxWarns int, until time.Time, reason string, banned bool) {
+func WriteWarnInfo(eb *entity.Builder, user model.ChatMember, count, maxWarns int, until time.Time, reason string, banned bool, emojisEnabled bool) {
 	eb.Plain("Участнику ")
-	helpers.WriteRoleEmojiLink(eb, user)
+	helpers.WriteRoleEmojiLink(eb, user, emojisEnabled)
 	eb.Plain(fmt.Sprintf(" выдано предупреждение (%d/%d)", count, maxWarns))
 
 	if !until.IsZero() {
@@ -138,34 +138,34 @@ func WriteWarnInfo(eb *entity.Builder, user model.ChatMember, count, maxWarns in
 	}
 }
 
-func FormatWarnInfo(user model.ChatMember, count, maxWarns int, until time.Time, reason string, banned bool) string {
+func FormatWarnInfo(user model.ChatMember, count, maxWarns int, until time.Time, reason string, banned bool, emojisEnabled bool) string {
 	eb := &entity.Builder{}
-	WriteWarnInfo(eb, user, count, maxWarns, until, reason, banned)
+	WriteWarnInfo(eb, user, count, maxWarns, until, reason, banned, emojisEnabled)
 	res, _ := eb.Complete()
 	return res
 }
 
-func FormatUnwarnInfo(user model.ChatMember, count, maxWarns int) string {
+func FormatUnwarnInfo(user model.ChatMember, count, maxWarns int, emojisEnabled bool) string {
 	eb := &entity.Builder{}
-	WriteUnwarnInfo(eb, user, count, maxWarns)
+	WriteUnwarnInfo(eb, user, count, maxWarns, emojisEnabled)
 	res, _ := eb.Complete()
 	return res
 }
 
-func FormatWarnsCleared(user model.ChatMember) string {
+func FormatWarnsCleared(user model.ChatMember, emojisEnabled bool) string {
 	eb := &entity.Builder{}
-	WriteWarnsCleared(eb, user)
+	WriteWarnsCleared(eb, user, emojisEnabled)
 	res, _ := eb.Complete()
 	return res
 }
 
-func WriteWarnsCleared(eb *entity.Builder, user model.ChatMember) {
+func WriteWarnsCleared(eb *entity.Builder, user model.ChatMember, emojisEnabled bool) {
 	eb.Plain("Все предупреждения участника ")
-	helpers.WriteRoleEmojiLink(eb, user)
+	helpers.WriteRoleEmojiLink(eb, user, emojisEnabled)
 	eb.Plain(" были аннулированы")
 }
 
-func WriteWarnlist(eb *entity.Builder, warns []model.Warn, maxWarns int) {
+func WriteWarnlist(eb *entity.Builder, warns []model.Warn, maxWarns int, emojisEnabled bool) {
 	if len(warns) == 0 {
 		helpers.WriteSuccessEmoji(eb)
 		eb.Plain(" В этом чате нет активных предупреждений")
@@ -187,14 +187,14 @@ func WriteWarnlist(eb *entity.Builder, warns []model.Warn, maxWarns int) {
 	for _, userID := range userOrder {
 		ws := userWarns[userID]
 		eb.Plain("\n👤 ")
-		helpers.WriteRoleEmojiLink(eb, ws[0].ChatMember)
+		helpers.WriteRoleEmojiLink(eb, ws[0].ChatMember, emojisEnabled)
 		eb.Plain(fmt.Sprintf(" (активные: %d/%d):\n", len(ws), maxWarns))
 
 		for i, w := range ws {
 			eb.Plain(fmt.Sprintf("  %d. Выдан ", i+1))
 			helpers.FormattedDate(eb, w.CreatedAt)
 			eb.Plain(" модератором ")
-			helpers.WriteRoleEmojiLink(eb, w.Moderator)
+			helpers.WriteRoleEmojiLink(eb, w.Moderator, emojisEnabled)
 			if !w.ExpiresAt.IsZero() {
 				eb.Plain(", истекает ")
 				helpers.FormattedDate(eb, w.ExpiresAt)
@@ -207,30 +207,30 @@ func WriteWarnlist(eb *entity.Builder, warns []model.Warn, maxWarns int) {
 	}
 }
 
-func FormatWarnlist(warns []model.Warn, maxWarns int) string {
+func FormatWarnlist(warns []model.Warn, maxWarns int, emojisEnabled bool) string {
 	eb := &entity.Builder{}
-	WriteWarnlist(eb, warns, maxWarns)
+	WriteWarnlist(eb, warns, maxWarns, emojisEnabled)
 	res, _ := eb.Complete()
 	return res
 }
 
-func FormatUnmuteInfo(user model.ChatMember) string {
+func FormatUnmuteInfo(user model.ChatMember, emojisEnabled bool) string {
 	eb := &entity.Builder{}
-	WriteUnmuteInfo(eb, user)
+	WriteUnmuteInfo(eb, user, emojisEnabled)
 	res, _ := eb.Complete()
 	return res
 }
 
-func WriteUnmuteInfo(eb *entity.Builder, user model.ChatMember) {
+func WriteUnmuteInfo(eb *entity.Builder, user model.ChatMember, emojisEnabled bool) {
 	eb.Plain("Участник ")
-	helpers.WriteRoleEmojiLink(eb, user)
+	helpers.WriteRoleEmojiLink(eb, user, emojisEnabled)
 	eb.Plain(" ")
 	eb.Plain(helpers.Gendered(user.User.Gender, "размучен", "размучена"))
 }
 
-func WriteUnwarnInfo(eb *entity.Builder, user model.ChatMember, count int, max int) {
+func WriteUnwarnInfo(eb *entity.Builder, user model.ChatMember, count int, max int, emojisEnabled bool) {
 	eb.Plain("Предупреждение участнику ")
-	helpers.WriteRoleEmojiLink(eb, user)
+	helpers.WriteRoleEmojiLink(eb, user, emojisEnabled)
 	eb.Plain(" ")
 	eb.Plain(helpers.Gendered(user.User.Gender, "снято", "снято"))
 	eb.Plain(fmt.Sprintf(" (активные: %d/%d)", count, max))

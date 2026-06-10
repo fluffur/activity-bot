@@ -8,7 +8,7 @@ import (
 	"github.com/gotd/td/telegram/message/entity"
 )
 
-func WriteInactiveMembers(eb *entity.Builder, members []model.InactiveMember) {
+func WriteInactiveMembers(eb *entity.Builder, members []model.InactiveMember, emojisEnabled bool) {
 	eb.Bold("😴 Неактивные участники (более 1 суток)\n\n")
 
 	for i, m := range members {
@@ -17,7 +17,7 @@ func WriteInactiveMembers(eb *entity.Builder, members []model.InactiveMember) {
 			userTitle = m.Member.User.FirstName
 		}
 		eb.Plain(fmt.Sprintf("%d. ", i+1))
-		helpers.WriteRoleEmojiLink(eb, m.Member)
+		helpers.WriteRoleEmojiLink(eb, m.Member, emojisEnabled)
 		eb.Plain(" — ")
 
 		if !m.LastActivity.IsZero() {

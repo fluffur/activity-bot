@@ -9,34 +9,34 @@ import (
 	"github.com/gotd/td/telegram/message/entity"
 )
 
-func WriteRestSet(eb *entity.Builder, member model.ChatMember, date time.Time, reason string) {
+func WriteRestSet(eb *entity.Builder, member model.ChatMember, date time.Time, reason string, emojisEnabled bool) {
 	if reason != "" {
 		eb.Plain(reason)
 		eb.Plain("\n\n")
 	}
 	eb.Plain("Участник ")
-	helpers.WriteRoleEmojiLink(eb, member)
+	helpers.WriteRoleEmojiLink(eb, member, emojisEnabled)
 	eb.Plain(" ")
 	eb.Plain(helpers.Gendered(member.User.Gender, "добавлен", "добавлена"))
 	eb.Plain(" в рест до ")
 	helpers.FormattedDate(eb, date)
 }
 
-func WriteRestRequest(eb *entity.Builder, user model.ChatMember, date time.Time, reason string) {
+func WriteRestRequest(eb *entity.Builder, user model.ChatMember, date time.Time, reason string, emojisEnabled bool) {
 	if reason != "" {
 		eb.Plain(reason)
 		eb.Plain("\n\n")
 	}
 	eb.Plain("Для участника ")
-	helpers.WriteRoleEmojiLink(eb, user)
+	helpers.WriteRoleEmojiLink(eb, user, emojisEnabled)
 	eb.Plain(" запрошен рест до ")
 	helpers.FormattedDate(eb, date)
 }
 
-func WriteRestShow(eb *entity.Builder, m model.ChatMember) {
+func WriteRestShow(eb *entity.Builder, m model.ChatMember, emojisEnabled bool) {
 	if m.RestUntil.IsZero() {
 		eb.Plain("Участник ")
-		helpers.WriteRoleEmojiLink(eb, m)
+		helpers.WriteRoleEmojiLink(eb, m, emojisEnabled)
 		eb.Plain(" не находится в ресте")
 		return
 	}
@@ -44,11 +44,11 @@ func WriteRestShow(eb *entity.Builder, m model.ChatMember) {
 	message := " находится в ресте до "
 	if m.RestUntil.Before(time.Now()) {
 		eb.Plain("Рест ")
-		helpers.WriteRoleEmojiLink(eb, m)
+		helpers.WriteRoleEmojiLink(eb, m, emojisEnabled)
 		eb.Plain(" был завершен ")
 		helpers.FormattedDate(eb, m.RestUntil)
 	} else {
-		helpers.WriteRoleEmojiLink(eb, m)
+		helpers.WriteRoleEmojiLink(eb, m, emojisEnabled)
 		eb.Plain(message)
 		helpers.FormattedDate(eb, m.RestUntil)
 	}
@@ -59,46 +59,46 @@ func WriteRestShow(eb *entity.Builder, m model.ChatMember) {
 	}
 }
 
-func WriteRestEnded(eb *entity.Builder, user model.ChatMember, isSelf bool) {
+func WriteRestEnded(eb *entity.Builder, user model.ChatMember, isSelf bool, emojisEnabled bool) {
 	if isSelf {
 		eb.Plain("Вы успешно удалены из реста")
 		return
 	}
 	eb.Plain("Участник ")
-	helpers.WriteRoleEmojiLink(eb, user)
+	helpers.WriteRoleEmojiLink(eb, user, emojisEnabled)
 	eb.Plain(" успешно ")
 	eb.Plain(helpers.Gendered(user.User.Gender, "удалён", "удалена"))
 	eb.Plain(" из реста")
 }
 
-func WriteRestNotInRest(eb *entity.Builder, user model.ChatMember, isSelf bool) {
+func WriteRestNotInRest(eb *entity.Builder, user model.ChatMember, isSelf bool, emojisEnabled bool) {
 	if isSelf {
 		eb.Plain("Вы не находитесь в ресте")
 		return
 	}
 	eb.Plain("Пользователь ")
-	helpers.WriteRoleEmojiLink(eb, user)
+	helpers.WriteRoleEmojiLink(eb, user, emojisEnabled)
 	eb.Plain(" не находится в ресте")
 }
 
-func WriteRestRequestApproved(eb *entity.Builder, user model.ChatMember, restUntil time.Time) {
+func WriteRestRequestApproved(eb *entity.Builder, user model.ChatMember, restUntil time.Time, emojisEnabled bool) {
 	eb.Plain("Запрос одобрен. У ")
-	helpers.WriteRoleEmojiLink(eb, user)
+	helpers.WriteRoleEmojiLink(eb, user, emojisEnabled)
 	eb.Plain(" рест до ")
 	helpers.FormattedDate(eb, restUntil)
 }
 
-func WriteRestRequestRejected(eb *entity.Builder, user *model.ChatMember) {
+func WriteRestRequestRejected(eb *entity.Builder, user *model.ChatMember, emojisEnabled bool) {
 	if user == nil {
 		eb.Plain("Запрос на рест отклонён")
 		return
 	}
 	eb.Plain("Запрос на рест для ")
-	helpers.WriteRoleEmojiLink(eb, *user)
+	helpers.WriteRoleEmojiLink(eb, *user, emojisEnabled)
 	eb.Plain(" отклонён")
 }
 
-func WriteRestRequests(eb *entity.Builder, requests []model.ApprovedRestRequest) {
+func WriteRestRequests(eb *entity.Builder, requests []model.ApprovedRestRequest, emojisEnabled bool) {
 	if len(requests) == 0 {
 		eb.Plain("Список рестов пуст")
 		return
@@ -110,7 +110,7 @@ func WriteRestRequests(eb *entity.Builder, requests []model.ApprovedRestRequest)
 	}
 
 	eb.Plain("Список рестов ")
-	helpers.WriteRoleEmojiLink(eb, cm)
+	helpers.WriteRoleEmojiLink(eb, cm, emojisEnabled)
 	eb.Plain(":\n")
 
 	type group struct {

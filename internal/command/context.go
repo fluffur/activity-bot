@@ -69,6 +69,14 @@ func (c *Context) Chat() (model.Chat, error) {
 	return *chat, nil
 }
 
+func (c *Context) EmojisEnabled() bool {
+	chat, err := c.Chat()
+	if err != nil {
+		return true
+	}
+	return chat.EmojisEnabled
+}
+
 func (c *Context) Number() (int, error) {
 	if len(c.numbers) == 0 {
 		return 0, ErrNoValue

@@ -67,6 +67,16 @@ func ExtractEmoji(text string, entities []tg.MessageEntityClass) model.Emojis {
 	return result
 }
 
+func MemberDisplayEmojis(cm model.ChatMember, emojisEnabled bool) model.Emojis {
+	if !emojisEnabled {
+		return nil
+	}
+	if len(cm.Emojis) != 0 {
+		return cm.Emojis
+	}
+	return cm.User.Emojis
+}
+
 func DisplayEmoji(eb *entity.Builder, emojis model.Emojis) {
 	for _, emoji := range emojis {
 		switch emoji.Type {

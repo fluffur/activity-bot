@@ -68,7 +68,7 @@ func (h *Handler) SetRest(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	view.WriteRestSet(eb, *target, date, reason)
+	view.WriteRestSet(eb, *target, date, reason, c.EmojisEnabled)
 
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
@@ -92,7 +92,7 @@ func (h *Handler) createRequest(ctx *command.Context, u *ext.Update, target *mod
 	}
 
 	eb := &entity.Builder{}
-	view.WriteRestRequest(eb, *target, date, reason)
+	view.WriteRestRequest(eb, *target, date, reason, ctx.EmojisEnabled())
 
 	msg, err := ctx.Reply(u, options.WithBuilder(eb), options.WithMarkup(kb))
 	if err != nil {
@@ -114,7 +114,7 @@ func (h *Handler) ShowRest(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	view.WriteRestShow(eb, *target)
+	view.WriteRestShow(eb, *target, ctx.EmojisEnabled())
 
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
@@ -137,7 +137,7 @@ func (h *Handler) AllUserRests(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	view.WriteRestRequests(eb, requests)
+	view.WriteRestRequests(eb, requests, c.EmojisEnabled)
 
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
@@ -158,7 +158,7 @@ func (h *Handler) EndRest(ctx *command.Context, u *ext.Update) error {
 	if !m.IsRestActive(time.Now()) {
 		isSelf := m.User.ID == u.EffectiveUser().GetID()
 		eb := &entity.Builder{}
-		view.WriteRestNotInRest(eb, *m, isSelf)
+		view.WriteRestNotInRest(eb, *m, isSelf, ctx.EmojisEnabled())
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 
@@ -168,7 +168,7 @@ func (h *Handler) EndRest(ctx *command.Context, u *ext.Update) error {
 
 	isSelf := m.User.ID == u.EffectiveUser().GetID()
 	eb := &entity.Builder{}
-	view.WriteRestEnded(eb, *m, isSelf)
+	view.WriteRestEnded(eb, *m, isSelf, ctx.EmojisEnabled())
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -236,7 +236,7 @@ func (h *Handler) ApproveRestRequest(ctx *command.Context, u *ext.Update) error 
 	}
 
 	eb := &entity.Builder{}
-	view.WriteRestRequestApproved(eb, target, restRequest.RestUntil)
+	view.WriteRestRequestApproved(eb, target, restRequest.RestUntil, c.EmojisEnabled)
 	result, entities := eb.Complete()
 
 	_, err = ctx.EditMessage(u.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
@@ -315,9 +315,9 @@ func (h *Handler) RejectRestRequest(ctx *command.Context, u *ext.Update) error {
 	target, err := h.memberService.GetChatMember(cctx, chatID, fromID)
 	eb := &entity.Builder{}
 	if err != nil {
-		view.WriteRestRequestRejected(eb, nil)
+		view.WriteRestRequestRejected(eb, nil, c.EmojisEnabled)
 	} else {
-		view.WriteRestRequestRejected(eb, &target)
+		view.WriteRestRequestRejected(eb, &target, c.EmojisEnabled)
 	}
 	result, entities := eb.Complete()
 

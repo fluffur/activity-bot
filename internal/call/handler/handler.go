@@ -230,7 +230,7 @@ func (h *Handler) doCall(
 		}
 
 		eb := &entity.Builder{}
-		view.FormatCallChunkBuilder(eb, message, notExcludedMembers[i:end], c.MentionTypes)
+		view.FormatCallChunkBuilder(eb, message, notExcludedMembers[i:end], c.MentionTypes, c.EmojisEnabled)
 
 		finalText, chunkEntities := eb.Complete()
 		finalEntities := append(entities, chunkEntities...)
@@ -321,7 +321,7 @@ func (h *Handler) doCall(
 	if len(excludedMembers) > 0 {
 		eb := &entity.Builder{}
 		eb.Plain("Не былы призваны: ")
-		view.WriteExcludedMembers(eb, excludedMembers)
+		view.WriteExcludedMembers(eb, excludedMembers, c.EmojisEnabled)
 		eb.Plain("Вернуть в призыв: ")
 		eb.Code("рег @участник")
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
@@ -656,7 +656,7 @@ func (h *Handler) startCallConversation(
 	}
 
 	eb := &entity.Builder{}
-	helpers.WriteRoleEmojiLink(eb, *sender)
+	helpers.WriteRoleEmojiLink(eb, *sender, ctx.EmojisEnabled())
 
 	eb.Plain(fmt.Sprintf(
 		", введите сообщение призыва %s: ",
@@ -984,7 +984,7 @@ func (h *Handler) ExcludeMemberFromCall(ctx *command.Context, u *ext.Update) err
 
 	eb := &entity.Builder{}
 	eb.Plain("Участник ")
-	helpers.WriteRoleEmojiMention(eb, *m)
+	helpers.WriteRoleEmojiMention(eb, *m, ctx.EmojisEnabled())
 	eb.Plain(" исключен из призыва\n\nЧтобы вернуть можно ввести ")
 	eb.Code("рег")
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
@@ -1009,7 +1009,7 @@ func (h *Handler) IncludeMemberInCall(ctx *command.Context, u *ext.Update) error
 
 	eb := &entity.Builder{}
 	eb.Plain("Участник ")
-	helpers.WriteRoleEmojiMention(eb, *m)
+	helpers.WriteRoleEmojiMention(eb, *m, ctx.EmojisEnabled())
 	eb.Plain(" добавлен в призывы\n\nЧтобы выйти можно ввести ")
 	eb.Code("анрег")
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
@@ -1035,7 +1035,7 @@ func (h *Handler) ListExcludedMembersFromCall(ctx *command.Context, u *ext.Updat
 	}
 	eb := &entity.Builder{}
 	eb.Plain("Вышедшие из призыва:\n")
-	view.WriteExcludedMembers(eb, unregMembers)
+	view.WriteExcludedMembers(eb, unregMembers, ctx.EmojisEnabled())
 	eb.Plain("Чтобы выйти из призыва напишите анрег")
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }

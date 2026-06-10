@@ -50,23 +50,17 @@ func WriteUserMention(eb *entity.Builder, u model.User) {
 	eb.MentionName(u.FirstName, &tg.InputUser{UserID: u.ID})
 }
 
-func WriteRoleEmojiLink(eb *entity.Builder, cm model.ChatMember) {
-	if len(cm.Emojis) != 0 {
-		DisplayEmoji(eb, cm.Emojis)
-		eb.Plain(" ")
-	} else if len(cm.User.Emojis) != 0 {
-		DisplayEmoji(eb, cm.User.Emojis)
+func WriteRoleEmojiLink(eb *entity.Builder, cm model.ChatMember, emojisEnabled bool) {
+	if emojis := MemberDisplayEmojis(cm, emojisEnabled); len(emojis) != 0 {
+		DisplayEmoji(eb, emojis)
 		eb.Plain(" ")
 	}
 	eb.TextURL(MemberDisplayName(cm), UserLink(cm.User))
 }
 
-func WriteRoleEmojiMention(eb *entity.Builder, cm model.ChatMember) {
-	if len(cm.Emojis) != 0 {
-		DisplayEmoji(eb, cm.Emojis)
-		eb.Plain(" ")
-	} else if len(cm.User.Emojis) != 0 {
-		DisplayEmoji(eb, cm.User.Emojis)
+func WriteRoleEmojiMention(eb *entity.Builder, cm model.ChatMember, emojisEnabled bool) {
+	if emojis := MemberDisplayEmojis(cm, emojisEnabled); len(emojis) != 0 {
+		DisplayEmoji(eb, emojis)
 		eb.Plain(" ")
 	}
 	WriteMemberMention(eb, cm)

@@ -64,7 +64,7 @@ func (h *Handler) ListRoles(ctx *command.Context, u *ext.Update) error {
 		return ctx.ReplyOnly(u, options.WithText("В чате нет установленных ролей"))
 	}
 	eb := &entity.Builder{}
-	memberview.WriteRolesList(eb, members)
+	memberview.WriteRolesList(eb, members, c.EmojisEnabled)
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 func (h *Handler) SetRole(ctx *command.Context, u *ext.Update) error {
@@ -118,7 +118,7 @@ func (h *Handler) SetRole(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	memberview.WriteRoleUpdated(eb, *cm, tag)
+	memberview.WriteRoleUpdated(eb, *cm, tag, c.EmojisEnabled)
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -131,7 +131,7 @@ func (h *Handler) ShowRole(ctx *command.Context, u *ext.Update) error {
 	if cm.Tag == "" {
 		eb := &entity.Builder{}
 		eb.Plain("У ")
-		helpers.WriteRoleEmojiLink(eb, *cm)
+		helpers.WriteRoleEmojiLink(eb, *cm, ctx.EmojisEnabled())
 		eb.Plain(" еще не установлена роль\n\nПопробуйте установить командой: ")
 		eb.Code("!роль @участник Название Роли")
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
@@ -218,7 +218,7 @@ func (h *Handler) OnJoinMember(ctx *command.Context, u *ext.Update) error {
 				}
 
 				eb := &entity.Builder{}
-				view.FormatCallChunkBuilder(eb, message, members[i:end], chatData.MentionTypes)
+				view.FormatCallChunkBuilder(eb, message, members[i:end], chatData.MentionTypes, chatData.EmojisEnabled)
 
 				if err := ctx.ReplyOnly(u, options.WithBuilder(eb)); err != nil {
 					logger.L.Error("failed to send on join call chuck", "error", err)
@@ -253,7 +253,7 @@ func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
 	}
 	eb := &entity.Builder{}
 	eb.Plain("🕊 ")
-	helpers.WriteRoleEmojiLink(eb, m)
+	helpers.WriteRoleEmojiLink(eb, m, c.EmojisEnabled)
 	eb.Plain(fmt.Sprintf(" %s нас", helpers.Gendered(m.User.Gender, "покинул", "покинула")))
 	admins, err := h.adminService.GetAdminsEnsured(ctx.StdContext(), u.EffectiveChat().GetID(), h.service.SyncChatMembers)
 	if err != nil {
@@ -261,7 +261,7 @@ func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
 	}
 	eb.Plain("\n\n")
 	for _, a := range admins {
-		view.RenderMention(eb, a, c.MentionTypes)
+		view.RenderMention(eb, a, c.MentionTypes, c.EmojisEnabled)
 	}
 
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
@@ -334,9 +334,9 @@ func (h *Handler) ShipRandom(ctx *command.Context, u *ext.Update) error {
 	helpers.WriteCustomEmoji(eb, "5258276353949575281", "❤️")
 	eb.Bold(" Шипперим рандом: ")
 
-	helpers.WriteRoleEmojiMention(eb, first)
+	helpers.WriteRoleEmojiMention(eb, first, ctx.EmojisEnabled())
 	eb.Plain(" + ")
-	helpers.WriteRoleEmojiMention(eb, second)
+	helpers.WriteRoleEmojiMention(eb, second, ctx.EmojisEnabled())
 	eb.Plain("\n\n")
 
 	if first.User.ID == second.User.ID {
@@ -462,7 +462,7 @@ func (h *Handler) FakeLeave(ctx *command.Context, u *ext.Update) error {
 
 	eb := &entity.Builder{}
 	eb.Plain("🕊 ")
-	helpers.WriteRoleEmojiLink(eb, *m)
+	helpers.WriteRoleEmojiLink(eb, *m, ctx.EmojisEnabled())
 	eb.Plain(" ")
 	eb.Plain(helpers.Gendered(eu.Gender, "покинул", "покинула"))
 	eb.Plain(" нас...")

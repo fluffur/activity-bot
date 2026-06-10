@@ -77,7 +77,7 @@ func (h *Handler) SetStatus(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	view.WriteAdminAdded(eb, *m, status)
+	view.WriteAdminAdded(eb, *m, status, ctx.EmojisEnabled())
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -103,7 +103,7 @@ func (h *Handler) RemoveAdmin(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	view.WriteAdminRemoved(eb, *target)
+	view.WriteAdminRemoved(eb, *target, ctx.EmojisEnabled())
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -122,7 +122,7 @@ func (h *Handler) ListAdmins(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	view.WriteAdminsList(eb, admins)
+	view.WriteAdminsList(eb, admins, c.EmojisEnabled)
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -165,7 +165,7 @@ func (h *Handler) Kick(ctx *command.Context, u *ext.Update) error {
 	_, _ = h.memberService.ProcessLeftMember(ctx.StdContext(), target.ChatID, target.User.ID)
 
 	eb := &entity.Builder{}
-	view.WriteModerationAction(eb, *target, "kick", time.Time{}, reason)
+	view.WriteModerationAction(eb, *target, "kick", time.Time{}, reason, c.EmojisEnabled)
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -208,7 +208,7 @@ func (h *Handler) Ban(ctx *command.Context, u *ext.Update) error {
 	_, _ = h.memberService.ProcessLeftMember(ctx.StdContext(), target.ChatID, target.User.ID)
 
 	eb := &entity.Builder{}
-	view.WriteModerationAction(eb, *target, "ban", until, reason)
+	view.WriteModerationAction(eb, *target, "ban", until, reason, c.EmojisEnabled)
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -303,7 +303,7 @@ func (h *Handler) Mute(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	view.WriteModerationAction(eb, *target, "mute", until, reason)
+	view.WriteModerationAction(eb, *target, "mute", until, reason, c.EmojisEnabled)
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -335,21 +335,21 @@ func (h *Handler) ShowWarns(ctx *command.Context, u *ext.Update) error {
 		eb := &entity.Builder{}
 		helpers.WriteSuccessEmoji(eb)
 		eb.Plain(" У ")
-		helpers.WriteRoleEmojiLink(eb, *m)
+		helpers.WriteRoleEmojiLink(eb, *m, ctx.EmojisEnabled())
 		eb.Plain(" нет активных варнов")
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 
 	eb := &entity.Builder{}
 	eb.Plain("⚠️ Варны пользователя ")
-	helpers.WriteRoleEmojiLink(eb, *m)
+	helpers.WriteRoleEmojiLink(eb, *m, ctx.EmojisEnabled())
 	eb.Plain(fmt.Sprintf(" (активные: %d/%d):\n\n", len(activeWarns), maxWarns))
 
 	for i, w := range activeWarns {
 		eb.Plain(fmt.Sprintf("%d. Выдан ", i+1))
 		helpers.FormattedDate(eb, w.CreatedAt)
 		eb.Plain(" модератором ")
-		helpers.WriteRoleEmojiLink(eb, w.Moderator)
+		helpers.WriteRoleEmojiLink(eb, w.Moderator, ctx.EmojisEnabled())
 		if !w.ExpiresAt.IsZero() {
 			eb.Plain(", истекает ")
 			helpers.FormattedDate(eb, w.ExpiresAt)
@@ -387,7 +387,7 @@ func (h *Handler) WarnList(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	view.WriteWarnlist(eb, activeWarns, maxWarns)
+	view.WriteWarnlist(eb, activeWarns, maxWarns, c.EmojisEnabled)
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -420,7 +420,7 @@ func (h *Handler) Warn(ctx *command.Context, u *ext.Update) error {
 	maxWarns, _ := h.service.GetMaxWarns(ctx.StdContext(), target.ChatID)
 
 	eb := &entity.Builder{}
-	view.WriteWarnInfo(eb, *target, count, maxWarns, until, reason, banned)
+	view.WriteWarnInfo(eb, *target, count, maxWarns, until, reason, banned, ctx.EmojisEnabled())
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -465,7 +465,7 @@ func (h *Handler) Unban(ctx *command.Context, u *ext.Update) error {
 
 	eb := &entity.Builder{}
 	eb.Plain("Пользователь ")
-	helpers.WriteRoleEmojiLink(eb, *target)
+	helpers.WriteRoleEmojiLink(eb, *target, ctx.EmojisEnabled())
 	eb.Plain(" ")
 	eb.Plain(helpers.Gendered(target.User.Gender, "разбанен", "разбанена"))
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
@@ -507,7 +507,7 @@ func (h *Handler) Unmute(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	view.WriteUnmuteInfo(eb, *cm)
+	view.WriteUnmuteInfo(eb, *cm, c.EmojisEnabled)
 
 	if c.TagsEnabled {
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
@@ -555,7 +555,7 @@ func (h *Handler) Unwarn(ctx *command.Context, u *ext.Update) error {
 	maxWarns, _ := h.service.GetMaxWarns(ctx.StdContext(), cm.ChatID)
 
 	eb := &entity.Builder{}
-	view.WriteUnwarnInfo(eb, *cm, count, maxWarns)
+	view.WriteUnwarnInfo(eb, *cm, count, maxWarns, ctx.EmojisEnabled())
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -636,7 +636,7 @@ func (h *Handler) ClearWarns(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	view.WriteWarnsCleared(eb, *target)
+	view.WriteWarnsCleared(eb, *target, ctx.EmojisEnabled())
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
 
@@ -656,7 +656,7 @@ func (h *Handler) DemoteTgAdmin(ctx *command.Context, u *ext.Update) error {
 
 	eb := &entity.Builder{}
 	eb.Plain("Участник ")
-	helpers.WriteRoleEmojiLink(eb, *cm)
+	helpers.WriteRoleEmojiLink(eb, *cm, ctx.EmojisEnabled())
 	eb.Plain(" " + helpers.Gendered(cm.User.Gender, "разжалован", "разжалована"))
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }

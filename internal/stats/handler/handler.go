@@ -121,7 +121,7 @@ func (h *Handler) ShowStats(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	view.WriteStats(eb, report, restMembers, c.NewbieThresholdDays, &from, &to)
+	view.WriteStats(eb, report, restMembers, c.NewbieThresholdDays, &from, &to, c.EmojisEnabled)
 
 	return ctx.ReplyOnly(u, options.WithBuilder(eb)) //options.WithMarkup(getCallKeyboard(c)))
 }
@@ -377,7 +377,7 @@ func (h *Handler) ListInactive(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	view.WriteInactiveMembers(eb, members)
+	view.WriteInactiveMembers(eb, members, c.EmojisEnabled)
 
 	return ctx.ReplyOnly(u, options.WithBuilder(eb), options.WithMarkup(&tg.ReplyInlineMarkup{
 		Rows: []tg.KeyboardButtonRow{
@@ -400,7 +400,7 @@ func (h *Handler) ShowRestList(ctx *command.Context, u *ext.Update) error {
 	}
 
 	eb := &entity.Builder{}
-	view.WriteRestList(eb, restMembers)
+	view.WriteRestList(eb, restMembers, c.EmojisEnabled)
 
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }
