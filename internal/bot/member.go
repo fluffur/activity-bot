@@ -4,8 +4,6 @@ import (
 	"activity-bot/internal/command"
 	memberH "activity-bot/internal/member/handler"
 	"activity-bot/internal/model"
-
-	ghandlers "github.com/celestix/gotgproto/dispatcher/handlers"
 )
 
 func (a *App) registerMemberHandlers(f *command.Factory) {
@@ -74,6 +72,4 @@ func (a *App) registerMemberHandlers(f *command.Factory) {
 	a.dp.AddHandler(
 		f.New("left_member", memberHandler.OnLeftMember).WrapEvent(leftMemberFilter),
 	)
-
-	a.dp.AddHandler(ghandlers.NewChatMemberUpdated(leftParticipantFilter, memberHandler.OnParticipantLeft))
 }
