@@ -108,11 +108,11 @@ func (h *Handler) Message(ctx *command.Context, u *ext.Update) error {
 		return err
 	}
 
-	if h.leftMemberDetector != nil {
-		if err := h.leftMemberDetector.TryDetectLeftMembers(ctx.Context, effectiveChat.GetID()); err != nil {
-			return fmt.Errorf("message: detect left members: %w", err)
-		}
-	}
+	//if h.leftMemberDetector != nil {
+	//	if err := h.leftMemberDetector.TryDetectLeftMembers(ctx.Context, effectiveChat.GetID()); err != nil {
+	//		return fmt.Errorf("message: detect left members: %w", err)
+	//	}
+	//}
 
 	return nil
 }
