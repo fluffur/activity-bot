@@ -123,7 +123,11 @@ func (h *Handler) ShowStats(ctx *command.Context, u *ext.Update) error {
 	eb := &entity.Builder{}
 	view.WriteStats(eb, report, restMembers, c.NewbieThresholdDays, &from, &to, c.EmojisEnabled)
 
-	return ctx.ReplyOnly(u, options.WithBuilder(eb)) //options.WithMarkup(getCallKeyboard(c)))
+	kb, err := getCallKeyboard(c)
+	if err != nil {
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
+	}
+	return ctx.ReplyOnly(u, options.WithBuilder(eb), options.WithMarkup(kb))
 }
 
 func (h *Handler) ShowChatActivityGraph(ctx *command.Context, u *ext.Update) error {
@@ -426,10 +430,14 @@ func (h *Handler) ShowFailedNorm(ctx *command.Context, u *ext.Update) error {
 	eb := &entity.Builder{}
 	view.WriteFailedNorm(eb, report, &from, &to)
 
-	return ctx.ReplyOnly(u, options.WithBuilder(eb), options.WithMarkup(getCallKeyboard(c)))
+	kb, err := getCallKeyboard(c)
+	if err != nil {
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
+	}
+	return ctx.ReplyOnly(u, options.WithBuilder(eb), options.WithMarkup(kb))
 }
 
-func getCallKeyboard(c model.Chat) tg.ReplyMarkupClass {
+func getCallKeyboard(c model.Chat) (tg.ReplyMarkupClass, error) {
 	var buttons []tg.KeyboardButtonClass
 	var rows []tg.KeyboardButtonRow
 
@@ -437,18 +445,12 @@ func getCallKeyboard(c model.Chat) tg.ReplyMarkupClass {
 		buttons = append(buttons, &tg.KeyboardButtonCallback{
 			Text: fmt.Sprintf("Без нормы %d", c.NormWarn),
 			Data: []byte("call_no_norm_warn"),
-			Style: tg.KeyboardButtonStyle{
-				Icon: 5433866857666855412,
-			},
 		})
 	}
 	if c.NormBan != 0 {
 		buttons = append(buttons, &tg.KeyboardButtonCallback{
 			Text: fmt.Sprintf("Без нормы %d", c.NormBan),
 			Data: []byte("call_no_norm_ban"),
-			Style: tg.KeyboardButtonStyle{
-				Icon: 5433866857666855412,
-			},
 		})
 	}
 
@@ -461,16 +463,15 @@ func getCallKeyboard(c model.Chat) tg.ReplyMarkupClass {
 			&tg.KeyboardButtonCallback{
 				Text: "Всех без нормы",
 				Data: []byte("call_no_norm"),
-				Style: tg.KeyboardButtonStyle{
-					Icon: 5433866857666855412,
-				},
 			},
 		}})
 	}
-
+	if len(rows) == 0 {
+		return nil, errors.New("no rows")
+	}
 	return &tg.ReplyInlineMarkup{
 		Rows: rows,
-	}
+	}, nil
 }
 
 func (h *Handler) ShowNewbies(ctx *command.Context, u *ext.Update) error {
