@@ -23,21 +23,16 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-type leftMemberDetector interface {
-	TryDetectLeftMembers(ctx *ext.Context, chatID int64) error
-}
-
 type Handler struct {
-	service            *message.Service
-	memberService      *member.Service
-	chatService        *chat.Service
-	rpService          *rp.Service
-	deepseekClient     *deepseek.Client
-	leftMemberDetector leftMemberDetector
+	service        *message.Service
+	memberService  *member.Service
+	chatService    *chat.Service
+	rpService      *rp.Service
+	deepseekClient *deepseek.Client
 }
 
-func New(service *message.Service, memberService *member.Service, chatService *chat.Service, rpService *rp.Service, deepseekClient *deepseek.Client, leftMemberDetector leftMemberDetector) *Handler {
-	return &Handler{service, memberService, chatService, rpService, deepseekClient, leftMemberDetector}
+func New(service *message.Service, memberService *member.Service, chatService *chat.Service, rpService *rp.Service, deepseekClient *deepseek.Client) *Handler {
+	return &Handler{service, memberService, chatService, rpService, deepseekClient}
 }
 
 func (h *Handler) Bot(ctx *command.Context, u *ext.Update) error {
@@ -99,22 +94,12 @@ func (h *Handler) Message(ctx *command.Context, u *ext.Update) error {
 		return fmt.Errorf("message: ensure member exists: %w", err)
 	}
 
-	if err := h.service.Save(
+	return h.service.Save(
 		ctx.StdContext(),
 		effectiveChat.GetID(),
 		effectiveSender.GetID(),
 		int64(msg.ID),
-	); err != nil {
-		return err
-	}
-
-	if h.leftMemberDetector != nil {
-		if err := h.leftMemberDetector.TryDetectLeftMembers(ctx.Context, effectiveChat.GetID()); err != nil {
-			return fmt.Errorf("message: detect left members: %w", err)
-		}
-	}
-
-	return nil
+	)
 }
 
 func (h *Handler) HandleRPCommand(ctx *command.Context, u *ext.Update) error {
