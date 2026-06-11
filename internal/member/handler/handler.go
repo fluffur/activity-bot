@@ -465,7 +465,7 @@ func (h *Handler) FakeLeave(ctx *command.Context, u *ext.Update) error {
 	helpers.WriteRoleEmojiLink(eb, *m, ctx.EmojisEnabled())
 	eb.Plain(" ")
 	eb.Plain(helpers.Gendered(eu.Gender, "покинул", "покинула"))
-	eb.Plain(" нас...")
+	eb.Plain(" нас")
 
 	return ctx.ReplyOnly(u, options.WithBuilder(eb))
 }

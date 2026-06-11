@@ -458,7 +458,7 @@ func getCallKeyboard(c model.Chat) (tg.ReplyMarkupClass, error) {
 		rows = append(rows, tg.KeyboardButtonRow{Buttons: buttons})
 	}
 
-	if c.NormWarn != 0 || c.NormBan != 0 {
+	if c.NormWarn != 0 && c.NormBan != 0 {
 		rows = append(rows, tg.KeyboardButtonRow{Buttons: []tg.KeyboardButtonClass{
 			&tg.KeyboardButtonCallback{
 				Text: "Всех без нормы",
