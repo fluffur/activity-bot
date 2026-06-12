@@ -36,13 +36,19 @@ func joinMemberFilter(u *ext.Update) bool {
 }
 
 func leftMemberFilter(u *ext.Update) bool {
+	c := u.EffectiveChat()
+
 	msg := u.EffectiveMessage
-	log.Println(u)
+	if c.GetID() == -1003672433876 {
+		log.Println(u)
+	}
 	if msg == nil || msg.Action == nil {
 		return false
 	}
+	if c.GetID() == -1003672433876 {
+		log.Println("action", msg.Action)
+	}
 
-	log.Println("action", msg.Action)
 	_, ok := msg.Action.(*tg.MessageActionChatDeleteUser)
 	return ok
 }
