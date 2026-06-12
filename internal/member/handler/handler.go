@@ -231,34 +231,67 @@ func (h *Handler) OnJoinMember(ctx *command.Context, u *ext.Update) error {
 }
 
 func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
-	msg := u.EffectiveMessage
-	if msg.Action == nil {
+	var userID int64
+
+	if msg := u.EffectiveMessage; msg != nil && msg.Action != nil {
+		if action, ok := msg.Action.(*tg.MessageActionChatDeleteUser); ok {
+			userID = action.UserID
+		}
+	}
+
+	if userID == 0 {
+		upd, ok := u.UpdateClass.(*tg.UpdateChannelParticipant)
+		if ok &&
+			upd.PrevParticipant != nil &&
+			upd.NewParticipant == nil {
+
+			userID = upd.UserID
+
+			slog.Info(
+				"member left",
+				"chat_id", u.EffectiveChat().GetID(),
+				"user_id", upd.UserID,
+				"actor_id", upd.ActorID,
+				"self_leave", upd.ActorID == upd.UserID,
+			)
+		}
+	}
+
+	if userID == 0 {
 		return nil
 	}
+
 	c, err := ctx.Chat()
 	if err != nil {
 		return fmt.Errorf("left member: get chat: %w", err)
 	}
-	action, ok := msg.Action.(*tg.MessageActionChatDeleteUser)
-	if !ok {
-		return nil
-	}
 
-	userID := action.UserID
-	slog.Info("member left", "chat_id", u.EffectiveChat().GetID(), "user_id", userID)
-
-	m, err := h.service.ProcessLeftMember(ctx.StdContext(), u.EffectiveChat().GetID(), userID)
+	m, err := h.service.ProcessLeftMember(
+		ctx.StdContext(),
+		u.EffectiveChat().GetID(),
+		userID,
+	)
 	if err != nil {
 		return fmt.Errorf("left member: process leave: %w", err)
 	}
+
 	eb := &entity.Builder{}
 	eb.Plain("🕊 ")
 	helpers.WriteRoleEmojiLink(eb, m, c.EmojisEnabled)
-	eb.Plain(fmt.Sprintf(" %s нас", helpers.Gendered(m.User.Gender, "покинул", "покинула")))
-	admins, err := h.adminService.GetAdminsEnsured(ctx.StdContext(), u.EffectiveChat().GetID(), h.service.SyncChatMembers)
+	eb.Plain(fmt.Sprintf(
+		" %s нас",
+		helpers.Gendered(m.User.Gender, "покинул", "покинула"),
+	))
+
+	admins, err := h.adminService.GetAdminsEnsured(
+		ctx.StdContext(),
+		u.EffectiveChat().GetID(),
+		h.service.SyncChatMembers,
+	)
 	if err != nil {
 		return fmt.Errorf("left member: get admins ensured: %w", err)
 	}
+
 	eb.Plain("\n\n")
 	for _, a := range admins {
 		view.RenderMention(eb, a, c.MentionTypes, c.EmojisEnabled)

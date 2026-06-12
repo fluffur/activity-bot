@@ -1,8 +1,6 @@
 package bot
 
 import (
-	"log"
-
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/tg"
 )
@@ -36,19 +34,16 @@ func joinMemberFilter(u *ext.Update) bool {
 }
 
 func leftMemberFilter(u *ext.Update) bool {
-	c := u.EffectiveChat()
-
-	msg := u.EffectiveMessage
-	if c.GetID() == -1003672433876 {
-		log.Println(u)
+	if msg := u.EffectiveMessage; msg != nil && msg.Action != nil {
+		if _, ok := msg.Action.(*tg.MessageActionChatDeleteUser); ok {
+			return true
+		}
 	}
-	if msg == nil || msg.Action == nil {
+
+	upd, ok := u.UpdateClass.(*tg.UpdateChannelParticipant)
+	if !ok {
 		return false
 	}
-	if c.GetID() == -1003672433876 {
-		log.Println("action", msg.Action)
-	}
 
-	_, ok := msg.Action.(*tg.MessageActionChatDeleteUser)
-	return ok
+	return upd.PrevParticipant != nil && upd.NewParticipant == nil
 }
