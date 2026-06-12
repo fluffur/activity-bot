@@ -260,7 +260,7 @@ func parseMentionUsername(text string, mention *tg.MessageEntityMention) string 
 }
 
 func renderRPTemplate(eb *entity.Builder, cmd model.RPCommand, actor model.ChatMember, target model.ChatMember, detail, speech string, emojisEnabled bool) {
-
+	log.Println(detail, speech)
 	if len(cmd.Emoji) > 0 {
 		helpers.DisplayEmoji(eb, cmd.Emoji)
 		eb.Plain(" ")
