@@ -34,11 +34,11 @@ func joinMemberFilter(u *ext.Update) bool {
 }
 
 func leftMemberFilter(u *ext.Update) bool {
-	if msg := u.EffectiveMessage; msg != nil && msg.Action != nil {
-		if _, ok := msg.Action.(*tg.MessageActionChatDeleteUser); ok {
-			return true
-		}
-	}
+	//if msg := u.EffectiveMessage; msg != nil && msg.Action != nil {
+	//	if _, ok := msg.Action.(*tg.MessageActionChatDeleteUser); ok {
+	//		return true
+	//	}
+	//}
 
 	upd, ok := u.UpdateClass.(*tg.UpdateChannelParticipant)
 	if !ok {
