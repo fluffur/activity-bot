@@ -240,8 +240,8 @@ func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
 	}
 
 	if userID == 0 {
-		upd, ok := u.UpdateClass.(*tg.UpdateChannelParticipant)
-		if ok &&
+		upd := u.ChannelParticipant
+		if upd != nil &&
 			upd.PrevParticipant != nil &&
 			upd.NewParticipant == nil {
 

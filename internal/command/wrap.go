@@ -99,11 +99,7 @@ func (c *Command) WrapEvent(filter filters.UpdateFilter) HandlerFunc {
 			return dispatcher.ContinueGroups
 		}
 		msg := u.EffectiveMessage
-		if msg == nil {
-			handlerCtx := &Context{Context: ctx}
-			return c.response(handlerCtx, u)
-		}
-		if msg.EditDate != 0 {
+		if msg != nil && msg.EditDate != 0 {
 			return dispatcher.ContinueGroups
 		}
 
