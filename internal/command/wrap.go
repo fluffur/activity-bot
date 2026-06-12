@@ -100,7 +100,8 @@ func (c *Command) WrapEvent(filter filters.UpdateFilter) HandlerFunc {
 		}
 		msg := u.EffectiveMessage
 		if msg == nil {
-			return nil
+			handlerCtx := &Context{Context: ctx}
+			return c.response(handlerCtx, u)
 		}
 		if msg.EditDate != 0 {
 			return dispatcher.ContinueGroups
