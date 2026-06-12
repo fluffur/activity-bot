@@ -1,6 +1,8 @@
 package bot
 
 import (
+	"log"
+
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/tg"
 )
@@ -39,7 +41,9 @@ func leftMemberFilter(u *ext.Update) bool {
 	//		return true
 	//	}
 	//}
-
+	if u.EffectiveChat().GetID() == -1003655720404 {
+		log.Println("LEFT", u.UpdateClass, u)
+	}
 	upd, ok := u.UpdateClass.(*tg.UpdateChannelParticipant)
 	if !ok {
 		return false
