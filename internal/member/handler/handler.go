@@ -296,8 +296,19 @@ func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
 	for _, a := range admins {
 		view.RenderMention(eb, a, c.MentionTypes, c.EmojisEnabled)
 	}
+	if u.EffectiveMessage != nil {
+		return ctx.ReplyOnly(u, options.WithBuilder(eb))
+	}
 
-	return ctx.ReplyOnly(u, options.WithBuilder(eb))
+	txt, ents := eb.Complete()
+	_, err = ctx.SendMessage(
+		u.EffectiveChat().GetID(),
+		&tg.MessagesSendMessageRequest{
+			Entities: ents,
+			Message:  txt,
+		},
+	)
+	return err
 }
 
 func (h *Handler) OnBotPromote(ctx *command.Context, u *ext.Update) error {
