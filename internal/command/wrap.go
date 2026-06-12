@@ -114,6 +114,10 @@ func (c *Command) WrapEvent(filter filters.UpdateFilter) HandlerFunc {
 			handlerCtx.chat = &chat
 		}
 
+		if u.ChannelParticipant != nil {
+			return c.response(handlerCtx, u)
+		}
+
 		senderMember, err := c.resolveMember(ctx, handlerCtx.chat, u.EffectiveUser())
 		if err != nil {
 			logger.L.Error("event: resolve sender failed", "error", err)
