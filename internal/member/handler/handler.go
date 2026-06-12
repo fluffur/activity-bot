@@ -304,8 +304,9 @@ func (h *Handler) OnLeftMember(ctx *command.Context, u *ext.Update) error {
 	_, err = ctx.SendMessage(
 		u.EffectiveChat().GetID(),
 		&tg.MessagesSendMessageRequest{
-			Entities: ents,
-			Message:  txt,
+			Entities:  ents,
+			NoWebpage: true,
+			Message:   txt,
 		},
 	)
 	return err
