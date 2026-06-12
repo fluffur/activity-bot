@@ -44,8 +44,9 @@ func leftMemberFilter(u *ext.Update) bool {
 	if u.EffectiveChat().GetID() == -1003655720404 {
 		log.Println("LEFT", u.UpdateClass, u)
 	}
-	upd, ok := u.UpdateClass.(*tg.UpdateChannelParticipant)
-	if !ok {
+
+	upd := u.ChannelParticipant
+	if upd == nil {
 		return false
 	}
 
