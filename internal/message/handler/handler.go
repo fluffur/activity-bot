@@ -300,9 +300,8 @@ func renderRPTemplate(eb *entity.Builder, cmd model.RPCommand, actor model.ChatM
 	}
 
 	if detail != "" && !strings.Contains(template, "{detail}") {
-		eb.Plain(" (")
+		eb.Plain(" ")
 		eb.Plain(detail)
-		eb.Plain(")")
 	}
 	_ = speech
 }
@@ -319,23 +318,27 @@ func extractRPRefinements(
 	if !ok {
 		return "", ""
 	}
-	if rest == "" {
-		return "", ""
-	}
+
 	rest = stripTargetMentionFromRest(rest, fullText, entities, targetID, targetUsername)
 	if rest == "" {
 		return "", ""
 	}
 
-	for len(rest) > 0 && (rest[0] == ' ' || rest[0] == '\t') {
-		rest = rest[1:]
-	}
+	rest = strings.TrimLeft(rest, " \t")
 	if rest == "" {
 		return "", ""
 	}
 
-	detail := strings.Join(strings.Fields(rest), " ")
-	return detail, ""
+	parts := strings.SplitN(rest, "\n", 2)
+
+	detail := strings.TrimSpace(parts[0])
+	speech := ""
+
+	if len(parts) == 2 {
+		speech = strings.TrimSpace(parts[1])
+	}
+
+	return detail, speech
 }
 
 func stripTargetMentionFromRest(rest, fullText string, entities []tg.MessageEntityClass, targetID int64, targetUsername string) string {
