@@ -12,6 +12,7 @@ import (
 	rptemplate "activity-bot/internal/rp/template"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"unicode/utf16"
 
@@ -103,6 +104,7 @@ func (h *Handler) Message(ctx *command.Context, u *ext.Update) error {
 }
 
 func (h *Handler) HandleRPCommand(ctx *command.Context, u *ext.Update) error {
+	log.Println("Handle rp command")
 	msg := u.EffectiveMessage
 	effectiveSender := u.EffectiveUser()
 	effectiveChat := u.EffectiveChat()
