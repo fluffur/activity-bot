@@ -303,7 +303,12 @@ func renderRPTemplate(eb *entity.Builder, cmd model.RPCommand, actor model.ChatM
 		eb.Plain(" ")
 		eb.Plain(detail)
 	}
-	_ = speech
+	if speech != "" {
+		eb.Plain("\n")
+		eb.Plain("💬 Сказав «")
+		eb.Plain(speech)
+		eb.Plain("»")
+	}
 }
 
 func extractRPRefinements(
