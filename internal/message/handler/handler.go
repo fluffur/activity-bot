@@ -262,7 +262,7 @@ func renderRPTemplate(eb *entity.Builder, cmd model.RPCommand, actor model.ChatM
 	log.Println(detail, speech)
 	if len(cmd.Emoji) > 0 {
 		helpers.DisplayEmoji(eb, cmd.Emoji)
-		eb.Plain(" ")
+		eb.Plain(" | ")
 	}
 	template := rptemplate.Normalize(strings.TrimSpace(cmd.Template))
 	if template == "" {
