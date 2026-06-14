@@ -379,7 +379,7 @@ func stripTargetMentionFromRest(rest, fullText string, entities []tg.MessageEnti
 		result = strings.Replace(result, "@"+strings.ToUpper(trimmedUsername), "", 1)
 	}
 
-	return strings.TrimSpace(result)
+	return strings.Trim(result, " \t")
 }
 
 func rpExtractEntity(text string, e tg.MessageEntityClass) string {
