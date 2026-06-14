@@ -25,9 +25,6 @@ func (a *App) registerAdminHandlers(f *command.Factory) {
 		SetArgRules(command.AnyUserRule(), command.NumberRule()).AddPrefixes("+").
 		SetRequiredStatus(model.StatusCoOwner),
 	)
-	a.dp.AddHandler(f.New("is_admin", adminHandler.IsAdmin).SetDescription("Проверка прав администратора").SetCategory(command.CategoryAdmin).SetAliases("админ", "admin", "mod").
-		SetArgRules(command.AnyUserRule()),
-	)
 	a.dp.AddHandler(f.New("remove_admin", adminHandler.RemoveAdmin).SetDescription("Снять администратора").SetCategory(command.CategoryAdmin).SetAliases("админ", "admin", "mod").
 		SetPrefixes("-").SetArgRules(command.MentionedUserRule()).
 		SetRequiredStatus(model.StatusCoOwner),
