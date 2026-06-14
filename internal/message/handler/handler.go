@@ -12,6 +12,7 @@ import (
 	rptemplate "activity-bot/internal/rp/template"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"unicode/utf16"
 
@@ -325,7 +326,7 @@ func extractRPRefinements(
 	if rest == "" {
 		return "", ""
 	}
-
+	log.Println("REST", rest)
 	if strings.HasPrefix(rest, "\n") {
 		return "", strings.TrimSpace(rest)
 	}
