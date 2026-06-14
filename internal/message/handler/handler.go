@@ -12,7 +12,6 @@ import (
 	rptemplate "activity-bot/internal/rp/template"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"unicode/utf16"
 
@@ -259,7 +258,6 @@ func parseMentionUsername(text string, mention *tg.MessageEntityMention) string 
 }
 
 func renderRPTemplate(eb *entity.Builder, cmd model.RPCommand, actor model.ChatMember, target model.ChatMember, detail, speech string, emojisEnabled bool) {
-	log.Println(detail, speech)
 	if len(cmd.Emoji) > 0 {
 		helpers.DisplayEmoji(eb, cmd.Emoji)
 		eb.Plain(" | ")
@@ -326,6 +324,10 @@ func extractRPRefinements(
 	rest = stripTargetMentionFromRest(rest, fullText, entities, targetID, targetUsername)
 	if rest == "" {
 		return "", ""
+	}
+
+	if strings.HasPrefix(rest, "\n") {
+		return "", strings.TrimSpace(rest)
 	}
 
 	rest = strings.TrimLeft(rest, " \t")
