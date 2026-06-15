@@ -6,3 +6,4 @@ backups/
 ./bot
 data/
 flood_cm
+session.bbolt
