@@ -10,24 +10,25 @@ import (
 )
 
 type Chat struct {
-	ID                  int64
-	Title               string
-	NormWarn            int32
-	NormBan             int32
-	NewbieThresholdDays int32
-	AISystemPrompt      string
-	MaxLadder           int32
-	WelcomeCallMessage  string
-	CallOnJoin          bool
-	WeekStartDay        int16
-	CommandPrefix       string
-	AllowPrefixless     bool
-	MentionsPerMessage  int32
-	MentionTypes        int32
-	TagsEnabled         bool
-	WeekStartTime       string
-	MaxWarns            int32
-	EmojisEnabled       bool
+	ID                   int64
+	Title                string
+	NormWarn             int32
+	NormBan              int32
+	NewbieThresholdDays  int32
+	AISystemPrompt       string
+	MaxLadder            int32
+	WelcomeCallMessage   string
+	CallOnJoin           bool
+	SkipCallConfirmation bool
+	WeekStartDay         int16
+	CommandPrefix        string
+	AllowPrefixless      bool
+	MentionsPerMessage   int32
+	MentionTypes         int32
+	TagsEnabled          bool
+	WeekStartTime        string
+	MaxWarns             int32
+	EmojisEnabled        bool
 }
 
 func (c Chat) AsInputChannel() *tg.InputChannel {

@@ -38,6 +38,10 @@ func (s *Service) DisableCallOnJoin(ctx context.Context, chatID int64) error {
 	return s.repo.UpdateCallOnJoin(ctx, chatID, false)
 }
 
+func (s *Service) SetSkipCallConfirmation(ctx context.Context, chatID int64, skip bool) error {
+	return s.repo.SetSkipCallConfirmation(ctx, chatID, skip)
+}
+
 func (s *Service) SetMentionsPerMessage(ctx context.Context, chatID int64, count int32) error {
 	return s.repo.SetMentionsPerMessage(ctx, chatID, count)
 }

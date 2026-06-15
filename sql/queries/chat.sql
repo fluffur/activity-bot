@@ -84,6 +84,11 @@ UPDATE chats
 SET call_on_join = $1
 WHERE id = @chat_id;
 
+-- name: UpdateChatSkipCallConfirmation :exec
+UPDATE chats
+SET skip_call_confirmation = $1
+WHERE id = @chat_id;
+
 -- name: UpdateChatWeekStartDay :exec
 UPDATE chats
 SET week_start_day = $1

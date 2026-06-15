@@ -135,6 +135,13 @@ func (r *ChatRepository) UpdateCallOnJoin(ctx context.Context, chatID int64, isE
 	})
 }
 
+func (r *ChatRepository) SetSkipCallConfirmation(ctx context.Context, chatID int64, skip bool) error {
+	return r.queries.UpdateChatSkipCallConfirmation(ctx, db.UpdateChatSkipCallConfirmationParams{
+		SkipCallConfirmation: skip,
+		ChatID:               chatID,
+	})
+}
+
 func (r *ChatRepository) SetWeekStartDay(ctx context.Context, chatID int64, day int) error {
 	return r.queries.UpdateChatWeekStartDay(ctx, db.UpdateChatWeekStartDayParams{
 		ChatID:       chatID,

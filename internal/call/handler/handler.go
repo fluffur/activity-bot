@@ -37,6 +37,14 @@ type Handler struct {
 	mu             sync.Mutex
 	// promptMessages[chatID][userID] = messageID вопроса "ответьте на это сообщение..."
 	promptMessages map[int64]map[int64]int64
+	// pendingCalls[chatID][userID] = ожидающий подтверждения призыв
+	pendingCalls map[int64]map[int64]pendingCall
+}
+
+type pendingCall struct {
+	message     string
+	entities    []tg.MessageEntityClass
+	sourceMsgID int
 }
 
 const (
@@ -62,6 +70,7 @@ func New(
 		sessionService: sessionService,
 		storage:        storage,
 		promptMessages: make(map[int64]map[int64]int64),
+		pendingCalls:   make(map[int64]map[int64]pendingCall),
 	}
 }
 
@@ -86,7 +95,164 @@ func (h *Handler) Call(ctx *command.Context, u *ext.Update) error {
 		entities = ctx.RawArgsEntities
 	}
 
-	return h.doCall(ctx, u, msg, entities, members)
+	if c.SkipCallConfirmation {
+		return h.doCall(ctx, u, msg, entities, members, nil)
+	}
+
+	return h.requestCallConfirmation(ctx, u, msg, entities)
+}
+
+func (h *Handler) requestCallConfirmation(
+	ctx *command.Context,
+	u *ext.Update,
+	message string,
+	entities []tg.MessageEntityClass,
+) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return fmt.Errorf("call confirm: get chat: %w", err)
+	}
+
+	chatID := c.ID
+	uid := u.EffectiveUser().GetID()
+
+	sourceMsgID := 0
+	if u.EffectiveMessage != nil {
+		sourceMsgID = u.EffectiveMessage.ID
+	}
+
+	h.mu.Lock()
+	if h.pendingCalls[chatID] == nil {
+		h.pendingCalls[chatID] = make(map[int64]pendingCall)
+	}
+	h.pendingCalls[chatID][uid] = pendingCall{
+		message:     message,
+		entities:    entities,
+		sourceMsgID: sourceMsgID,
+	}
+	h.mu.Unlock()
+
+	markup := &tg.ReplyInlineMarkup{
+		Rows: []tg.KeyboardButtonRow{
+			{
+				Buttons: []tg.KeyboardButtonClass{
+					&tg.KeyboardButtonCallback{
+						Text: "Подтвердить",
+						Data: []byte("call_confirm:yes"),
+					},
+				},
+			},
+			{
+				Buttons: []tg.KeyboardButtonClass{
+					&tg.KeyboardButtonCallback{
+						Text: "Подтвердить и больше не спрашивать",
+						Data: []byte("call_confirm:yes_always"),
+					},
+				},
+			},
+			{
+				Buttons: []tg.KeyboardButtonClass{
+					&tg.KeyboardButtonCallback{
+						Text: "Отклонить",
+						Data: []byte("call_confirm:reject"),
+					},
+				},
+			},
+		},
+	}
+
+	return ctx.ReplyOnly(
+		u,
+		options.WithText("Вы уверены, что хотите созвать всех участников чата?"),
+		options.WithMarkup(markup),
+	)
+}
+
+func (h *Handler) CallbackCallConfirm(ctx *command.Context, u *ext.Update) error {
+	c, err := ctx.Chat()
+	if err != nil {
+		return fmt.Errorf("call confirm callback: get chat: %w", err)
+	}
+
+	uid := u.EffectiveUser().GetID()
+	action := ctx.RawArgs
+
+	h.mu.Lock()
+	pending, ok := h.pendingCalls[c.ID][uid]
+	if ok {
+		delete(h.pendingCalls[c.ID], uid)
+		if len(h.pendingCalls[c.ID]) == 0 {
+			delete(h.pendingCalls, c.ID)
+		}
+	}
+	h.mu.Unlock()
+
+	if !ok {
+		_, err = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			Message: "Запрос на призыв устарел",
+			Alert:   true,
+			QueryID: u.CallbackQuery.QueryID,
+		})
+		return err
+	}
+
+	switch action {
+	case "reject":
+		_, err = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			Message: "Призыв отменён",
+			QueryID: u.CallbackQuery.QueryID,
+		})
+		if err != nil {
+			return err
+		}
+		_, err = ctx.EditMessage(c.ID, &tg.MessagesEditMessageRequest{
+			ID:          u.CallbackQuery.GetMsgID(),
+			Message:     "❌ Созыв отменён",
+			ReplyMarkup: &tg.ReplyInlineMarkup{},
+		})
+		return err
+	case "yes_always":
+		if err := h.service.SetSkipCallConfirmation(ctx.StdContext(), c.ID, true); err != nil {
+			return fmt.Errorf("call confirm callback: save setting: %w", err)
+		}
+	case "yes":
+	default:
+		return nil
+	}
+
+	members, err := h.memberService.GetChatMembers(ctx.StdContext(), c.ID)
+	if err != nil {
+		return fmt.Errorf("call confirm callback: get members: %w", err)
+	}
+	if len(members) == 0 {
+		_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+			Message: "Нет участников для призыва",
+			Alert:   true,
+			QueryID: u.CallbackQuery.QueryID,
+		})
+		return nil
+	}
+
+	var sourceMsg *tg.Message
+	if pending.sourceMsgID != 0 {
+		msgs, err := ctx.GetMessages(c.ID, []tg.InputMessageClass{&tg.InputMessageID{ID: pending.sourceMsgID}})
+		if err == nil && len(msgs) > 0 {
+			if msg, ok := msgs[0].(*tg.Message); ok {
+				sourceMsg = msg
+			}
+		}
+	}
+
+	_, _ = ctx.AnswerCallback(&tg.MessagesSetBotCallbackAnswerRequest{
+		Message: "Призыв отправлен",
+		QueryID: u.CallbackQuery.QueryID,
+	})
+	_, _ = ctx.EditMessage(c.ID, &tg.MessagesEditMessageRequest{
+		ID:          u.CallbackQuery.GetMsgID(),
+		ReplyMarkup: &tg.ReplyInlineMarkup{},
+	})
+
+	return h.doCall(ctx, u, pending.message, pending.entities, members, sourceMsg)
 }
 
 func (h *Handler) CallInactive(ctx *command.Context, u *ext.Update) error {
@@ -101,7 +267,7 @@ func (h *Handler) CallInactive(ctx *command.Context, u *ext.Update) error {
 	if len(members) == 0 {
 		return ctx.ReplyOnly(u, options.WithText("Нет участников, не писавших более суток"))
 	}
-	return h.doCall(ctx, u, ctx.RawArgs, ctx.RawArgsEntities, members)
+	return h.doCall(ctx, u, ctx.RawArgs, ctx.RawArgsEntities, members, nil)
 }
 
 func (h *Handler) CallNoNorm(ctx *command.Context, u *ext.Update) error {
@@ -128,7 +294,7 @@ func (h *Handler) CallNoNorm(ctx *command.Context, u *ext.Update) error {
 		return ctx.ReplyOnly(u, options.WithBuilder(eb))
 	}
 
-	return h.doCall(ctx, u, ctx.RawArgs, nil, members)
+	return h.doCall(ctx, u, ctx.RawArgs, nil, members, nil)
 }
 
 func (h *Handler) CallNoNormWarn(ctx *command.Context, u *ext.Update) error {
@@ -152,7 +318,7 @@ func (h *Handler) CallNoNormWarn(ctx *command.Context, u *ext.Update) error {
 		return ctx.ReplyOnly(u, options.WithText("Все участники выполнили норму предупреждения"))
 	}
 
-	return h.doCall(ctx, u, "", nil, members)
+	return h.doCall(ctx, u, "", nil, members, nil)
 }
 
 func (h *Handler) CallNoNormBan(ctx *command.Context, u *ext.Update) error {
@@ -176,7 +342,7 @@ func (h *Handler) CallNoNormBan(ctx *command.Context, u *ext.Update) error {
 		return ctx.ReplyOnly(u, options.WithText("Все участники выполнили норму бана"))
 	}
 
-	return h.doCall(ctx, u, "", nil, members)
+	return h.doCall(ctx, u, "", nil, members, nil)
 }
 
 func (h *Handler) doCall(
@@ -185,6 +351,7 @@ func (h *Handler) doCall(
 	message string,
 	entities []tg.MessageEntityClass,
 	members []model.ChatMember,
+	sourceMsg *tg.Message,
 ) error {
 	c, err := ctx.Chat()
 	if err != nil {
@@ -218,7 +385,7 @@ func (h *Handler) doCall(
 		return fmt.Errorf("do call: resolve peer: %w", err)
 	}
 
-	mediaMessages := h.getMediaMessages(ctx, u)
+	mediaMessages := h.getMediaMessages(ctx, u, sourceMsg)
 
 	for i := 0; i < len(notExcludedMembers); i += mentionsLimit {
 		if err := chatLimiter.Wait(ctx.StdContext()); err != nil {
@@ -236,7 +403,9 @@ func (h *Handler) doCall(
 		finalEntities := append(entities, chunkEntities...)
 
 		replyToMsgID := 0
-		if u.EffectiveMessage != nil {
+		if sourceMsg != nil {
+			replyToMsgID = sourceMsg.ID
+		} else if u.EffectiveMessage != nil {
 			replyToMsgID = u.EffectiveMessage.ID
 		} else if u.CallbackQuery != nil {
 			replyToMsgID = u.CallbackQuery.MsgID
@@ -358,12 +527,17 @@ func (h *Handler) extractInputMedia(media tg.MessageMediaClass) tg.InputMediaCla
 	return nil
 }
 
-func (h *Handler) getMediaMessages(ctx *command.Context, u *ext.Update) []*tg.Message {
-	if u.EffectiveMessage == nil {
+func (h *Handler) getMediaMessages(ctx *command.Context, u *ext.Update, sourceMsg *tg.Message) []*tg.Message {
+	var targetMsg *tg.Message
+	switch {
+	case sourceMsg != nil:
+		targetMsg = sourceMsg
+	case u.EffectiveMessage != nil:
+		targetMsg = u.EffectiveMessage.Message
+	default:
 		return nil
 	}
 
-	targetMsg := u.EffectiveMessage.Message
 	if targetMsg.Media == nil {
 		if header, ok := targetMsg.GetReplyTo(); ok {
 			if replyToMsg, ok := header.(*tg.MessageReplyHeader); ok {
@@ -783,7 +957,7 @@ func (h *Handler) handleCallWithMessage(
 		entities = u.EffectiveMessage.Entities
 	}
 
-	if err := h.doCall(ctx, u, text, entities, members); err != nil {
+	if err := h.doCall(ctx, u, text, entities, members, nil); err != nil {
 		return err
 	}
 
@@ -947,7 +1121,7 @@ func (h *Handler) NoMessageCallConversation(ctx *command.Context, u *ext.Update)
 		return conversation.StopConversation(stdCtx, h.storage, c.ID, uid)
 	}
 
-	if err := h.doCall(ctx, u, "", nil, members); err != nil {
+	if err := h.doCall(ctx, u, "", nil, members, nil); err != nil {
 		return err
 	}
 

@@ -64,6 +64,11 @@ func (a *App) registerCallHandlers(f *command.Factory) {
 			SetRequiredStatus(model.StatusCoOwner).
 			WrapCallback(filters.CallbackQuery.Prefix("call_type:")),
 	)
+	a.dp.AddHandler(
+		f.New("call_confirm", callHandler.CallbackCallConfirm).
+			SetRequiredStatus(model.StatusModerator).
+			WrapCallback(filters.CallbackQuery.Prefix("call_confirm:")),
+	)
 
 	a.dp.AddHandler(f.New("call_no_norm_warn", callHandler.CallNoNormWarn).
 		SetAliases("калл без нормы варн").
