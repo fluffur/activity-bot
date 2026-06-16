@@ -3,6 +3,7 @@ package events
 import (
 	"activity-bot/internal/helpers/participant"
 	"activity-bot/internal/helpers/tghtml"
+	"activity-bot/internal/i18n"
 	"context"
 	"fmt"
 
@@ -12,6 +13,7 @@ import (
 )
 
 func (h *Handler) ParticipantLeft(ctx context.Context, e tg.Entities, u *tg.UpdateChannelParticipant) error {
+	lang := "ru"
 	if u.NewParticipant != nil {
 		return nil
 	}
@@ -19,7 +21,7 @@ func (h *Handler) ParticipantLeft(ctx context.Context, e tg.Entities, u *tg.Upda
 	var chatID constant.TDLibPeerID
 	chatID.Channel(u.ChannelID)
 
-	name := "участник"
+	name := h.translator.T(lang, i18n.UserUnknown, nil)
 	if user, ok := e.Users[u.UserID]; ok {
 		name = user.FirstName
 	}
@@ -29,8 +31,12 @@ func (h *Handler) ParticipantLeft(ctx context.Context, e tg.Entities, u *tg.Upda
 		tag = name
 	}
 
+	text := h.translator.T(lang, i18n.UserLeftMale, map[string]any{
+		"User": tghtml.Mention(participant.ID(u.PrevParticipant), tag),
+	})
+
 	_, err := h.bot.SendMessage(ctx, botapi.ID(int64(chatID)),
-		fmt.Sprintf("%s покинул чат", tghtml.Mention(participant.ID(u.PrevParticipant), tag)),
+		fmt.Sprintf(text),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
 

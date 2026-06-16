@@ -1,14 +1,19 @@
 package events
 
-import "github.com/gotd/botapi"
+import (
+	"activity-bot/internal/i18n"
+
+	"github.com/gotd/botapi"
+)
 
 type Handler struct {
-	bot     *botapi.Bot
-	service *Service
+	bot        *botapi.Bot
+	translator *i18n.Service
+	service    *Service
 }
 
-func NewHandler(bot *botapi.Bot, service *Service) *Handler {
-	return &Handler{bot, service}
+func NewHandler(bot *botapi.Bot, translator *i18n.Service, service *Service) *Handler {
+	return &Handler{bot, translator, service}
 }
 
 func (h *Handler) Register() {

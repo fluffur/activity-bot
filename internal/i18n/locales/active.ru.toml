@@ -1,0 +1,11 @@
+[help]
+other = "Помощь"
+
+[user_left_male]
+other = "{{.User}} вышел из чата"
+
+[user_left_female]
+other = "{{.User}} вышла из чата"
+
+[user_unknown]
+other = "участник"

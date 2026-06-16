@@ -2,8 +2,10 @@ package main
 
 import (
 	"activity-bot/internal/config"
-	db "activity-bot/internal/db/postgres/sqlc"
+	db "activity-bot/internal/db/sqlc"
 	"activity-bot/internal/events"
+	"activity-bot/internal/help"
+	"activity-bot/internal/i18n"
 	"context"
 	"os"
 	"os/signal"
@@ -18,15 +20,20 @@ import (
 )
 
 func main() {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
 	log, _ := zap.NewDevelopment()
 	defer func() { _ = log.Sync() }()
+
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal("Failed to load config", zap.Error(err))
+		log.Fatal("Load config", zap.Error(err))
 	}
+
 	store, err := storage.Open(cfg.StoragePath)
 	if err != nil {
-		log.Fatal("Failed to open storage", zap.Error(err))
+		log.Fatal("Open storage", zap.Error(err))
 	}
 	defer func() { _ = store.Close() }()
 
@@ -41,12 +48,9 @@ func main() {
 		log.Fatal("Create bot", zap.Error(err))
 	}
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
-
 	pool, err := pgxpool.New(ctx, cfg.DBDSN)
 	if err != nil {
-		log.Fatal("Failed to connect to database", zap.Error(err))
+		log.Fatal("Connect to database", zap.Error(err))
 	}
 
 	queries := db.New(pool)
@@ -55,12 +59,17 @@ func main() {
 	client := redis.NewClient(&redis.Options{
 		Addr: cfg.RedisADDR,
 	})
-
 	defer func() { _ = client.Close() }()
+
+	translator, err := i18n.New()
+	if err != nil {
+		log.Fatal("Create translator", zap.Error(err))
+	}
 
 	bot.Use(botapi.Recover(), botapi.Timeout(time.Minute), botapi.Logging())
 
-	events.NewHandler(bot, events.NewService()).Register()
+	help.NewHandler(bot, translator).Register()
+	events.NewHandler(bot, translator, events.NewService()).Register()
 
 	log.Info("Starting bot")
 	if err := bot.Run(ctx); err != nil {

@@ -3,16 +3,18 @@ module activity-bot
 go 1.26
 
 require (
+	github.com/BurntSushi/toml v1.6.0
 	github.com/caarlos0/env/v11 v11.4.1
-	github.com/fluffur/botapi-fsm v0.0.0-20260616112829-ab5e2a863b22
 	github.com/gotd/botapi v0.2.0
 	github.com/gotd/log/logzap v0.1.1
 	github.com/gotd/td v0.157.1
 	github.com/jackc/pgx/v5 v5.10.0
+	github.com/nicksnyder/go-i18n/v2 v2.6.1
 	github.com/pressly/goose/v3 v3.27.1
 	github.com/redis/go-redis/v9 v9.20.1
 	github.com/rivo/uniseg v0.4.7
 	go.uber.org/zap v1.28.0
+	golang.org/x/text v0.38.0
 )
 
 require (
@@ -57,7 +59,6 @@ require (
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/tools v0.46.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
