@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/caarlos0/env/v11 v11.4.1
-	github.com/fluffur/botapi-fsm v0.0.0-20260616074041-5e86bd32390b
+	github.com/fluffur/botapi-fsm v0.0.0-20260616112829-ab5e2a863b22
 	github.com/gotd/botapi v0.2.0
 	github.com/gotd/log/logzap v0.1.1
 	github.com/gotd/td v0.157.1
@@ -39,7 +39,7 @@ require (
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
-	github.com/ogen-go/ogen v1.20.3 // indirect
+	github.com/ogen-go/ogen v1.22.0 // indirect
 	github.com/refraction-networking/utls v1.8.2 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
