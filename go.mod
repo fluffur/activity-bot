@@ -1,13 +1,16 @@
 module activity-bot
 
-go 1.25.7
+go 1.26
 
 require (
 	github.com/caarlos0/env/v11 v11.4.1
+	github.com/fluffur/botapi-fsm v0.0.0-20260616074041-5e86bd32390b
 	github.com/gotd/botapi v0.2.0
 	github.com/gotd/log/logzap v0.1.1
+	github.com/gotd/td v0.157.1
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/pressly/goose/v3 v3.27.1
+	github.com/redis/go-redis/v9 v9.20.1
 	github.com/rivo/uniseg v0.4.7
 	go.uber.org/zap v1.28.0
 )
@@ -29,7 +32,6 @@ require (
 	github.com/gotd/ige v0.2.2 // indirect
 	github.com/gotd/log v0.1.0 // indirect
 	github.com/gotd/neo v0.1.5 // indirect
-	github.com/gotd/td v0.157.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
