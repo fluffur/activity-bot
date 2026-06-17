@@ -8,6 +8,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 
+	"activity-bot/internal/emoji"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -182,7 +183,7 @@ type ChatMember struct {
 	RestReason      pgtype.Text        `db:"rest_reason" json:"restReason"`
 	Emoji           pgtype.Text        `db:"emoji" json:"emoji"`
 	Status          int16              `db:"status" json:"status"`
-	EmojiJson       []byte             `db:"emoji_json" json:"emojiJson"`
+	EmojiJson       emoji.Emojis       `db:"emoji_json" json:"emojiJson"`
 	ExcludeFromCall bool               `db:"exclude_from_call" json:"excludeFromCall"`
 }
 
@@ -276,7 +277,7 @@ type User struct {
 	Gender        string             `db:"gender" json:"gender"`
 	Emoji         pgtype.Text        `db:"emoji" json:"emoji"`
 	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
-	EmojiJson     []byte             `db:"emoji_json" json:"emojiJson"`
+	EmojiJson     emoji.Emojis       `db:"emoji_json" json:"emojiJson"`
 	IsBot         bool               `db:"is_bot" json:"isBot"`
 }
 

@@ -1,6 +1,7 @@
 package events
 
 import (
+	"activity-bot/internal/middleware/cctx"
 	"fmt"
 	"log"
 
@@ -10,14 +11,23 @@ import (
 func (h *Handler) Message(c *botapi.Context) error {
 	sender := c.Sender()
 	message := c.Message()
-	log.Println("No message to send", message, sender)
 
 	if message == nil || sender == nil {
 		return nil
 	}
 
-	_, err := c.Reply(
-		fmt.Sprintf("sender: %d\nmessage: %s\nchat: %d", sender.ID, message.Text, message.Chat.ID),
-	)
-	return err
+	if err := h.repository.Save(
+		c.Context,
+		message.Chat.ID,
+		sender.ID,
+		int64(message.MessageID),
+	); err != nil {
+		return fmt.Errorf("save message: %w", err)
+	}
+	m, err := cctx.ChatMember(c.Context)
+	if err != nil {
+		return err
+	}
+	log.Printf("%+v\n", m)
+	return nil
 }

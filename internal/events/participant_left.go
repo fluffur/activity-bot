@@ -1,9 +1,9 @@
 package events
 
 import (
-	"activity-bot/internal/helpers/participant"
-	"activity-bot/internal/helpers/tghtml"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/utils/participant"
+	"activity-bot/internal/utils/tghtml"
 	"context"
 	"fmt"
 

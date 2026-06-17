@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 
+	"activity-bot/internal/emoji"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -306,54 +307,6 @@ func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdm
 		return nil, err
 	}
 	return items, nil
-}
-
-const getChatMember = `-- name: GetChatMember :one
-SELECT chat_members.chat_id, chat_members.user_id, chat_members.joined_at, chat_members.rest_until, chat_members.tag, chat_members.left_at, chat_members.rest_reason, chat_members.emoji, chat_members.status, chat_members.emoji_json, chat_members.exclude_from_call, users.id, users.username, users.first_name, users.last_name, users.created_at, users.gender, users.emoji, users.custom_emoji_id, users.emoji_json, users.is_bot
-FROM chat_members
-         JOIN users ON users.id = user_id
-    AND chat_id = $1
-    AND user_id = $2
-    AND users.is_bot = FALSE
-`
-
-type GetChatMemberParams struct {
-	ChatID int64 `db:"chat_id" json:"chatId"`
-	UserID int64 `db:"user_id" json:"userId"`
-}
-
-type GetChatMemberRow struct {
-	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
-	User       User       `db:"user" json:"user"`
-}
-
-func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (GetChatMemberRow, error) {
-	row := q.db.QueryRow(ctx, getChatMember, arg.ChatID, arg.UserID)
-	var i GetChatMemberRow
-	err := row.Scan(
-		&i.ChatMember.ChatID,
-		&i.ChatMember.UserID,
-		&i.ChatMember.JoinedAt,
-		&i.ChatMember.RestUntil,
-		&i.ChatMember.Tag,
-		&i.ChatMember.LeftAt,
-		&i.ChatMember.RestReason,
-		&i.ChatMember.Emoji,
-		&i.ChatMember.Status,
-		&i.ChatMember.EmojiJson,
-		&i.ChatMember.ExcludeFromCall,
-		&i.User.ID,
-		&i.User.Username,
-		&i.User.FirstName,
-		&i.User.LastName,
-		&i.User.CreatedAt,
-		&i.User.Gender,
-		&i.User.Emoji,
-		&i.User.CustomEmojiID,
-		&i.User.EmojiJson,
-		&i.User.IsBot,
-	)
-	return i, err
 }
 
 const getChatMemberByUsername = `-- name: GetChatMemberByUsername :one
@@ -892,9 +845,9 @@ WHERE user_id = $2
 `
 
 type SetChatMemberEmojiJSONParams struct {
-	EmojiJson []byte `db:"emoji_json" json:"emojiJson"`
-	UserID    int64  `db:"user_id" json:"userId"`
-	ChatID    int64  `db:"chat_id" json:"chatId"`
+	EmojiJson emoji.Emojis `db:"emoji_json" json:"emojiJson"`
+	UserID    int64        `db:"user_id" json:"userId"`
+	ChatID    int64        `db:"chat_id" json:"chatId"`
 }
 
 func (q *Queries) SetChatMemberEmojiJSON(ctx context.Context, arg SetChatMemberEmojiJSONParams) error {

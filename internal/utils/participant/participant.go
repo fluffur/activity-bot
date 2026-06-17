@@ -1,6 +1,8 @@
 package participant
 
-import "github.com/gotd/td/tg"
+import (
+	"github.com/gotd/td/tg"
+)
 
 func Rank(p tg.ChannelParticipantClass) string {
 	if p == nil {

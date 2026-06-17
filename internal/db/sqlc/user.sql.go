@@ -8,8 +8,39 @@ package db
 import (
 	"context"
 
+	"activity-bot/internal/emoji"
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const createUser = `-- name: CreateUser :exec
+INSERT INTO users(id, username, first_name, last_name, created_at, gender, emoji_json, is_bot)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+`
+
+type CreateUserParams struct {
+	ID        int64              `db:"id" json:"id"`
+	Username  pgtype.Text        `db:"username" json:"username"`
+	FirstName pgtype.Text        `db:"first_name" json:"firstName"`
+	LastName  pgtype.Text        `db:"last_name" json:"lastName"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	Gender    string             `db:"gender" json:"gender"`
+	EmojiJson emoji.Emojis       `db:"emoji_json" json:"emojiJson"`
+	IsBot     bool               `db:"is_bot" json:"isBot"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
+	_, err := q.db.Exec(ctx, createUser,
+		arg.ID,
+		arg.Username,
+		arg.FirstName,
+		arg.LastName,
+		arg.CreatedAt,
+		arg.Gender,
+		arg.EmojiJson,
+		arg.IsBot,
+	)
+	return err
+}
 
 const ensureUserExists = `-- name: EnsureUserExists :one
 INSERT INTO users(id, username, first_name, last_name, is_bot)
@@ -53,14 +84,15 @@ func (q *Queries) EnsureUserExists(ctx context.Context, arg EnsureUserExistsPara
 	return i, err
 }
 
-const getUser = `-- name: GetUser :one
+const getUserByID = `-- name: GetUserByID :one
 SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json, is_bot
 FROM users
 WHERE id = $1
+LIMIT 1
 `
 
-func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
-	row := q.db.QueryRow(ctx, getUser, id)
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByID, id)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -140,8 +172,8 @@ WHERE id = $1
 `
 
 type SetUserEmojiJsonParams struct {
-	ID        int64  `db:"id" json:"id"`
-	EmojiJson []byte `db:"emoji_json" json:"emojiJson"`
+	ID        int64        `db:"id" json:"id"`
+	EmojiJson emoji.Emojis `db:"emoji_json" json:"emojiJson"`
 }
 
 func (q *Queries) SetUserEmojiJson(ctx context.Context, arg SetUserEmojiJsonParams) error {

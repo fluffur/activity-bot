@@ -11,21 +11,77 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createChat = `-- name: CreateChat :exec
+INSERT INTO chats(id,
+                  newbie_threshold_days,
+                  ai_system_prompt,
+                  week_start_day,
+                  max_warns,
+                  command_prefix,
+                  allow_prefixless,
+                  mentions_per_message,
+                  mention_types,
+                  title,
+                  tags_enabled,
+                  week_start_time,
+                  removed_at,
+                  emojis_enabled)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+`
+
+type CreateChatParams struct {
+	ID                  int64              `db:"id" json:"id"`
+	NewbieThresholdDays int32              `db:"newbie_threshold_days" json:"newbieThresholdDays"`
+	AiSystemPrompt      pgtype.Text        `db:"ai_system_prompt" json:"aiSystemPrompt"`
+	WeekStartDay        int16              `db:"week_start_day" json:"weekStartDay"`
+	MaxWarns            int32              `db:"max_warns" json:"maxWarns"`
+	CommandPrefix       pgtype.Text        `db:"command_prefix" json:"commandPrefix"`
+	AllowPrefixless     bool               `db:"allow_prefixless" json:"allowPrefixless"`
+	MentionsPerMessage  int32              `db:"mentions_per_message" json:"mentionsPerMessage"`
+	MentionTypes        int32              `db:"mention_types" json:"mentionTypes"`
+	Title               string             `db:"title" json:"title"`
+	TagsEnabled         bool               `db:"tags_enabled" json:"tagsEnabled"`
+	WeekStartTime       pgtype.Time        `db:"week_start_time" json:"weekStartTime"`
+	RemovedAt           pgtype.Timestamptz `db:"removed_at" json:"removedAt"`
+	EmojisEnabled       bool               `db:"emojis_enabled" json:"emojisEnabled"`
+}
+
+func (q *Queries) CreateChat(ctx context.Context, arg CreateChatParams) error {
+	_, err := q.db.Exec(ctx, createChat,
+		arg.ID,
+		arg.NewbieThresholdDays,
+		arg.AiSystemPrompt,
+		arg.WeekStartDay,
+		arg.MaxWarns,
+		arg.CommandPrefix,
+		arg.AllowPrefixless,
+		arg.MentionsPerMessage,
+		arg.MentionTypes,
+		arg.Title,
+		arg.TagsEnabled,
+		arg.WeekStartTime,
+		arg.RemovedAt,
+		arg.EmojisEnabled,
+	)
+	return err
+}
+
 const ensureChatExists = `-- name: EnsureChatExists :one
 WITH ins AS (
-INSERT
-INTO chats (id, title)
-VALUES ($1, $2)
-ON CONFLICT (id) DO
-UPDATE
-    SET title = COALESCE (NULLIF (EXCLUDED.title, ''), chats.title)
-    RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled, removed_at, emojis_enabled, skip_call_confirmation)
+    INSERT
+        INTO chats (id, title)
+            VALUES ($1, $2)
+            ON CONFLICT (id) DO
+                UPDATE
+                SET title = COALESCE(NULLIF(EXCLUDED.title, ''), chats.title)
+            RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled, removed_at, emojis_enabled, skip_call_confirmation)
 SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled, removed_at, emojis_enabled, skip_call_confirmation
 FROM ins
 UNION ALL
 SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled, removed_at, emojis_enabled, skip_call_confirmation
 FROM chats
-WHERE id = $1 LIMIT 1
+WHERE id = $1
+LIMIT 1
 `
 
 type EnsureChatExistsParams struct {
@@ -158,13 +214,13 @@ FROM chats c
                        AND m.created_at >= (
                                                date_trunc('day', now())
                                                    - ((extract(isodow from now())::int - c.week_start_day + 7) % 7) *
-    interval '1 day'
-    + c.week_start_time:: interval
-    ) - CASE
-    WHEN now():: time
-   < c.week_start_time THEN interval '7 days'
-    ELSE interval '0 days'
-END
+                                                     interval '1 day'
+                                                   + c.week_start_time:: interval
+                                               ) - CASE
+                                                       WHEN now():: time
+                                                           < c.week_start_time THEN interval '7 days'
+                                                       ELSE interval '0 days'
+                                               END
 
 WHERE c.id < 0
   AND c.title <> ''
@@ -245,10 +301,47 @@ func (q *Queries) GetChat(ctx context.Context, id int64) (Chat, error) {
 	return i, err
 }
 
+const getChatByID = `-- name: GetChatByID :one
+SELECT id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled, removed_at, emojis_enabled, skip_call_confirmation
+FROM chats
+WHERE id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetChatByID(ctx context.Context, id int64) (Chat, error) {
+	row := q.db.QueryRow(ctx, getChatByID, id)
+	var i Chat
+	err := row.Scan(
+		&i.ID,
+		&i.NormWarn,
+		&i.NewbieThresholdDays,
+		&i.AiSystemPrompt,
+		&i.MaxLadder,
+		&i.CallOnJoin,
+		&i.WelcomeCallMessage,
+		&i.WeekStartDay,
+		&i.MaxWarns,
+		&i.NormBan,
+		&i.CommandPrefix,
+		&i.AllowPrefixless,
+		&i.MentionsPerMessage,
+		&i.MentionTypes,
+		&i.Title,
+		&i.TagsEnabled,
+		&i.WeekStartTime,
+		&i.BroadcastEnabled,
+		&i.RemovedAt,
+		&i.EmojisEnabled,
+		&i.SkipCallConfirmation,
+	)
+	return i, err
+}
+
 const getChatMaxLadder = `-- name: GetChatMaxLadder :one
 SELECT max_ladder
 FROM chats
-WHERE id = $1 LIMIT 1
+WHERE id = $1
+LIMIT 1
 `
 
 func (q *Queries) GetChatMaxLadder(ctx context.Context, chatID int64) (int32, error) {
@@ -405,10 +498,10 @@ func (q *Queries) GetCommandPermissions(ctx context.Context, chatID int64) ([]Co
 
 const getOrCreateChat = `-- name: GetOrCreateChat :one
 INSERT INTO chats(id, title, norm_warn)
-VALUES ($1, $2, $3) ON CONFLICT(id) DO
-UPDATE SET norm_warn = chats.norm_warn,
-    title = COALESCE (NULLIF (EXCLUDED.title, ''), chats.title)
-    RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled, removed_at, emojis_enabled, skip_call_confirmation
+VALUES ($1, $2, $3)
+ON CONFLICT(id) DO UPDATE SET norm_warn = chats.norm_warn,
+                              title     = COALESCE(NULLIF(EXCLUDED.title, ''), chats.title)
+RETURNING id, norm_warn, newbie_threshold_days, ai_system_prompt, max_ladder, call_on_join, welcome_call_message, week_start_day, max_warns, norm_ban, command_prefix, allow_prefixless, mentions_per_message, mention_types, title, tags_enabled, week_start_time, broadcast_enabled, removed_at, emojis_enabled, skip_call_confirmation
 `
 
 type GetOrCreateChatParams struct {
@@ -602,8 +695,8 @@ func (q *Queries) SetChatWelcomeCallMessage(ctx context.Context, arg SetChatWelc
 
 const setCommandPermission = `-- name: SetCommandPermission :exec
 INSERT INTO command_permissions (chat_id, command_key, required_status)
-VALUES ($1, $2, $3) ON CONFLICT (chat_id, command_key) DO
-UPDATE
+VALUES ($1, $2, $3)
+ON CONFLICT (chat_id, command_key) DO UPDATE
     SET required_status = EXCLUDED.required_status
 `
 

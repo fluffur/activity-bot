@@ -4,13 +4,6 @@ FROM chat_members
 WHERE chat_id = $1
   AND user_id = $2;
 
--- name: GetChatMember :one
-SELECT sqlc.embed(chat_members), sqlc.embed(users)
-FROM chat_members
-         JOIN users ON users.id = user_id
-    AND chat_id = $1
-    AND user_id = $2
-    AND users.is_bot = FALSE;
 
 -- name: GetChatMembers :many
 SELECT sqlc.embed(cm), sqlc.embed(u)

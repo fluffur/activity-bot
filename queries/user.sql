@@ -1,3 +1,7 @@
+-- name: CreateUser :exec
+INSERT INTO users(id, username, first_name, last_name, created_at, gender, emoji_json, is_bot)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+
 -- name: EnsureUserExists :one
 INSERT INTO users(id, username, first_name, last_name, is_bot)
 VALUES ($1, $2, $3, $4, $5)
@@ -7,10 +11,11 @@ ON CONFLICT (id) DO UPDATE SET username   = $2,
                                is_bot     = $5
 RETURNING *;
 
--- name: GetUser :one
+-- name: GetUserByID :one
 SELECT *
 FROM users
-WHERE id = $1;
+WHERE id = $1
+LIMIT 1;
 
 -- name: GetUserByUsername :one
 SELECT *

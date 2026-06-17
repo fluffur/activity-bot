@@ -2,10 +2,12 @@ package main
 
 import (
 	"activity-bot/internal/config"
+	"activity-bot/internal/db/repository"
 	db "activity-bot/internal/db/sqlc"
 	"activity-bot/internal/events"
 	"activity-bot/internal/help"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/middleware"
 	"context"
 	"os"
 	"os/signal"
@@ -23,7 +25,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	log, _ := zap.NewDevelopment()
+	log, _ := zap.NewProduction()
 	defer func() { _ = log.Sync() }()
 
 	cfg, err := config.Load()
@@ -66,10 +68,20 @@ func main() {
 		log.Fatal("Create translator", zap.Error(err))
 	}
 
-	bot.Use(botapi.Recover(), botapi.Timeout(time.Minute), botapi.Logging())
+	chatRepository := repository.NewChatRepository(queries)
+	userRepository := repository.NewUserRepository(queries)
+	chatMemberRepository := repository.NewChatMemberRepository(queries)
+	messageRepository := repository.NewMessageRepository(queries)
+
+	bot.Use(
+		botapi.Recover(),
+		botapi.Timeout(time.Minute),
+		botapi.Logging(),
+		middleware.Middleware(chatRepository, userRepository, chatMemberRepository),
+	)
 
 	help.NewHandler(bot, translator).Register()
-	events.NewHandler(bot, translator, events.NewService()).Register()
+	events.NewHandler(bot, translator, messageRepository).Register()
 
 	log.Info("Starting bot")
 	if err := bot.Run(ctx); err != nil {

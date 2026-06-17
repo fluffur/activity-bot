@@ -16,5 +16,5 @@ func NewHandler(bot *botapi.Bot, translator *i18n.Service) *Handler {
 }
 
 func (h *Handler) Register() {
-	h.bot.OnCommand("help", "", h.Help)
+	h.bot.OnCommand("help", "Помощь", h.Help)
 }
