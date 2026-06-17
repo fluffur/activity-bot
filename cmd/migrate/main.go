@@ -16,6 +16,7 @@ import (
 
 func main() {
 	ctx := context.Background()
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal("Config load failed", err)
@@ -31,6 +32,7 @@ func main() {
 	}
 
 	flag.Parse()
+
 	args := flag.Args()
 
 	if len(args) < 1 {
@@ -44,7 +46,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to open db: %v", err)
 	}
-	defer db.Close()
+
+	defer func() { _ = db.Close() }()
 
 	if err := goose.SetDialect("postgres"); err != nil {
 		log.Fatalf("failed to set dialect: %v", err)

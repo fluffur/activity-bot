@@ -16,25 +16,25 @@ func NewChatRepository(queries *db.Queries) chat.Repository {
 	return &ChatRepository{queries: queries}
 }
 
-func (r *ChatRepository) Create(ctx context.Context, chat chat.Chat) error {
+func (r *ChatRepository) Create(ctx context.Context, c chat.Chat) error {
 	return r.queries.CreateChat(ctx, db.CreateChatParams{
-		ID:                  chat.ID,
-		NewbieThresholdDays: chat.NewbieThresholdDays,
-		AiSystemPrompt:      text(chat.AISystemPrompt),
-		WeekStartDay:        chat.WeekStartDay,
-		MaxWarns:            chat.MaxWarns,
-		CommandPrefix:       text(chat.CommandPrefix),
-		AllowPrefixless:     chat.AllowPrefixless,
-		MentionsPerMessage:  chat.MentionsPerMessage,
-		MentionTypes:        chat.MentionTypes,
-		Title:               chat.Title,
-		TagsEnabled:         chat.TagsEnabled,
+		ID:                  c.ID,
+		NewbieThresholdDays: c.NewbieThresholdDays,
+		AiSystemPrompt:      text(c.AISystemPrompt),
+		WeekStartDay:        c.WeekStartDay,
+		MaxWarns:            c.MaxWarns,
+		CommandPrefix:       text(c.CommandPrefix),
+		AllowPrefixless:     c.AllowPrefixless,
+		MentionsPerMessage:  c.MentionsPerMessage,
+		MentionTypes:        c.MentionTypes,
+		Title:               c.Title,
+		TagsEnabled:         c.TagsEnabled,
 		WeekStartTime: pgtype.Time{
-			Microseconds: chat.WeekStartTime,
+			Microseconds: c.WeekStartTime,
 			Valid:        true,
 		},
-		RemovedAt:     timestamptz(chat.RemovedAt),
-		EmojisEnabled: chat.EmojisEnabled,
+		RemovedAt:     timestamptz(c.RemovedAt),
+		EmojisEnabled: c.EmojisEnabled,
 	})
 }
 
@@ -43,5 +43,6 @@ func (r *ChatRepository) GetByID(ctx context.Context, id int64) (chat.Chat, erro
 	if err != nil {
 		return chat.Chat{}, err
 	}
+
 	return mapChat(u), nil
 }

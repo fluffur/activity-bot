@@ -1,0 +1,128 @@
+version: "2"
+
+run:
+  # Pin the analysis target to 1.24 so the released golangci-lint binary (built
+  # with go1.24) accepts the module even though go.mod targets a newer Go.
+  go: "1.24"
+
+linters:
+  default: none
+  enable:
+    - dogsled
+    - errcheck
+    # Exhaustiveness of switches over typed enums (ParseMode, ChatType, ...).
+    - exhaustive
+    # Exhaustiveness of switches over sealed-interface unions (ChatID,
+    # ReplyMarkup, ChatMember, ...). These are the "sum types" of this package:
+    # interfaces with an unexported marker method.
+    - gochecksumtype
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - revive
+    - gosec
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - nakedret
+    - unconvert
+    - unparam
+    - whitespace
+    # Strict empty-line/cuddling rules (successor to wsl_v4, which this
+    # toolchain renamed to wsl_v5; the v4-era `wsl` is now deprecated).
+    - wsl_v5
+  settings:
+    revive:
+      rules:
+        - name: unused-parameter
+          disabled: true
+        - name: if-return
+          disabled: true
+    govet:
+      enable:
+        - shadow
+    goconst:
+      min-len: 2
+      min-occurrences: 3
+      # Enum-mapping switch labels (e.g. secureValueType) repeat as test inputs;
+      # that is not a reason to introduce a constant.
+      ignore-tests: true
+    misspell:
+      locale: US
+    lll:
+      line-length: 140
+    exhaustive:
+      # A `default:` case counts as covering the remaining variants.
+      default-signifies-exhaustive: true
+    gochecksumtype:
+      # A `default:` case counts as covering the remaining variants.
+      default-signifies-exhaustive: true
+    wsl_v5:
+      # Enable every check the linter ships with (strictest preset).
+      default: all
+      branch-max-lines: 2
+      case-max-lines: 0
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+      disabled-checks:
+        - hugeParam
+        - rangeValCopy
+        - exitAfterDefer
+        - whyNoLint
+        - singleCaseSwitch
+        - commentedOutCode
+  exclusions:
+    rules:
+      - linters: [gocritic]
+        text: "commentedOutCode"
+        source: "SHA1"
+      # Allow embed globals.
+      - source: "embed\\.FS"
+        linters: [gochecknoglobals]
+      # Exclude go:generate from lll.
+      - source: "//go:generate"
+        linters: [lll]
+      # The codec_*.go files are hand-written jx Encode/Decode in the style of
+      # generated marshaling code: every wire field name recurs as a FieldStart
+      # argument and a decode case label. Constants for JSON field names would
+      # only obscure the one-to-one mapping with the struct tags, so exclude
+      # them from goconst — as generated codecs conventionally are.
+      - path: codec.*\.go
+        linters: [goconst]
+      # Relax noisy linters in tests.
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+          - goconst
+          - lll
+      # Ignore shadowing of common names.
+      - linters: [govet]
+        text: 'declaration of "(err|ctx|log)"'
+      - path: internal\.go
+        text: "should have.+comment"
+        linters: [revive]
+      # Allow underscores in package names.
+      - linters: [revive]
+        text: "underscores? in package names?"
+      - linters: [staticcheck]
+        text: "SA1019: (telegram|client).+ is deprecated:"
+      # G115 (integer overflow on conversion) is noisy on known-safe size/index
+      # conversions in storage and doc parsing.
+      - linters: [gosec]
+        text: "G115:"
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/gotd/botapi

@@ -31,10 +31,10 @@ type ChatMember struct {
 	ExcludeFromCall bool
 }
 
-func New(user user.User, chat chat.Chat, tag string, status Status, now time.Time) ChatMember {
+func New(u user.User, c chat.Chat, tag string, status Status, now time.Time) ChatMember {
 	return ChatMember{
-		User:     user,
-		Chat:     chat,
+		User:     u,
+		Chat:     c,
 		Tag:      tag,
 		Status:   status,
 		Emojis:   emoji.Emojis{},

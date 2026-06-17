@@ -37,7 +37,8 @@ func main() {
 
 	out.WriteString(")\n")
 
-	if err := os.WriteFile("./keys.go", out.Bytes(), 0644); err != nil {
+	// #nosec G306 -- generated source file should be readable by others
+	if err := os.WriteFile("./keys.go", out.Bytes(), 0o644); err != nil {
 		panic(err)
 	}
 }
@@ -88,7 +89,7 @@ func toGoName(key string) string {
 	})
 
 	for i := range parts {
-		if len(parts[i]) == 0 {
+		if parts[i] == "" {
 			continue
 		}
 

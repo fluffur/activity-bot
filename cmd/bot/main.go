@@ -13,12 +13,13 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/gotd/botapi"
-	"github.com/gotd/botapi/storage"
 	"github.com/gotd/log/logzap"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+
+	"github.com/gotd/botapi"
+	"github.com/gotd/botapi/storage"
 )
 
 func main() {
@@ -37,6 +38,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Open storage", zap.Error(err))
 	}
+
 	defer func() { _ = store.Close() }()
 
 	bot, err := botapi.New(cfg.BotToken, botapi.Options{
@@ -56,7 +58,6 @@ func main() {
 	}
 
 	queries := db.New(pool)
-	_ = queries
 
 	client := redis.NewClient(&redis.Options{
 		Addr: cfg.RedisADDR,
@@ -84,6 +85,7 @@ func main() {
 	events.NewHandler(bot, translator, messageRepository).Register()
 
 	log.Info("Starting bot")
+
 	if err := bot.Run(ctx); err != nil {
 		log.Fatal("Run", zap.Error(err))
 	}

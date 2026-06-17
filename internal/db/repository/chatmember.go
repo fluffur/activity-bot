@@ -25,7 +25,6 @@ func (r *ChatMemberRepository) Create(ctx context.Context, m chatmember.ChatMemb
 		RestReason: text(m.RestReason),
 		EmojiJson:  m.Emojis,
 	})
-
 }
 
 func (r *ChatMemberRepository) Get(ctx context.Context, chatID, userID int64) (chatmember.ChatMember, error) {

@@ -12,9 +12,15 @@ import (
 	"github.com/rivo/uniseg"
 )
 
+//nolint:gochecknoinits
 func init() {
 	goose.AddMigrationContext(UP00048, DOWN00048)
 }
+
+const (
+	TypeCustom  = "custom"
+	TypeUnicode = "unicode"
+)
 
 type Emoji struct {
 	Type string `json:"type"`
@@ -28,26 +34,28 @@ var tgEmojiStartRegex = regexp.MustCompile(`^<tg-emoji`)
 func parseMixed(input string) []Emoji {
 	var result []Emoji
 
-	for len(input) > 0 {
+	for input != "" {
 		if tgEmojiStartRegex.MatchString(input) {
 			loc := tgEmojiFullRegex.FindStringIndex(input)
-			if loc != nil && loc[0] == 0 {
+			if loc != nil && len(loc) != 0 && loc[0] == 0 {
 				tag := input[:loc[1]]
 				sub := tgEmojiFullRegex.FindStringSubmatch(tag)
 
 				if len(sub) == 3 {
 					var id int64
+
 					for _, c := range sub[1] {
 						id = id*10 + int64(c-'0')
 					}
 
 					result = append(result, Emoji{
-						Type: "custom",
+						Type: TypeCustom,
 						ID:   id,
 						Char: sub[2],
 					})
 
 					input = input[loc[1]:]
+
 					continue
 				}
 			}
@@ -58,11 +66,12 @@ func parseMixed(input string) []Emoji {
 			part := g.Str()
 
 			result = append(result, Emoji{
-				Type: "unicode",
+				Type: TypeUnicode,
 				Char: part,
 			})
 
 			input = input[len(part):]
+
 			continue
 		}
 
@@ -97,13 +106,17 @@ func UP00048(ctx context.Context, tx *sql.Tx) error {
 
 	for rows.Next() {
 		var r cmRow
+
 		if err := rows.Scan(&r.chatID, &r.userID, &r.raw); err != nil {
-			rows.Close()
+			_ = rows.Close()
+
 			return err
 		}
+
 		cmRows = append(cmRows, r)
 	}
-	rows.Close()
+
+	_ = rows.Close()
 
 	for _, r := range cmRows {
 		parsed := parseMixed(r.raw)
@@ -138,13 +151,17 @@ func UP00048(ctx context.Context, tx *sql.Tx) error {
 
 	for rows2.Next() {
 		var r uRow
+
 		if err := rows2.Scan(&r.id, &r.raw); err != nil {
-			rows2.Close()
+			_ = rows2.Close()
+
 			return err
 		}
+
 		uRows = append(uRows, r)
 	}
-	rows2.Close()
+
+	_ = rows2.Close()
 
 	for _, r := range uRows {
 		parsed := parseMixed(r.raw)
@@ -191,16 +208,21 @@ func DOWN00048(ctx context.Context, tx *sql.Tx) error {
 			userID int64
 			raw    string
 		}
+
 		if err := rows.Scan(&r.chatID, &r.userID, &r.raw); err != nil {
-			rows.Close()
+			_ = rows.Close()
+
 			return err
 		}
+
 		cmRows = append(cmRows, r)
 	}
-	rows.Close()
+
+	_ = rows.Close()
 
 	for _, r := range cmRows {
 		var parsed []Emoji
+
 		if err := json.Unmarshal([]byte(r.raw), &parsed); err != nil {
 			return err
 		}
@@ -208,7 +230,7 @@ func DOWN00048(ctx context.Context, tx *sql.Tx) error {
 		var result strings.Builder
 
 		for _, e := range parsed {
-			if e.Type == "custom" {
+			if e.Type == TypeCustom {
 				result.WriteString(fmt.Sprintf(`<tg-emoji emoji-id="%d">%s</tg-emoji>`, e.ID, e.Char))
 			} else {
 				result.WriteString(e.Char)
@@ -243,16 +265,21 @@ func DOWN00048(ctx context.Context, tx *sql.Tx) error {
 			id  int64
 			raw string
 		}
+
 		if err := rows2.Scan(&r.id, &r.raw); err != nil {
-			rows2.Close()
+			_ = rows2.Close()
+
 			return err
 		}
+
 		uRows = append(uRows, r)
 	}
-	rows2.Close()
+
+	_ = rows2.Close()
 
 	for _, r := range uRows {
 		var parsed []Emoji
+
 		if err := json.Unmarshal([]byte(r.raw), &parsed); err != nil {
 			return err
 		}
@@ -260,7 +287,7 @@ func DOWN00048(ctx context.Context, tx *sql.Tx) error {
 		var result strings.Builder
 
 		for _, e := range parsed {
-			if e.Type == "custom" {
+			if e.Type == TypeCustom {
 				result.WriteString(fmt.Sprintf(`<tg-emoji emoji-id="%d">%s</tg-emoji>`, e.ID, e.Char))
 			} else {
 				result.WriteString(e.Char)

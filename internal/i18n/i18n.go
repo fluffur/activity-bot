@@ -59,7 +59,6 @@ func (s *Service) T(lang string, messageID MessageID, data map[string]any) strin
 		MessageID:    string(messageID),
 		TemplateData: data,
 	})
-
 	if err != nil {
 		return string(messageID)
 	}

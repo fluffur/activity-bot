@@ -14,15 +14,15 @@ func NewUserRepository(queries *db.Queries) user.Repository {
 	return &UserRepository{queries: queries}
 }
 
-func (r *UserRepository) Create(ctx context.Context, user user.User) error {
+func (r *UserRepository) Create(ctx context.Context, u user.User) error {
 	return r.queries.CreateUser(ctx, db.CreateUserParams{
-		ID:        user.ID,
-		Username:  text(user.Username),
-		FirstName: text(user.FirstName),
-		LastName:  text(user.LastName),
-		CreatedAt: timestamptz(user.CreatedAt),
-		Gender:    string(user.Gender),
-		IsBot:     user.IsBot,
+		ID:        u.ID,
+		Username:  text(u.Username),
+		FirstName: text(u.FirstName),
+		LastName:  text(u.LastName),
+		CreatedAt: timestamptz(u.CreatedAt),
+		Gender:    string(u.Gender),
+		IsBot:     u.IsBot,
 	})
 }
 
@@ -31,5 +31,6 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (user.User, erro
 	if err != nil {
 		return user.User{}, err
 	}
+
 	return mapUser(u), nil
 }

@@ -11,8 +11,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/gotd/botapi"
 	"github.com/jackc/pgx/v5"
+
+	"github.com/gotd/botapi"
 )
 
 func ChatMiddleware(
@@ -26,9 +27,11 @@ func ChatMiddleware(
 			if msg == nil {
 				msg = c.Update.CallbackQuery.Message
 			}
+
 			if msg == nil {
 				return next(c)
 			}
+
 			if msg.Chat.Type != botapi.ChatTypeGroup && msg.Chat.Type != botapi.ChatTypeSupergroup {
 				// add pm sessions later
 				return next(c)
@@ -36,17 +39,17 @@ func ChatMiddleware(
 
 			chatID, ok := c.Chat()
 			if !ok {
-				return nil
+				return next(c)
 			}
 
 			id, ok := chatID.(botapi.ChatIDInt)
 			if !ok {
-				return nil
+				return next(c)
 			}
 
 			ctx := c.Context
 
-			chatModel, err := getOrCreateChat(ctx, chatRepository, c.Bot, int64(id))
+			chatModel, err := getOrCreateChat(ctx, chatRepository, msg.Chat)
 			if err != nil {
 				return err
 			}
@@ -76,17 +79,14 @@ func ChatMiddleware(
 
 			ctx = context.WithValue(ctx, cctx.ChatMemberKey{}, member)
 			c.Context = ctx
+
 			return next(c)
 		}
 	}
 }
 
-func getOrCreateChat(
-	ctx context.Context,
-	repo chat.Repository,
-	bot *botapi.Bot,
-	id int64,
-) (chat.Chat, error) {
+func getOrCreateChat(ctx context.Context, repo chat.Repository, ch botapi.Chat) (chat.Chat, error) {
+	id := ch.ID
 
 	model, err := repo.GetByID(ctx, id)
 	if err == nil {
@@ -97,12 +97,7 @@ func getOrCreateChat(
 		return chat.Chat{}, fmt.Errorf("get chat: %w", err)
 	}
 
-	info, err := bot.GetChat(ctx, botapi.ChatIDInt(id))
-	if err != nil {
-		return chat.Chat{}, fmt.Errorf("get chat info: %w", err)
-	}
-
-	model = chat.New(id, info.Title)
+	model = chat.New(id, ch.Title)
 
 	if err := repo.Create(ctx, model); err != nil {
 		return chat.Chat{}, fmt.Errorf("create chat: %w", err)
@@ -116,7 +111,6 @@ func getOrCreateUser(
 	repo user.Repository,
 	sender *botapi.User,
 ) (user.User, error) {
-
 	model, err := repo.GetByID(ctx, sender.ID)
 	if err == nil {
 		return model, nil
@@ -152,7 +146,6 @@ func getOrCreateChatMember(
 	chatID int64,
 	userID int64,
 ) (chatmember.ChatMember, error) {
-
 	member, err := repo.Get(ctx, chatID, userID)
 	if err == nil {
 		return member, nil

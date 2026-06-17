@@ -65,6 +65,7 @@ func mapChatMember(m db.ChatMember) chatmember.ChatMember {
 
 func mapChatMemberFull(m db.ChatMember, c db.Chat, u db.User) chatmember.ChatMember {
 	cm := mapChatMember(m)
+
 	cm.Chat = mapChat(c)
 	cm.User = mapUser(u)
 

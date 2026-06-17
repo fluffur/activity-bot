@@ -5,20 +5,22 @@ import (
 	"activity-bot/internal/utils/participant"
 	"activity-bot/internal/utils/tghtml"
 	"context"
-	"fmt"
 
-	"github.com/gotd/botapi"
 	"github.com/gotd/td/constant"
 	"github.com/gotd/td/tg"
+
+	"github.com/gotd/botapi"
 )
 
 func (h *Handler) ParticipantLeft(ctx context.Context, e tg.Entities, u *tg.UpdateChannelParticipant) error {
 	lang := "ru"
+
 	if u.NewParticipant != nil {
 		return nil
 	}
 
 	var chatID constant.TDLibPeerID
+
 	chatID.Channel(u.ChannelID)
 
 	name := h.translator.T(lang, i18n.UserUnknown, nil)
@@ -36,7 +38,7 @@ func (h *Handler) ParticipantLeft(ctx context.Context, e tg.Entities, u *tg.Upda
 	})
 
 	_, err := h.bot.SendMessage(ctx, botapi.ID(int64(chatID)),
-		fmt.Sprintf(text),
+		text,
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
 

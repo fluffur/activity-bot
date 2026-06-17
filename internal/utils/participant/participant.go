@@ -8,6 +8,7 @@ func Rank(p tg.ChannelParticipantClass) string {
 	if p == nil {
 		return ""
 	}
+
 	switch v := p.(type) {
 	case *tg.ChannelParticipant:
 		return v.Rank
@@ -20,6 +21,7 @@ func Rank(p tg.ChannelParticipantClass) string {
 			return rank
 		}
 	}
+
 	return ""
 }
 
@@ -27,6 +29,7 @@ func ID(p tg.ChannelParticipantClass) int64 {
 	if p == nil {
 		return 0
 	}
+
 	switch v := p.(type) {
 	case *tg.ChannelParticipant:
 		return v.UserID
@@ -37,5 +40,6 @@ func ID(p tg.ChannelParticipantClass) int64 {
 	case *tg.ChannelParticipantSelf:
 		return v.UserID
 	}
+
 	return 0
 }

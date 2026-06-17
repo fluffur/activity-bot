@@ -6,16 +6,16 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func text(string string) pgtype.Text {
+func text(s string) pgtype.Text {
 	return pgtype.Text{
-		String: string,
-		Valid:  string != "",
+		String: s,
+		Valid:  s != "",
 	}
 }
 
-func timestamptz(time time.Time) pgtype.Timestamptz {
+func timestamptz(t time.Time) pgtype.Timestamptz {
 	return pgtype.Timestamptz{
-		Time:  time,
-		Valid: !time.IsZero(),
+		Time:  t,
+		Valid: !t.IsZero(),
 	}
 }
