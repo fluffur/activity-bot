@@ -15,7 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func Middleware(
+func ChatMiddleware(
 	chatRepository chat.Repository,
 	userRepository user.Repository,
 	chatMemberRepository chatmember.Repository,

@@ -77,7 +77,7 @@ func main() {
 		botapi.Recover(),
 		botapi.Timeout(time.Minute),
 		botapi.Logging(),
-		middleware.Middleware(chatRepository, userRepository, chatMemberRepository),
+		middleware.ChatMiddleware(chatRepository, userRepository, chatMemberRepository),
 	)
 
 	help.NewHandler(bot, translator).Register()
