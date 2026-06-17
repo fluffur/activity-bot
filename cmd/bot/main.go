@@ -74,11 +74,12 @@ func main() {
 	chatMemberRepository := repository.NewChatMemberRepository(queries)
 	messageRepository := repository.NewMessageRepository(queries)
 
+	bot.UseOuter(middleware.ChatMiddleware(chatRepository, userRepository, chatMemberRepository))
+
 	bot.Use(
 		botapi.Recover(),
 		botapi.Timeout(time.Minute),
 		botapi.Logging(),
-		middleware.ChatMiddleware(chatRepository, userRepository, chatMemberRepository),
 	)
 
 	help.NewHandler(bot, translator).Register()

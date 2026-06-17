@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -37,16 +36,6 @@ func ChatMiddleware(
 				return next(c)
 			}
 
-			chatID, ok := c.Chat()
-			if !ok {
-				return next(c)
-			}
-
-			id, ok := chatID.(botapi.ChatIDInt)
-			if !ok {
-				return next(c)
-			}
-
 			ctx := c.Context
 
 			chatModel, err := getOrCreateChat(ctx, chatRepository, msg.Chat)
@@ -70,8 +59,6 @@ func ChatMiddleware(
 				c.Bot,
 				chatModel,
 				userModel,
-				int64(id),
-				sender.ID,
 			)
 			if err != nil {
 				return err
@@ -143,9 +130,10 @@ func getOrCreateChatMember(
 	bot *botapi.Bot,
 	chatModel chat.Chat,
 	userModel user.User,
-	chatID int64,
-	userID int64,
 ) (chatmember.ChatMember, error) {
+	chatID := chatModel.ID
+	userID := userModel.ID
+
 	member, err := repo.Get(ctx, chatID, userID)
 	if err == nil {
 		return member, nil
@@ -183,8 +171,6 @@ func getOrCreateChatMember(
 func parseChatMember(cm botapi.ChatMember) (chatmember.Status, string, error) {
 	switch v := cm.(type) {
 	case *botapi.ChatMemberOwner:
-		log.Println(v.CustomTitle)
-
 		return chatmember.StatusOwner, v.CustomTitle, nil
 
 	case *botapi.ChatMemberAdministrator:
