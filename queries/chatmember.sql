@@ -2,11 +2,79 @@
 SELECT sqlc.embed(chat_members), sqlc.embed(users), sqlc.embed(chats)
 FROM chat_members
          JOIN users ON users.id = user_id
-         JOIN chats ON chat_members.chat_id = chats.id
-    AND chat_id = $1
-    AND user_id = $2
-    AND users.is_bot = $3;
+         JOIN chats ON chat_members.chat_id = chats.id AND chat_id = $1 AND user_id = $2 AND users.is_bot = $3;
 
 -- name: CreateChatMember :exec
 INSERT INTO chat_members(chat_id, user_id, tag, status, rest_until, left_at, rest_reason, emoji_json)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+
+-- name: SetChatMemberTag :exec
+UPDATE chat_members
+SET tag = $1
+WHERE user_id = $2
+  AND chat_id = $3;
+
+-- name: MarkChatMemberLeft :exec
+UPDATE chat_members
+SET left_at = $1
+WHERE user_id = $2
+  AND chat_id = $3;
+
+-- name: MarkAllChatMembersLeftExcept :exec
+UPDATE chat_members
+SET left_at = @left_at
+WHERE chat_id = @chat_id
+  AND left_at IS NULL
+  AND user_id <> ALL (@user_ids::BIGINT[]);
+
+-- name: UpsertChatMembersAndUsers :exec
+WITH upserted_users AS (
+    INSERT INTO users (
+                       id,
+                       username,
+                       first_name,
+                       last_name,
+                       is_bot
+        )
+        SELECT u.id,
+               u.username,
+               u.first_name,
+               u.last_name,
+               COALESCE(u.is_bot, false)
+        FROM ROWS FROM (
+                 UNNEST(@user_ids::BIGINT[]),
+                 UNNEST(@usernames::TEXT[]),
+                 UNNEST(@first_names::TEXT[]),
+                 UNNEST(@last_names::TEXT[]),
+                 UNNEST(@is_bots::BOOLEAN[])
+                 ) AS u(id, username, first_name, last_name, is_bot)
+        ON CONFLICT (id) DO UPDATE SET
+            username = EXCLUDED.username,
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
+            is_bot = EXCLUDED.is_bot
+        RETURNING id)
+INSERT
+INTO chat_members (chat_id, user_id, tag, status)
+SELECT @chat_id,
+       m.user_id,
+       m.tag,
+       m.status
+FROM ROWS FROM (
+         UNNEST(@user_ids::BIGINT[]),
+         UNNEST(@tags::TEXT[]),
+         UNNEST(@statuses::SMALLINT[])
+         ) AS m(user_id, tag, status)
+         JOIN upserted_users AS uu ON m.user_id = uu.id
+ON CONFLICT (chat_id, user_id)
+    DO UPDATE
+    SET tag     = CASE
+                      WHEN EXCLUDED.tag <> '' THEN EXCLUDED.tag
+                      ELSE chat_members.tag
+        END,
+        status  = GREATEST(EXCLUDED.status, chat_members.status),
+        left_at = CASE
+                      WHEN chat_members.left_at IS NOT NULL THEN NULL
+                      ELSE chat_members.left_at
+            END
+;

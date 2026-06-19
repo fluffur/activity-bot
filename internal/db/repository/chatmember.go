@@ -4,6 +4,8 @@ import (
 	"activity-bot/internal/chatmember"
 	db "activity-bot/internal/db/sqlc"
 	"context"
+	"sort"
+	"time"
 )
 
 type ChatMemberRepository struct {
@@ -38,4 +40,68 @@ func (r *ChatMemberRepository) Get(ctx context.Context, chatID, userID int64) (c
 	}
 
 	return mapChatMemberFull(m.ChatMember, m.Chat, m.User), nil
+}
+
+func (r *ChatMemberRepository) SetTag(ctx context.Context, chatID int64, userID int64, tag string) error {
+	return r.queries.SetChatMemberTag(ctx, db.SetChatMemberTagParams{
+		Tag:    text(tag),
+		UserID: userID,
+		ChatID: chatID,
+	})
+}
+
+func (r *ChatMemberRepository) MarkLeft(ctx context.Context, chatID int64, userID int64, leftAt time.Time) error {
+	return r.queries.MarkChatMemberLeft(ctx, db.MarkChatMemberLeftParams{
+		LeftAt: timestamptz(leftAt),
+		UserID: userID,
+		ChatID: chatID,
+	})
+}
+
+func (r *ChatMemberRepository) MarkAllLeftExcept(ctx context.Context, chatID int64, userIDs []int64, leftAt time.Time) error {
+	return r.queries.MarkAllChatMembersLeftExcept(ctx, db.MarkAllChatMembersLeftExceptParams{
+		ChatID:  chatID,
+		UserIds: userIDs,
+		LeftAt:  timestamptz(leftAt),
+	})
+}
+
+func (r *ChatMemberRepository) UpsertChatMembers(ctx context.Context, chatID int64, chatMembers []chatmember.ChatMember) error {
+	if len(chatMembers) == 0 {
+		return nil
+	}
+
+	sort.Slice(chatMembers, func(i, j int) bool {
+		return chatMembers[i].User.ID < chatMembers[j].User.ID
+	})
+
+	n := len(chatMembers)
+	userIds := make([]int64, n)
+	tags := make([]string, n)
+	statuses := make([]int16, n)
+	usernames := make([]string, n)
+	firstNames := make([]string, n)
+	lastNames := make([]string, n)
+	isBots := make([]bool, n)
+
+	for i, member := range chatMembers {
+		userIds[i] = member.User.ID
+		tags[i] = member.Tag
+		statuses[i] = int16(member.Status)
+		usernames[i] = member.User.Username
+		firstNames[i] = member.User.FirstName
+		lastNames[i] = member.User.LastName
+		isBots[i] = member.User.IsBot
+	}
+
+	return r.queries.UpsertChatMembersAndUsers(ctx, db.UpsertChatMembersAndUsersParams{
+		ChatID:     chatID,
+		UserIds:    userIds,
+		Tags:       tags,
+		Statuses:   statuses,
+		Usernames:  usernames,
+		FirstNames: firstNames,
+		LastNames:  lastNames,
+		IsBots:     isBots,
+	})
 }

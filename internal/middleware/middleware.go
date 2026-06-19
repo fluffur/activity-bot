@@ -4,8 +4,10 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/middleware/cctx"
+	"activity-bot/internal/pmsession"
 	"activity-bot/internal/user"
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -15,11 +17,7 @@ import (
 	"github.com/gotd/botapi"
 )
 
-func ChatMiddleware(
-	chatRepository chat.Repository,
-	userRepository user.Repository,
-	chatMemberRepository chatmember.Repository,
-) botapi.Middleware {
+func ChatMiddleware(chatRepository chat.Repository, sessionRepository pmsession.Repository) botapi.Middleware {
 	return func(next botapi.Handler) botapi.Handler {
 		return func(c *botapi.Context) error {
 			msg := c.Message()
@@ -31,26 +29,60 @@ func ChatMiddleware(
 				return next(c)
 			}
 
+			ctx := c.Context
+			chatModel := chat.New(0, "")
+
 			if msg.Chat.Type != botapi.ChatTypeGroup && msg.Chat.Type != botapi.ChatTypeSupergroup {
-				// add pm sessions later
-				return next(c)
+				ch, err := sessionRepository.GetChat(ctx, msg.Chat.ID)
+				if err != nil {
+					if errors.Is(err, sql.ErrNoRows) {
+						ctx = context.WithValue(ctx, cctx.ChatKey{}, chatModel)
+						c.Context = ctx
+
+						return next(c)
+					}
+					return fmt.Errorf("get chat: %w", err)
+				}
+
+				chatModel = ch
+			} else {
+				ch, err := getOrCreateChat(ctx, chatRepository, msg.Chat)
+				if err != nil {
+					return err
+				}
+
+				chatModel = ch
 			}
 
+			ctx = context.WithValue(ctx, cctx.ChatKey{}, chatModel)
+			c.Context = ctx
+
+			return next(c)
+		}
+	}
+}
+
+func ChatMemberMiddleware(
+	userRepository user.Repository,
+	chatMemberRepository chatmember.Repository,
+) botapi.Middleware {
+	return func(next botapi.Handler) botapi.Handler {
+		return func(c *botapi.Context) error {
 			ctx := c.Context
 
-			chatModel, err := getOrCreateChat(ctx, chatRepository, msg.Chat)
-			if err != nil {
-				return err
-			}
-
 			sender := c.Sender()
-			if sender == nil {
-				return fmt.Errorf("sender is nil")
-			}
-
-			userModel, err := getOrCreateUser(ctx, userRepository, sender)
+			userModel, err := getOrCreateUser(ctx, userRepository, sender, c.Message().Chat)
 			if err != nil {
 				return err
+			}
+
+			chatModel, err := cctx.Chat(ctx)
+			if err != nil {
+				return fmt.Errorf("no chat: %w", err)
+			}
+
+			if chatModel.ID == 0 {
+				return next(c)
 			}
 
 			member, err := getOrCreateChatMember(
@@ -75,7 +107,7 @@ func ChatMiddleware(
 func getOrCreateChat(ctx context.Context, repo chat.Repository, ch botapi.Chat) (chat.Chat, error) {
 	id := ch.ID
 
-	model, err := repo.GetByID(ctx, id)
+	model, err := repo.Get(ctx, id)
 	if err == nil {
 		return model, nil
 	}
@@ -97,8 +129,26 @@ func getOrCreateUser(
 	ctx context.Context,
 	repo user.Repository,
 	sender *botapi.User,
+	chat botapi.Chat,
 ) (user.User, error) {
-	model, err := repo.GetByID(ctx, sender.ID)
+	var senderID int64
+	var senderUsername, senderFirstName, senderLastName string
+	var senderIsBot bool
+	if sender != nil {
+		senderID = sender.ID
+		senderUsername = sender.Username
+		senderFirstName = sender.FirstName
+		senderLastName = sender.LastName
+		senderIsBot = sender.IsBot
+	} else if chat.Type == botapi.ChatTypePrivate {
+		senderID = chat.ID
+		senderUsername = chat.Username
+		senderFirstName = chat.FirstName
+		senderLastName = chat.LastName
+	} else {
+		return user.User{}, fmt.Errorf("no user")
+	}
+	model, err := repo.Get(ctx, senderID)
 	if err == nil {
 		return model, nil
 	}
@@ -108,12 +158,12 @@ func getOrCreateUser(
 	}
 
 	model = user.New(
-		sender.ID,
-		sender.FirstName,
-		sender.LastName,
-		sender.Username,
+		senderID,
+		senderFirstName,
+		senderLastName,
+		senderUsername,
 		user.GenderUnknown,
-		sender.IsBot,
+		senderIsBot,
 		time.Now(),
 	)
 

@@ -14,7 +14,7 @@ func (h *Handler) Message(c *botapi.Context) error {
 		return nil
 	}
 
-	if err := h.repository.Save(
+	if err := h.messageRepository.Save(
 		c.Context,
 		message.Chat.ID,
 		sender.ID,

@@ -43,3 +43,29 @@ func ID(p tg.ChannelParticipantClass) int64 {
 
 	return 0
 }
+
+func IsSelf(p tg.ChannelParticipantClass) bool {
+	if p == nil {
+		return false
+	}
+	_, ok := p.(*tg.ChannelParticipantSelf)
+	if ok {
+		return true
+	}
+	a, ok := p.(*tg.ChannelParticipantAdmin)
+	if ok {
+		return a.Self
+	}
+
+	return false
+}
+
+func IsAdmin(p tg.ChannelParticipantClass) bool {
+	_, ok := p.(*tg.ChannelParticipantAdmin)
+	return ok
+}
+
+func IsBanned(p tg.ChannelParticipantClass) bool {
+	_, ok := p.(*tg.ChannelParticipantBanned)
+	return ok
+}

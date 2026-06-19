@@ -114,24 +114,6 @@ WHERE chat_id = @chat_id
   AND status = 5;
 
 
--- name: UpsertChatMembers :exec
-INSERT INTO chat_members(chat_id, user_id, tag, status)
-SELECT @chat_id, UNNEST(@user_ids::BIGINT[]), UNNEST(@tags::TEXT[]), UNNEST(@statuses::SMALLINT[])
-ON CONFLICT (chat_id, user_id) DO UPDATE SET tag     = CASE
-                                                           WHEN EXCLUDED.tag <> ''
-                                                               THEN EXCLUDED.tag
-                                                           ELSE chat_members.tag
-    END,
-                                             status  = GREATEST(EXCLUDED.status, chat_members.status),
-                                             left_at = NULL
-;
-
--- name: MarkChatMembersLeftNotInList :exec
-UPDATE chat_members
-SET left_at = now()
-WHERE chat_id = @chat_id
-  AND left_at IS NULL
-  AND user_id <> ALL (@user_ids::BIGINT[]);
 
 
 -- name: MoveChatMembersToOldExcept :exec

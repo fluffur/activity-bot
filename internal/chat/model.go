@@ -5,6 +5,7 @@ import "time"
 type Chat struct {
 	ID                   int64
 	Title                string
+	Language             string
 	NormWarn             int32
 	NormBan              int32
 	NewbieThresholdDays  int32
@@ -29,17 +30,24 @@ func New(id int64, title string) Chat {
 	return Chat{
 		ID:                   id,
 		Title:                title,
+		Language:             "ru",
+		NormWarn:             0,
+		NormBan:              0,
 		NewbieThresholdDays:  3,
+		AISystemPrompt:       "",
 		MaxLadder:            0,
+		WelcomeCallMessage:   "",
 		CallOnJoin:           false,
+		SkipCallConfirmation: false,
 		WeekStartDay:         1,
-		MaxWarns:             3,
+		CommandPrefix:        "",
 		AllowPrefixless:      true,
 		MentionsPerMessage:   5,
 		MentionTypes:         0,
 		TagsEnabled:          true,
 		WeekStartTime:        0,
+		MaxWarns:             3,
 		EmojisEnabled:        true,
-		SkipCallConfirmation: false,
+		RemovedAt:            time.Time{},
 	}
 }

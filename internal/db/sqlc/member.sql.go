@@ -751,24 +751,6 @@ func (q *Queries) InactiveChatMembers(ctx context.Context, chatID int64) ([]Inac
 	return items, nil
 }
 
-const markChatMembersLeftNotInList = `-- name: MarkChatMembersLeftNotInList :exec
-UPDATE chat_members
-SET left_at = now()
-WHERE chat_id = $1
-  AND left_at IS NULL
-  AND user_id <> ALL ($2::BIGINT[])
-`
-
-type MarkChatMembersLeftNotInListParams struct {
-	ChatID  int64   `db:"chat_id" json:"chatId"`
-	UserIds []int64 `db:"user_ids" json:"userIds"`
-}
-
-func (q *Queries) MarkChatMembersLeftNotInList(ctx context.Context, arg MarkChatMembersLeftNotInListParams) error {
-	_, err := q.db.Exec(ctx, markChatMembersLeftNotInList, arg.ChatID, arg.UserIds)
-	return err
-}
-
 const moveChatMembersToNew = `-- name: MoveChatMembersToNew :exec
 UPDATE chat_members cm
 SET joined_at = now()
@@ -924,34 +906,5 @@ type UpdateMemberStatusParams struct {
 
 func (q *Queries) UpdateMemberStatus(ctx context.Context, arg UpdateMemberStatusParams) error {
 	_, err := q.db.Exec(ctx, updateMemberStatus, arg.Status, arg.ChatID, arg.UserID)
-	return err
-}
-
-const upsertChatMembers = `-- name: UpsertChatMembers :exec
-INSERT INTO chat_members(chat_id, user_id, tag, status)
-SELECT $1, UNNEST($2::BIGINT[]), UNNEST($3::TEXT[]), UNNEST($4::SMALLINT[])
-ON CONFLICT (chat_id, user_id) DO UPDATE SET tag     = CASE
-                                                           WHEN EXCLUDED.tag <> ''
-                                                               THEN EXCLUDED.tag
-                                                           ELSE chat_members.tag
-    END,
-                                             status  = GREATEST(EXCLUDED.status, chat_members.status),
-                                             left_at = NULL
-`
-
-type UpsertChatMembersParams struct {
-	ChatID   int64    `db:"chat_id" json:"chatId"`
-	UserIds  []int64  `db:"user_ids" json:"userIds"`
-	Tags     []string `db:"tags" json:"tags"`
-	Statuses []int16  `db:"statuses" json:"statuses"`
-}
-
-func (q *Queries) UpsertChatMembers(ctx context.Context, arg UpsertChatMembersParams) error {
-	_, err := q.db.Exec(ctx, upsertChatMembers,
-		arg.ChatID,
-		arg.UserIds,
-		arg.Tags,
-		arg.Statuses,
-	)
 	return err
 }

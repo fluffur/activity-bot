@@ -26,7 +26,7 @@ func (r *UserRepository) Create(ctx context.Context, u user.User) error {
 	})
 }
 
-func (r *UserRepository) GetByID(ctx context.Context, id int64) (user.User, error) {
+func (r *UserRepository) Get(ctx context.Context, id int64) (user.User, error) {
 	u, err := r.queries.GetUserByID(ctx, id)
 	if err != nil {
 		return user.User{}, err

@@ -46,10 +46,7 @@ const getChatMember = `-- name: GetChatMember :one
 SELECT chat_members.chat_id, chat_members.user_id, chat_members.joined_at, chat_members.rest_until, chat_members.tag, chat_members.left_at, chat_members.rest_reason, chat_members.emoji, chat_members.status, chat_members.emoji_json, chat_members.exclude_from_call, users.id, users.username, users.first_name, users.last_name, users.created_at, users.gender, users.emoji, users.custom_emoji_id, users.emoji_json, users.is_bot, chats.id, chats.norm_warn, chats.newbie_threshold_days, chats.ai_system_prompt, chats.max_ladder, chats.call_on_join, chats.welcome_call_message, chats.week_start_day, chats.max_warns, chats.norm_ban, chats.command_prefix, chats.allow_prefixless, chats.mentions_per_message, chats.mention_types, chats.title, chats.tags_enabled, chats.week_start_time, chats.broadcast_enabled, chats.removed_at, chats.emojis_enabled, chats.skip_call_confirmation
 FROM chat_members
          JOIN users ON users.id = user_id
-         JOIN chats ON chat_members.chat_id = chats.id
-    AND chat_id = $1
-    AND user_id = $2
-    AND users.is_bot = $3
+         JOIN chats ON chat_members.chat_id = chats.id AND chat_id = $1 AND user_id = $2 AND users.is_bot = $3
 `
 
 type GetChatMemberParams struct {
@@ -112,4 +109,136 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 		&i.Chat.SkipCallConfirmation,
 	)
 	return i, err
+}
+
+const markAllChatMembersLeftExcept = `-- name: MarkAllChatMembersLeftExcept :exec
+UPDATE chat_members
+SET left_at = $1
+WHERE chat_id = $2
+  AND left_at IS NULL
+  AND user_id <> ALL ($3::BIGINT[])
+`
+
+type MarkAllChatMembersLeftExceptParams struct {
+	LeftAt  pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	ChatID  int64              `db:"chat_id" json:"chatId"`
+	UserIds []int64            `db:"user_ids" json:"userIds"`
+}
+
+func (q *Queries) MarkAllChatMembersLeftExcept(ctx context.Context, arg MarkAllChatMembersLeftExceptParams) error {
+	_, err := q.db.Exec(ctx, markAllChatMembersLeftExcept, arg.LeftAt, arg.ChatID, arg.UserIds)
+	return err
+}
+
+const markChatMemberLeft = `-- name: MarkChatMemberLeft :exec
+UPDATE chat_members
+SET left_at = $1
+WHERE user_id = $2
+  AND chat_id = $3
+`
+
+type MarkChatMemberLeftParams struct {
+	LeftAt pgtype.Timestamptz `db:"left_at" json:"leftAt"`
+	UserID int64              `db:"user_id" json:"userId"`
+	ChatID int64              `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) MarkChatMemberLeft(ctx context.Context, arg MarkChatMemberLeftParams) error {
+	_, err := q.db.Exec(ctx, markChatMemberLeft, arg.LeftAt, arg.UserID, arg.ChatID)
+	return err
+}
+
+const setChatMemberTag = `-- name: SetChatMemberTag :exec
+UPDATE chat_members
+SET tag = $1
+WHERE user_id = $2
+  AND chat_id = $3
+`
+
+type SetChatMemberTagParams struct {
+	Tag    pgtype.Text `db:"tag" json:"tag"`
+	UserID int64       `db:"user_id" json:"userId"`
+	ChatID int64       `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) SetChatMemberTag(ctx context.Context, arg SetChatMemberTagParams) error {
+	_, err := q.db.Exec(ctx, setChatMemberTag, arg.Tag, arg.UserID, arg.ChatID)
+	return err
+}
+
+const upsertChatMembersAndUsers = `-- name: UpsertChatMembersAndUsers :exec
+WITH upserted_users AS (
+    INSERT INTO users (
+                       id,
+                       username,
+                       first_name,
+                       last_name,
+                       is_bot
+        )
+        SELECT u.id,
+               u.username,
+               u.first_name,
+               u.last_name,
+               COALESCE(u.is_bot, false)
+        FROM ROWS FROM (
+                 UNNEST($2::BIGINT[]),
+                 UNNEST($5::TEXT[]),
+                 UNNEST($6::TEXT[]),
+                 UNNEST($7::TEXT[]),
+                 UNNEST($8::BOOLEAN[])
+                 ) AS u(id, username, first_name, last_name, is_bot)
+        ON CONFLICT (id) DO UPDATE SET
+            username = EXCLUDED.username,
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
+            is_bot = EXCLUDED.is_bot
+        RETURNING id)
+INSERT
+INTO chat_members (chat_id, user_id, tag, status)
+SELECT $1,
+       m.user_id,
+       m.tag,
+       m.status
+FROM ROWS FROM (
+         UNNEST($2::BIGINT[]),
+         UNNEST($3::TEXT[]),
+         UNNEST($4::SMALLINT[])
+         ) AS m(user_id, tag, status)
+         JOIN upserted_users AS uu ON m.user_id = uu.id
+ON CONFLICT (chat_id, user_id)
+    DO UPDATE
+    SET tag     = CASE
+                      WHEN EXCLUDED.tag <> '' THEN EXCLUDED.tag
+                      ELSE chat_members.tag
+        END,
+        status  = GREATEST(EXCLUDED.status, chat_members.status),
+        left_at = CASE
+                      WHEN chat_members.left_at IS NOT NULL THEN NULL
+                      ELSE chat_members.left_at
+            END
+`
+
+type UpsertChatMembersAndUsersParams struct {
+	ChatID     int64    `db:"chat_id" json:"chatId"`
+	UserIds    []int64  `db:"user_ids" json:"userIds"`
+	Tags       []string `db:"tags" json:"tags"`
+	Statuses   []int16  `db:"statuses" json:"statuses"`
+	Usernames  []string `db:"usernames" json:"usernames"`
+	FirstNames []string `db:"first_names" json:"firstNames"`
+	LastNames  []string `db:"last_names" json:"lastNames"`
+	IsBots     []bool   `db:"is_bots" json:"isBots"`
+}
+
+func (q *Queries) UpsertChatMembersAndUsers(ctx context.Context, arg UpsertChatMembersAndUsersParams) error {
+	_, err := q.db.Exec(ctx, upsertChatMembersAndUsers,
+		arg.ChatID,
+		arg.UserIds,
+		arg.Tags,
+		arg.Statuses,
+		arg.Usernames,
+		arg.FirstNames,
+		arg.LastNames,
+		arg.IsBots,
+	)
+	return err
 }

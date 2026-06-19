@@ -38,7 +38,7 @@ func (r *ChatRepository) Create(ctx context.Context, c chat.Chat) error {
 	})
 }
 
-func (r *ChatRepository) GetByID(ctx context.Context, id int64) (chat.Chat, error) {
+func (r *ChatRepository) Get(ctx context.Context, id int64) (chat.Chat, error) {
 	u, err := r.queries.GetChatByID(ctx, id)
 	if err != nil {
 		return chat.Chat{}, err

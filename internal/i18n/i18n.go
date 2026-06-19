@@ -65,3 +65,18 @@ func (s *Service) T(lang string, messageID MessageID, data map[string]any) strin
 
 	return msg
 }
+
+func (s *Service) TIf(
+	lang string,
+	condition bool,
+	trueKey MessageID,
+	falseKey MessageID,
+	trueArgs map[string]any,
+	falseArgs map[string]any,
+) string {
+	if condition {
+		return s.T(lang, trueKey, trueArgs)
+	}
+
+	return s.T(lang, falseKey, falseArgs)
+}

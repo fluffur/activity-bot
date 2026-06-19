@@ -1,5 +1,8 @@
 [help]
-other = "Помощь"
+other = "📚 {{.CommandsLink}}\n\nЕсли нужна помощь, обратитесь к {{.DeveloperLink}}"
+
+[bot_commands]
+other = "Команды бота"
 
 [user_left_male]
 other = "{{.User}} вышел из чата"
@@ -9,3 +12,22 @@ other = "{{.User}} вышла из чата"
 
 [user_unknown]
 other = "участник"
+
+[user_joined_male]
+other = "{{.User}} присоединился к чату"
+
+[user_joined_female]
+other = "{{.User}} присоединилась к чату"
+
+[user_returned_male]
+other = "{{.User}} вернулся в чат"
+
+[user_returned_female]
+other = "{{.User}} вернулась в чат"
+
+[bot_added_admin]
+other = "Меня добавили в группу!\n\nТеперь можно приступить к настройке бота"
+
+[bot_added]
+other = "Меня добавили в группу!\n\nТеперь, для того, чтобы я мог работать корректно, мне нужно выдать права администратора в группе (все пункты, кроме анонимности)"
+

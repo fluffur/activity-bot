@@ -73,17 +73,19 @@ func main() {
 	userRepository := repository.NewUserRepository(queries)
 	chatMemberRepository := repository.NewChatMemberRepository(queries)
 	messageRepository := repository.NewMessageRepository(queries)
+	pmSessionRepository := repository.NewPMSessionRepository(queries)
 
-	bot.UseOuter(middleware.ChatMiddleware(chatRepository, userRepository, chatMemberRepository))
+	bot.UseOuter(middleware.ChatMiddleware(chatRepository, pmSessionRepository))
 
 	bot.Use(
 		botapi.Recover(),
 		botapi.Timeout(time.Minute),
 		botapi.Logging(),
+		middleware.ChatMemberMiddleware(userRepository, chatMemberRepository),
 	)
 
-	help.NewHandler(bot, translator).Register()
-	events.NewHandler(bot, translator, messageRepository).Register()
+	help.NewHandler(bot, translator, cfg.CommandsURL, cfg.DeveloperUsername).Register()
+	events.NewHandler(bot, translator, messageRepository, chatRepository, userRepository, chatMemberRepository).Register()
 
 	log.Info("Starting bot")
 

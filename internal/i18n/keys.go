@@ -5,8 +5,73 @@ package i18n
 type MessageID string
 
 const (
-	Help           MessageID = "help"
-	UserLeftFemale MessageID = "user_left_female"
-	UserLeftMale   MessageID = "user_left_male"
-	UserUnknown    MessageID = "user_unknown"
+	BotAdded           MessageID = "bot_added"
+	BotAddedAdmin      MessageID = "bot_added_admin"
+	BotCommands        MessageID = "bot_commands"
+	Help               MessageID = "help"
+	UserJoinedFemale   MessageID = "user_joined_female"
+	UserJoinedMale     MessageID = "user_joined_male"
+	UserLeftFemale     MessageID = "user_left_female"
+	UserLeftMale       MessageID = "user_left_male"
+	UserReturnedFemale MessageID = "user_returned_female"
+	UserReturnedMale   MessageID = "user_returned_male"
+	UserUnknown        MessageID = "user_unknown"
 )
+
+func HelpArgs(
+	commandsLink any,
+	developerLink any,
+) map[string]any {
+	return map[string]any{
+		"CommandsLink":  commandsLink,
+		"DeveloperLink": developerLink,
+	}
+}
+
+func UserJoinedFemaleArgs(
+	user any,
+) map[string]any {
+	return map[string]any{
+		"User": user,
+	}
+}
+
+func UserJoinedMaleArgs(
+	user any,
+) map[string]any {
+	return map[string]any{
+		"User": user,
+	}
+}
+
+func UserLeftFemaleArgs(
+	user any,
+) map[string]any {
+	return map[string]any{
+		"User": user,
+	}
+}
+
+func UserLeftMaleArgs(
+	user any,
+) map[string]any {
+	return map[string]any{
+		"User": user,
+	}
+}
+
+func UserReturnedFemaleArgs(
+	user any,
+) map[string]any {
+	return map[string]any{
+		"User": user,
+	}
+}
+
+func UserReturnedMaleArgs(
+	user any,
+) map[string]any {
+	return map[string]any{
+		"User": user,
+	}
+}
