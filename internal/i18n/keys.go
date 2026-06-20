@@ -5,6 +5,7 @@ package i18n
 type MessageID string
 
 const (
+	AddBotButton       MessageID = "add_bot_button"
 	BotAdded           MessageID = "bot_added"
 	BotAddedAdmin      MessageID = "bot_added_admin"
 	BotCommands        MessageID = "bot_commands"

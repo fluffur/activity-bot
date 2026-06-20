@@ -23,7 +23,19 @@ func (h *Handler) Help(c *botapi.Context) error {
 	_, err = c.Reply(
 		h.translator.TData(ch.Language, i18n.Help, args),
 		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.WithReplyMarkup(h.helpKeyboard(ch.Language)),
 	)
 
 	return err
+}
+
+func (h *Handler) helpKeyboard(lang string) *botapi.InlineKeyboardMarkup {
+	return &botapi.InlineKeyboardMarkup{
+		InlineKeyboard: [][]botapi.InlineKeyboardButton{{
+			{
+				Text: h.translator.T(lang, i18n.AddBotButton),
+				URL:  tghtml.StartGroupLink(h.bot.Self().Username),
+			},
+		}},
+	}
 }

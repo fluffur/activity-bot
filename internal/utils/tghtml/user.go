@@ -22,6 +22,10 @@ func Link(href, content string) string {
 	return fmt.Sprintf("<a href=%q>%s</a>", href, content)
 }
 
+func StartGroupLink(username string) string {
+	return fmt.Sprintf("t.me/%s?startgroup=true", username)
+}
+
 func Bold(text string) string {
 	return "<b>" + text + "</b>"
 }

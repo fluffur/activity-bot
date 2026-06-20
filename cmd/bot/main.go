@@ -43,11 +43,12 @@ func main() {
 	defer func() { _ = store.Close() }()
 
 	bot, err := botapi.New(cfg.BotToken, botapi.Options{
-		AppID:     cfg.AppID,
-		AppHash:   cfg.AppHash,
-		Logger:    logzap.New(log),
-		Storage:   store,
-		FloodWait: true,
+		AppID:                      cfg.AppID,
+		AppHash:                    cfg.AppHash,
+		Logger:                     logzap.New(log),
+		Storage:                    store,
+		FloodWait:                  true,
+		DisableCommandRegistration: true,
 	})
 	if err != nil {
 		log.Fatal("Create bot", zap.Error(err))

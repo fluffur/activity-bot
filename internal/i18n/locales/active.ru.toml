@@ -1,6 +1,9 @@
 [help]
 other = "📚 {{.CommandsLink}}\n\nЕсли нужна помощь, обратитесь к {{.DeveloperLink}}"
 
+[add_bot_button]
+other = "Добавить бота в группу"
+
 [bot_commands]
 other = "Команды бота"
 

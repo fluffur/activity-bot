@@ -21,4 +21,5 @@ func NewHandler(bot *botapi.Bot, translator *i18n.Translator, commandsURL, devel
 
 func (h *Handler) Register() {
 	h.bot.OnMessage(h.Help, predicate.Command("help", "помощь"))
+	h.bot.OnCommand("start", "Start bot", h.Help, botapi.ChatTypeIs(botapi.ChatTypePrivate))
 }
