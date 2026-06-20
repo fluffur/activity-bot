@@ -10,14 +10,14 @@ import (
 	"golang.org/x/text/language"
 )
 
-type Service struct {
+type Translator struct {
 	bundle *goi18n.Bundle
 }
 
 //go:embed locales/*.toml
 var localeFS embed.FS
 
-func New() (*Service, error) {
+func New() (*Translator, error) {
 	bundle := goi18n.NewBundle(language.Russian)
 
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
@@ -26,7 +26,7 @@ func New() (*Service, error) {
 		return nil, err
 	}
 
-	return &Service{
+	return &Translator{
 		bundle: bundle,
 	}, nil
 }
@@ -52,7 +52,7 @@ func loadLocales(bundle *goi18n.Bundle) error {
 	return nil
 }
 
-func (s *Service) T(lang string, messageID MessageID, data map[string]any) string {
+func (s *Translator) T(lang string, messageID MessageID, data map[string]any) string {
 	localizer := goi18n.NewLocalizer(s.bundle, lang)
 
 	msg, err := localizer.Localize(&goi18n.LocalizeConfig{
@@ -66,7 +66,7 @@ func (s *Service) T(lang string, messageID MessageID, data map[string]any) strin
 	return msg
 }
 
-func (s *Service) TIf(
+func (s *Translator) TIf(
 	lang string,
 	condition bool,
 	trueKey MessageID,

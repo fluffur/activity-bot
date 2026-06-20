@@ -10,6 +10,7 @@ type Repository interface {
 	Get(ctx context.Context, chatID int64, userID int64) (ChatMember, error)
 	SetTag(ctx context.Context, chatID int64, userID int64, tag string) error
 	MarkLeft(ctx context.Context, chatID int64, userID int64, leftAt time.Time) error
+	Restore(ctx context.Context, chatID int64, userID int64) error
 	MarkAllLeftExcept(ctx context.Context, chatID int64, userIDs []int64, leftAt time.Time) error
 	UpsertChatMembers(ctx context.Context, chatID int64, chatMembers []ChatMember) error
 }

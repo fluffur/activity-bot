@@ -9,13 +9,13 @@ import (
 
 type Handler struct {
 	bot        *botapi.Bot
-	translator *i18n.Service
+	translator *i18n.Translator
 
 	commandsURL       string
 	developerUsername string
 }
 
-func NewHandler(bot *botapi.Bot, translator *i18n.Service, commandsURL, developerUsername string) *Handler {
+func NewHandler(bot *botapi.Bot, translator *i18n.Translator, commandsURL, developerUsername string) *Handler {
 	return &Handler{bot, translator, commandsURL, developerUsername}
 }
 

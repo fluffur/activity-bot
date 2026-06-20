@@ -2,7 +2,7 @@ package repository
 
 import (
 	db "activity-bot/internal/db/sqlc"
-	"activity-bot/internal/events"
+	"activity-bot/internal/message"
 	"context"
 	"time"
 
@@ -13,7 +13,7 @@ type MessageRepository struct {
 	queries *db.Queries
 }
 
-func NewMessageRepository(queries *db.Queries) events.Repository {
+func NewMessageRepository(queries *db.Queries) message.Repository {
 	return &MessageRepository{queries: queries}
 }
 

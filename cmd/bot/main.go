@@ -1,6 +1,7 @@
 package main
 
 import (
+	"activity-bot/internal/chatmember"
 	"activity-bot/internal/config"
 	"activity-bot/internal/db/repository"
 	db "activity-bot/internal/db/sqlc"
@@ -75,6 +76,8 @@ func main() {
 	messageRepository := repository.NewMessageRepository(queries)
 	pmSessionRepository := repository.NewPMSessionRepository(queries)
 
+	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
+
 	bot.UseOuter(middleware.ChatMiddleware(chatRepository, pmSessionRepository))
 
 	bot.Use(
@@ -85,7 +88,7 @@ func main() {
 	)
 
 	help.NewHandler(bot, translator, cfg.CommandsURL, cfg.DeveloperUsername).Register()
-	events.NewHandler(bot, translator, messageRepository, chatRepository, userRepository, chatMemberRepository).Register()
+	events.NewHandler(bot, translator, messageRepository, chatMemberService).Register()
 
 	log.Info("Starting bot")
 

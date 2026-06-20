@@ -46,13 +46,12 @@ const getChatMember = `-- name: GetChatMember :one
 SELECT chat_members.chat_id, chat_members.user_id, chat_members.joined_at, chat_members.rest_until, chat_members.tag, chat_members.left_at, chat_members.rest_reason, chat_members.emoji, chat_members.status, chat_members.emoji_json, chat_members.exclude_from_call, users.id, users.username, users.first_name, users.last_name, users.created_at, users.gender, users.emoji, users.custom_emoji_id, users.emoji_json, users.is_bot, chats.id, chats.norm_warn, chats.newbie_threshold_days, chats.ai_system_prompt, chats.max_ladder, chats.call_on_join, chats.welcome_call_message, chats.week_start_day, chats.max_warns, chats.norm_ban, chats.command_prefix, chats.allow_prefixless, chats.mentions_per_message, chats.mention_types, chats.title, chats.tags_enabled, chats.week_start_time, chats.broadcast_enabled, chats.removed_at, chats.emojis_enabled, chats.skip_call_confirmation
 FROM chat_members
          JOIN users ON users.id = user_id
-         JOIN chats ON chat_members.chat_id = chats.id AND chat_id = $1 AND user_id = $2 AND users.is_bot = $3
+         JOIN chats ON chat_members.chat_id = chats.id AND chat_id = $1 AND user_id = $2
 `
 
 type GetChatMemberParams struct {
 	ChatID int64 `db:"chat_id" json:"chatId"`
 	UserID int64 `db:"user_id" json:"userId"`
-	IsBot  bool  `db:"is_bot" json:"isBot"`
 }
 
 type GetChatMemberRow struct {
@@ -62,7 +61,7 @@ type GetChatMemberRow struct {
 }
 
 func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (GetChatMemberRow, error) {
-	row := q.db.QueryRow(ctx, getChatMember, arg.ChatID, arg.UserID, arg.IsBot)
+	row := q.db.QueryRow(ctx, getChatMember, arg.ChatID, arg.UserID)
 	var i GetChatMemberRow
 	err := row.Scan(
 		&i.ChatMember.ChatID,

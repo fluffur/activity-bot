@@ -17,7 +17,7 @@ import (
 	"github.com/gotd/botapi"
 )
 
-func ChatMiddleware(chatRepository chat.Repository, sessionRepository pmsession.Repository) botapi.Middleware {
+func ChatMiddleware(cr chat.Repository, sr pmsession.Repository) botapi.Middleware {
 	return func(next botapi.Handler) botapi.Handler {
 		return func(c *botapi.Context) error {
 			msg := c.Message()
@@ -33,7 +33,7 @@ func ChatMiddleware(chatRepository chat.Repository, sessionRepository pmsession.
 			chatModel := chat.New(0, "")
 
 			if msg.Chat.Type != botapi.ChatTypeGroup && msg.Chat.Type != botapi.ChatTypeSupergroup {
-				ch, err := sessionRepository.GetChat(ctx, msg.Chat.ID)
+				ch, err := sr.GetChat(ctx, msg.Chat.ID)
 				if err != nil {
 					if errors.Is(err, sql.ErrNoRows) {
 						ctx = context.WithValue(ctx, cctx.ChatKey{}, chatModel)
@@ -41,12 +41,13 @@ func ChatMiddleware(chatRepository chat.Repository, sessionRepository pmsession.
 
 						return next(c)
 					}
+
 					return fmt.Errorf("get chat: %w", err)
 				}
 
 				chatModel = ch
 			} else {
-				ch, err := getOrCreateChat(ctx, chatRepository, msg.Chat)
+				ch, err := getOrCreateChat(ctx, cr, msg.Chat)
 				if err != nil {
 					return err
 				}
@@ -62,16 +63,14 @@ func ChatMiddleware(chatRepository chat.Repository, sessionRepository pmsession.
 	}
 }
 
-func ChatMemberMiddleware(
-	userRepository user.Repository,
-	chatMemberRepository chatmember.Repository,
-) botapi.Middleware {
+func ChatMemberMiddleware(ur user.Repository, cmr chatmember.Repository) botapi.Middleware {
 	return func(next botapi.Handler) botapi.Handler {
 		return func(c *botapi.Context) error {
 			ctx := c.Context
 
 			sender := c.Sender()
-			userModel, err := getOrCreateUser(ctx, userRepository, sender, c.Message().Chat)
+
+			userModel, err := getOrCreateUser(ctx, ur, sender, c.Message().Chat)
 			if err != nil {
 				return err
 			}
@@ -87,7 +86,7 @@ func ChatMemberMiddleware(
 
 			member, err := getOrCreateChatMember(
 				ctx,
-				chatMemberRepository,
+				cmr,
 				c.Bot,
 				chatModel,
 				userModel,
@@ -129,25 +128,31 @@ func getOrCreateUser(
 	ctx context.Context,
 	repo user.Repository,
 	sender *botapi.User,
-	chat botapi.Chat,
+	c botapi.Chat,
 ) (user.User, error) {
-	var senderID int64
-	var senderUsername, senderFirstName, senderLastName string
-	var senderIsBot bool
-	if sender != nil {
+	var (
+		senderID                                        int64
+		senderUsername, senderFirstName, senderLastName string
+		senderIsBot                                     bool
+	)
+
+	switch {
+	case sender != nil:
 		senderID = sender.ID
 		senderUsername = sender.Username
 		senderFirstName = sender.FirstName
 		senderLastName = sender.LastName
 		senderIsBot = sender.IsBot
-	} else if chat.Type == botapi.ChatTypePrivate {
-		senderID = chat.ID
-		senderUsername = chat.Username
-		senderFirstName = chat.FirstName
-		senderLastName = chat.LastName
-	} else {
+
+	case c.Type == botapi.ChatTypePrivate:
+		senderID = c.ID
+		senderUsername = c.Username
+		senderFirstName = c.FirstName
+		senderLastName = c.LastName
+	default:
 		return user.User{}, fmt.Errorf("no user")
 	}
+
 	model, err := repo.Get(ctx, senderID)
 	if err == nil {
 		return model, nil

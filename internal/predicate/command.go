@@ -16,6 +16,7 @@ func GetArgs(c *botapi.Context) string {
 	if val, ok := c.Context.Value(ArgsKey{}).(string); ok {
 		return val
 	}
+
 	return ""
 }
 
@@ -112,6 +113,7 @@ func Command(name string, aliases ...string) botapi.Predicate {
 func extractRawArgs(originalNoPrefix, targetCmdLower, myBotUsername string) string {
 	lower := strings.ToLower(originalNoPrefix)
 	idx := strings.Index(lower, targetCmdLower)
+
 	if idx == -1 {
 		return strings.TrimSpace(originalNoPrefix)
 	}
@@ -132,5 +134,6 @@ func findPrefix(textLower string, prefixes []string) string {
 			return prefix
 		}
 	}
+
 	return ""
 }

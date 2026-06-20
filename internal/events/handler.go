@@ -1,34 +1,24 @@
 package events
 
 import (
-	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
-	"activity-bot/internal/user"
+	"activity-bot/internal/message"
 
 	"github.com/gotd/botapi"
 )
 
 type Handler struct {
-	bot                  *botapi.Bot
-	translator           *i18n.Service
-	messageRepository    Repository
-	chatRepository       chat.Repository
-	userRepository       user.Repository
-	chatMemberRepository chatmember.Repository
+	bot               *botapi.Bot
+	translator        *i18n.Translator
+	messageRepository message.Repository
+	memberService     *chatmember.Service
 }
 
 func NewHandler(
-	bot *botapi.Bot,
-	translator *i18n.Service,
-	messageRepository Repository,
-	chatRepository chat.Repository,
-	userRepository user.Repository,
-	chatMemberRepository chatmember.Repository,
+	bot *botapi.Bot, t *i18n.Translator, mr message.Repository, ms *chatmember.Service,
 ) *Handler {
-	return &Handler{
-		bot,
-		translator, messageRepository, chatRepository, userRepository, chatMemberRepository}
+	return &Handler{bot, t, mr, ms}
 }
 
 func (h *Handler) Register() {

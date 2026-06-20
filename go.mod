@@ -2,12 +2,10 @@ module activity-bot
 
 go 1.26
 
-replace github.com/gotd/botapi => github.com/fluffur/botapi v0.0.0-20260618095217-da96db8db737
-
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/caarlos0/env/v11 v11.4.1
-	github.com/gotd/botapi v0.2.0
+	github.com/gotd/botapi v0.2.1-0.20260619180154-ec97c6a751b3
 	github.com/gotd/log/logzap v0.1.1
 	github.com/gotd/td v0.159.0
 	github.com/jackc/pgx/v5 v5.10.0

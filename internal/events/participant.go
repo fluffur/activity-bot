@@ -1,23 +1,19 @@
 package events
 
 import (
-	"activity-bot/internal/chat"
-	"activity-bot/internal/chatmember"
+	"context"
+	"fmt"
+	"log"
+	"time"
+
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/user"
 	"activity-bot/internal/utils/chatmembers"
 	"activity-bot/internal/utils/participant"
 	"activity-bot/internal/utils/tghtml"
-	"context"
-	"errors"
-	"fmt"
-	"log"
-	"time"
 
-	glog "github.com/gotd/log"
 	"github.com/gotd/td/constant"
 	"github.com/gotd/td/tg"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/gotd/botapi"
 )
@@ -25,203 +21,115 @@ import (
 func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.UpdateChannelParticipant) error {
 	log.Printf("participant %+v\n", u)
 
-	var chatID constant.TDLibPeerID
-	chatID.Channel(u.ChannelID)
+	var peerID constant.TDLibPeerID
 
-	chatt, err := h.chatRepository.Get(ctx, int64(chatID))
-	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return fmt.Errorf("participant update get chat: %w", err)
-		}
-		chatt = chat.New(int64(chatID), e.Channels[u.ChannelID].Title)
+	peerID.Channel(u.ChannelID)
 
-		if err := h.chatRepository.Create(ctx, chatt); err != nil {
-			return fmt.Errorf("participant update create chat: %w", err)
-		}
-	}
+	chatID := int64(peerID)
 
-	userr, err := h.userRepository.Get(ctx, u.UserID)
-	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return fmt.Errorf("join participant get user: %w", err)
-		}
-		userEntity := e.Users[u.UserID]
-		userr = user.New(
-			u.UserID,
-			userEntity.FirstName,
-			userEntity.LastName,
-			userEntity.Username,
-			user.GenderUnknown,
-			userEntity.Bot,
-			time.Now(),
-		)
-
-		if err := h.userRepository.Create(ctx, userr); err != nil {
-			return fmt.Errorf("join participant create user: %w", err)
-		}
+	if u.NewParticipant == nil || participant.IsBanned(u.NewParticipant) {
+		return h.processLeft(ctx, e, u, chatID)
 	}
 
 	if u.PrevParticipant == nil || participant.IsBanned(u.PrevParticipant) {
-		return h.handleParticipantJoin(ctx, e, u, userr, chatt)
-	}
-	if u.NewParticipant == nil || participant.IsBanned(u.NewParticipant) {
-		return h.handleParticipantLeft(ctx, e, u, userr, chatt)
+		return h.processJoin(ctx, e, u, chatID)
 	}
 
-	newRank := participant.Rank(u.NewParticipant)
-	if participant.Rank(u.PrevParticipant) != newRank {
-		return h.chatMemberRepository.SetTag(ctx, int64(chatID), u.UserID, newRank)
+	newTag := participant.Rank(u.NewParticipant)
+	if participant.Rank(u.PrevParticipant) != newTag {
+		return h.memberService.UpdateTag(ctx, chatID, u.UserID, newTag)
 	}
 
 	return nil
 }
 
-func (h *Handler) handleParticipantLeft(
-	ctx context.Context,
-	e tg.Entities,
-	u *tg.UpdateChannelParticipant,
-	userr user.User,
-	chatt chat.Chat,
-) error {
-	if err := h.chatMemberRepository.MarkLeft(ctx, chatt.ID, u.UserID, time.Now()); err != nil {
-		glog.For(h.bot.Logger()).Warn(ctx, "Failed to mark participant as left", glog.Error(err))
+func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateChannelParticipant, chatID int64) error {
+	ue := e.Users[u.UserID]
+
+	userDTO := user.New(u.UserID, ue.FirstName, ue.LastName, ue.Username, user.GenderUnknown, ue.Bot, time.Now())
+
+	res, err := h.memberService.HandleJoin(
+		ctx,
+		chatID,
+		e.Channels[u.ChannelID].Title,
+		userDTO,
+		participant.Rank(u.NewParticipant),
+	)
+	if err != nil {
+		return fmt.Errorf("handler process join: %w", err)
 	}
 
-	name := h.translator.T(chatt.Language, i18n.UserUnknown, nil)
-	if userEntity, ok := e.Users[u.UserID]; ok {
-		name = userEntity.FirstName
+	if res.IsNew && participant.IsSelf(u.NewParticipant) {
+		members, err := participant.GetChatMembers(h.bot, ctx, e, u)
+		if err != nil {
+			return fmt.Errorf("get chat members on bot join: %w", err)
+		}
+
+		if err = h.memberService.SyncChatMembers(ctx, chatID, chatmembers.ExtractMembers(members)); err != nil {
+			return fmt.Errorf("sync chat members: %w", err)
+		}
+
+		text := h.translator.TIf(res.ChatMember.Chat.Language, participant.IsAdmin(u.NewParticipant), i18n.BotAddedAdmin, i18n.BotAdded, nil, nil)
+
+		_, err = h.bot.SendMessage(ctx, botapi.ID(chatID), text, botapi.WithParseMode(botapi.ParseModeHTML))
+
+		return err
 	}
 
-	tag := participant.Rank(u.PrevParticipant)
-	if tag == "" {
-		tag = name
+	cm := res.ChatMember
+	us := cm.User
+	ch := cm.Chat
+
+	mention := tghtml.UserMention(us.ID, h.getParticipantTag(e, us.ID, cm.Tag, ch.Language))
+
+	keyFemale, keyMale := i18n.UserReturnedFemale, i18n.UserReturnedMale
+	argsFemale, argsMale := i18n.UserReturnedFemaleArgs(mention), i18n.UserReturnedMaleArgs(mention)
+
+	if res.IsNew {
+		keyFemale, keyMale = i18n.UserJoinedFemale, i18n.UserJoinedMale
+		argsFemale, argsMale = i18n.UserJoinedFemaleArgs(mention), i18n.UserJoinedMaleArgs(mention)
 	}
 
-	mention := tghtml.UserMention(userr.ID, tag)
+	text := h.translator.TIf(ch.Language, us.Gender == user.GenderFemale, keyFemale, keyMale, argsFemale, argsMale)
+
+	_, err = h.bot.SendMessage(ctx, botapi.ID(chatID), text, botapi.WithParseMode(botapi.ParseModeHTML))
+
+	return err
+}
+
+func (h *Handler) processLeft(ctx context.Context, e tg.Entities, u *tg.UpdateChannelParticipant, chatID int64) error {
+	cm, err := h.memberService.HandleLeft(ctx, chatID, u.UserID)
+	if err != nil {
+		return fmt.Errorf("handler process left: %w", err)
+	}
+
+	us := cm.User
+	ch := cm.Chat
+
+	mention := tghtml.UserMention(us.ID, h.getParticipantTag(e, u.UserID, cm.Tag, ch.Language))
 
 	text := h.translator.TIf(
-		chatt.Language,
-		userr.Gender == user.GenderFemale,
+		ch.Language,
+		us.Gender == user.GenderFemale,
 		i18n.UserLeftFemale,
 		i18n.UserLeftMale,
 		i18n.UserLeftFemaleArgs(mention),
 		i18n.UserLeftMaleArgs(mention),
 	)
 
-	_, err := h.bot.SendMessage(ctx, botapi.ID(chatt.ID),
-		text,
-		botapi.WithParseMode(botapi.ParseModeHTML),
-	)
+	_, err = h.bot.SendMessage(ctx, botapi.ID(chatID), text, botapi.WithParseMode(botapi.ParseModeHTML))
 
 	return err
 }
 
-func (h *Handler) handleParticipantJoin(
-	ctx context.Context,
-	e tg.Entities,
-	u *tg.UpdateChannelParticipant,
-	userr user.User,
-	chatt chat.Chat,
-) error {
-	newMember := false
-	chatMember, err := h.chatMemberRepository.Get(ctx, chatt.ID, u.UserID)
-
-	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return fmt.Errorf("join participant get chat member: %w", err)
-		}
-		newMember = true
-		chatMember = chatmember.New(
-			userr,
-			chatt,
-			participant.Rank(u.NewParticipant),
-			chatmember.StatusMember,
-			time.Now(),
-		)
-
-		if err := h.chatMemberRepository.Create(ctx, chatMember); err != nil {
-			return fmt.Errorf("join participant create chat member: %w", err)
-		}
+func (h *Handler) getParticipantTag(e tg.Entities, userID int64, currentTag, lang string) string {
+	if currentTag != "" {
+		return currentTag
 	}
 
-	name := h.translator.T(chatt.Language, i18n.UserUnknown, nil)
-	if userEntity, ok := e.Users[u.UserID]; ok {
-		name = userEntity.FirstName
+	if userEntity, ok := e.Users[userID]; ok && userEntity.FirstName != "" {
+		return userEntity.FirstName
 	}
 
-	tag := chatMember.Tag
-	if tag == "" {
-		tag = name
-	}
-	if err := h.chatMemberRepository.MarkLeft(ctx, chatt.ID, u.UserID, time.Time{}); err != nil {
-		glog.For(h.bot.Logger()).Warn(ctx, "Failed to mark participant as not left", glog.Error(err))
-	}
-
-	if newMember && participant.IsSelf(u.NewParticipant) {
-		members, err := participant.GetChatMembers(h.bot, ctx, e, u)
-		if err != nil {
-			return fmt.Errorf("join participant get chat members: %w", err)
-		}
-
-		cms := chatmembers.ExtractMembers(members)
-
-		cmIDs := make([]int64, 0, len(cms))
-		for _, cm := range cms {
-			cmIDs = append(cmIDs, cm.User.ID)
-		}
-
-		if err := h.chatMemberRepository.MarkAllLeftExcept(ctx, chatt.ID, cmIDs, time.Now()); err != nil {
-			return fmt.Errorf("join sync mark all left: %w", err)
-		}
-		if err := h.chatMemberRepository.UpsertChatMembers(ctx, chatt.ID, cms); err != nil {
-			return fmt.Errorf("join sync upsert chat members: %w", err)
-		}
-
-		text := h.translator.TIf(
-			chatt.Language,
-			participant.IsAdmin(u.NewParticipant),
-			i18n.BotAddedAdmin,
-			i18n.BotAdded,
-			nil,
-			nil,
-		)
-
-		if _, err := h.bot.SendMessage(ctx, botapi.ID(chatt.ID), text, botapi.WithParseMode(botapi.ParseModeHTML)); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	mention := tghtml.UserMention(participant.ID(u.NewParticipant), tag)
-
-	if newMember {
-		text := h.translator.TIf(
-			chatt.Language,
-			userr.Gender == user.GenderFemale,
-			i18n.UserJoinedFemale,
-			i18n.UserJoinedMale,
-			i18n.UserJoinedFemaleArgs(mention),
-			i18n.UserJoinedMaleArgs(mention),
-		)
-		if _, err := h.bot.SendMessage(ctx, botapi.ID(chatt.ID), text, botapi.WithParseMode(botapi.ParseModeHTML)); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	text := h.translator.TIf(
-		chatt.Language,
-		userr.Gender == user.GenderFemale,
-		i18n.UserReturnedFemale,
-		i18n.UserReturnedMale,
-		i18n.UserReturnedFemaleArgs(mention),
-		i18n.UserReturnedMaleArgs(mention),
-	)
-
-	if _, err := h.bot.SendMessage(ctx, botapi.ID(chatt.ID), text, botapi.WithParseMode(botapi.ParseModeHTML)); err != nil {
-		return err
-	}
-
-	return nil
+	return h.translator.T(lang, i18n.UserUnknown, nil)
 }

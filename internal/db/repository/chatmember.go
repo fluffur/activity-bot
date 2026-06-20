@@ -6,6 +6,8 @@ import (
 	"context"
 	"sort"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type ChatMemberRepository struct {
@@ -33,7 +35,6 @@ func (r *ChatMemberRepository) Get(ctx context.Context, chatID, userID int64) (c
 	m, err := r.queries.GetChatMember(ctx, db.GetChatMemberParams{
 		ChatID: chatID,
 		UserID: userID,
-		IsBot:  false,
 	})
 	if err != nil {
 		return chatmember.ChatMember{}, err
@@ -42,7 +43,7 @@ func (r *ChatMemberRepository) Get(ctx context.Context, chatID, userID int64) (c
 	return mapChatMemberFull(m.ChatMember, m.Chat, m.User), nil
 }
 
-func (r *ChatMemberRepository) SetTag(ctx context.Context, chatID int64, userID int64, tag string) error {
+func (r *ChatMemberRepository) SetTag(ctx context.Context, chatID, userID int64, tag string) error {
 	return r.queries.SetChatMemberTag(ctx, db.SetChatMemberTagParams{
 		Tag:    text(tag),
 		UserID: userID,
@@ -50,7 +51,7 @@ func (r *ChatMemberRepository) SetTag(ctx context.Context, chatID int64, userID 
 	})
 }
 
-func (r *ChatMemberRepository) MarkLeft(ctx context.Context, chatID int64, userID int64, leftAt time.Time) error {
+func (r *ChatMemberRepository) MarkLeft(ctx context.Context, chatID, userID int64, leftAt time.Time) error {
 	return r.queries.MarkChatMemberLeft(ctx, db.MarkChatMemberLeftParams{
 		LeftAt: timestamptz(leftAt),
 		UserID: userID,
@@ -103,5 +104,13 @@ func (r *ChatMemberRepository) UpsertChatMembers(ctx context.Context, chatID int
 		FirstNames: firstNames,
 		LastNames:  lastNames,
 		IsBots:     isBots,
+	})
+}
+
+func (r *ChatMemberRepository) Restore(ctx context.Context, chatID, userID int64) error {
+	return r.queries.MarkChatMemberLeft(ctx, db.MarkChatMemberLeftParams{
+		LeftAt: pgtype.Timestamptz{},
+		UserID: userID,
+		ChatID: chatID,
 	})
 }

@@ -20,5 +20,6 @@ func (r *PMSessionRepository) GetChat(ctx context.Context, userID int64) (chat.C
 	if err != nil {
 		return chat.Chat{}, err
 	}
+
 	return mapChat(s.Chat), nil
 }

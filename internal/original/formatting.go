@@ -76,6 +76,7 @@ func OriginalTextMD(m botapi.Message) string {
 	if m.Text != "" {
 		return getOrigMsgMD(utf16.Encode([]rune(m.Text)), m.Entities)
 	}
+
 	return getOrigMsgMD(utf16.Encode([]rune(m.Caption)), m.CaptionEntities)
 }
 
@@ -84,6 +85,7 @@ func OriginalTextMDV2(m botapi.Message) string {
 	if m.Text != "" {
 		return getOrigMsgMDV2(utf16.Encode([]rune(m.Text)), m.Entities)
 	}
+
 	return getOrigMsgMDV2(utf16.Encode([]rune(m.Caption)), m.CaptionEntities)
 }
 
@@ -92,6 +94,7 @@ func OriginalTextHTML(m botapi.Message) string {
 	if m.Text != "" {
 		return getOrigMsgHTML(utf16.Encode([]rune(m.Text)), m.Entities)
 	}
+
 	return getOrigMsgHTML(utf16.Encode([]rune(m.Caption)), m.CaptionEntities)
 }
 
@@ -99,6 +102,7 @@ func OriginalTextHTML(m botapi.Message) string {
 func getOrigMsgMD(utf16Data []uint16, ents []botapi.MessageEntity) string {
 	out := strings.Builder{}
 	prev := 0
+
 	for _, ent := range getUpperEntities(ents) {
 		newPrev := ent.Offset + ent.Length
 		prevText := string(utf16.Decode(utf16Data[prev:ent.Offset]))
@@ -112,21 +116,26 @@ func getOrigMsgMD(utf16Data []uint16, ents []botapi.MessageEntity) string {
 			out.WriteString(prevText + pre + mdMap[ent.Type] + escapeContainedMDV1(cleanCntntRune, []rune(mdMap[ent.Type])) + mdMap[ent.Type] + post)
 		case botapi.EntityPre:
 			if ent.Language == "" {
-				out.WriteString(prevText + pre + mdMap[ent.Type] + escapeContainedMDV1(cleanCntntRune, []rune(mdMap[ent.Type])) + mdMap[ent.Type] + post)
+				out.WriteString(prevText + pre + mdMap[ent.Type] +
+					escapeContainedMDV1(cleanCntntRune, []rune(mdMap[ent.Type])) + mdMap[ent.Type] + post)
 			} else {
-				out.WriteString(prevText + pre + mdMap[ent.Type] + ent.Language + "\n" + escapeContainedMDV1(cleanCntntRune, []rune(mdMap[ent.Type])) + mdMap[ent.Type] + post)
+				out.WriteString(prevText + pre + mdMap[ent.Type] +
+					ent.Language + "\n" + escapeContainedMDV1(cleanCntntRune, []rune(mdMap[ent.Type])) + mdMap[ent.Type] + post)
 			}
 		case botapi.EntityTextMention:
-			out.WriteString(prevText + pre + "[" + escapeContainedMDV1(cleanCntntRune, []rune("[]()")) + "](tg://user?id=" + strconv.FormatInt(ent.User.ID, 10) + ")" + post)
+			out.WriteString(prevText + pre + "[" + escapeContainedMDV1(cleanCntntRune, []rune("[]()")) + "](tg://user?id=" +
+				strconv.FormatInt(ent.User.ID, 10) + ")" + post)
 		case botapi.EntityTextLink:
 			out.WriteString(prevText + pre + "[" + escapeContainedMDV1(cleanCntntRune, []rune("[]()")) + "](" + ent.URL + ")" + post)
 		default:
 			continue
 		}
+
 		prev = newPrev
 	}
 
 	out.WriteString(string(utf16.Decode(utf16Data[prev:])))
+
 	return out.String()
 }
 
@@ -137,52 +146,62 @@ func getOrigMsgHTML(utf16Data []uint16, ents []botapi.MessageEntity) string {
 
 	bd := strings.Builder{}
 	prev := 0
+
 	for _, e := range getUpperEntities(ents) {
 		data, end := fillNestedHTML(utf16Data, e, prev, getChildEntities(e, ents))
 		bd.WriteString(data)
+
 		prev = end
 	}
 
 	bd.WriteString(html.EscapeString(string(utf16.Decode(utf16Data[prev:]))))
+
 	return bd.String()
 }
 
-func getOrigMsgMDV2(utf16Data []uint16, ents []botapi.MessageEntity) string {
+func getOrigMsgMDV2(utf16Data []uint16, ents []botapi.MessageEntity) (origMsg string) {
 	if len(ents) == 0 {
 		return string(utf16.Decode(utf16Data))
 	}
 
 	bd := strings.Builder{}
 	prev := 0
+
 	for _, e := range getUpperEntities(ents) {
 		data, end := fillNestedMarkdownV2(utf16Data, e, prev, getChildEntities(e, ents))
 		bd.WriteString(data)
+
 		prev = end
 	}
 
 	bd.WriteString(string(utf16.Decode(utf16Data[prev:])))
+
 	return bd.String()
 }
 
-func fillNestedHTML(data []uint16, ent botapi.MessageEntity, start int, entities []botapi.MessageEntity) (string, int) {
-	entEnd := ent.Offset + ent.Length
+func fillNestedHTML(data []uint16, ent botapi.MessageEntity, start int, entities []botapi.MessageEntity) (finalHTML string, entEnd int) {
+	entEnd = ent.Offset + ent.Length
 	if len(entities) == 0 || entEnd < entities[0].Offset {
 		// no nesting; just return straight away and move to next.
 		return writeFinalHTML(data, ent, start, html.EscapeString(string(utf16.Decode(data[ent.Offset:entEnd])))), entEnd
 	}
+
 	subPrev := ent.Offset
 	subEnd := ent.Offset
 	bd := strings.Builder{}
+
 	for _, e := range getUpperEntities(entities) {
 		if e.Offset < subEnd || e == ent {
 			continue
 		}
+
 		if e.Offset >= entEnd {
 			break
 		}
 
 		out, end := fillNestedHTML(data, e, subPrev, getChildEntities(e, entities))
 		bd.WriteString(out)
+
 		subPrev = end
 	}
 
@@ -191,25 +210,34 @@ func fillNestedHTML(data []uint16, ent botapi.MessageEntity, start int, entities
 	return writeFinalHTML(data, ent, start, bd.String()), entEnd
 }
 
-func fillNestedMarkdownV2(data []uint16, ent botapi.MessageEntity, start int, entities []botapi.MessageEntity) (string, int) {
-	entEnd := ent.Offset + ent.Length
+func fillNestedMarkdownV2(
+	data []uint16,
+	ent botapi.MessageEntity,
+	start int,
+	entities []botapi.MessageEntity,
+) (finalMD string, entEnd int) {
+	entEnd = ent.Offset + ent.Length
 	if len(entities) == 0 || entEnd < entities[0].Offset {
 		// no nesting; just return straight away and move to next.
 		return writeFinalMarkdownV2(data, ent, start, string(utf16.Decode(data[ent.Offset:entEnd]))), entEnd
 	}
+
 	subPrev := ent.Offset
 	subEnd := ent.Offset
 	bd := strings.Builder{}
+
 	for _, e := range getUpperEntities(entities) {
 		if e.Offset < subEnd || e == ent {
 			continue
 		}
+
 		if e.Offset >= entEnd {
 			break
 		}
 
 		out, end := fillNestedMarkdownV2(data, e, subPrev, getChildEntities(e, entities))
 		bd.WriteString(out)
+
 		subPrev = end
 	}
 
@@ -227,6 +255,7 @@ func writeFinalHTML(data []uint16, ent botapi.MessageEntity, start int, cntnt st
 		if ent.Language == "" {
 			return prevText + "<pre>" + cntnt + "</pre>"
 		}
+
 		return prevText + `<pre><code class="` + ent.Language + `">` + cntnt + "</code></pre>"
 	case botapi.EntityCustomEmoji:
 		return prevText + `<tg-emoji emoji-id="` + ent.CustomEmojiID + `">` + cntnt + "</tg-emoji>"
@@ -234,6 +263,7 @@ func writeFinalHTML(data []uint16, ent botapi.MessageEntity, start int, cntnt st
 		if ent.DateTimeFormat != "" {
 			return prevText + `<tg-time unix="` + strconv.Itoa(ent.UnixTime) + `" format="` + ent.DateTimeFormat + `">` + cntnt + "</tg-time>"
 		}
+
 		return prevText + `<tg-time unix="` + strconv.Itoa(ent.UnixTime) + `">` + cntnt + "</tg-time>"
 	case botapi.EntityTextMention:
 		return prevText + `<a href="tg://user?id=` + strconv.FormatInt(ent.User.ID, 10) + `">` + cntnt + "</a>"
@@ -253,12 +283,14 @@ func closeHTMLTag(s string) string {
 	if !strings.HasPrefix(s, "span") {
 		return s
 	}
+
 	return "span"
 }
 
 func writeFinalMarkdownV2(data []uint16, ent botapi.MessageEntity, start int, cntnt string) string {
 	prevText := string(utf16.Decode(data[start:ent.Offset]))
 	pre, cleanCntnt, post := splitEdgeWhitespace(cntnt, ent)
+
 	switch ent.Type {
 	case botapi.EntityBold, botapi.EntityItalic, botapi.EntityCode, botapi.EntityUnderline, botapi.EntityStrikethrough, botapi.EntitySpoiler:
 		return prevText + pre + mdV2Map[ent.Type] + cleanCntnt + mdV2Map[ent.Type] + post
@@ -266,6 +298,7 @@ func writeFinalMarkdownV2(data []uint16, ent botapi.MessageEntity, start int, cn
 		if ent.Language == "" {
 			return prevText + pre + "```\n" + cleanCntnt + "```" + post
 		}
+
 		return prevText + pre + "```" + ent.Language + "\n" + cleanCntnt + "```" + post
 	case botapi.EntityCustomEmoji:
 		return prevText + pre + "![" + cleanCntnt + "](tg://emoji?id=" + ent.CustomEmojiID + ")" + post
@@ -274,6 +307,7 @@ func writeFinalMarkdownV2(data []uint16, ent botapi.MessageEntity, start int, cn
 			return prevText + pre + "![" + cleanCntnt + "](tg://time?unix=" +
 				strconv.Itoa(ent.UnixTime) + "&format=" + ent.DateTimeFormat + ")" + post
 		}
+
 		return prevText + pre + "![" + cleanCntnt + "](tg://time?unix=" + strconv.Itoa(ent.UnixTime) + ")" + post
 	case botapi.EntityTextMention:
 		return prevText + pre + "[" + cleanCntnt + "](tg://user?id=" + strconv.FormatInt(ent.User.ID, 10) + ")" + post
@@ -291,57 +325,73 @@ func writeFinalMarkdownV2(data []uint16, ent botapi.MessageEntity, start int, cn
 func getUpperEntities(ents []botapi.MessageEntity) []botapi.MessageEntity {
 	prev := 0
 	uppers := make([]botapi.MessageEntity, 0, len(ents))
+
 	for _, e := range ents {
 		if e.Offset < prev {
 			continue
 		}
+
 		uppers = append(uppers, e)
 		prev = e.Offset + e.Length
 	}
+
 	return uppers
 }
 
 func getChildEntities(ent botapi.MessageEntity, ents []botapi.MessageEntity) []botapi.MessageEntity {
 	end := ent.Offset + ent.Length
 	children := make([]botapi.MessageEntity, 0, len(ents))
+
 	for _, e := range ents {
 		if e.Offset < ent.Offset || e == ent {
 			continue
 		}
+
 		if e.Offset >= end {
 			break
 		}
+
 		children = append(children, e)
 	}
+
 	return children
 }
 
-func splitEdgeWhitespace(text string, ent botapi.MessageEntity) (pre string, cntnt string, post string) {
+func splitEdgeWhitespace(text string, ent botapi.MessageEntity) (pre, cntnt, post string) {
 	keepNewLines := ent.Type == botapi.EntityPre
 
 	bd := strings.Builder{}
 	rText := []rune(text)
+
 	for i := 0; i < len(rText) && unicode.IsSpace(rText[i]) && (!keepNewLines || rText[i] != '\n'); i++ {
 		bd.WriteRune(rText[i])
 	}
+
 	pre = bd.String()
 
 	text = strings.TrimPrefix(text, pre)
+
 	bd.Reset()
+
 	for i := len(rText) - 1; i >= 0 && unicode.IsSpace(rText[i]); i-- {
 		bd.WriteRune(rText[i])
 	}
+
 	post = bd.String()
+
 	return pre, strings.TrimSuffix(text, post), post
 }
 
-func escapeContainedMDV1(data []rune, mdType []rune) string {
+func escapeContainedMDV1(data, mdType []rune) string {
 	out := strings.Builder{}
+
 	for _, x := range data {
 		if slices.Contains(mdType, x) {
 			out.WriteRune('\\')
 		}
+
 		out.WriteRune(x)
 	}
+
 	return out.String()
 }
