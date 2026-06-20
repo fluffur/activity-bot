@@ -22,7 +22,6 @@ func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.Up
 	log.Printf("participant %+v\n", u)
 
 	var peerID constant.TDLibPeerID
-
 	peerID.Channel(u.ChannelID)
 
 	chatID := int64(peerID)
