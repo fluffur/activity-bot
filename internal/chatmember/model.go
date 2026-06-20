@@ -2,6 +2,7 @@ package chatmember
 
 import (
 	"activity-bot/internal/chat"
+	"activity-bot/internal/i18n"
 	"activity-bot/internal/user"
 	"strings"
 	"time"
@@ -61,4 +62,27 @@ func (c ChatMember) Display(unknown string, emojis bool) string {
 	}
 
 	return name
+}
+
+func (c ChatMember) Permitted(status Status) bool {
+	return c.Status >= status
+}
+
+func (s Status) TranslationKey() i18n.MessageID {
+	switch s {
+	case StatusMember:
+		return i18n.StatusMember
+	case StatusModerator:
+		return i18n.StatusModerator
+	case StatusAdmin:
+		return i18n.StatusJuniorAdmin
+	case StatusSeniorAdmin:
+		return i18n.StatusModerator
+	case StatusCoOwner:
+		return i18n.StatusCoowner
+	case StatusOwner:
+		return i18n.StatusOwner
+	default:
+		return i18n.StatusMember
+	}
 }

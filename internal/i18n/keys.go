@@ -10,6 +10,13 @@ const (
 	BotAddedAdmin      MessageID = "bot_added_admin"
 	BotCommands        MessageID = "bot_commands"
 	Help               MessageID = "help"
+	NoPermission       MessageID = "no_permission"
+	StatusCoowner      MessageID = "status_coowner"
+	StatusJuniorAdmin  MessageID = "status_junior_admin"
+	StatusMember       MessageID = "status_member"
+	StatusModerator    MessageID = "status_moderator"
+	StatusOwner        MessageID = "status_owner"
+	StatusSeniorAdmin  MessageID = "status_senior_admin"
 	UserJoinedFemale   MessageID = "user_joined_female"
 	UserJoinedMale     MessageID = "user_joined_male"
 	UserLeftFemale     MessageID = "user_left_female"
@@ -26,6 +33,14 @@ func HelpArgs(
 	return map[string]any{
 		"CommandsLink":  commandsLink,
 		"DeveloperLink": developerLink,
+	}
+}
+
+func NoPermissionArgs(
+	status any,
+) map[string]any {
+	return map[string]any{
+		"Status": status,
 	}
 }
 

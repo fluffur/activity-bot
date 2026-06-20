@@ -214,12 +214,6 @@ SELECT *
 FROM command_permissions
 WHERE chat_id = $1;
 
--- name: GetCommandPermission :one
-SELECT *
-FROM command_permissions
-WHERE chat_id = $1
-  AND command_key = $2;
-
 -- name: SetCommandPermission :exec
 INSERT INTO command_permissions (chat_id, command_key, required_status)
 VALUES ($1, $2, $3)

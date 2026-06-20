@@ -9,6 +9,7 @@ import (
 	"activity-bot/internal/help"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/middleware"
+	"activity-bot/internal/predicate"
 	"context"
 	"os"
 	"os/signal"
@@ -76,19 +77,23 @@ func main() {
 	chatMemberRepository := repository.NewChatMemberRepository(queries)
 	messageRepository := repository.NewMessageRepository(queries)
 	pmSessionRepository := repository.NewPMSessionRepository(queries)
+	permissionRepository := repository.NewPermissionRepository(queries)
 
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
+	permissions := predicate.NewPermissionsChecker(permissionRepository, translator)
 
-	bot.UseOuter(middleware.ChatMiddleware(chatRepository, pmSessionRepository))
+	bot.UseOuter(
+		middleware.ChatMiddleware(chatRepository, pmSessionRepository),
+		middleware.ChatMemberMiddleware(userRepository, chatMemberRepository),
+	)
 
 	bot.Use(
 		botapi.Recover(),
 		botapi.Timeout(time.Minute),
 		botapi.Logging(),
-		middleware.ChatMemberMiddleware(userRepository, chatMemberRepository),
 	)
 
-	help.NewHandler(bot, translator, cfg.CommandsURL, cfg.DeveloperUsername).Register()
+	help.NewHandler(bot, translator, permissions, cfg.CommandsURL, cfg.DeveloperUsername).Register()
 	events.NewHandler(bot, translator, messageRepository, chatMemberService).Register()
 
 	log.Info("Starting bot")

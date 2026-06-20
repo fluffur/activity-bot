@@ -1,6 +1,7 @@
 package help
 
 import (
+	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/predicate"
 
@@ -8,18 +9,22 @@ import (
 )
 
 type Handler struct {
-	bot        *botapi.Bot
-	translator *i18n.Translator
+	bot         *botapi.Bot
+	translator  *i18n.Translator
+	permissions *predicate.PermissionChecker
 
 	commandsURL       string
 	developerUsername string
 }
 
-func NewHandler(bot *botapi.Bot, translator *i18n.Translator, commandsURL, developerUsername string) *Handler {
-	return &Handler{bot, translator, commandsURL, developerUsername}
+func NewHandler(b *botapi.Bot, t *i18n.Translator, p *predicate.PermissionChecker, commandsURL, developerUsername string) *Handler {
+	return &Handler{b, t, p, commandsURL, developerUsername}
 }
-
 func (h *Handler) Register() {
-	h.bot.OnMessage(h.Help, predicate.Command("help", "помощь"))
-	h.bot.OnCommand("start", "Start bot", h.Help, botapi.ChatTypeIs(botapi.ChatTypePrivate))
+	h.bot.OnMessage(h.Help,
+		predicate.Command("help", "помощь"),
+		h.permissions.Require("help", chatmember.StatusOwner),
+	)
+
+	h.bot.OnCommand("start", "Start bot", h.Help, predicate.Private())
 }
