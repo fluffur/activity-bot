@@ -14,7 +14,7 @@ func mapUser(u db.User) user.User {
 		LastName:  u.LastName.String,
 		Username:  u.Username.String,
 		Gender:    user.Gender(u.Gender),
-		Emojis:    u.EmojiJson,
+		Emojis:    u.Emoji.String,
 		IsBot:     u.IsBot,
 		CreatedAt: u.CreatedAt.Time,
 	}
@@ -56,7 +56,7 @@ func mapChatMember(m db.ChatMember) chatmember.ChatMember {
 		RestReason:      m.RestReason.String,
 		Tag:             m.Tag.String,
 		Status:          chatmember.Status(m.Status),
-		Emojis:          m.EmojiJson,
+		Emojis:          m.Emoji.String,
 		JoinedAt:        m.JoinedAt.Time,
 		LeftAt:          m.LeftAt.Time,
 		ExcludeFromCall: m.ExcludeFromCall,

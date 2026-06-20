@@ -79,7 +79,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	us := cm.User
 	ch := cm.Chat
 
-	mention := tghtml.UserMention(us.ID, h.getParticipantTag(e, us.ID, cm.Tag, ch.Language))
+	mention := tghtml.UserMention(us.ID, cm.Display(h.translator.T(ch.Language, i18n.UserUnknown), ch.EmojisEnabled))
 
 	keyFemale, keyMale := i18n.UserReturnedFemale, i18n.UserReturnedMale
 	argsFemale, argsMale := i18n.UserReturnedFemaleArgs(mention), i18n.UserReturnedMaleArgs(mention)
@@ -105,7 +105,7 @@ func (h *Handler) processLeft(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	us := cm.User
 	ch := cm.Chat
 
-	mention := tghtml.UserMention(us.ID, h.getParticipantTag(e, u.UserID, cm.Tag, ch.Language))
+	mention := tghtml.UserMention(us.ID, cm.Display(h.translator.T(ch.Language, i18n.UserUnknown), ch.EmojisEnabled))
 
 	text := h.translator.TIf(
 		ch.Language,
@@ -119,16 +119,4 @@ func (h *Handler) processLeft(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	_, err = h.bot.SendMessage(ctx, botapi.ID(chatID), text, botapi.WithParseMode(botapi.ParseModeHTML))
 
 	return err
-}
-
-func (h *Handler) getParticipantTag(e tg.Entities, userID int64, currentTag, lang string) string {
-	if currentTag != "" {
-		return currentTag
-	}
-
-	if userEntity, ok := e.Users[userID]; ok && userEntity.FirstName != "" {
-		return userEntity.FirstName
-	}
-
-	return h.translator.T(lang, i18n.UserUnknown, nil)
 }

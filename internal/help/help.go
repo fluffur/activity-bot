@@ -10,13 +10,13 @@ import (
 func (h *Handler) Help(c *botapi.Context) error {
 	args := i18n.HelpArgs(
 		tghtml.Bold(
-			tghtml.Link(h.commandsURL, h.translator.T("ru", i18n.BotCommands, nil)),
+			tghtml.Link(h.commandsURL, h.translator.TData("ru", i18n.BotCommands, nil)),
 		),
 		tghtml.UserLink(h.developerUsername),
 	)
 
 	_, err := c.Reply(
-		h.translator.T("ru", i18n.Help, args),
+		h.translator.TData("ru", i18n.Help, args),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
 

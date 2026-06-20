@@ -52,7 +52,11 @@ func loadLocales(bundle *goi18n.Bundle) error {
 	return nil
 }
 
-func (s *Translator) T(lang string, messageID MessageID, data map[string]any) string {
+func (s *Translator) T(lang string, messageID MessageID) string {
+	return s.TData(lang, messageID, nil)
+}
+
+func (s *Translator) TData(lang string, messageID MessageID, data map[string]any) string {
 	localizer := goi18n.NewLocalizer(s.bundle, lang)
 
 	msg, err := localizer.Localize(&goi18n.LocalizeConfig{
@@ -75,8 +79,8 @@ func (s *Translator) TIf(
 	falseArgs map[string]any,
 ) string {
 	if condition {
-		return s.T(lang, trueKey, trueArgs)
+		return s.TData(lang, trueKey, trueArgs)
 	}
 
-	return s.T(lang, falseKey, falseArgs)
+	return s.TData(lang, falseKey, falseArgs)
 }

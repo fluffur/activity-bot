@@ -15,9 +15,7 @@ type Handler struct {
 	memberService     *chatmember.Service
 }
 
-func NewHandler(
-	bot *botapi.Bot, t *i18n.Translator, mr message.Repository, ms *chatmember.Service,
-) *Handler {
+func NewHandler(bot *botapi.Bot, t *i18n.Translator, mr message.Repository, ms *chatmember.Service) *Handler {
 	return &Handler{bot, t, mr, ms}
 }
 

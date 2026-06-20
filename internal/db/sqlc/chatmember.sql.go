@@ -8,13 +8,12 @@ package db
 import (
 	"context"
 
-	"activity-bot/internal/emoji"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createChatMember = `-- name: CreateChatMember :exec
-INSERT INTO chat_members(chat_id, user_id, tag, status, rest_until, left_at, rest_reason, emoji_json)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO chat_members(chat_id, user_id, tag, status, rest_until, left_at, rest_reason)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type CreateChatMemberParams struct {
@@ -25,7 +24,6 @@ type CreateChatMemberParams struct {
 	RestUntil  pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
 	LeftAt     pgtype.Timestamptz `db:"left_at" json:"leftAt"`
 	RestReason pgtype.Text        `db:"rest_reason" json:"restReason"`
-	EmojiJson  emoji.Emojis       `db:"emoji_json" json:"emojiJson"`
 }
 
 func (q *Queries) CreateChatMember(ctx context.Context, arg CreateChatMemberParams) error {
@@ -37,7 +35,6 @@ func (q *Queries) CreateChatMember(ctx context.Context, arg CreateChatMemberPara
 		arg.RestUntil,
 		arg.LeftAt,
 		arg.RestReason,
-		arg.EmojiJson,
 	)
 	return err
 }

@@ -27,7 +27,6 @@ func (r *ChatMemberRepository) Create(ctx context.Context, m chatmember.ChatMemb
 		RestUntil:  timestamptz(m.RestUntil),
 		LeftAt:     timestamptz(m.LeftAt),
 		RestReason: text(m.RestReason),
-		EmojiJson:  m.Emojis,
 	})
 }
 

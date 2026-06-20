@@ -2,8 +2,8 @@ package chatmember
 
 import (
 	"activity-bot/internal/chat"
-	"activity-bot/internal/emoji"
 	"activity-bot/internal/user"
+	"strings"
 	"time"
 )
 
@@ -25,7 +25,7 @@ type ChatMember struct {
 	RestReason      string
 	Tag             string
 	Status          Status
-	Emojis          emoji.Emojis
+	Emojis          string
 	JoinedAt        time.Time
 	LeftAt          time.Time
 	ExcludeFromCall bool
@@ -37,7 +37,28 @@ func New(u user.User, c chat.Chat, tag string, status Status, now time.Time) Cha
 		Chat:     c,
 		Tag:      tag,
 		Status:   status,
-		Emojis:   emoji.Emojis{},
 		JoinedAt: now,
 	}
+}
+
+func (c ChatMember) Display(unknown string, emojis bool) string {
+	name := strings.TrimSpace(c.User.FirstName + " " + c.User.LastName)
+
+	if c.Tag != "" {
+		name = c.Tag
+	}
+
+	if name == "" {
+		return unknown
+	}
+
+	if emojis && c.Emojis != "" {
+		return c.Emojis + " " + name
+	}
+
+	if emojis && c.User.Emojis != "" {
+		return c.User.Emojis + " " + name
+	}
+
+	return name
 }

@@ -1,7 +1,6 @@
 package user
 
 import (
-	"activity-bot/internal/emoji"
 	"time"
 )
 
@@ -19,7 +18,7 @@ type User struct {
 	LastName  string
 	Username  string
 	Gender    Gender
-	Emojis    emoji.Emojis
+	Emojis    string
 	IsBot     bool
 	CreatedAt time.Time
 }
@@ -31,7 +30,6 @@ func New(id int64, firstName, lastName, username string, gender Gender, isBot bo
 		LastName:  lastName,
 		Username:  username,
 		Gender:    gender,
-		Emojis:    emoji.Emojis{},
 		IsBot:     isBot,
 		CreatedAt: now,
 	}

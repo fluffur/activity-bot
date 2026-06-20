@@ -5,8 +5,8 @@ FROM chat_members
          JOIN chats ON chat_members.chat_id = chats.id AND chat_id = $1 AND user_id = $2;
 
 -- name: CreateChatMember :exec
-INSERT INTO chat_members(chat_id, user_id, tag, status, rest_until, left_at, rest_reason, emoji_json)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+INSERT INTO chat_members(chat_id, user_id, tag, status, rest_until, left_at, rest_reason)
+VALUES ($1, $2, $3, $4, $5, $6, $7);
 
 -- name: SetChatMemberTag :exec
 UPDATE chat_members
