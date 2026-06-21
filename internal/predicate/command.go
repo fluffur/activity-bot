@@ -4,6 +4,8 @@ import (
 	"activity-bot/internal/middleware/cctx"
 	"context"
 	"strings"
+	"unicode"
+	"unicode/utf16"
 
 	"github.com/gotd/log"
 
@@ -16,12 +18,12 @@ type argsKey struct{}
 
 var commandArgsKey = argsKey{}
 
-func Args(c *botapi.Context) string {
-	if val, ok := c.Context.Value(commandArgsKey).(string); ok {
+func Args(c *botapi.Context) *botapi.Message {
+	if val, ok := c.Context.Value(commandArgsKey).(*botapi.Message); ok {
 		return val
 	}
 
-	return ""
+	return nil
 }
 
 func Command(name string, aliases ...string) botapi.Predicate {
@@ -50,7 +52,7 @@ func Command(name string, aliases ...string) botapi.Predicate {
 			return false
 		}
 
-		text, _ := m.TextAndEntities()
+		text, entities := m.TextAndEntities()
 
 		prefixes := append([]string{}, defaultPrefixes...)
 		if ch.CommandPrefix != "" {
@@ -63,24 +65,76 @@ func Command(name string, aliases ...string) botapi.Predicate {
 			return false
 		}
 
-		text = strings.TrimSpace(text[len(prefix):])
+		rawTextAfterPrefix := text[len(prefix):]
+		rawTextAfterPrefixRunes := []rune(rawTextAfterPrefix)
 
-		if text == "" {
+		leadingSpacesRunes := 0
+		for leadingSpacesRunes < len(rawTextAfterPrefixRunes) && unicode.IsSpace(rawTextAfterPrefixRunes[leadingSpacesRunes]) {
+			leadingSpacesRunes++
+		}
+
+		trimmedText := string(rawTextAfterPrefixRunes[leadingSpacesRunes:])
+		trimmedText = strings.TrimRightFunc(trimmedText, unicode.IsSpace)
+
+		if trimmedText == "" {
 			return false
 		}
 
 		botUsername := strings.ToLower(c.Bot.Self().Username)
 
 		for _, cmd := range commands {
-			args, ok := parseCommand(text, cmd, botUsername)
+			_, pos, ok := parseCommand(trimmedText, cmd, botUsername)
 			if !ok {
 				continue
+			}
+
+			argsRuneIdxInTrimmed := findWordStartRuneIndex(trimmedText, pos)
+
+			prefixRunes := []rune(prefix)
+			absRuneIdx := len(prefixRunes) + leadingSpacesRunes + argsRuneIdxInTrimmed
+
+			runes := []rune(text)
+			if absRuneIdx > len(runes) {
+				absRuneIdx = len(runes)
+			}
+
+			utf16Offset := len(utf16.Encode(runes[:absRuneIdx]))
+
+			var argsEntities []botapi.MessageEntity
+			for _, ent := range entities {
+				if ent.Offset >= utf16Offset {
+					shiftedEnt := ent
+					shiftedEnt.Offset = ent.Offset - utf16Offset
+					argsEntities = append(argsEntities, shiftedEnt)
+				}
+			}
+
+			argsMessage := &botapi.Message{
+				MessageID:       m.MessageID,
+				MessageThreadID: m.MessageThreadID,
+				From:            m.From,
+				SenderChat:      m.SenderChat,
+				Date:            m.Date,
+				Chat:            m.Chat,
+				ForwardOrigin:   m.ForwardOrigin,
+				ReplyToMessage:  m.ReplyToMessage,
+				ViaBot:          m.ViaBot,
+				EditDate:        m.EditDate,
+			}
+
+			argsText := string(runes[absRuneIdx:])
+			if m.Text != "" {
+				argsMessage.Text = argsText
+				argsMessage.Entities = argsEntities
+			} else {
+				argsMessage.Caption = argsText
+				argsMessage.CaptionEntities = argsEntities
 			}
 
 			c.Context = context.WithValue(
 				c.Context,
 				commandArgsKey,
-				args,
+				argsMessage,
 			)
 
 			return true
@@ -90,21 +144,43 @@ func Command(name string, aliases ...string) botapi.Predicate {
 	}
 }
 
+func findWordStartRuneIndex(text string, wordIndex int) int {
+	runes := []rune(text)
+	n := len(runes)
+
+	inWord := false
+	wordCount := 0
+
+	for i := 0; i < n; i++ {
+		isSpace := unicode.IsSpace(runes[i])
+		if !isSpace && !inWord {
+			inWord = true
+			if wordCount == wordIndex {
+				return i
+			}
+			wordCount++
+		} else if isSpace && inWord {
+			inWord = false
+		}
+	}
+	return n
+}
+
 func parseCommand(
 	originalText string,
 	command string,
 	botUsername string,
-) (string, bool) {
+) (string, int, bool) {
 	words := strings.Fields(originalText)
 
 	if len(words) == 0 {
-		return "", false
+		return "", 0, false
 	}
 
 	cmdWords := strings.Fields(command)
 
 	if len(words) < len(cmdWords) {
-		return "", false
+		return "", 0, false
 	}
 
 	for i, cmdWord := range cmdWords {
@@ -125,11 +201,11 @@ func parseCommand(
 				}
 			}
 
-			return "", false
+			return "", 0, false
 		}
 
 		if word != cmdWord {
-			return "", false
+			return "", 0, false
 		}
 	}
 
@@ -137,17 +213,17 @@ func parseCommand(
 
 	if len(words) > pos && strings.HasPrefix(words[pos], "@") {
 		if strings.ToLower(words[pos][1:]) != botUsername {
-			return "", false
+			return "", 0, false
 		}
 
 		pos++
 	}
 
 	if len(words) <= pos {
-		return "", true
+		return "", pos, true
 	}
 
-	return strings.Join(words[pos:], " "), true
+	return strings.Join(words[pos:], " "), pos, true
 }
 
 func normalize(s string) string {

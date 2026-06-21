@@ -1,7 +1,6 @@
 package help
 
 import (
-	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/predicate"
 
@@ -23,7 +22,6 @@ func NewHandler(b *botapi.Bot, t *i18n.Translator, p *predicate.PermissionChecke
 func (h *Handler) Register() {
 	h.bot.OnMessage(h.Help,
 		predicate.Command("help", "помощь"),
-		h.permissions.Require("help", chatmember.StatusOwner),
 	)
 
 	h.bot.OnCommand("start", "Start bot", h.Help, predicate.Private())

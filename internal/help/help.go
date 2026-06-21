@@ -3,6 +3,7 @@ package help
 import (
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/middleware/cctx"
+	"activity-bot/internal/predicate"
 	"activity-bot/internal/utils/tghtml"
 	"fmt"
 	"log"
@@ -16,11 +17,13 @@ func (h *Handler) Help(c *botapi.Context) error {
 		return fmt.Errorf("help chat ctx: %w", err)
 	}
 
+	a := predicate.Args(c)
+	log.Println(a.OriginalTextHTML())
+
 	args := i18n.HelpArgs(
 		tghtml.Bold(tghtml.Link(h.commandsURL, h.translator.T(ch.Language, i18n.BotCommands))),
 		tghtml.UserLink(h.developerUsername),
 	)
-	log.Println(h.translator.TData(ch.Language, i18n.Help, args))
 
 	_, err = c.Reply(
 		h.translator.TData(ch.Language, i18n.Help, args),
