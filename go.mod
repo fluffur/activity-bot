@@ -2,10 +2,13 @@ module activity-bot
 
 go 1.26
 
+replace github.com/gotd/botapi v0.2.1-0.20260619180154-ec97c6a751b3 => github.com/fluffur/botapi v0.0.0-20260621065021-f1e69298e51c
+
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/gotd/botapi v0.2.1-0.20260619180154-ec97c6a751b3
+	github.com/gotd/log v0.1.0
 	github.com/gotd/log/logzap v0.1.1
 	github.com/gotd/td v0.159.0
 	github.com/jackc/pgx/v5 v5.10.0
@@ -32,7 +35,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gotd/contrib v0.24.0 // indirect
 	github.com/gotd/ige v0.2.2 // indirect
-	github.com/gotd/log v0.1.0 // indirect
 	github.com/gotd/neo v0.1.5 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect

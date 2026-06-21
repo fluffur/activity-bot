@@ -5,15 +5,19 @@ import (
 	"context"
 	"strings"
 
+	"github.com/gotd/log"
+
 	"github.com/gotd/botapi"
 )
 
-var prefixes = []string{"!", "/", ".", "фм"}
+var defaultPrefixes = []string{"!", "/", ".", "фм"}
 
-type ArgsKey struct{}
+type argsKey struct{}
 
-func GetArgs(c *botapi.Context) string {
-	if val, ok := c.Context.Value(ArgsKey{}).(string); ok {
+var commandArgsKey = argsKey{}
+
+func Args(c *botapi.Context) string {
+	if val, ok := c.Context.Value(commandArgsKey).(string); ok {
 		return val
 	}
 
@@ -21,6 +25,14 @@ func GetArgs(c *botapi.Context) string {
 }
 
 func Command(name string, aliases ...string) botapi.Predicate {
+	commands := make([]string, 0, len(aliases)+1)
+
+	commands = append(commands, normalize(name))
+
+	for _, alias := range aliases {
+		commands = append(commands, normalize(alias))
+	}
+
 	return func(c *botapi.Context) bool {
 		m := c.Message()
 		if m == nil {
@@ -29,80 +41,48 @@ func Command(name string, aliases ...string) botapi.Predicate {
 
 		ch, err := cctx.Chat(c.Context)
 		if err != nil {
+			log.For(c.Bot.Logger()).Error(
+				c.Context,
+				"command ctx chat",
+				log.Error(err),
+			)
+
 			return false
 		}
 
+		text, _ := m.TextAndEntities()
+
+		prefixes := append([]string{}, defaultPrefixes...)
 		if ch.CommandPrefix != "" {
 			prefixes = append(prefixes, ch.CommandPrefix)
 		}
 
-		originalText := m.Text
-		if originalText == "" {
-			originalText = m.Caption
-		}
+		prefix := findPrefix(text, prefixes)
 
-		textLower := strings.ToLower(originalText)
-
-		prefixLower := findPrefix(textLower, prefixes)
-		if !ch.AllowPrefixless && prefixLower == "" {
+		if !ch.AllowPrefixless && prefix == "" {
 			return false
 		}
 
-		textNoPrefix := originalText[len(prefixLower):]
-		textNoPrefixTrimmed := strings.TrimSpace(textNoPrefix)
+		text = strings.TrimSpace(text[len(prefix):])
 
-		textLowerNormalized := strings.Join(strings.Fields(strings.ToLower(textNoPrefixTrimmed)), " ")
-
-		myBotUsername := "@" + strings.ToLower(c.Bot.Self().Username)
-
-		matchCommand := func(targetCmd string) (bool, string) {
-			targetCmd = strings.ToLower(targetCmd)
-
-			if !strings.HasPrefix(textLowerNormalized, targetCmd) {
-				return false, ""
-			}
-
-			restLower := strings.TrimPrefix(textLowerNormalized, targetCmd)
-
-			if restLower == "" {
-				return true, ""
-			}
-
-			if strings.HasPrefix(restLower, " ") {
-				return true, extractRawArgs(textNoPrefixTrimmed, targetCmd, "")
-			}
-
-			if strings.HasPrefix(restLower, "@") {
-				parts := strings.SplitN(restLower, " ", 2)
-				mentionedBot := parts[0]
-
-				if mentionedBot != myBotUsername {
-					return false, ""
-				}
-
-				if len(parts) == 1 {
-					return true, ""
-				}
-
-				return true, extractRawArgs(textNoPrefixTrimmed, targetCmd, myBotUsername)
-			}
-
-			return false, ""
+		if text == "" {
+			return false
 		}
 
-		matched := false
-		rawArgs := ""
+		botUsername := strings.ToLower(c.Bot.Self().Username)
 
-		if matched, rawArgs = matchCommand(name); !matched {
-			for _, alias := range aliases {
-				if matched, rawArgs = matchCommand(alias); matched {
-					break
-				}
+		for _, cmd := range commands {
+			args, ok := parseCommand(text, cmd, botUsername)
+			if !ok {
+				continue
 			}
-		}
 
-		if matched {
-			c.Context = context.WithValue(c.Context, ArgsKey{}, rawArgs)
+			c.Context = context.WithValue(
+				c.Context,
+				commandArgsKey,
+				args,
+			)
+
 			return true
 		}
 
@@ -110,30 +90,84 @@ func Command(name string, aliases ...string) botapi.Predicate {
 	}
 }
 
-func extractRawArgs(originalNoPrefix, targetCmdLower, myBotUsername string) string {
-	lower := strings.ToLower(originalNoPrefix)
-	idx := strings.Index(lower, targetCmdLower)
+func parseCommand(
+	originalText string,
+	command string,
+	botUsername string,
+) (string, bool) {
+	words := strings.Fields(originalText)
 
-	if idx == -1 {
-		return strings.TrimSpace(originalNoPrefix)
+	if len(words) == 0 {
+		return "", false
 	}
 
-	startArgs := idx + len(targetCmdLower)
+	cmdWords := strings.Fields(command)
 
-	if myBotUsername != "" && startArgs < len(lower) && lower[startArgs] == '@' {
-		startArgs += len(myBotUsername)
+	if len(words) < len(cmdWords) {
+		return "", false
 	}
 
-	return strings.TrimSpace(originalNoPrefix[startArgs:])
-}
+	for i, cmdWord := range cmdWords {
+		word := strings.ToLower(words[i])
 
-func findPrefix(textLower string, prefixes []string) string {
-	for _, prefix := range prefixes {
-		pLower := strings.ToLower(prefix)
-		if strings.HasPrefix(textLower, pLower) {
-			return prefix
+		last := i == len(cmdWords)-1
+
+		if last {
+			if word == cmdWord {
+				continue
+			}
+
+			if strings.HasPrefix(word, cmdWord+"@") {
+				username := strings.TrimPrefix(word, cmdWord+"@")
+
+				if username == botUsername {
+					continue
+				}
+			}
+
+			return "", false
+		}
+
+		if word != cmdWord {
+			return "", false
 		}
 	}
 
-	return ""
+	pos := len(cmdWords)
+
+	if len(words) > pos && strings.HasPrefix(words[pos], "@") {
+		if strings.ToLower(words[pos][1:]) != botUsername {
+			return "", false
+		}
+
+		pos++
+	}
+
+	if len(words) <= pos {
+		return "", true
+	}
+
+	return strings.Join(words[pos:], " "), true
+}
+
+func normalize(s string) string {
+	return strings.Join(
+		strings.Fields(strings.ToLower(s)),
+		" ",
+	)
+}
+
+func findPrefix(text string, prefixes []string) string {
+	textLower := strings.ToLower(text)
+
+	longest := ""
+
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(textLower, strings.ToLower(prefix)) &&
+			len(prefix) > len(longest) {
+			longest = prefix
+		}
+	}
+
+	return longest
 }
