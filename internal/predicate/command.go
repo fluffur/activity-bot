@@ -88,10 +88,30 @@ func Command(name string, aliases ...string) botapi.Predicate {
 				continue
 			}
 
+			cmdEndRuneIdxInTrimmed := findWordEndRuneIndex(trimmedText, pos)
 			argsRuneIdxInTrimmed := findWordStartRuneIndex(trimmedText, pos)
 
+			sep := ""
+			trimmedTextRunes := []rune(trimmedText)
+			if cmdEndRuneIdxInTrimmed <= len(trimmedTextRunes) && argsRuneIdxInTrimmed <= len(trimmedTextRunes) {
+				sep = string(trimmedTextRunes[cmdEndRuneIdxInTrimmed:argsRuneIdxInTrimmed])
+			}
+
+			keepOffset := argsRuneIdxInTrimmed
+			if idx := strings.Index(sep, "\n"); idx != -1 {
+				sepRunes := []rune(sep)
+				newlineRuneIdx := 0
+				for i, r := range sepRunes {
+					if r == '\n' {
+						newlineRuneIdx = i
+						break
+					}
+				}
+				keepOffset = cmdEndRuneIdxInTrimmed + newlineRuneIdx
+			}
+
 			prefixRunes := []rune(prefix)
-			absRuneIdx := len(prefixRunes) + leadingSpacesRunes + argsRuneIdxInTrimmed
+			absRuneIdx := len(prefixRunes) + leadingSpacesRunes + keepOffset
 
 			runes := []rune(text)
 			if absRuneIdx > len(runes) {
@@ -162,6 +182,31 @@ func findWordStartRuneIndex(text string, wordIndex int) int {
 		} else if isSpace && inWord {
 			inWord = false
 		}
+	}
+	return n
+}
+
+func findWordEndRuneIndex(text string, wordIndex int) int {
+	runes := []rune(text)
+	n := len(runes)
+
+	inWord := false
+	wordCount := 0
+
+	for i := 0; i < n; i++ {
+		isSpace := unicode.IsSpace(runes[i])
+		if !isSpace && !inWord {
+			inWord = true
+			wordCount++
+		} else if isSpace && inWord {
+			inWord = false
+			if wordCount == wordIndex {
+				return i
+			}
+		}
+	}
+	if inWord && wordCount == wordIndex {
+		return n
 	}
 	return n
 }
