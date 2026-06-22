@@ -2,6 +2,7 @@ package summon
 
 import (
 	"activity-bot/internal/chatmember"
+	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/predicate"
 
@@ -19,7 +20,18 @@ func NewHandler(b *botapi.Bot, t *i18n.Translator, p *predicate.PermissionChecke
 	return &Handler{b, t, p, cms}
 }
 
-func (h *Handler) Register() {
+func (h *Handler) Register(registry *command.Registry) {
+	registry.Add(&command.ActionDef{
+		Key:         "summon",
+		Aliases:     []string{"call", "калл", "колл", "каллалл"},
+		Trigger:     command.TriggerCommand,
+		MinStatus:   chatmember.StatusAdmin,
+		Category:    command.CategorySummon,
+		Description: i18n.SummonDescription,
+		Examples:    []i18n.MessageID{},
+		ShowInHelp:  true,
+	})
+
 	h.bot.OnMessage(h.Summon,
 		predicate.Command("summon", "call", "калл", "колл", "каллалл"),
 		h.permissions.Require("summon", chatmember.StatusAdmin),

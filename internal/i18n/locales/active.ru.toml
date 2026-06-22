@@ -1,3 +1,6 @@
+[help_description]
+other = "Помощь по командам бота"
+
 [help]
 other = "📚 {{.CommandsLink}}\n\nЕсли нужна помощь, обратитесь к {{.DeveloperLink}}"
 
@@ -55,4 +58,14 @@ other = "совладелец"
 [status_owner]
 other = "владелец"
 
+[summon_description]
+other = "Созыв всех участников"
 
+[category_summon]
+other = "Созывы"
+
+[category_help]
+other = "Помощь"
+
+[aliases]
+other = "Синонимы: {{.Aliases}}"

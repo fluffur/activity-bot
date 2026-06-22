@@ -2,6 +2,7 @@ package main
 
 import (
 	"activity-bot/internal/chatmember"
+	"activity-bot/internal/command"
 	"activity-bot/internal/config"
 	"activity-bot/internal/db/repository"
 	db "activity-bot/internal/db/sqlc"
@@ -83,6 +84,8 @@ func main() {
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
 	permissions := predicate.NewPermissionsChecker(permissionRepository, translator)
 
+	registry := command.NewRegistry()
+
 	bot.UseOuter(
 		middleware.ChatMiddleware(chatRepository, pmSessionRepository),
 		middleware.ChatMemberMiddleware(userRepository, chatMemberRepository),
@@ -94,8 +97,8 @@ func main() {
 		botapi.Logging(),
 	)
 
-	help.NewHandler(bot, translator, permissions, cfg.CommandsURL, cfg.DeveloperUsername).Register()
-	summon.NewHandler(bot, translator, permissions, chatMemberService).Register()
+	help.NewHandler(bot, translator, permissions, registry, cfg.CommandsURL, cfg.DeveloperUsername).Register(registry)
+	summon.NewHandler(bot, translator, permissions, chatMemberService).Register(registry)
 
 	events.NewHandler(bot, translator, messageRepository, chatMemberService).Register()
 

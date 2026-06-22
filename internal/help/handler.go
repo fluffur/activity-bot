@@ -1,6 +1,7 @@
 package help
 
 import (
+	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/predicate"
 
@@ -11,15 +12,27 @@ type Handler struct {
 	bot         *botapi.Bot
 	translator  *i18n.Translator
 	permissions *predicate.PermissionChecker
+	registry    *command.Registry
 
 	commandsURL       string
 	developerUsername string
 }
 
-func NewHandler(b *botapi.Bot, t *i18n.Translator, p *predicate.PermissionChecker, commandsURL, developerUsername string) *Handler {
-	return &Handler{b, t, p, commandsURL, developerUsername}
+func NewHandler(
+	b *botapi.Bot, t *i18n.Translator, p *predicate.PermissionChecker, r *command.Registry, commandsURL, developerUsername string,
+) *Handler {
+	return &Handler{b, t, p, r, commandsURL, developerUsername}
 }
-func (h *Handler) Register() {
+func (h *Handler) Register(registry *command.Registry) {
+	registry.Add(&command.ActionDef{
+		Key:         "help",
+		Aliases:     []string{"help", "помощь"},
+		Trigger:     command.TriggerCommand,
+		Category:    command.CategoryHelp,
+		Description: i18n.HelpDescription,
+		ShowInHelp:  true,
+	})
+
 	h.bot.OnMessage(h.Help,
 		predicate.Command("help", "помощь"),
 		predicate.NoArgs(),

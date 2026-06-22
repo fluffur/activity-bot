@@ -6,10 +6,14 @@ type MessageID string
 
 const (
 	AddBotButton       MessageID = "add_bot_button"
+	Aliases            MessageID = "aliases"
 	BotAdded           MessageID = "bot_added"
 	BotAddedAdmin      MessageID = "bot_added_admin"
 	BotCommands        MessageID = "bot_commands"
+	CategoryHelp       MessageID = "category_help"
+	CategorySummon     MessageID = "category_summon"
 	Help               MessageID = "help"
+	HelpDescription    MessageID = "help_description"
 	NoPermission       MessageID = "no_permission"
 	StatusCoowner      MessageID = "status_coowner"
 	StatusJuniorAdmin  MessageID = "status_junior_admin"
@@ -17,6 +21,7 @@ const (
 	StatusModerator    MessageID = "status_moderator"
 	StatusOwner        MessageID = "status_owner"
 	StatusSeniorAdmin  MessageID = "status_senior_admin"
+	SummonDescription  MessageID = "summon_description"
 	UserJoinedFemale   MessageID = "user_joined_female"
 	UserJoinedMale     MessageID = "user_joined_male"
 	UserLeftFemale     MessageID = "user_left_female"
@@ -25,6 +30,14 @@ const (
 	UserReturnedMale   MessageID = "user_returned_male"
 	UserUnknown        MessageID = "user_unknown"
 )
+
+func AliasesArgs(
+	aliases any,
+) map[string]any {
+	return map[string]any{
+		"Aliases": aliases,
+	}
+}
 
 func HelpArgs(
 	commandsLink any,
