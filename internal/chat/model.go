@@ -2,6 +2,29 @@ package chat
 
 import "time"
 
+type MentionTypes int32
+
+const (
+	MentionEmoji MentionTypes = 1 << iota
+	MentionName
+	MentionRole
+)
+
+func (t *MentionTypes) Has(flag MentionTypes) bool {
+	if t == nil {
+		return false
+	}
+	return *t&flag == flag
+}
+
+func (t *MentionTypes) Add(flag MentionTypes) {
+	*t |= flag
+}
+
+func (t *MentionTypes) Remove(flag MentionTypes) {
+	*t &^= flag
+}
+
 type Chat struct {
 	ID                   int64
 	Title                string
@@ -18,7 +41,7 @@ type Chat struct {
 	CommandPrefix        string
 	AllowPrefixless      bool
 	MentionsPerMessage   int32
-	MentionTypes         int32
+	MentionTypes         MentionTypes
 	TagsEnabled          bool
 	WeekStartTime        int64
 	MaxWarns             int32

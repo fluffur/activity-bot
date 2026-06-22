@@ -451,25 +451,6 @@ func (q *Queries) GetChatsWithoutTitle(ctx context.Context) ([]Chat, error) {
 	return items, nil
 }
 
-const getCommandPermission = `-- name: GetCommandPermission :one
-SELECT chat_id, command_key, required_status
-FROM command_permissions
-WHERE chat_id = $1
-  AND command_key = $2
-`
-
-type GetCommandPermissionParams struct {
-	ChatID     int64  `db:"chat_id" json:"chatId"`
-	CommandKey string `db:"command_key" json:"commandKey"`
-}
-
-func (q *Queries) GetCommandPermission(ctx context.Context, arg GetCommandPermissionParams) (CommandPermission, error) {
-	row := q.db.QueryRow(ctx, getCommandPermission, arg.ChatID, arg.CommandKey)
-	var i CommandPermission
-	err := row.Scan(&i.ChatID, &i.CommandKey, &i.RequiredStatus)
-	return i, err
-}
-
 const getCommandPermissions = `-- name: GetCommandPermissions :many
 SELECT chat_id, command_key, required_status
 FROM command_permissions

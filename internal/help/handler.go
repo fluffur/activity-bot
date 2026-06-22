@@ -22,7 +22,11 @@ func NewHandler(b *botapi.Bot, t *i18n.Translator, p *predicate.PermissionChecke
 func (h *Handler) Register() {
 	h.bot.OnMessage(h.Help,
 		predicate.Command("help", "помощь"),
+		predicate.NoArgs(),
 	)
 
-	h.bot.OnCommand("start", "Start bot", h.Help, predicate.Private())
+	h.bot.OnCommand("start", "Start bot", h.Help,
+		predicate.Private(),
+		predicate.NoArgs(),
+	)
 }

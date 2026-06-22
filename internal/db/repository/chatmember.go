@@ -113,3 +113,30 @@ func (r *ChatMemberRepository) Restore(ctx context.Context, chatID, userID int64
 		ChatID: chatID,
 	})
 }
+
+func (r *ChatMemberRepository) List(ctx context.Context, filter chatmember.Filter) ([]chatmember.ChatMember, error) {
+	params := db.ListChatMembersParams{
+		ChatID: filter.ChatID,
+		IsBot: pgtype.Bool{
+			Bool:  filter.IsBot.Bool,
+			Valid: filter.IsBot.Valid,
+		},
+		HasLeft: pgtype.Bool{
+			Bool:  filter.Left.Bool,
+			Valid: filter.Left.Valid,
+		},
+	}
+
+	cms, err := r.queries.ListChatMembers(ctx, params)
+
+	if err != nil {
+		return nil, err
+	}
+
+	cmsMapped := make([]chatmember.ChatMember, len(cms))
+	for i, cm := range cms {
+		cmsMapped[i] = mapChatMemberFull(cm.ChatMember, db.Chat{}, cm.User)
+	}
+
+	return cmsMapped, nil
+}

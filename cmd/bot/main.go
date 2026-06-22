@@ -10,6 +10,7 @@ import (
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/middleware"
 	"activity-bot/internal/predicate"
+	"activity-bot/internal/summon"
 	"context"
 	"os"
 	"os/signal"
@@ -94,6 +95,8 @@ func main() {
 	)
 
 	help.NewHandler(bot, translator, permissions, cfg.CommandsURL, cfg.DeveloperUsername).Register()
+	summon.NewHandler(bot, translator, permissions, chatMemberService).Register()
+
 	events.NewHandler(bot, translator, messageRepository, chatMemberService).Register()
 
 	log.Info("Starting bot")

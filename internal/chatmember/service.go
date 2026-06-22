@@ -123,3 +123,17 @@ func (s *Service) SyncChatMembers(ctx context.Context, chatID int64, cms []ChatM
 func (s *Service) UpdateTag(ctx context.Context, chatID, userID int64, newRank string) error {
 	return s.chatMemberRepo.SetTag(ctx, chatID, userID, newRank)
 }
+
+func (s *Service) ListHumanChatMembers(ctx context.Context, chatID int64) ([]ChatMember, error) {
+	return s.chatMemberRepo.List(ctx, Filter{
+		ChatID: chatID,
+		IsBot: OptionalBool{
+			Bool:  false,
+			Valid: true,
+		},
+		Left: OptionalBool{
+			Bool:  false,
+			Valid: true,
+		},
+	})
+}

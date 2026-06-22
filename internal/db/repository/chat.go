@@ -26,7 +26,7 @@ func (r *ChatRepository) Create(ctx context.Context, c chat.Chat) error {
 		CommandPrefix:       text(c.CommandPrefix),
 		AllowPrefixless:     c.AllowPrefixless,
 		MentionsPerMessage:  c.MentionsPerMessage,
-		MentionTypes:        c.MentionTypes,
+		MentionTypes:        int32(c.MentionTypes),
 		Title:               c.Title,
 		TagsEnabled:         c.TagsEnabled,
 		WeekStartTime: pgtype.Time{

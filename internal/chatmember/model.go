@@ -68,6 +68,14 @@ func (c ChatMember) Permitted(status Status) bool {
 	return c.Status >= status
 }
 
+func (c ChatMember) AnyEmoji() string {
+	if c.Emojis != "" {
+		return c.Emojis
+	}
+
+	return c.User.Emojis
+}
+
 func (s Status) TranslationKey() i18n.MessageID {
 	switch s {
 	case StatusMember:

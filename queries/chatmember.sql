@@ -78,3 +78,18 @@ ON CONFLICT (chat_id, user_id)
                       ELSE chat_members.left_at
             END
 ;
+
+-- name: ListChatMembers :many
+SELECT sqlc.embed(cm), sqlc.embed(u)
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = @chat_id
+  AND (
+    sqlc.narg(is_bot)::boolean IS NULL
+        OR u.is_bot = sqlc.narg(is_bot)
+    )
+  AND (
+    sqlc.narg(has_left)::boolean IS NULL
+        OR (cm.left_at IS NOT NULL) = sqlc.narg(has_left)
+    )
+ORDER BY cm.joined_at;

@@ -9,9 +9,9 @@ import (
 	"github.com/gotd/botapi"
 )
 
-func GetChatMembers(bot *botapi.Bot, ctx context.Context, e tg.Entities, u *tg.UpdateChannelParticipant) ([]botapi.ChatMember, error) {
+func GetChatMembers(bot *botapi.Bot, ctx context.Context, e tg.Entities, channelID int64) ([]botapi.ChatMember, error) {
 	res, err := bot.Raw().ChannelsGetParticipants(ctx, &tg.ChannelsGetParticipantsRequest{
-		Channel: e.Channels[u.ChannelID].AsInput(),
+		Channel: e.Channels[channelID].AsInput(),
 		Filter:  &tg.ChannelParticipantsRecent{},
 		Limit:   200,
 	})

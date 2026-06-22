@@ -107,6 +107,75 @@ func (q *Queries) GetChatMember(ctx context.Context, arg GetChatMemberParams) (G
 	return i, err
 }
 
+const listChatMembers = `-- name: ListChatMembers :many
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = $1
+  AND (
+    $2::boolean IS NULL
+        OR u.is_bot = $2
+    )
+  AND (
+    $3::boolean IS NULL
+        OR (cm.left_at IS NOT NULL) = $3
+    )
+ORDER BY cm.joined_at
+`
+
+type ListChatMembersParams struct {
+	ChatID  int64       `db:"chat_id" json:"chatId"`
+	IsBot   pgtype.Bool `db:"is_bot" json:"isBot"`
+	HasLeft pgtype.Bool `db:"has_left" json:"hasLeft"`
+}
+
+type ListChatMembersRow struct {
+	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
+	User       User       `db:"user" json:"user"`
+}
+
+func (q *Queries) ListChatMembers(ctx context.Context, arg ListChatMembersParams) ([]ListChatMembersRow, error) {
+	rows, err := q.db.Query(ctx, listChatMembers, arg.ChatID, arg.IsBot, arg.HasLeft)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListChatMembersRow{}
+	for rows.Next() {
+		var i ListChatMembersRow
+		if err := rows.Scan(
+			&i.ChatMember.ChatID,
+			&i.ChatMember.UserID,
+			&i.ChatMember.JoinedAt,
+			&i.ChatMember.RestUntil,
+			&i.ChatMember.Tag,
+			&i.ChatMember.LeftAt,
+			&i.ChatMember.RestReason,
+			&i.ChatMember.Emoji,
+			&i.ChatMember.Status,
+			&i.ChatMember.EmojiJson,
+			&i.ChatMember.ExcludeFromCall,
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
+			&i.User.EmojiJson,
+			&i.User.IsBot,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const markAllChatMembersLeftExcept = `-- name: MarkAllChatMembersLeftExcept :exec
 UPDATE chat_members
 SET left_at = $1

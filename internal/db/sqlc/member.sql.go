@@ -357,63 +357,6 @@ func (q *Queries) GetChatMemberByUsername(ctx context.Context, arg GetChatMember
 	return i, err
 }
 
-const getChatMembers = `-- name: GetChatMembers :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot
-FROM chat_members cm
-         JOIN users u ON u.id = cm.user_id
-WHERE cm.chat_id = $1
-  AND cm.left_at IS NULL
-  AND u.is_bot = FALSE
-ORDER BY cm.joined_at
-`
-
-type GetChatMembersRow struct {
-	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
-	User       User       `db:"user" json:"user"`
-}
-
-func (q *Queries) GetChatMembers(ctx context.Context, chatID int64) ([]GetChatMembersRow, error) {
-	rows, err := q.db.Query(ctx, getChatMembers, chatID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []GetChatMembersRow{}
-	for rows.Next() {
-		var i GetChatMembersRow
-		if err := rows.Scan(
-			&i.ChatMember.ChatID,
-			&i.ChatMember.UserID,
-			&i.ChatMember.JoinedAt,
-			&i.ChatMember.RestUntil,
-			&i.ChatMember.Tag,
-			&i.ChatMember.LeftAt,
-			&i.ChatMember.RestReason,
-			&i.ChatMember.Emoji,
-			&i.ChatMember.Status,
-			&i.ChatMember.EmojiJson,
-			&i.ChatMember.ExcludeFromCall,
-			&i.User.ID,
-			&i.User.Username,
-			&i.User.FirstName,
-			&i.User.LastName,
-			&i.User.CreatedAt,
-			&i.User.Gender,
-			&i.User.Emoji,
-			&i.User.CustomEmojiID,
-			&i.User.EmojiJson,
-			&i.User.IsBot,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getChatMembersIncludingBots = `-- name: GetChatMembersIncludingBots :many
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot
 FROM chat_members cm

@@ -37,7 +37,7 @@ func mapChat(c db.Chat) chat.Chat {
 		CommandPrefix:        c.CommandPrefix.String,
 		AllowPrefixless:      c.AllowPrefixless,
 		MentionsPerMessage:   c.MentionsPerMessage,
-		MentionTypes:         c.MentionTypes,
+		MentionTypes:         chat.MentionTypes(c.MentionTypes),
 		TagsEnabled:          c.TagsEnabled,
 		WeekStartTime:        c.WeekStartTime.Microseconds,
 		EmojisEnabled:        c.EmojisEnabled,

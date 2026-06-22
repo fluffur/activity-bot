@@ -5,15 +5,6 @@ WHERE chat_id = $1
   AND user_id = $2;
 
 
--- name: GetChatMembers :many
-SELECT sqlc.embed(cm), sqlc.embed(u)
-FROM chat_members cm
-         JOIN users u ON u.id = cm.user_id
-WHERE cm.chat_id = @chat_id
-  AND cm.left_at IS NULL
-  AND u.is_bot = FALSE
-ORDER BY cm.joined_at;
-
 -- name: GetChatMembersIncludingBots :many
 SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_members cm

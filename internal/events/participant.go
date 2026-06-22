@@ -59,7 +59,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	}
 
 	if res.IsNew && participant.IsSelf(u.NewParticipant) {
-		members, err := participant.GetChatMembers(h.bot, ctx, e, u)
+		members, err := participant.GetChatMembers(h.bot, ctx, e, u.ChannelID)
 		if err != nil {
 			return fmt.Errorf("get chat members on bot join: %w", err)
 		}

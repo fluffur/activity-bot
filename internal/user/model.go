@@ -1,6 +1,8 @@
 package user
 
 import (
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -33,4 +35,8 @@ func New(id int64, firstName, lastName, username string, gender Gender, isBot bo
 		IsBot:     isBot,
 		CreatedAt: now,
 	}
+}
+
+func (u User) FullName() string {
+	return strings.TrimSpace(fmt.Sprintf("%s %s", u.FirstName, u.LastName))
 }
