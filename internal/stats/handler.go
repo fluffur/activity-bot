@@ -36,5 +36,12 @@ func (h *Handler) Register(registry *command.Registry) {
 		ShowInHelp:  true,
 	})
 
-	h.bot.OnMessage(h.AddNorm, predicate.Command("add_norm", "+норма", "добавить норму"))
+	h.bot.OnMessage(h.AddNorm,
+		predicate.Command("add_norm", "+норма", "добавить норму"),
+		predicate.WithArgs(h.chatMemberRepository,
+			predicate.Arg{Type: predicate.ArgTypeNumber, Count: 1, Optional: false},
+			predicate.Arg{Type: predicate.ArgTypeUser, Count: predicate.ArgCountVariadic, Optional: true},
+			predicate.Arg{Type: predicate.ArgTypeText, Count: 1, Optional: true},
+		),
+	)
 }

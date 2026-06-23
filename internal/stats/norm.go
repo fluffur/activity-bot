@@ -3,10 +3,8 @@ package stats
 import (
 	"activity-bot/internal/middleware/cctx"
 	"activity-bot/internal/predicate"
-	"activity-bot/internal/utils/telegram"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -20,42 +18,14 @@ func (h *Handler) AddNorm(c *botapi.Context) error {
 		return fmt.Errorf("add norm: %w", err)
 	}
 	_ = ch
-	args := predicate.Args(c)
-	if args == nil {
-		return nil
+
+	args, ok := predicate.GetParsedArgs(c)
+	if !ok {
+		return fmt.Errorf("no args")
 	}
 
-	text, ents := args.TextAndEntities()
+	log.Printf("adding norm args: %+v", args)
 
-	members := telegram.ParseMentionedMembers(c, h.chatMemberRepository, ch.ID, ents, text)
-
-	for _, member := range members {
-		fmt.Printf("%+v\n", member)
-	}
-
-	header := strings.TrimSpace(strings.Split(text, "\n")[0])
-
-	fields := strings.Fields(header)
-	if len(fields) == 0 {
-		return fmt.Errorf("norm value is required")
-	}
-
-	normNumber, err := strconv.ParseInt(fields[0], 10, 64)
-	if err != nil {
-		return fmt.Errorf("parse norm number: %w", err)
-	}
-
-	var name string
-	if len(fields) > 1 {
-		name = strings.Join(fields[1:], " ")
-	}
-	name = strings.Join(strings.Fields(name), " ")
-
-	if !IsValidNormName(name) {
-		return nil
-	}
-
-	log.Printf("Norm: name=%s normNumber=%d", name, normNumber)
 	return nil
 }
 

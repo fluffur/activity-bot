@@ -25,12 +25,9 @@ func Args(c *botapi.Context) *botapi.Message {
 
 	return nil
 }
-
 func Command(name string, aliases ...string) botapi.Predicate {
 	commands := make([]string, 0, len(aliases)+1)
-
 	commands = append(commands, normalize(name))
-
 	for _, alias := range aliases {
 		commands = append(commands, normalize(alias))
 	}
@@ -43,12 +40,7 @@ func Command(name string, aliases ...string) botapi.Predicate {
 
 		ch, err := cctx.Chat(c.Context)
 		if err != nil {
-			log.For(c.Bot.Logger()).Error(
-				c.Context,
-				"command ctx chat",
-				log.Error(err),
-			)
-
+			log.For(c.Bot.Logger()).Error(c.Context, "command ctx chat", log.Error(err))
 			return false
 		}
 
@@ -60,7 +52,6 @@ func Command(name string, aliases ...string) botapi.Predicate {
 		}
 
 		prefix := findPrefix(text, prefixes)
-
 		if !ch.AllowPrefixless && prefix == "" {
 			return false
 		}
@@ -83,41 +74,23 @@ func Command(name string, aliases ...string) botapi.Predicate {
 		botUsername := strings.ToLower(c.Bot.Self().Username)
 
 		for _, cmd := range commands {
-			_, pos, ok := parseCommand(trimmedText, cmd, botUsername)
+			cmdLenBytes, ok := matchCommandAndGetLen(trimmedText, cmd, botUsername)
 			if !ok {
 				continue
 			}
 
-			cmdEndRuneIdxInTrimmed := findWordEndRuneIndex(trimmedText, pos)
-			argsRuneIdxInTrimmed := findWordStartRuneIndex(trimmedText, pos)
+			cmdEndRuneIdxInTrimmed := len([]rune(trimmedText[:cmdLenBytes]))
 
-			sep := ""
-			trimmedTextRunes := []rune(trimmedText)
-			if cmdEndRuneIdxInTrimmed <= len(trimmedTextRunes) && argsRuneIdxInTrimmed <= len(trimmedTextRunes) {
-				sep = string(trimmedTextRunes[cmdEndRuneIdxInTrimmed:argsRuneIdxInTrimmed])
-			}
-
-			keepOffset := argsRuneIdxInTrimmed
-			if idx := strings.Index(sep, "\n"); idx != -1 {
-				sepRunes := []rune(sep)
-				newlineRuneIdx := 0
-				for i, r := range sepRunes {
-					if r == '\n' {
-						newlineRuneIdx = i
-						break
-					}
-				}
-				keepOffset = cmdEndRuneIdxInTrimmed + newlineRuneIdx
-			}
-
+			// Вычисляем абсолютное смещение рун в исходном сообщении `text`
 			prefixRunes := []rune(prefix)
-			absRuneIdx := len(prefixRunes) + leadingSpacesRunes + keepOffset
+			absRuneIdx := len(prefixRunes) + leadingSpacesRunes + cmdEndRuneIdxInTrimmed
 
 			runes := []rune(text)
 			if absRuneIdx > len(runes) {
 				absRuneIdx = len(runes)
 			}
 
+			// Считаем UTF-16 смещение для корректного сдвига Telegram Entities
 			utf16Offset := len(utf16.Encode(runes[:absRuneIdx]))
 
 			var argsEntities []botapi.MessageEntity
@@ -151,17 +124,73 @@ func Command(name string, aliases ...string) botapi.Predicate {
 				argsMessage.CaptionEntities = argsEntities
 			}
 
-			c.Context = context.WithValue(
-				c.Context,
-				commandArgsKey,
-				argsMessage,
-			)
-
+			c.Context = context.WithValue(c.Context, commandArgsKey, argsMessage)
 			return true
 		}
 
 		return false
 	}
+}
+
+// matchCommandAndGetLen проверяет команду и возвращает длину текста команды в байтах
+func matchCommandAndGetLen(trimmedText string, command string, botUsername string) (int, bool) {
+	// Работаем строго по ПЕРВОЙ строке, чтобы переносы \n не ломали логику
+	firstLine := trimmedText
+	if idx := strings.Index(trimmedText, "\n"); idx != -1 {
+		firstLine = trimmedText[:idx]
+	}
+
+	words := strings.Fields(firstLine)
+	if len(words) == 0 {
+		return 0, false
+	}
+
+	cmdWords := strings.Fields(command)
+	if len(words) < len(cmdWords) {
+		return 0, false
+	}
+
+	for i, cmdWord := range cmdWords {
+		word := strings.ToLower(words[i])
+		last := i == len(cmdWords)-1
+
+		if last {
+			if word == cmdWord {
+				continue
+			}
+			// Проверка на обращение через @ к боту (+норма@my_bot)
+			if strings.HasPrefix(word, cmdWord+"@") {
+				username := strings.TrimPrefix(word, cmdWord+"@")
+				if username == botUsername {
+					continue
+				}
+			}
+			return 0, false
+		}
+
+		if word != cmdWord {
+			return 0, false
+		}
+	}
+
+	// Вычисляем, сколько байт заняла команда в первой строке вместе со всеми внутренними пробелами
+	pos := len(cmdWords)
+
+	// Если после команды идет отдельный токен-аттачмент бота (например: "+норма @testbot")
+	if len(words) > pos && strings.HasPrefix(words[pos], "@") {
+		if strings.ToLower(words[pos][1:]) == botUsername {
+			pos++
+		}
+	}
+
+	lastWordToFind := words[pos-1]
+	lastWordIdx := strings.Index(strings.ToLower(firstLine), strings.ToLower(lastWordToFind))
+	if lastWordIdx == -1 {
+		return 0, false
+	}
+
+	bytesLen := lastWordIdx + len(lastWordToFind)
+	return bytesLen, true
 }
 
 func findWordStartRuneIndex(text string, wordIndex int) int {
