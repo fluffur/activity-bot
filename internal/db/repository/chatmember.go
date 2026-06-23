@@ -140,3 +140,15 @@ func (r *ChatMemberRepository) List(ctx context.Context, filter chatmember.Filte
 
 	return cmsMapped, nil
 }
+
+func (r *ChatMemberRepository) GetByUsername(ctx context.Context, chatID int64, username string) (chatmember.ChatMember, error) {
+	cm, err := r.queries.GetChatMemberByUsername(ctx, db.GetChatMemberByUsernameParams{
+		ChatID:   chatID,
+		Username: text(username),
+	})
+	if err != nil {
+		return chatmember.ChatMember{}, err
+	}
+
+	return mapChatMemberFull(cm.ChatMember, db.Chat{}, cm.User), nil
+}

@@ -69,3 +69,23 @@ other = "Помощь"
 
 [aliases]
 other = "Синонимы: {{.Aliases}}"
+
+[category_stats]
+other = "Статистика"
+
+[add_norm_description]
+other = "Добавить новую норму"
+
+[add_norm_example_simple]
+other = "+норма 50"
+
+[add_norm_example_named]
+other = "+норма 70 варн"
+
+[add_norm_example_users]
+other = """+норма 10 особенные
+@user1 @user2"""
+
+[add_norm_example_admins]
+other = """+норма 100 админы
+(статус:3) (статус:4)"""

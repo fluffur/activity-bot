@@ -16,6 +16,7 @@ type Category string
 
 const (
 	CategoryHelp       Category = "help"
+	CategoryStats      Category = "stats"
 	CategorySummon     Category = "summon"
 	CategoryModeration Category = "moderation"
 	CategoryEvents     Category = "events"

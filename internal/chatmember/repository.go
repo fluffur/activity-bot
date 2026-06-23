@@ -19,6 +19,7 @@ type Filter struct {
 type Repository interface {
 	Create(ctx context.Context, chatMember ChatMember) error
 	Get(ctx context.Context, chatID int64, userID int64) (ChatMember, error)
+	GetByUsername(ctx context.Context, chatID int64, username string) (ChatMember, error)
 	SetTag(ctx context.Context, chatID int64, userID int64, tag string) error
 	MarkLeft(ctx context.Context, chatID int64, userID int64, leftAt time.Time) error
 	Restore(ctx context.Context, chatID int64, userID int64) error

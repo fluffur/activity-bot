@@ -309,54 +309,6 @@ func (q *Queries) GetChatAdmins(ctx context.Context, chatID int64) ([]GetChatAdm
 	return items, nil
 }
 
-const getChatMemberByUsername = `-- name: GetChatMemberByUsername :one
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot
-FROM chat_members cm
-         JOIN users u ON u.id = cm.user_id
-WHERE cm.chat_id = $1
-  AND u.username ILIKE $2
-LIMIT 1
-`
-
-type GetChatMemberByUsernameParams struct {
-	ChatID   int64       `db:"chat_id" json:"chatId"`
-	Username pgtype.Text `db:"username" json:"username"`
-}
-
-type GetChatMemberByUsernameRow struct {
-	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
-	User       User       `db:"user" json:"user"`
-}
-
-func (q *Queries) GetChatMemberByUsername(ctx context.Context, arg GetChatMemberByUsernameParams) (GetChatMemberByUsernameRow, error) {
-	row := q.db.QueryRow(ctx, getChatMemberByUsername, arg.ChatID, arg.Username)
-	var i GetChatMemberByUsernameRow
-	err := row.Scan(
-		&i.ChatMember.ChatID,
-		&i.ChatMember.UserID,
-		&i.ChatMember.JoinedAt,
-		&i.ChatMember.RestUntil,
-		&i.ChatMember.Tag,
-		&i.ChatMember.LeftAt,
-		&i.ChatMember.RestReason,
-		&i.ChatMember.Emoji,
-		&i.ChatMember.Status,
-		&i.ChatMember.EmojiJson,
-		&i.ChatMember.ExcludeFromCall,
-		&i.User.ID,
-		&i.User.Username,
-		&i.User.FirstName,
-		&i.User.LastName,
-		&i.User.CreatedAt,
-		&i.User.Gender,
-		&i.User.Emoji,
-		&i.User.CustomEmojiID,
-		&i.User.EmojiJson,
-		&i.User.IsBot,
-	)
-	return i, err
-}
-
 const getChatMembersIncludingBots = `-- name: GetChatMembersIncludingBots :many
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot
 FROM chat_members cm
