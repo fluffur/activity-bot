@@ -4,40 +4,125 @@ package i18n
 
 type MessageID string
 
-const (
-	AddBotButton         MessageID = "add_bot_button"
-	AddNormDescription   MessageID = "add_norm_description"
-	AddNormExampleAdmins MessageID = "add_norm_example_admins"
-	AddNormExampleNamed  MessageID = "add_norm_example_named"
-	AddNormExampleSimple MessageID = "add_norm_example_simple"
-	AddNormExampleUsers  MessageID = "add_norm_example_users"
-	Aliases              MessageID = "aliases"
-	BotAdded             MessageID = "bot_added"
-	BotAddedAdmin        MessageID = "bot_added_admin"
-	BotCommands          MessageID = "bot_commands"
-	CategoryHelp         MessageID = "category_help"
-	CategoryStats        MessageID = "category_stats"
-	CategorySummon       MessageID = "category_summon"
-	Help                 MessageID = "help"
-	HelpDescription      MessageID = "help_description"
-	NoPermission         MessageID = "no_permission"
-	StatusCoowner        MessageID = "status_coowner"
-	StatusJuniorAdmin    MessageID = "status_junior_admin"
-	StatusMember         MessageID = "status_member"
-	StatusModerator      MessageID = "status_moderator"
-	StatusOwner          MessageID = "status_owner"
-	StatusSeniorAdmin    MessageID = "status_senior_admin"
-	SummonDescription    MessageID = "summon_description"
-	UserJoinedFemale     MessageID = "user_joined_female"
-	UserJoinedMale       MessageID = "user_joined_male"
-	UserLeftFemale       MessageID = "user_left_female"
-	UserLeftMale         MessageID = "user_left_male"
-	UserReturnedFemale   MessageID = "user_returned_female"
-	UserReturnedMale     MessageID = "user_returned_male"
-	UserUnknown          MessageID = "user_unknown"
+var (
+	ArgType = struct {
+		Datetime MessageID
+		Duration MessageID
+		Number   MessageID
+		Text     MessageID
+		User     MessageID
+	}{
+		Datetime: "arg_type.datetime",
+		Duration: "arg_type.duration",
+		Number:   "arg_type.number",
+		Text:     "arg_type.text",
+		User:     "arg_type.user",
+	}
+	Category = struct {
+		Help   MessageID
+		Stats  MessageID
+		Summon MessageID
+	}{
+		Help:   "category.help",
+		Stats:  "category.stats",
+		Summon: "category.summon",
+	}
+	Cmd = struct {
+		AddNorm struct {
+			Desc          MessageID
+			ExampleNamed  MessageID
+			ExampleSimple MessageID
+			ExampleUsers  MessageID
+		}
+		Help struct {
+			AliasesLabel MessageID
+			Body         MessageID
+			Desc         MessageID
+			Examples     MessageID
+			Syntax       MessageID
+		}
+		Summon struct {
+			Desc MessageID
+		}
+	}{
+		AddNorm: struct {
+			Desc          MessageID
+			ExampleNamed  MessageID
+			ExampleSimple MessageID
+			ExampleUsers  MessageID
+		}{
+			Desc:          "cmd.add_norm.desc",
+			ExampleNamed:  "cmd.add_norm.example_named",
+			ExampleSimple: "cmd.add_norm.example_simple",
+			ExampleUsers:  "cmd.add_norm.example_users",
+		},
+		Help: struct {
+			AliasesLabel MessageID
+			Body         MessageID
+			Desc         MessageID
+			Examples     MessageID
+			Syntax       MessageID
+		}{
+			AliasesLabel: "cmd.help.aliases_label",
+			Body:         "cmd.help.body",
+			Desc:         "cmd.help.desc",
+			Examples:     "cmd.help.examples",
+			Syntax:       "cmd.help.syntax",
+		},
+		Summon: struct {
+			Desc MessageID
+		}{
+			Desc: "cmd.summon.desc",
+		},
+	}
+	Status = struct {
+		Coowner     MessageID
+		JuniorAdmin MessageID
+		Member      MessageID
+		Moderator   MessageID
+		Owner       MessageID
+		SeniorAdmin MessageID
+	}{
+		Coowner:     "status.coowner",
+		JuniorAdmin: "status.junior_admin",
+		Member:      "status.member",
+		Moderator:   "status.moderator",
+		Owner:       "status.owner",
+		SeniorAdmin: "status.senior_admin",
+	}
+	System = struct {
+		AddBotButton  MessageID
+		BotAdded      MessageID
+		BotAddedAdmin MessageID
+		BotCommands   MessageID
+		NoPermission  MessageID
+	}{
+		AddBotButton:  "system.add_bot_button",
+		BotAdded:      "system.bot_added",
+		BotAddedAdmin: "system.bot_added_admin",
+		BotCommands:   "system.bot_commands",
+		NoPermission:  "system.no_permission",
+	}
+	User = struct {
+		JoinedFemale   MessageID
+		JoinedMale     MessageID
+		LeftFemale     MessageID
+		LeftMale       MessageID
+		ReturnedFemale MessageID
+		ReturnedMale   MessageID
+		Unknown        MessageID
+	}{
+		JoinedFemale:   "user.joined_female",
+		JoinedMale:     "user.joined_male",
+		LeftFemale:     "user.left_female",
+		LeftMale:       "user.left_male",
+		ReturnedFemale: "user.returned_female",
+		ReturnedMale:   "user.returned_male",
+		Unknown:        "user.unknown",
+	}
 )
 
-func AliasesArgs(
+func CmdHelpAliasesLabelArgs(
 	aliases any,
 ) map[string]any {
 	return map[string]any{
@@ -45,7 +130,7 @@ func AliasesArgs(
 	}
 }
 
-func HelpArgs(
+func CmdHelpBodyArgs(
 	commandsLink any,
 	developerLink any,
 ) map[string]any {
@@ -55,7 +140,7 @@ func HelpArgs(
 	}
 }
 
-func NoPermissionArgs(
+func SystemNoPermissionArgs(
 	status any,
 ) map[string]any {
 	return map[string]any{

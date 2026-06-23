@@ -29,7 +29,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Aliases:     []string{"help", "помощь"},
 		Trigger:     command.TriggerCommand,
 		Category:    command.CategoryHelp,
-		Description: i18n.HelpDescription,
+		Description: i18n.Cmd.Help.Desc,
 		ShowInHelp:  true,
 	})
 

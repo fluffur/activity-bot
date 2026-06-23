@@ -1,91 +1,54 @@
-[help_description]
-other = "Помощь по командам бота"
+[system]
+add_bot_button = { other = "Добавить бота в группу" }
+bot_commands = { other = "Команды бота" }
+bot_added = { other = "Меня добавили в группу!\n\nТеперь, для того, чтобы я мог работать корректно, мне нужно выдать права администратора в группе (все пункты, кроме анонимности)" }
+bot_added_admin = { other = "Меня добавили в группу!\n\nТеперь можно приступить к настройке бота" }
+no_permission = { other = "Для выполнения этой команды требуются права \"{{.Status}}\"" }
 
-[help]
-other = "📚 {{.CommandsLink}}\n\nЕсли нужна помощь, обратитесь к {{.DeveloperLink}}"
+[user]
+unknown = { other = "участник" }
+left_male = { other = "{{.User}} вышел из чата" }
+left_female = { other = "{{.User}} вышла из чата" }
+joined_male = { other = "{{.User}} присоединился к чату" }
+joined_female = { other = "{{.User}} присоединилась к чату" }
+returned_male = { other = "{{.User}} вернулся в чат" }
+returned_female = { other = "{{.User}} вернулась в чат" }
 
-[add_bot_button]
-other = "Добавить бота в группу"
+[status]
+member = { other = "участник" }
+moderator = { other = "модератор" }
+junior_admin = { other = "младший администратор" }
+senior_admin = { other = "старший администратор" }
+coowner = { other = "совладелец" }
+owner = { other = "владелец" }
 
-[bot_commands]
-other = "Команды бота"
+[category]
+help = { other = "Помощь" }
+summon = { other = "Созывы" }
+stats = { other = "Статистика" }
 
-[user_left_male]
-other = "{{.User}} вышел из чата"
+[arg_type]
+user = { other = "@user" }
+number = { other = "число" }
+duration = { other = "период" }
+datetime = { other = "дата" }
+text = { other = "текст" }
 
-[user_left_female]
-other = "{{.User}} вышла из чата"
+# Раздел для строк конкретных команд
+[cmd]
+[cmd.help]
+desc = { other = "Помощь по командам бота" }
+body = { other = "📚 {{.CommandsLink}}\n\nЕсли нужна помощь, обратитесь к {{.DeveloperLink}}" }
+syntax = { other = "Синтаксис:" }
+examples = { other = "Примеры:" }
+aliases_label = { other = "Синонимы: {{.Aliases}}" }
 
-[user_unknown]
-other = "участник"
+[cmd.summon]
+desc = { other = "Созыв всех участников" }
 
-[user_joined_male]
-other = "{{.User}} присоединился к чату"
-
-[user_joined_female]
-other = "{{.User}} присоединилась к чату"
-
-[user_returned_male]
-other = "{{.User}} вернулся в чат"
-
-[user_returned_female]
-other = "{{.User}} вернулась в чат"
-
-[bot_added_admin]
-other = "Меня добавили в группу!\n\nТеперь можно приступить к настройке бота"
-
-[bot_added]
-other = "Меня добавили в группу!\n\nТеперь, для того, чтобы я мог работать корректно, мне нужно выдать права администратора в группе (все пункты, кроме анонимности)"
-
-[no_permission]
-other = "Для выполнения этой команды требуются права \"{{.Status}}\""
-
-[status_member]
-other = "участник"
-
-[status_moderator]
-other = "модератор"
-
-[status_junior_admin]
-other = "младший администратор"
-
-[status_senior_admin]
-other = "старший администратор"
-
-[status_coowner]
-other = "совладелец"
-
-[status_owner]
-other = "владелец"
-
-[summon_description]
-other = "Созыв всех участников"
-
-[category_summon]
-other = "Созывы"
-
-[category_help]
-other = "Помощь"
-
-[aliases]
-other = "Синонимы: {{.Aliases}}"
-
-[category_stats]
-other = "Статистика"
-
-[add_norm_description]
-other = "Добавить новую норму"
-
-[add_norm_example_simple]
-other = "+норма 50"
-
-[add_norm_example_named]
-other = "+норма 70 варн"
-
-[add_norm_example_users]
-other = """+норма 10 особенные
-@user1 @user2"""
-
-[add_norm_example_admins]
-other = """+норма 100 админы
-(статус:3) (статус:4)"""
+[cmd.add_norm]
+desc = { other = "Добавить новую норму" }
+example_simple = { other = "+норма 50" }
+example_named = { other = "+норма 70 варн" }
+example_users = { other = """+норма 10 особенные
+@user1 @user2""" }

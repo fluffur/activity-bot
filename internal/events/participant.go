@@ -68,7 +68,14 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 			return fmt.Errorf("sync chat members: %w", err)
 		}
 
-		text := h.translator.TIf(res.ChatMember.Chat.Language, participant.IsAdmin(u.NewParticipant), i18n.BotAddedAdmin, i18n.BotAdded, nil, nil)
+		text := h.translator.TIf(
+			res.ChatMember.Chat.Language,
+			participant.IsAdmin(u.NewParticipant),
+			i18n.System.BotAddedAdmin,
+			i18n.System.BotAdded,
+			nil,
+			nil,
+		)
 
 		_, err = h.bot.SendMessage(ctx, botapi.ID(chatID), text, botapi.WithParseMode(botapi.ParseModeHTML))
 
@@ -79,13 +86,16 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	us := cm.User
 	ch := cm.Chat
 
-	mention := tghtml.UserMention(us.ID, cm.Display(h.translator.T(ch.Language, i18n.UserUnknown), ch.EmojisEnabled))
+	// Используем i18n.User.Unknown
+	mention := tghtml.UserMention(us.ID, cm.Display(h.translator.T(ch.Language, i18n.User.Unknown), ch.EmojisEnabled))
 
-	keyFemale, keyMale := i18n.UserReturnedFemale, i18n.UserReturnedMale
+	// Инициализируем дефолтные ключи возвращения в чат из структуры i18n.User
+	keyFemale, keyMale := i18n.User.ReturnedFemale, i18n.User.ReturnedMale
 	argsFemale, argsMale := i18n.UserReturnedFemaleArgs(mention), i18n.UserReturnedMaleArgs(mention)
 
 	if res.IsNew {
-		keyFemale, keyMale = i18n.UserJoinedFemale, i18n.UserJoinedMale
+		// Подменяем на ключи первого входа в чат
+		keyFemale, keyMale = i18n.User.JoinedFemale, i18n.User.JoinedMale
 		argsFemale, argsMale = i18n.UserJoinedFemaleArgs(mention), i18n.UserJoinedMaleArgs(mention)
 	}
 
@@ -105,13 +115,14 @@ func (h *Handler) processLeft(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	us := cm.User
 	ch := cm.Chat
 
-	mention := tghtml.UserMention(us.ID, cm.Display(h.translator.T(ch.Language, i18n.UserUnknown), ch.EmojisEnabled))
+	// Используем i18n.User.Unknown
+	mention := tghtml.UserMention(us.ID, cm.Display(h.translator.T(ch.Language, i18n.User.Unknown), ch.EmojisEnabled))
 
 	text := h.translator.TIf(
 		ch.Language,
 		us.Gender == user.GenderFemale,
-		i18n.UserLeftFemale,
-		i18n.UserLeftMale,
+		i18n.User.LeftFemale,
+		i18n.User.LeftMale,
 		i18n.UserLeftFemaleArgs(mention),
 		i18n.UserLeftMaleArgs(mention),
 	)

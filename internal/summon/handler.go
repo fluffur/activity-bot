@@ -27,7 +27,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Trigger:     command.TriggerCommand,
 		MinStatus:   chatmember.StatusAdmin,
 		Category:    command.CategorySummon,
-		Description: i18n.SummonDescription,
+		Description: i18n.Cmd.Summon.Desc,
 		Examples:    []i18n.MessageID{},
 		ShowInHelp:  true,
 	})

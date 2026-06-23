@@ -78,7 +78,7 @@ func (p *PermissionChecker) Require(
 				return false
 			}
 
-			text := p.translator.TData(ch.Language, i18n.NoPermission, i18n.NoPermissionArgs(
+			text := p.translator.TData(ch.Language, i18n.System.NoPermission, i18n.SystemNoPermissionArgs(
 				p.translator.T(ch.Language, status.TranslationKey())),
 			)
 

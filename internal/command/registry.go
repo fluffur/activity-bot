@@ -3,6 +3,7 @@ package command
 import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/predicate"
 )
 
 type TriggerType string
@@ -27,6 +28,7 @@ func Categories() []Category {
 		CategoryHelp,
 		CategorySummon,
 		CategoryEvents,
+		CategoryStats,
 	}
 }
 
@@ -54,6 +56,7 @@ type ActionDef struct {
 	Scope       Scope
 
 	ShowInHelp bool
+	Args       []predicate.Arg
 }
 
 type Registry struct {

@@ -79,18 +79,18 @@ func (c ChatMember) AnyEmoji() string {
 func (s Status) TranslationKey() i18n.MessageID {
 	switch s {
 	case StatusMember:
-		return i18n.StatusMember
+		return i18n.Status.Member
 	case StatusModerator:
-		return i18n.StatusModerator
+		return i18n.Status.Moderator
 	case StatusAdmin:
-		return i18n.StatusJuniorAdmin
+		return i18n.Status.JuniorAdmin
 	case StatusSeniorAdmin:
-		return i18n.StatusModerator
+		return i18n.Status.SeniorAdmin
 	case StatusCoOwner:
-		return i18n.StatusCoowner
+		return i18n.Status.Coowner
 	case StatusOwner:
-		return i18n.StatusOwner
+		return i18n.Status.Owner
 	default:
-		return i18n.StatusMember
+		return i18n.Status.Member
 	}
 }
