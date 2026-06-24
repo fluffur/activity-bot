@@ -14,11 +14,12 @@ type Handler struct {
 	bot            *botapi.Bot
 	translator     *i18n.Translator
 	args           *predicate.ArgChecker
+	permissions    *predicate.PermissionChecker
 	normRepository norm.Repository
 }
 
-func NewHandler(b *botapi.Bot, t *i18n.Translator, c *predicate.ArgChecker, nr norm.Repository) *Handler {
-	return &Handler{b, t, c, nr}
+func NewHandler(b *botapi.Bot, t *i18n.Translator, p *predicate.PermissionChecker, c *predicate.ArgChecker, nr norm.Repository) *Handler {
+	return &Handler{b, t, c, p, nr}
 }
 
 func (h *Handler) Register(registry *command.Registry) {
@@ -43,5 +44,6 @@ func (h *Handler) Register(registry *command.Registry) {
 	h.bot.OnMessage(h.AddNorm,
 		predicate.Command(addNormDef.Key, addNormDef.Aliases...),
 		h.args.WithArgs(addNormDef.Args...),
+		h.permissions.Require(addNormDef.Key, addNormDef.MinStatus),
 	)
 }

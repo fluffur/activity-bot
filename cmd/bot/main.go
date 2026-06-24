@@ -103,7 +103,7 @@ func main() {
 
 	help.NewHandler(bot, translator, permissions, registry, cfg.CommandsURL, cfg.DeveloperUsername).Register(registry)
 	summon.NewHandler(bot, translator, permissions, chatMemberService).Register(registry)
-	stats.NewHandler(bot, translator, argChecker, normRepository).Register(registry)
+	stats.NewHandler(bot, translator, permissions, argChecker, normRepository).Register(registry)
 	events.NewHandler(bot, translator, messageRepository, chatMemberService).Register()
 
 	log.Info("Starting bot")
