@@ -15,3 +15,8 @@ SELECT *
 FROM chat_norms
 WHERE chat_id = $1;
 
+-- name: DeleteNorm :exec
+DELETE
+FROM chat_norms
+WHERE chat_id = $1
+  AND name = $2;

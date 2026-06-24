@@ -18,7 +18,7 @@ func (h *Handler) Help(c *botapi.Context) error {
 	if err != nil {
 		return fmt.Errorf("help chat ctx: %w", err)
 	}
-	lang := ch.Language
+	lang := ch.Lang
 
 	groups := h.registry.ByCategory()
 	var sb strings.Builder
@@ -80,7 +80,7 @@ func (h *Handler) Help(c *botapi.Context) error {
 	_, err = c.Reply(
 		sb.String(),
 		botapi.WithParseMode(botapi.ParseModeHTML),
-		botapi.WithReplyMarkup(h.helpKeyboard(ch.Language)),
+		botapi.WithReplyMarkup(h.helpKeyboard(ch.Lang)),
 	)
 
 	return err

@@ -78,14 +78,14 @@ func NewArgChecker(cmr chatmember.Repository) *ArgChecker {
 func (a *ArgChecker) WithArgs(rules ...Arg) botapi.Predicate {
 	return func(c *botapi.Context) bool {
 		argsMessage := Args(c)
-		log.For(c.Bot.Logger()).Info(c.Context, "handling args", log.Any("args", argsMessage))
-		if argsMessage == nil {
-			return len(rules) == 0
+
+		if argsMessage == nil && !allRulesAreOptional(rules...) && len(rules) != 0 {
+			return false
 		}
 
 		text, entities := argsMessage.TextAndEntities()
-		if strings.TrimSpace(text) == "" {
-			return len(rules) == 0
+		if strings.TrimSpace(text) == "" && !allRulesAreOptional(rules...) && len(rules) != 0 {
+			return false
 		}
 
 		ch, err := cctx.Chat(c.Context)
@@ -109,6 +109,7 @@ func (a *ArgChecker) WithArgs(rules ...Arg) botapi.Predicate {
 
 			if rule.Type == ArgTypeText {
 				toks := getFreeTokens(text, usedOffsets)
+				log.For(c.Bot.Logger()).Debug(c.Context, "found free tokens", log.Int("count", count))
 				if len(toks) == 0 {
 					if rule.Optional {
 						continue
@@ -205,6 +206,16 @@ func (a *ArgChecker) WithArgs(rules ...Arg) botapi.Predicate {
 		}
 
 		c.Context = context.WithValue(c.Context, commandParsedArgsKey, parsed)
+
 		return true
 	}
+}
+
+func allRulesAreOptional(rules ...Arg) bool {
+	for _, rule := range rules {
+		if !rule.Optional {
+			return false
+		}
+	}
+	return true
 }

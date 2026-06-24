@@ -9,6 +9,23 @@ import (
 	"context"
 )
 
+const deleteNorm = `-- name: DeleteNorm :exec
+DELETE
+FROM chat_norms
+WHERE chat_id = $1
+  AND name = $2
+`
+
+type DeleteNormParams struct {
+	ChatID int64  `db:"chat_id" json:"chatId"`
+	Name   string `db:"name" json:"name"`
+}
+
+func (q *Queries) DeleteNorm(ctx context.Context, arg DeleteNormParams) error {
+	_, err := q.db.Exec(ctx, deleteNorm, arg.ChatID, arg.Name)
+	return err
+}
+
 const getNorm = `-- name: GetNorm :one
 SELECT id, chat_id, name, value
 FROM chat_norms

@@ -31,11 +31,18 @@ var (
 		AddNorm struct {
 			Added           MessageID
 			Desc            MessageID
+			ErrInvalidName  MessageID
 			ErrInvalidValue MessageID
 			ExampleNamed    MessageID
 			ExampleSimple   MessageID
 			ExampleUsers    MessageID
 			NormGeneral     MessageID
+		}
+		DeleteNorm struct {
+			Deleted            MessageID
+			Desc               MessageID
+			ErrNothingToDelete MessageID
+			Example            MessageID
 		}
 		Help struct {
 			AliasesLabel MessageID
@@ -44,6 +51,18 @@ var (
 			Examples     MessageID
 			Syntax       MessageID
 		}
+		ListNorms struct {
+			Desc  MessageID
+			Empty MessageID
+			Item  MessageID
+			Title MessageID
+		}
+		ShowNorm struct {
+			Body     MessageID
+			Desc     MessageID
+			Example  MessageID
+			NotFound MessageID
+		}
 		Summon struct {
 			Desc MessageID
 		}
@@ -51,6 +70,7 @@ var (
 		AddNorm: struct {
 			Added           MessageID
 			Desc            MessageID
+			ErrInvalidName  MessageID
 			ErrInvalidValue MessageID
 			ExampleNamed    MessageID
 			ExampleSimple   MessageID
@@ -59,11 +79,23 @@ var (
 		}{
 			Added:           "cmd.add_norm.added",
 			Desc:            "cmd.add_norm.desc",
+			ErrInvalidName:  "cmd.add_norm.err_invalid_name",
 			ErrInvalidValue: "cmd.add_norm.err_invalid_value",
 			ExampleNamed:    "cmd.add_norm.example_named",
 			ExampleSimple:   "cmd.add_norm.example_simple",
 			ExampleUsers:    "cmd.add_norm.example_users",
 			NormGeneral:     "cmd.add_norm.norm_general",
+		},
+		DeleteNorm: struct {
+			Deleted            MessageID
+			Desc               MessageID
+			ErrNothingToDelete MessageID
+			Example            MessageID
+		}{
+			Deleted:            "cmd.delete_norm.deleted",
+			Desc:               "cmd.delete_norm.desc",
+			ErrNothingToDelete: "cmd.delete_norm.err_nothing_to_delete",
+			Example:            "cmd.delete_norm.example",
 		},
 		Help: struct {
 			AliasesLabel MessageID
@@ -77,6 +109,28 @@ var (
 			Desc:         "cmd.help.desc",
 			Examples:     "cmd.help.examples",
 			Syntax:       "cmd.help.syntax",
+		},
+		ListNorms: struct {
+			Desc  MessageID
+			Empty MessageID
+			Item  MessageID
+			Title MessageID
+		}{
+			Desc:  "cmd.list_norms.desc",
+			Empty: "cmd.list_norms.empty",
+			Item:  "cmd.list_norms.item",
+			Title: "cmd.list_norms.title",
+		},
+		ShowNorm: struct {
+			Body     MessageID
+			Desc     MessageID
+			Example  MessageID
+			NotFound MessageID
+		}{
+			Body:     "cmd.show_norm.body",
+			Desc:     "cmd.show_norm.desc",
+			Example:  "cmd.show_norm.example",
+			NotFound: "cmd.show_norm.not_found",
 		},
 		Summon: struct {
 			Desc MessageID
@@ -141,13 +195,39 @@ func CmdAddNormAddedArgs(
 	}
 }
 
+func CmdAddNormErrInvalidNameArgs(
+	name any,
+) map[string]any {
+	return map[string]any{
+		"Name": name,
+	}
+}
+
 func CmdAddNormErrInvalidValueArgs(
 	max any,
 	min any,
+	value any,
 ) map[string]any {
 	return map[string]any{
-		"Max": max,
-		"Min": min,
+		"Max":   max,
+		"Min":   min,
+		"Value": value,
+	}
+}
+
+func CmdDeleteNormDeletedArgs(
+	name any,
+) map[string]any {
+	return map[string]any{
+		"Name": name,
+	}
+}
+
+func CmdDeleteNormErrNothingToDeleteArgs(
+	name any,
+) map[string]any {
+	return map[string]any{
+		"Name": name,
 	}
 }
 
@@ -166,6 +246,38 @@ func CmdHelpBodyArgs(
 	return map[string]any{
 		"CommandsLink":  commandsLink,
 		"DeveloperLink": developerLink,
+	}
+}
+
+func CmdListNormsItemArgs(
+	name any,
+	value any,
+) map[string]any {
+	return map[string]any{
+		"Name":  name,
+		"Value": value,
+	}
+}
+
+func CmdShowNormBodyArgs(
+	name any,
+	value any,
+) map[string]any {
+	return map[string]any{
+		"Name":  name,
+		"Value": value,
+	}
+}
+
+func CmdShowNormNotFoundArgs(
+	code any,
+	codeEnd any,
+	name any,
+) map[string]any {
+	return map[string]any{
+		"Code":    code,
+		"CodeEnd": codeEnd,
+		"Name":    name,
 	}
 }
 

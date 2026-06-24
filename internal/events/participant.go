@@ -69,7 +69,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 		}
 
 		text := h.translator.TIf(
-			res.ChatMember.Chat.Language,
+			res.ChatMember.Chat.Lang,
 			participant.IsAdmin(u.NewParticipant),
 			i18n.System.BotAddedAdmin,
 			i18n.System.BotAdded,
@@ -87,7 +87,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	ch := cm.Chat
 
 	// Используем i18n.User.Unknown
-	mention := tghtml.UserMention(us.ID, cm.Display(h.translator.T(ch.Language, i18n.User.Unknown), ch.EmojisEnabled))
+	mention := tghtml.UserMention(us.ID, cm.Display(h.translator.T(ch.Lang, i18n.User.Unknown), ch.EmojisEnabled))
 
 	// Инициализируем дефолтные ключи возвращения в чат из структуры i18n.User
 	keyFemale, keyMale := i18n.User.ReturnedFemale, i18n.User.ReturnedMale
@@ -99,7 +99,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 		argsFemale, argsMale = i18n.UserJoinedFemaleArgs(mention), i18n.UserJoinedMaleArgs(mention)
 	}
 
-	text := h.translator.TIf(ch.Language, us.Gender == user.GenderFemale, keyFemale, keyMale, argsFemale, argsMale)
+	text := h.translator.TIf(ch.Lang, us.Gender == user.GenderFemale, keyFemale, keyMale, argsFemale, argsMale)
 
 	_, err = h.bot.SendMessage(ctx, botapi.ID(chatID), text, botapi.WithParseMode(botapi.ParseModeHTML))
 
@@ -116,10 +116,10 @@ func (h *Handler) processLeft(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	ch := cm.Chat
 
 	// Используем i18n.User.Unknown
-	mention := tghtml.UserMention(us.ID, cm.Display(h.translator.T(ch.Language, i18n.User.Unknown), ch.EmojisEnabled))
+	mention := tghtml.UserMention(us.ID, cm.Display(h.translator.T(ch.Lang, i18n.User.Unknown), ch.EmojisEnabled))
 
 	text := h.translator.TIf(
-		ch.Language,
+		ch.Lang,
 		us.Gender == user.GenderFemale,
 		i18n.User.LeftFemale,
 		i18n.User.LeftMale,

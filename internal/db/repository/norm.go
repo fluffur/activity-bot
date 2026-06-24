@@ -40,3 +40,10 @@ func (r *NormRepository) List(ctx context.Context, chatID int64) ([]norm.Norm, e
 	}
 	return mapList(norms, mapNorm), nil
 }
+
+func (r *NormRepository) Delete(ctx context.Context, chatID int64, name string) error {
+	return r.queries.DeleteNorm(ctx, db.DeleteNormParams{
+		ChatID: chatID,
+		Name:   name,
+	})
+}

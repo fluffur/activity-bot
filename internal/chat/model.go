@@ -28,7 +28,7 @@ func (t *MentionTypes) Remove(flag MentionTypes) {
 type Chat struct {
 	ID                   int64
 	Title                string
-	Language             string
+	Lang                 string
 	NormWarn             int32
 	NormBan              int32
 	NewbieThresholdDays  int32
@@ -53,7 +53,7 @@ func New(id int64, title string) Chat {
 	return Chat{
 		ID:                   id,
 		Title:                title,
-		Language:             "ru",
+		Lang:                 "ru",
 		NormWarn:             0,
 		NormBan:              0,
 		NewbieThresholdDays:  3,

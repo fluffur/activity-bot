@@ -51,6 +51,25 @@ example_simple = { other = "+норма 50" }
 example_named = { other = "+норма 70 варн" }
 example_users = { other = """+норма 10 особенные
 @user1 @user2""" }
-err_invalid_value = { other = "❌ Неверное значение нормы. Допустимый диапазон: от {{.Min}} до {{.Max}}." }
+err_invalid_value = { other = "Неверное значение нормы \"{{.Value}}\". Допустимый диапазон: от {{.Min}} до {{.Max}}." }
+err_invalid_name = { other = "Неверное название нормы \"{{.Name}}\". Допустимы только буквы и пробелы" }
 added = { other = "Норма \"{{.Name}}\" ({{.Value}}) успешно установлена" }
 norm_general = { other = "общая" }
+
+[cmd.list_norms]
+desc = { other = "Список всех норм" }
+title = { other = "Нормы:" }
+empty = { other = "Нормы отсутствуют" }
+item = { other = "• {{.Name}} — {{.Value}}" }
+
+[cmd.show_norm]
+desc = { other = "Просмотр нормы" }
+example = { other = "норма варн" }
+body = { other = "Норма \"{{.Name}}\": {{.Value}}" }
+not_found = { other = "Норма с названием \"{{.Name}}\" ещё не установлена\n\nПопробуйте ввести: {{.Code}}+норма {{.Name}} 100{{.CodeEnd}}" }
+
+[cmd.delete_norm]
+desc = { other = "Удалить норму" }
+example = { other = "-норма варн" }
+deleted = { other = "Норма \"{{.Name}}\" удалена" }
+err_nothing_to_delete = { other = "Норма с именем \"{{.Name}}\" не найдена для удаления" }

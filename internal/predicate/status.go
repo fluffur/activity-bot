@@ -78,8 +78,8 @@ func (p *PermissionChecker) Require(
 				return false
 			}
 
-			text := p.translator.TData(ch.Language, i18n.System.NoPermission, i18n.SystemNoPermissionArgs(
-				p.translator.T(ch.Language, status.TranslationKey())),
+			text := p.translator.TData(ch.Lang, i18n.System.NoPermission, i18n.SystemNoPermissionArgs(
+				p.translator.T(ch.Lang, status.TranslationKey())),
 			)
 
 			if c.Update.CallbackQuery != nil {
