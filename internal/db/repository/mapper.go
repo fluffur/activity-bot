@@ -4,8 +4,17 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
 	db "activity-bot/internal/db/sqlc"
+	"activity-bot/internal/norm"
 	"activity-bot/internal/user"
 )
+
+func mapList[T any, V any](list []T, fn func(T) V) []V {
+	l := make([]V, len(list))
+	for i, v := range list {
+		l[i] = fn(v)
+	}
+	return l
+}
 
 func mapUser(u db.User) user.User {
 	return user.User{
@@ -70,4 +79,12 @@ func mapChatMemberFull(m db.ChatMember, c db.Chat, u db.User) chatmember.ChatMem
 	cm.User = mapUser(u)
 
 	return cm
+}
+
+func mapNorm(n db.ChatNorm) norm.Norm {
+	return norm.Norm{
+		ChatID: n.ChatID,
+		Name:   n.Name,
+		Value:  n.Value,
+	}
 }

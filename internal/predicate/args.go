@@ -67,7 +67,15 @@ type token struct {
 	end   int
 }
 
-func WithArgs(repo chatmember.Repository, rules ...Arg) botapi.Predicate {
+type ArgChecker struct {
+	chatMemberRepository chatmember.Repository
+}
+
+func NewArgChecker(cmr chatmember.Repository) *ArgChecker {
+	return &ArgChecker{cmr}
+}
+
+func (a *ArgChecker) WithArgs(rules ...Arg) botapi.Predicate {
 	return func(c *botapi.Context) bool {
 		argsMessage := Args(c)
 		log.For(c.Bot.Logger()).Info(c.Context, "handling args", log.Any("args", argsMessage))
@@ -89,7 +97,7 @@ func WithArgs(repo chatmember.Repository, rules ...Arg) botapi.Predicate {
 		var usedOffsets []Offset
 		parsed := ParsedArgs{}
 
-		usedOffsets = resolveUserEntities(c.Context, repo, ch.ID, text, entities, &parsed, usedOffsets)
+		usedOffsets = resolveUserEntities(c.Context, a.chatMemberRepository, ch.ID, text, entities, &parsed, usedOffsets)
 
 		for _, rule := range rules {
 			count := rule.Count
@@ -140,7 +148,7 @@ func WithArgs(repo chatmember.Repository, rules ...Arg) botapi.Predicate {
 					for idx, tok := range toks {
 						if rule.Type == ArgTypeUser {
 							if id, err := strconv.ParseInt(tok.text, 10, 64); err == nil {
-								if cm, err := repo.Get(c.Context, ch.ID, id); err == nil {
+								if cm, err := a.chatMemberRepository.Get(c.Context, ch.ID, id); err == nil {
 									parsed.Users = append(parsed.Users, cm)
 									usedOffsets = append(usedOffsets, Offset{tok.start, tok.end})
 									parsedCount++

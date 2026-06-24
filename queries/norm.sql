@@ -1,4 +1,4 @@
--- name: CreateNorm :exec
+-- name: SetNorm :exec
 INSERT INTO chat_norms(chat_id, name, value)
 VALUES ($1, $2, @value)
 ON CONFLICT (chat_id, name) DO UPDATE SET value = @value;

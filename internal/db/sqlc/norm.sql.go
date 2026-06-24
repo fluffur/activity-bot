@@ -9,23 +9,6 @@ import (
 	"context"
 )
 
-const createNorm = `-- name: CreateNorm :exec
-INSERT INTO chat_norms(chat_id, name, value)
-VALUES ($1, $2, $3)
-ON CONFLICT (chat_id, name) DO UPDATE SET value = $3
-`
-
-type CreateNormParams struct {
-	ChatID int64  `db:"chat_id" json:"chatId"`
-	Name   string `db:"name" json:"name"`
-	Value  int32  `db:"value" json:"value"`
-}
-
-func (q *Queries) CreateNorm(ctx context.Context, arg CreateNormParams) error {
-	_, err := q.db.Exec(ctx, createNorm, arg.ChatID, arg.Name, arg.Value)
-	return err
-}
-
 const getNorm = `-- name: GetNorm :one
 SELECT id, chat_id, name, value
 FROM chat_norms
@@ -80,4 +63,21 @@ func (q *Queries) ListNorms(ctx context.Context, chatID int64) ([]ChatNorm, erro
 		return nil, err
 	}
 	return items, nil
+}
+
+const setNorm = `-- name: SetNorm :exec
+INSERT INTO chat_norms(chat_id, name, value)
+VALUES ($1, $2, $3)
+ON CONFLICT (chat_id, name) DO UPDATE SET value = $3
+`
+
+type SetNormParams struct {
+	ChatID int64  `db:"chat_id" json:"chatId"`
+	Name   string `db:"name" json:"name"`
+	Value  int32  `db:"value" json:"value"`
+}
+
+func (q *Queries) SetNorm(ctx context.Context, arg SetNormParams) error {
+	_, err := q.db.Exec(ctx, setNorm, arg.ChatID, arg.Name, arg.Value)
+	return err
 }

@@ -16,7 +16,7 @@ type Node struct {
 	Name     string
 	FullPath string
 	IsLeaf   bool
-	Params   []string // Только для листьев
+	Params   []string
 	Children map[string]*Node
 }
 
@@ -33,7 +33,6 @@ func main() {
 	out.WriteString("package i18n\n\n")
 	out.WriteString("type MessageID string\n\n")
 
-	// 1. Генерируем дерево структур
 	out.WriteString("var (\n")
 	for _, childName := range sortedKeys(root.Children) {
 		child := root.Children[childName]
@@ -41,7 +40,6 @@ func main() {
 	}
 	out.WriteString(")\n\n")
 
-	// 2. Генерируем функции аргументов для всех листьев, у которых они есть
 	writeArgsFunctions(&out, root)
 
 	if err := os.WriteFile("./keys.go", out.Bytes(), 0o644); err != nil {
@@ -49,7 +47,6 @@ func main() {
 	}
 }
 
-// Рекурсивная сборка Go-структур
 func writeStructDefinition(out *bytes.Buffer, node *Node, indent int) {
 	tabs := strings.Repeat("\t", indent)
 	goName := toGoName(node.Name)
@@ -58,10 +55,8 @@ func writeStructDefinition(out *bytes.Buffer, node *Node, indent int) {
 		return
 	}
 
-	// Заголовок структуры
 	fmt.Fprintf(out, "%s%s = struct {\n", tabs, goName)
 
-	// Описание типов полей
 	for _, childName := range sortedKeys(node.Children) {
 		child := node.Children[childName]
 		childGoName := toGoName(child.Name)
@@ -72,7 +67,6 @@ func writeStructDefinition(out *bytes.Buffer, node *Node, indent int) {
 		}
 	}
 
-	// Инициализация полей значениями
 	fmt.Fprintf(out, "%s}{\n", tabs)
 	for _, childName := range sortedKeys(node.Children) {
 		child := node.Children[childName]
@@ -104,7 +98,6 @@ func writeStructFieldInit(out *bytes.Buffer, node *Node, indent int) {
 	tabs := strings.Repeat("\t", indent)
 	fmt.Fprintf(out, "%s%s: struct {\n", tabs, toGoName(node.Name))
 
-	// Сначала объявляем типы анонимной подструктуры для инлайна
 	for _, childName := range sortedKeys(node.Children) {
 		child := node.Children[childName]
 		if child.IsLeaf {
@@ -114,7 +107,6 @@ func writeStructFieldInit(out *bytes.Buffer, node *Node, indent int) {
 		}
 	}
 
-	// Теперь наполняем её значениями
 	fmt.Fprintf(out, "%s}{\n", tabs)
 	for _, childName := range sortedKeys(node.Children) {
 		child := node.Children[childName]
@@ -127,7 +119,6 @@ func writeStructFieldInit(out *bytes.Buffer, node *Node, indent int) {
 	fmt.Fprintf(out, "%s},\n", tabs)
 }
 
-// Рекурсивный поиск аргументов для генерации функций
 func writeArgsFunctions(out *bytes.Buffer, node *Node) {
 	if node.IsLeaf && len(node.Params) > 0 {
 		parts := strings.Split(node.FullPath, ".")
@@ -153,7 +144,6 @@ func writeArgsFunctions(out *bytes.Buffer, node *Node) {
 	}
 }
 
-// Сборка дерева из всех файлов локализации
 func collectTree() (*Node, error) {
 	root := &Node{Name: "root", Children: make(map[string]*Node)}
 	entries, err := os.ReadDir("locales")

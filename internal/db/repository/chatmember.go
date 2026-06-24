@@ -133,12 +133,9 @@ func (r *ChatMemberRepository) List(ctx context.Context, filter chatmember.Filte
 		return nil, err
 	}
 
-	cmsMapped := make([]chatmember.ChatMember, len(cms))
-	for i, cm := range cms {
-		cmsMapped[i] = mapChatMemberFull(cm.ChatMember, db.Chat{}, cm.User)
-	}
-
-	return cmsMapped, nil
+	return mapList(cms, func(r db.ListChatMembersRow) chatmember.ChatMember {
+		return mapChatMemberFull(r.ChatMember, db.Chat{}, r.User)
+	}), nil
 }
 
 func (r *ChatMemberRepository) GetByUsername(ctx context.Context, chatID int64, username string) (chatmember.ChatMember, error) {

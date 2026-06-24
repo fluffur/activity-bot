@@ -81,6 +81,7 @@ func main() {
 	messageRepository := repository.NewMessageRepository(queries)
 	pmSessionRepository := repository.NewPMSessionRepository(queries)
 	permissionRepository := repository.NewPermissionRepository(queries)
+	normRepository := repository.NewNormRepository(queries)
 
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
 	permissions := predicate.NewPermissionsChecker(permissionRepository, translator)
@@ -98,9 +99,11 @@ func main() {
 		botapi.Logging(),
 	)
 
+	argChecker := predicate.NewArgChecker(chatMemberRepository)
+
 	help.NewHandler(bot, translator, permissions, registry, cfg.CommandsURL, cfg.DeveloperUsername).Register(registry)
 	summon.NewHandler(bot, translator, permissions, chatMemberService).Register(registry)
-	stats.NewHandler(bot, translator, chatMemberRepository).Register(registry)
+	stats.NewHandler(bot, translator, argChecker, normRepository).Register(registry)
 	events.NewHandler(bot, translator, messageRepository, chatMemberService).Register()
 
 	log.Info("Starting bot")

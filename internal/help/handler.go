@@ -24,17 +24,19 @@ func NewHandler(
 	return &Handler{b, t, p, r, commandsURL, developerUsername}
 }
 func (h *Handler) Register(registry *command.Registry) {
-	registry.Add(&command.ActionDef{
+	helpDef := &command.ActionDef{
 		Key:         "help",
 		Aliases:     []string{"help", "помощь"},
 		Trigger:     command.TriggerCommand,
 		Category:    command.CategoryHelp,
 		Description: i18n.Cmd.Help.Desc,
 		ShowInHelp:  true,
-	})
+	}
+
+	registry.Add(helpDef)
 
 	h.bot.OnMessage(h.Help,
-		predicate.Command("help", "помощь"),
+		predicate.Command(helpDef.Key, helpDef.Aliases...),
 		predicate.NoArgs(),
 	)
 

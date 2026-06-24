@@ -34,7 +34,6 @@ duration = { other = "период" }
 datetime = { other = "дата" }
 text = { other = "текст" }
 
-# Раздел для строк конкретных команд
 [cmd]
 [cmd.help]
 desc = { other = "Помощь по командам бота" }
@@ -52,3 +51,6 @@ example_simple = { other = "+норма 50" }
 example_named = { other = "+норма 70 варн" }
 example_users = { other = """+норма 10 особенные
 @user1 @user2""" }
+err_invalid_value = { other = "❌ Неверное значение нормы. Допустимый диапазон: от {{.Min}} до {{.Max}}." }
+added = { other = "Норма \"{{.Name}}\" ({{.Value}}) успешно установлена" }
+norm_general = { other = "общая" }

@@ -29,10 +29,13 @@ var (
 	}
 	Cmd = struct {
 		AddNorm struct {
-			Desc          MessageID
-			ExampleNamed  MessageID
-			ExampleSimple MessageID
-			ExampleUsers  MessageID
+			Added           MessageID
+			Desc            MessageID
+			ErrInvalidValue MessageID
+			ExampleNamed    MessageID
+			ExampleSimple   MessageID
+			ExampleUsers    MessageID
+			NormGeneral     MessageID
 		}
 		Help struct {
 			AliasesLabel MessageID
@@ -46,15 +49,21 @@ var (
 		}
 	}{
 		AddNorm: struct {
-			Desc          MessageID
-			ExampleNamed  MessageID
-			ExampleSimple MessageID
-			ExampleUsers  MessageID
+			Added           MessageID
+			Desc            MessageID
+			ErrInvalidValue MessageID
+			ExampleNamed    MessageID
+			ExampleSimple   MessageID
+			ExampleUsers    MessageID
+			NormGeneral     MessageID
 		}{
-			Desc:          "cmd.add_norm.desc",
-			ExampleNamed:  "cmd.add_norm.example_named",
-			ExampleSimple: "cmd.add_norm.example_simple",
-			ExampleUsers:  "cmd.add_norm.example_users",
+			Added:           "cmd.add_norm.added",
+			Desc:            "cmd.add_norm.desc",
+			ErrInvalidValue: "cmd.add_norm.err_invalid_value",
+			ExampleNamed:    "cmd.add_norm.example_named",
+			ExampleSimple:   "cmd.add_norm.example_simple",
+			ExampleUsers:    "cmd.add_norm.example_users",
+			NormGeneral:     "cmd.add_norm.norm_general",
 		},
 		Help: struct {
 			AliasesLabel MessageID
@@ -121,6 +130,26 @@ var (
 		Unknown:        "user.unknown",
 	}
 )
+
+func CmdAddNormAddedArgs(
+	name any,
+	value any,
+) map[string]any {
+	return map[string]any{
+		"Name":  name,
+		"Value": value,
+	}
+}
+
+func CmdAddNormErrInvalidValueArgs(
+	max any,
+	min any,
+) map[string]any {
+	return map[string]any{
+		"Max": max,
+		"Min": min,
+	}
+}
 
 func CmdHelpAliasesLabelArgs(
 	aliases any,
