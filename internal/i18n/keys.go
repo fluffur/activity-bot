@@ -63,6 +63,15 @@ var (
 			Example  MessageID
 			NotFound MessageID
 		}
+		Stats struct {
+			Desc       MessageID
+			Failed     MessageID
+			NormTitle  MessageID
+			Passed     MessageID
+			Title      MessageID
+			UserFailed MessageID
+			UserPassed MessageID
+		}
 		Summon struct {
 			Desc MessageID
 		}
@@ -131,6 +140,23 @@ var (
 			Desc:     "cmd.show_norm.desc",
 			Example:  "cmd.show_norm.example",
 			NotFound: "cmd.show_norm.not_found",
+		},
+		Stats: struct {
+			Desc       MessageID
+			Failed     MessageID
+			NormTitle  MessageID
+			Passed     MessageID
+			Title      MessageID
+			UserFailed MessageID
+			UserPassed MessageID
+		}{
+			Desc:       "cmd.stats.desc",
+			Failed:     "cmd.stats.failed",
+			NormTitle:  "cmd.stats.norm_title",
+			Passed:     "cmd.stats.passed",
+			Title:      "cmd.stats.title",
+			UserFailed: "cmd.stats.user_failed",
+			UserPassed: "cmd.stats.user_passed",
 		},
 		Summon: struct {
 			Desc MessageID
@@ -278,6 +304,48 @@ func CmdShowNormNotFoundArgs(
 		"Code":    code,
 		"CodeEnd": codeEnd,
 		"Name":    name,
+	}
+}
+
+func CmdStatsNormTitleArgs(
+	name any,
+	required any,
+) map[string]any {
+	return map[string]any{
+		"Name":     name,
+		"Required": required,
+	}
+}
+
+func CmdStatsTitleArgs(
+	from any,
+	to any,
+) map[string]any {
+	return map[string]any{
+		"From": from,
+		"To":   to,
+	}
+}
+
+func CmdStatsUserFailedArgs(
+	messages any,
+	required any,
+	user any,
+) map[string]any {
+	return map[string]any{
+		"Messages": messages,
+		"Required": required,
+		"User":     user,
+	}
+}
+
+func CmdStatsUserPassedArgs(
+	messages any,
+	user any,
+) map[string]any {
+	return map[string]any{
+		"Messages": messages,
+		"User":     user,
 	}
 }
 

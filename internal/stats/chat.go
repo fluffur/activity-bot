@@ -76,6 +76,7 @@ func (h *Handler) Chat(c *botapi.Context) error {
 		fromDate = from
 		toDate = to
 	}
+
 	chatMembers, err := h.chatMemberRepository.List(c.Context, chatmember.Filter{
 		ChatID: ch.ID,
 		IsBot: chatmember.OptionalBool{
@@ -154,50 +155,81 @@ func (h *Handler) Chat(c *botapi.Context) error {
 
 	var b strings.Builder
 
-	fmt.Fprintf(
-		&b,
-		"📊 %s\n\n",
-		tghtml.Bold(
-			fmt.Sprintf(
-				"%s — %s",
-				tghtml.DateTime(fromDate, "wdt", fromDate.Format("02.01.2006")),
-				tghtml.DateTime(toDate, "wdt", toDate.Format("02.01.2006")),
+	title := h.translator.TData(
+		ch.Lang,
+		i18n.Cmd.Stats.Title,
+		i18n.CmdStatsTitleArgs(
+			tghtml.DateTime(
+				fromDate,
+				"wdt",
+				fromDate.Format("02.01.2006"),
+			),
+			tghtml.DateTime(
+				toDate,
+				"wdt",
+				toDate.Format("02.01.2006"),
 			),
 		),
 	)
 
+	b.WriteString(title)
+	b.WriteString("\n\n")
+
 	for _, n := range norms {
 		r := normResults[n.ID]
 
-		fmt.Fprintf(
-			&b,
-			"🎯 %s %s\n",
-			tghtml.Bold(norm.LocalisedNormName(
-				h.translator,
+		b.WriteString(
+			h.translator.TData(
 				ch.Lang,
-				r.NormName,
-			)),
-			tghtml.Code(fmt.Sprintf("%d", r.Required)),
+				i18n.Cmd.Stats.NormTitle,
+				i18n.CmdStatsNormTitleArgs(
+					norm.LocalisedNormName(
+						h.translator,
+						ch.Lang,
+						r.NormName,
+					),
+					tghtml.Code(fmt.Sprintf("%d", r.Required)),
+				),
+			),
 		)
+		b.WriteByte('\n')
 
 		if len(r.Failed) > 0 {
 			var failed strings.Builder
 
 			for _, u := range r.Failed {
-				fmt.Fprintf(
-					&failed,
-					"• %s — %d/%d\n",
-					tghtml.UserLink(
-						u.Member.User.Username,
-						u.Member.Display(h.translator.T(ch.Lang, i18n.User.Unknown),
-							ch.EmojisEnabled), u.Member.User.ID,
+				failed.WriteString(
+					h.translator.TData(
+						ch.Lang,
+						i18n.Cmd.Stats.UserFailed,
+						i18n.CmdStatsUserFailedArgs(
+							tghtml.UserLink(
+								u.Member.User.Username,
+								u.Member.Display(
+									h.translator.T(
+										ch.Lang,
+										i18n.User.Unknown,
+									),
+									ch.EmojisEnabled,
+								),
+								u.Member.User.ID,
+							),
+							u.Messages,
+							r.Required,
+						),
 					),
-					u.Messages,
-					r.Required,
 				)
+				failed.WriteByte('\n')
 			}
 
-			b.WriteString("❌ Не выполнили\n")
+			b.WriteString(
+				h.translator.T(
+					ch.Lang,
+					i18n.Cmd.Stats.Failed,
+				),
+			)
+			b.WriteByte('\n')
+
 			b.WriteString(
 				tghtml.ExpandableBlockquote(
 					failed.String(),
@@ -210,19 +242,37 @@ func (h *Handler) Chat(c *botapi.Context) error {
 			var passed strings.Builder
 
 			for _, u := range r.Passed {
-				fmt.Fprintf(
-					&passed,
-					"• %s — %d\n",
-					tghtml.UserLink(
-						u.Member.User.Username,
-						u.Member.Display(h.translator.T(ch.Lang, i18n.User.Unknown),
-							ch.EmojisEnabled), u.Member.User.ID,
+				passed.WriteString(
+					h.translator.TData(
+						ch.Lang,
+						i18n.Cmd.Stats.UserPassed,
+						i18n.CmdStatsUserPassedArgs(
+							tghtml.UserLink(
+								u.Member.User.Username,
+								u.Member.Display(
+									h.translator.T(
+										ch.Lang,
+										i18n.User.Unknown,
+									),
+									ch.EmojisEnabled,
+								),
+								u.Member.User.ID,
+							),
+							u.Messages,
+						),
 					),
-					u.Messages,
 				)
+				passed.WriteByte('\n')
 			}
 
-			b.WriteString("✅ Выполнили\n")
+			b.WriteString(
+				h.translator.T(
+					ch.Lang,
+					i18n.Cmd.Stats.Passed,
+				),
+			)
+			b.WriteByte('\n')
+
 			b.WriteString(
 				tghtml.ExpandableBlockquote(
 					passed.String(),
@@ -231,7 +281,7 @@ func (h *Handler) Chat(c *botapi.Context) error {
 			b.WriteString("\n")
 		}
 
-		b.WriteString("\n")
+		b.WriteByte('\n')
 	}
 
 	if _, err := c.Reply(b.String(),

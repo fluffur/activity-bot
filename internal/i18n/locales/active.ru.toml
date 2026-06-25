@@ -73,3 +73,12 @@ desc = { other = "Удалить норму" }
 example = { other = "-норма варн" }
 deleted = { other = "Норма \"{{.Name}}\" удалена" }
 err_nothing_to_delete = { other = "Норма с именем \"{{.Name}}\" не найдена для удаления" }
+
+[cmd.stats]
+desc = { other = "Статистика по нормам" }
+title = { other = "📊 {{.From}} — {{.To}}" }
+norm_title = { other = "🎯 {{.Name}} {{.Required}}" }
+passed = { other = "✅ Выполнили" }
+failed = { other = "❌ Не выполнили" }
+user_passed = { other = "• {{.User}} — {{.Messages}}" }
+user_failed = { other = "• {{.User}} — {{.Messages}}/{{.Required}}" }
