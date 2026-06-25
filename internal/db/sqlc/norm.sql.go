@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const deleteNorm = `-- name: DeleteNorm :exec
@@ -71,6 +73,47 @@ func (q *Queries) ListNorms(ctx context.Context, chatID int64) ([]ChatNorm, erro
 			&i.ChatID,
 			&i.Name,
 			&i.Value,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listNormsWithMembers = `-- name: ListNormsWithMembers :many
+SELECT n.id, n.chat_id, n.name, n.value,
+       cmn.user_id
+FROM chat_norms n
+         LEFT JOIN chat_member_norms cmn
+                   ON cmn.norm_id = n.id
+WHERE n.chat_id = $1
+ORDER BY n.id
+`
+
+type ListNormsWithMembersRow struct {
+	ChatNorm ChatNorm    `db:"chat_norm" json:"chatNorm"`
+	UserID   pgtype.Int8 `db:"user_id" json:"userId"`
+}
+
+func (q *Queries) ListNormsWithMembers(ctx context.Context, chatID int64) ([]ListNormsWithMembersRow, error) {
+	rows, err := q.db.Query(ctx, listNormsWithMembers, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListNormsWithMembersRow{}
+	for rows.Next() {
+		var i ListNormsWithMembersRow
+		if err := rows.Scan(
+			&i.ChatNorm.ID,
+			&i.ChatNorm.ChatID,
+			&i.ChatNorm.Name,
+			&i.ChatNorm.Value,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}

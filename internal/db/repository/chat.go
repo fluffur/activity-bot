@@ -30,7 +30,7 @@ func (r *ChatRepository) Create(ctx context.Context, c chat.Chat) error {
 		Title:               c.Title,
 		TagsEnabled:         c.TagsEnabled,
 		WeekStartTime: pgtype.Time{
-			Microseconds: c.WeekStartTime,
+			Microseconds: c.WeekStartTimeMicros,
 			Valid:        true,
 		},
 		RemovedAt:     timestamptz(c.RemovedAt),

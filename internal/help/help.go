@@ -36,14 +36,14 @@ func (h *Handler) Help(c *botapi.Context) error {
 			desc := tghtml.Escape(h.translator.T(lang, c.Description))
 			sb.WriteString(fmt.Sprintf("/%s — %s\n", c.Key, desc))
 
-			hasDetails := len(c.Args) > 0 || len(c.Aliases) > 0 || len(c.Examples) > 0
+			hasDetails := len(c.Rules) > 0 || len(c.Aliases) > 0 || len(c.Examples) > 0
 			if hasDetails {
 				sb.WriteString("<blockquote expandable>")
 
 				var innerParts []string
 
-				if len(c.Args) > 0 {
-					syntax := buildSyntaxString(c.Key, c.Args, h.translator, lang)
+				if len(c.Rules) > 0 {
+					syntax := buildSyntaxString(c.Key, c.Rules, h.translator, lang)
 					label := h.translator.T(lang, i18n.Cmd.Help.Syntax)
 					innerParts = append(innerParts, tghtml.Italic(label)+" "+tghtml.Code(syntax))
 				}
@@ -86,16 +86,16 @@ func (h *Handler) Help(c *botapi.Context) error {
 	return err
 }
 
-func buildSyntaxString(commandName string, args []predicate.Arg, translator *i18n.Translator, lang string) string {
+func buildSyntaxString(commandName string, args []predicate.Rule, translator *i18n.Translator, lang string) string {
 	var parts []string
 	parts = append(parts, "/"+commandName)
 
-	var argLabels = map[predicate.ArgType]i18n.MessageID{
-		predicate.ArgTypeUser:     i18n.ArgType.User,
-		predicate.ArgTypeNumber:   i18n.ArgType.Number,
-		predicate.ArgTypeDuration: i18n.ArgType.Duration,
-		predicate.ArgTypeDateTime: i18n.ArgType.Datetime,
-		predicate.ArgTypeText:     i18n.ArgType.Text,
+	var argLabels = map[predicate.RuleType]i18n.MessageID{
+		predicate.RuleUser:     i18n.ArgType.User,
+		predicate.RuleNumber:   i18n.ArgType.Number,
+		predicate.RuleDuration: i18n.ArgType.Duration,
+		predicate.RuleDateTime: i18n.ArgType.Datetime,
+		predicate.RuleText:     i18n.ArgType.Text,
 	}
 
 	for _, arg := range args {
@@ -106,7 +106,7 @@ func buildSyntaxString(commandName string, args []predicate.Arg, translator *i18
 			name = string(arg.Type)
 		}
 
-		if arg.Count == predicate.ArgCountVariadic {
+		if arg.Count == predicate.RuleVariadic {
 			name += "..."
 		}
 

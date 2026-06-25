@@ -86,15 +86,12 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	us := cm.User
 	ch := cm.Chat
 
-	// Используем i18n.User.Unknown
 	mention := tghtml.UserMention(us.ID, cm.Display(h.translator.T(ch.Lang, i18n.User.Unknown), ch.EmojisEnabled))
 
-	// Инициализируем дефолтные ключи возвращения в чат из структуры i18n.User
 	keyFemale, keyMale := i18n.User.ReturnedFemale, i18n.User.ReturnedMale
 	argsFemale, argsMale := i18n.UserReturnedFemaleArgs(mention), i18n.UserReturnedMaleArgs(mention)
 
 	if res.IsNew {
-		// Подменяем на ключи первого входа в чат
 		keyFemale, keyMale = i18n.User.JoinedFemale, i18n.User.JoinedMale
 		argsFemale, argsMale = i18n.UserJoinedFemaleArgs(mention), i18n.UserJoinedMaleArgs(mention)
 	}
@@ -115,7 +112,6 @@ func (h *Handler) processLeft(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	us := cm.User
 	ch := cm.Chat
 
-	// Используем i18n.User.Unknown
 	mention := tghtml.UserMention(us.ID, cm.Display(h.translator.T(ch.Lang, i18n.User.Unknown), ch.EmojisEnabled))
 
 	text := h.translator.TIf(

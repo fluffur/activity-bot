@@ -15,6 +15,15 @@ SELECT *
 FROM chat_norms
 WHERE chat_id = $1;
 
+-- name: ListNormsWithMembers :many
+SELECT sqlc.embed(n),
+       cmn.user_id
+FROM chat_norms n
+         LEFT JOIN chat_member_norms cmn
+                   ON cmn.norm_id = n.id
+WHERE n.chat_id = $1
+ORDER BY n.id;
+
 -- name: DeleteNorm :exec
 DELETE
 FROM chat_norms

@@ -43,7 +43,7 @@ type Chat struct {
 	MentionsPerMessage   int32
 	MentionTypes         MentionTypes
 	TagsEnabled          bool
-	WeekStartTime        int64
+	WeekStartTimeMicros  int64
 	MaxWarns             int32
 	EmojisEnabled        bool
 	RemovedAt            time.Time
@@ -68,7 +68,7 @@ func New(id int64, title string) Chat {
 		MentionsPerMessage:   5,
 		MentionTypes:         0,
 		TagsEnabled:          true,
-		WeekStartTime:        0,
+		WeekStartTimeMicros:  0,
 		MaxWarns:             3,
 		EmojisEnabled:        true,
 		RemovedAt:            time.Time{},

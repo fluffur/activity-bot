@@ -10,6 +10,7 @@ import (
 	"activity-bot/internal/help"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/middleware"
+	"activity-bot/internal/norm"
 	"activity-bot/internal/predicate"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/summon"
@@ -82,6 +83,7 @@ func main() {
 	pmSessionRepository := repository.NewPMSessionRepository(queries)
 	permissionRepository := repository.NewPermissionRepository(queries)
 	normRepository := repository.NewNormRepository(queries)
+	statsRepository := repository.NewStatsRepository(queries)
 
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
 	permissions := predicate.NewPermissionsChecker(permissionRepository, translator)
@@ -99,11 +101,12 @@ func main() {
 		botapi.Logging(),
 	)
 
-	argChecker := predicate.NewArgChecker(chatMemberRepository)
+	rules := predicate.NewRuleChecker(chatMemberRepository)
 
 	help.NewHandler(bot, translator, permissions, registry, cfg.CommandsURL, cfg.DeveloperUsername).Register(registry)
 	summon.NewHandler(bot, translator, permissions, chatMemberService).Register(registry)
-	stats.NewHandler(bot, translator, permissions, argChecker, normRepository).Register(registry)
+	norm.NewHandler(bot, translator, permissions, rules, normRepository).Register(registry)
+	stats.NewHandler(bot, translator, permissions, rules, chatMemberRepository, normRepository, statsRepository).Register(registry)
 	events.NewHandler(bot, translator, messageRepository, chatMemberService).Register()
 
 	log.Info("Starting bot")

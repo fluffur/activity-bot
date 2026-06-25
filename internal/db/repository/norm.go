@@ -47,3 +47,40 @@ func (r *NormRepository) Delete(ctx context.Context, chatID int64, name string) 
 		Name:   name,
 	})
 }
+
+func (r *NormRepository) ListWithMembers(
+	ctx context.Context,
+	chatID int64,
+) ([]norm.Norm, error) {
+	rows, err := r.queries.ListNormsWithMembers(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	normsByID := make(map[int64]*norm.Norm)
+
+	for _, row := range rows {
+		n, ok := normsByID[row.ChatNorm.ID]
+		if !ok {
+			nn := mapNorm(row.ChatNorm)
+
+			normsByID[row.ChatNorm.ID] = &nn
+			n = &nn
+		}
+
+		if row.UserID.Valid {
+			n.UserIDs = append(
+				n.UserIDs,
+				row.UserID.Int64,
+			)
+		}
+	}
+
+	result := make([]norm.Norm, 0, len(normsByID))
+
+	for _, n := range normsByID {
+		result = append(result, *n)
+	}
+
+	return result, nil
+}

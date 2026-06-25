@@ -1,4 +1,4 @@
-package stats
+package norm
 
 import (
 	"activity-bot/internal/i18n"
@@ -11,8 +11,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/jackc/pgx/v5"
-
 	"github.com/gotd/botapi"
 )
 
@@ -23,11 +21,10 @@ func (h *Handler) AddNorm(c *botapi.Context) error {
 	if err != nil {
 		return fmt.Errorf("add norm: %w", err)
 	}
-	_ = ch
 
 	args, ok := predicate.GetParsedArgs(c)
 	if !ok {
-		return fmt.Errorf("no args")
+		return fmt.Errorf("add norm: no args")
 	}
 
 	if len(args.Numbers) == 0 {
@@ -46,11 +43,15 @@ func (h *Handler) AddNorm(c *botapi.Context) error {
 	}
 
 	name := GeneralNormName
-	if len(args.Texts) > 0 && strings.TrimSpace(args.Texts[0]) != "" && strings.TrimSpace(args.Texts[0]) != h.DisplayNormName(ch.Lang, name) {
-		name = args.Texts[0]
+	if len(args.Texts) > 0 {
+		text := strings.TrimSpace(args.Texts[0])
+
+		if text != "" && text != LocalisedNormName(h.translator, ch.Lang, name) {
+			name = text
+		}
 	}
 
-	if !IsValidNormName(name) {
+	if !isValidNormName(name) {
 		_, err := c.Reply(h.translator.TData(ch.Lang, i18n.Cmd.AddNorm.ErrInvalidName, i18n.CmdAddNormErrInvalidNameArgs(name)))
 		return err
 	}
@@ -59,41 +60,10 @@ func (h *Handler) AddNorm(c *botapi.Context) error {
 		return fmt.Errorf("add norm: %w", err)
 	}
 
-	displayName := h.DisplayNormName(ch.Lang, name)
+	displayName := LocalisedNormName(h.translator, ch.Lang, name)
 	_, err = c.Reply(h.translator.TData(ch.Lang, i18n.Cmd.AddNorm.Added, i18n.CmdAddNormAddedArgs(displayName, normValue)))
 
 	return err
-}
-
-func IsValidNormName(name string) bool {
-	name = strings.TrimSpace(name)
-
-	if name == "" {
-		return false
-	}
-
-	if utf8.RuneCountInString(name) > 64 {
-		return false
-	}
-
-	for _, r := range name {
-		if unicode.IsLetter(r) || unicode.IsSpace(r) {
-			continue
-		}
-
-		return false
-	}
-
-	return true
-}
-
-func (h *Handler) DisplayNormName(lang string, name string) string {
-	switch name {
-	case GeneralNormName:
-		return h.translator.T(lang, i18n.Cmd.AddNorm.NormGeneral)
-	default:
-		return name
-	}
 }
 
 func (h *Handler) ListNorms(c *botapi.Context) error {
@@ -125,7 +95,7 @@ func (h *Handler) ListNorms(c *botapi.Context) error {
 				ch.Lang,
 				i18n.Cmd.ListNorms.Item,
 				i18n.CmdListNormsItemArgs(
-					h.DisplayNormName(ch.Lang, n.Name),
+					LocalisedNormName(h.translator, ch.Lang, n.Name),
 					n.Value,
 				),
 			),
@@ -146,7 +116,7 @@ func (h *Handler) ShowNorm(c *botapi.Context) error {
 
 	args, ok := predicate.GetParsedArgs(c)
 	if !ok {
-		return fmt.Errorf("no args")
+		return fmt.Errorf("show norm: no args")
 	}
 
 	name := GeneralNormName
@@ -156,18 +126,18 @@ func (h *Handler) ShowNorm(c *botapi.Context) error {
 	}
 	norm, err := h.normRepository.Get(c.Context, ch.ID, name)
 	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
+		if !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("show norm: %w", err)
 		}
 
-		if !IsValidNormName(name) {
+		if !isValidNormName(name) {
 			return nil
 		}
 
 		_, err := c.Reply(h.translator.TData(ch.Lang, i18n.Cmd.ShowNorm.NotFound,
 			i18n.CmdShowNormNotFoundArgs(
 				"<code>", "</code>",
-				h.DisplayNormName(ch.Lang, name)),
+				LocalisedNormName(h.translator, ch.Lang, name)),
 		),
 			botapi.WithParseMode(botapi.ParseModeHTML),
 		)
@@ -180,7 +150,7 @@ func (h *Handler) ShowNorm(c *botapi.Context) error {
 			ch.Lang,
 			i18n.Cmd.ShowNorm.Body,
 			i18n.CmdShowNormBodyArgs(
-				h.DisplayNormName(ch.Lang, norm.Name),
+				LocalisedNormName(h.translator, ch.Lang, norm.Name),
 				norm.Value,
 			),
 		),
@@ -197,7 +167,10 @@ func (h *Handler) DeleteNorm(c *botapi.Context) error {
 
 	args, ok := predicate.GetParsedArgs(c)
 	if !ok {
-		return fmt.Errorf("no args")
+		return fmt.Errorf("delete norm: no args")
+	}
+	if len(args.Texts) == 0 {
+		return fmt.Errorf("delete norm: no name")
 	}
 
 	name := strings.TrimSpace(args.Texts[0])
@@ -212,7 +185,7 @@ func (h *Handler) DeleteNorm(c *botapi.Context) error {
 		}
 
 		_, err := c.Reply(h.translator.TData(ch.Lang, i18n.Cmd.DeleteNorm.ErrNothingToDelete,
-			i18n.CmdDeleteNormErrNothingToDeleteArgs(h.DisplayNormName(ch.Lang, name))))
+			i18n.CmdDeleteNormErrNothingToDeleteArgs(LocalisedNormName(h.translator, ch.Lang, name))))
 		return err
 	}
 
@@ -225,10 +198,41 @@ func (h *Handler) DeleteNorm(c *botapi.Context) error {
 			ch.Lang,
 			i18n.Cmd.DeleteNorm.Deleted,
 			i18n.CmdDeleteNormDeletedArgs(
-				h.DisplayNormName(ch.Lang, name),
+				LocalisedNormName(h.translator, ch.Lang, name),
 			),
 		),
 	)
 
 	return err
+}
+
+func isValidNormName(name string) bool {
+	name = strings.TrimSpace(name)
+
+	if name == "" {
+		return false
+	}
+
+	if utf8.RuneCountInString(name) > 64 {
+		return false
+	}
+
+	for _, r := range name {
+		if unicode.IsLetter(r) || unicode.IsSpace(r) {
+			continue
+		}
+
+		return false
+	}
+
+	return true
+}
+
+func LocalisedNormName(t *i18n.Translator, lang string, name string) string {
+	switch name {
+	case GeneralNormName:
+		return t.T(lang, i18n.Cmd.AddNorm.NormGeneral)
+	default:
+		return name
+	}
 }

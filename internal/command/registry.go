@@ -56,7 +56,7 @@ type ActionDef struct {
 	Scope       Scope
 
 	ShowInHelp bool
-	Args       []predicate.Arg
+	Rules      []predicate.Rule
 }
 
 type Registry struct {

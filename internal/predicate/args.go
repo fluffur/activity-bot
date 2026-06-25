@@ -20,20 +20,20 @@ func NoArgs() botapi.Predicate {
 	}
 }
 
-type ArgType string
+type RuleType string
 
 const (
-	ArgTypeUser     ArgType = "user"
-	ArgTypeNumber   ArgType = "number"
-	ArgTypeDuration ArgType = "duration"
-	ArgTypeDateTime ArgType = "datetime"
-	ArgTypeText     ArgType = "text"
+	RuleUser     RuleType = "user"
+	RuleNumber   RuleType = "number"
+	RuleDuration RuleType = "duration"
+	RuleDateTime RuleType = "datetime"
+	RuleText     RuleType = "text"
 )
 
-const ArgCountVariadic = -1
+const RuleVariadic = -1
 
-type Arg struct {
-	Type      ArgType
+type Rule struct {
+	Type      RuleType
 	Optional  bool
 	Count     int
 	OnNextRow bool
@@ -67,15 +67,15 @@ type token struct {
 	end   int
 }
 
-type ArgChecker struct {
+type RuleChecker struct {
 	chatMemberRepository chatmember.Repository
 }
 
-func NewArgChecker(cmr chatmember.Repository) *ArgChecker {
-	return &ArgChecker{cmr}
+func NewRuleChecker(cmr chatmember.Repository) *RuleChecker {
+	return &RuleChecker{cmr}
 }
 
-func (a *ArgChecker) WithArgs(rules ...Arg) botapi.Predicate {
+func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 	return func(c *botapi.Context) bool {
 		argsMessage := Args(c)
 
@@ -97,17 +97,17 @@ func (a *ArgChecker) WithArgs(rules ...Arg) botapi.Predicate {
 		var usedOffsets []Offset
 		parsed := ParsedArgs{}
 
-		usedOffsets = resolveUserEntities(c.Context, a.chatMemberRepository, ch.ID, text, entities, &parsed, usedOffsets)
+		usedOffsets = resolveUserEntities(c.Context, r.chatMemberRepository, ch.ID, text, entities, &parsed, usedOffsets)
 
 		for _, rule := range rules {
 			count := rule.Count
-			if count == ArgCountVariadic {
+			if count == RuleVariadic {
 				count = 50
 			}
 
 			parsedCount := 0
 
-			if rule.Type == ArgTypeText {
+			if rule.Type == RuleText {
 				toks := getFreeTokens(text, usedOffsets)
 				log.For(c.Bot.Logger()).Debug(c.Context, "found free tokens", log.Int("count", count))
 				if len(toks) == 0 {
@@ -147,9 +147,9 @@ func (a *ArgChecker) WithArgs(rules ...Arg) botapi.Predicate {
 
 					matched := false
 					for idx, tok := range toks {
-						if rule.Type == ArgTypeUser {
+						if rule.Type == RuleUser {
 							if id, err := strconv.ParseInt(tok.text, 10, 64); err == nil {
-								if cm, err := a.chatMemberRepository.Get(c.Context, ch.ID, id); err == nil {
+								if cm, err := r.chatMemberRepository.Get(c.Context, ch.ID, id); err == nil {
 									parsed.Users = append(parsed.Users, cm)
 									usedOffsets = append(usedOffsets, Offset{tok.start, tok.end})
 									parsedCount++
@@ -159,7 +159,7 @@ func (a *ArgChecker) WithArgs(rules ...Arg) botapi.Predicate {
 							}
 						}
 
-						if rule.Type == ArgTypeDuration {
+						if rule.Type == RuleDuration {
 							if d, consumed, ok := tryParseAdvancedDuration(toks[idx:]); ok {
 								parsed.Durations = append(parsed.Durations, d)
 								for k := 0; k < consumed; k++ {
@@ -171,7 +171,7 @@ func (a *ArgChecker) WithArgs(rules ...Arg) botapi.Predicate {
 							}
 						}
 
-						if rule.Type == ArgTypeDateTime {
+						if rule.Type == RuleDateTime {
 							if t, consumed, ok := tryParseAdvancedDateTime(toks[idx:]); ok {
 								parsed.DateTimes = append(parsed.DateTimes, t)
 								for k := 0; k < consumed; k++ {
@@ -183,7 +183,7 @@ func (a *ArgChecker) WithArgs(rules ...Arg) botapi.Predicate {
 							}
 						}
 
-						if rule.Type == ArgTypeNumber {
+						if rule.Type == RuleNumber {
 							if num, err := strconv.ParseInt(tok.text, 10, 64); err == nil {
 								parsed.Numbers = append(parsed.Numbers, num)
 								usedOffsets = append(usedOffsets, Offset{tok.start, tok.end})
@@ -211,7 +211,7 @@ func (a *ArgChecker) WithArgs(rules ...Arg) botapi.Predicate {
 	}
 }
 
-func allRulesAreOptional(rules ...Arg) bool {
+func allRulesAreOptional(rules ...Rule) bool {
 	for _, rule := range rules {
 		if !rule.Optional {
 			return false

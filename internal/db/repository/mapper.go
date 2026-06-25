@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/chatmember"
 	db "activity-bot/internal/db/sqlc"
 	"activity-bot/internal/norm"
+	"activity-bot/internal/stats"
 	"activity-bot/internal/user"
 )
 
@@ -48,7 +49,7 @@ func mapChat(c db.Chat) chat.Chat {
 		MentionsPerMessage:   c.MentionsPerMessage,
 		MentionTypes:         chat.MentionTypes(c.MentionTypes),
 		TagsEnabled:          c.TagsEnabled,
-		WeekStartTime:        c.WeekStartTime.Microseconds,
+		WeekStartTimeMicros:  c.WeekStartTime.Microseconds,
 		EmojisEnabled:        c.EmojisEnabled,
 	}
 }
@@ -83,8 +84,16 @@ func mapChatMemberFull(m db.ChatMember, c db.Chat, u db.User) chatmember.ChatMem
 
 func mapNorm(n db.ChatNorm) norm.Norm {
 	return norm.Norm{
+		ID:     n.ID,
 		ChatID: n.ChatID,
 		Name:   n.Name,
 		Value:  n.Value,
+	}
+}
+
+func mapChatStats(msgCount int64, cm db.ChatMember, u db.User) stats.ChatStats {
+	return stats.ChatStats{
+		ChatMember:    mapChatMemberFull(cm, db.Chat{}, u),
+		MessagesCount: msgCount,
 	}
 }
