@@ -328,11 +328,13 @@ func CmdStatsTitleArgs(
 }
 
 func CmdStatsUserFailedArgs(
+	list any,
 	messages any,
 	required any,
 	user any,
 ) map[string]any {
 	return map[string]any{
+		"List":     list,
 		"Messages": messages,
 		"Required": required,
 		"User":     user,
@@ -340,10 +342,12 @@ func CmdStatsUserFailedArgs(
 }
 
 func CmdStatsUserPassedArgs(
+	list any,
 	messages any,
 	user any,
 ) map[string]any {
 	return map[string]any{
+		"List":     list,
 		"Messages": messages,
 		"User":     user,
 	}

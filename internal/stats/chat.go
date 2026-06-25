@@ -55,10 +55,11 @@ func (h *Handler) Chat(c *botapi.Context) error {
 		toDate   time.Time
 	)
 
+	now := time.Now()
 	switch {
 	case len(args.Durations) == 1:
-		fromDate = time.Now().Add(-args.Durations[0])
-		toDate = time.Now()
+		fromDate = now.Add(-args.Durations[0])
+		toDate = now
 
 	case len(args.DateTimes) == 2:
 		fromDate = args.DateTimes[0]
@@ -129,6 +130,10 @@ func (h *Handler) Chat(c *botapi.Context) error {
 	}
 
 	for _, member := range chatMembers {
+		if member.IsResting(now) || member.IsNewbie(now, ch.NewbieThresholdDays) {
+			continue
+		}
+
 		userID := member.User.ID
 		messages := statsByUserID[userID]
 
@@ -197,25 +202,16 @@ func (h *Handler) Chat(c *botapi.Context) error {
 		if len(r.Failed) > 0 {
 			var failed strings.Builder
 
-			for _, u := range r.Failed {
+			for i, u := range r.Failed {
 				failed.WriteString(
 					h.translator.TData(
 						ch.Lang,
 						i18n.Cmd.Stats.UserFailed,
 						i18n.CmdStatsUserFailedArgs(
-							tghtml.UserLink(
-								u.Member.User.Username,
-								u.Member.Display(
-									h.translator.T(
-										ch.Lang,
-										i18n.User.Unknown,
-									),
-									ch.EmojisEnabled,
-								),
-								u.Member.User.ID,
-							),
+							i+1,
 							u.Messages,
 							r.Required,
+							tghtml.MemberLink(h.translator, ch, u.Member),
 						),
 					),
 				)
@@ -241,24 +237,15 @@ func (h *Handler) Chat(c *botapi.Context) error {
 		if len(r.Passed) > 0 {
 			var passed strings.Builder
 
-			for _, u := range r.Passed {
+			for i, u := range r.Passed {
 				passed.WriteString(
 					h.translator.TData(
 						ch.Lang,
 						i18n.Cmd.Stats.UserPassed,
 						i18n.CmdStatsUserPassedArgs(
-							tghtml.UserLink(
-								u.Member.User.Username,
-								u.Member.Display(
-									h.translator.T(
-										ch.Lang,
-										i18n.User.Unknown,
-									),
-									ch.EmojisEnabled,
-								),
-								u.Member.User.ID,
-							),
+							i+1,
 							u.Messages,
+							tghtml.MemberLink(h.translator, ch, u.Member),
 						),
 					),
 				)

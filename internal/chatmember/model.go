@@ -94,3 +94,13 @@ func (s Status) TranslationKey() i18n.MessageID {
 		return i18n.Status.Member
 	}
 }
+
+func (c ChatMember) IsResting(now time.Time) bool {
+	return c.RestUntil.After(now)
+}
+
+func (c ChatMember) IsNewbie(now time.Time, thresholdDays int32) bool {
+	return c.JoinedAt.After(
+		now.AddDate(0, 0, -int(thresholdDays)),
+	)
+}

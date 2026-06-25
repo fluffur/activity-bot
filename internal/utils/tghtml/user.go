@@ -1,6 +1,9 @@
 package tghtml
 
 import (
+	"activity-bot/internal/chat"
+	"activity-bot/internal/chatmember"
+	"activity-bot/internal/i18n"
 	"fmt"
 	"html"
 	"strings"
@@ -13,6 +16,24 @@ func Escape(text string) string {
 
 func UserMention(userID int64, text string) string {
 	return Link(fmt.Sprintf("tg://user?id=%d", userID), Escape(text))
+}
+
+func MemberLink(
+	translator *i18n.Translator,
+	ch chat.Chat,
+	member chatmember.ChatMember,
+) string {
+	return UserLink(
+		member.User.Username,
+		member.Display(
+			translator.T(
+				ch.Lang,
+				i18n.User.Unknown,
+			),
+			ch.EmojisEnabled,
+		),
+		member.User.ID,
+	)
 }
 
 func UserLink(username, text string, userID int64) string {
