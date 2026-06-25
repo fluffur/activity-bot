@@ -82,3 +82,4 @@ passed = { other = "✅ Выполнили" }
 failed = { other = "❌ Не выполнили" }
 user_passed = { other = "{{.List}}. {{.User}} — {{.Messages}}" }
 user_failed = { other = "{{.List}}. {{.User}} — {{.Messages}}/{{.Required}}" }
+total_messages = { other = "📨 Всего сообщений: {{.Total}}" }

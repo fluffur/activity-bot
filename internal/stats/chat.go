@@ -8,6 +8,7 @@ import (
 	"activity-bot/internal/predicate"
 	"activity-bot/internal/utils/tghtml"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -89,6 +90,9 @@ func (h *Handler) Chat(c *botapi.Context) error {
 			Valid: true,
 		},
 	})
+	if err != nil {
+		return fmt.Errorf("stats members list: %w", err)
+	}
 
 	norms, err := h.normRepository.ListWithMembers(c.Context, ch.ID)
 	if err != nil {
@@ -96,18 +100,96 @@ func (h *Handler) Chat(c *botapi.Context) error {
 	}
 
 	chatStats, err := h.statsRepository.ChatStats(c.Context, ch.ID, fromDate, toDate)
-
 	if err != nil {
 		return fmt.Errorf("chat stats: %w", err)
 	}
 
 	statsByUserID := make(map[int64]int64)
+	var totalMessages int64
 
 	for _, stat := range chatStats {
 		statsByUserID[stat.ChatMember.User.ID] = stat.MessagesCount
+		totalMessages += stat.MessagesCount
 	}
 	userNorms := make(map[int64][]norm.Norm)
 	var commonNorms []norm.Norm
+
+	title := h.translator.TData(
+		ch.Lang,
+		i18n.Cmd.Stats.Title,
+		i18n.CmdStatsTitleArgs(
+			tghtml.DateTime(
+				fromDate,
+				"wdt",
+				fromDate.Format("02.01.2006"),
+			),
+			tghtml.DateTime(
+				toDate,
+				"wdt",
+				toDate.Format("02.01.2006"),
+			),
+		),
+	)
+
+	if len(norms) == 0 {
+		var results []UserResult
+
+		for _, member := range chatMembers {
+			if member.IsResting(now) || member.IsNewbie(now, ch.NewbieThresholdDays) {
+				continue
+			}
+
+			results = append(results, UserResult{
+				Member:   member,
+				Messages: statsByUserID[member.User.ID],
+			})
+		}
+
+		slices.SortFunc(results, func(a, b UserResult) int {
+			switch {
+			case a.Messages > b.Messages:
+				return -1
+			case a.Messages < b.Messages:
+				return 1
+			default:
+				return 0
+			}
+		})
+
+		var b strings.Builder
+
+		b.WriteString(title)
+		b.WriteString("\n\n")
+		b.WriteString("<blockquote expandable>")
+		for i, u := range results {
+			b.WriteString(
+				fmt.Sprintf(
+					"%d. %s — %d",
+					i+1,
+					tghtml.MemberLink(h.translator, ch, u.Member),
+					u.Messages,
+				),
+			)
+			if i != len(results)-1 {
+				b.WriteString("\n")
+			}
+		}
+
+		b.WriteString("</blockquote>\n")
+
+		b.WriteString("\n")
+		b.WriteString(
+			h.translator.TData(ch.Lang, i18n.Cmd.Stats.TotalMessages, i18n.CmdStatsTotalMessagesArgs(totalMessages)),
+		)
+
+		_, err := c.Reply(
+			b.String(),
+			botapi.WithParseMode(botapi.ParseModeHTML),
+			botapi.DisableWebPagePreview(),
+		)
+
+		return err
+	}
 
 	for _, n := range norms {
 		if len(n.UserIDs) == 0 {
@@ -160,23 +242,6 @@ func (h *Handler) Chat(c *botapi.Context) error {
 
 	var b strings.Builder
 
-	title := h.translator.TData(
-		ch.Lang,
-		i18n.Cmd.Stats.Title,
-		i18n.CmdStatsTitleArgs(
-			tghtml.DateTime(
-				fromDate,
-				"wdt",
-				fromDate.Format("02.01.2006"),
-			),
-			tghtml.DateTime(
-				toDate,
-				"wdt",
-				toDate.Format("02.01.2006"),
-			),
-		),
-	)
-
 	b.WriteString(title)
 	b.WriteString("\n\n")
 
@@ -197,7 +262,7 @@ func (h *Handler) Chat(c *botapi.Context) error {
 				),
 			),
 		)
-		b.WriteByte('\n')
+		b.WriteString("\n")
 
 		if len(r.Failed) > 0 {
 			var failed strings.Builder
@@ -215,7 +280,7 @@ func (h *Handler) Chat(c *botapi.Context) error {
 						),
 					),
 				)
-				failed.WriteByte('\n')
+				failed.WriteString("\n")
 			}
 
 			b.WriteString(
@@ -224,7 +289,7 @@ func (h *Handler) Chat(c *botapi.Context) error {
 					i18n.Cmd.Stats.Failed,
 				),
 			)
-			b.WriteByte('\n')
+			b.WriteString("\n")
 
 			b.WriteString(
 				tghtml.ExpandableBlockquote(
@@ -249,7 +314,7 @@ func (h *Handler) Chat(c *botapi.Context) error {
 						),
 					),
 				)
-				passed.WriteByte('\n')
+				passed.WriteString("\n")
 			}
 
 			b.WriteString(
@@ -258,7 +323,7 @@ func (h *Handler) Chat(c *botapi.Context) error {
 					i18n.Cmd.Stats.Passed,
 				),
 			)
-			b.WriteByte('\n')
+			b.WriteString("\n")
 
 			b.WriteString(
 				tghtml.ExpandableBlockquote(
@@ -268,8 +333,12 @@ func (h *Handler) Chat(c *botapi.Context) error {
 			b.WriteString("\n")
 		}
 
-		b.WriteByte('\n')
+		b.WriteString("\n")
 	}
+
+	b.WriteString(
+		h.translator.TData(ch.Lang, i18n.Cmd.Stats.TotalMessages, i18n.CmdStatsTotalMessagesArgs(totalMessages)),
+	)
 
 	if _, err := c.Reply(b.String(),
 		botapi.WithParseMode(botapi.ParseModeHTML),
