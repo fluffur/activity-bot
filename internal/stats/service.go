@@ -1,0 +1,155 @@
+package stats
+
+import (
+	"cmp"
+	"context"
+	"fmt"
+	"slices"
+	"time"
+
+	"activity-bot/internal/chatmember"
+	"activity-bot/internal/norm"
+)
+
+type ChatStat struct {
+	ChatMember    chatmember.ChatMember
+	MessagesCount int64
+}
+
+type CalculatedNormResult struct {
+	NormID   int64
+	NormName string
+	Required int32
+	Passed   []UserResult
+	Failed   []UserResult
+}
+
+type CalculatedStats struct {
+	FromDate      time.Time
+	ToDate        time.Time
+	TotalMessages int64
+	HasNorms      bool
+	SimpleResults []UserResult
+	NormResults   []CalculatedNormResult
+}
+
+type Service struct {
+	chatMemberRepo chatmember.Repository
+	normRepo       norm.Repository
+	statsRepo      Repository
+}
+
+func NewService(cmr chatmember.Repository, nr norm.Repository, sr Repository) *Service {
+	return &Service{
+		chatMemberRepo: cmr,
+		normRepo:       nr,
+		statsRepo:      sr,
+	}
+}
+
+func (s *Service) GetChatStats(ctx context.Context, chatID int64, fromDate, toDate time.Time, newbieDays int32) (CalculatedStats, error) {
+	now := time.Now()
+
+	chatMembers, err := s.chatMemberRepo.List(ctx, chatmember.Filter{
+		ChatID: chatID,
+		IsBot:  chatmember.OptionalBool{Bool: false, Valid: true},
+		Left:   chatmember.OptionalBool{Bool: false, Valid: true},
+	})
+	if err != nil {
+		return CalculatedStats{}, fmt.Errorf("service members list: %w", err)
+	}
+
+	norms, err := s.normRepo.ListWithMembers(ctx, chatID)
+	if err != nil {
+		return CalculatedStats{}, fmt.Errorf("service norms: %w", err)
+	}
+
+	chatStats, err := s.statsRepo.ChatStats(ctx, chatID, fromDate, toDate)
+	if err != nil {
+		return CalculatedStats{}, fmt.Errorf("service chat stats: %w", err)
+	}
+
+	statsByUserID := make(map[int64]int64)
+	var totalMessages int64
+	for _, stat := range chatStats {
+		statsByUserID[stat.ChatMember.User.ID] = stat.MessagesCount
+		totalMessages += stat.MessagesCount
+	}
+
+	res := CalculatedStats{
+		FromDate:      fromDate,
+		ToDate:        toDate,
+		TotalMessages: totalMessages,
+		HasNorms:      len(norms) > 0,
+	}
+
+	var activeMembers []chatmember.ChatMember
+	for _, m := range chatMembers {
+		if m.IsResting(now) || m.IsNewbie(now, newbieDays) {
+			continue
+		}
+		activeMembers = append(activeMembers, m)
+	}
+
+	if !res.HasNorms {
+		for _, member := range activeMembers {
+			res.SimpleResults = append(res.SimpleResults, UserResult{
+				Member:   member,
+				Messages: statsByUserID[member.User.ID],
+			})
+		}
+
+		slices.SortFunc(res.SimpleResults, func(a, b UserResult) int {
+			return cmp.Compare(b.Messages, a.Messages)
+		})
+		return res, nil
+	}
+
+	userNorms := make(map[int64][]norm.Norm)
+	var commonNorms []norm.Norm
+	for _, n := range norms {
+		if len(n.UserIDs) == 0 {
+			commonNorms = append(commonNorms, n)
+			continue
+		}
+		for _, uID := range n.UserIDs {
+			userNorms[uID] = append(userNorms[uID], n)
+		}
+	}
+
+	normMap := make(map[int64]*CalculatedNormResult)
+	for _, n := range norms {
+		normMap[n.ID] = &CalculatedNormResult{
+			NormID:   n.ID,
+			NormName: n.Name,
+			Required: n.Value,
+		}
+	}
+
+	for _, member := range activeMembers {
+		userID := member.User.ID
+		messages := statsByUserID[userID]
+
+		mNorms := userNorms[userID]
+		if len(mNorms) == 0 {
+			mNorms = commonNorms
+		}
+
+		for _, n := range mNorms {
+			r := normMap[n.ID]
+			uRes := UserResult{Member: member, Messages: messages}
+
+			if messages >= int64(n.Value) {
+				r.Passed = append(r.Passed, uRes)
+			} else {
+				r.Failed = append(r.Failed, uRes)
+			}
+		}
+	}
+
+	for _, n := range norms {
+		res.NormResults = append(res.NormResults, *normMap[n.ID])
+	}
+
+	return res, nil
+}

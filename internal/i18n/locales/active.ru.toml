@@ -77,7 +77,7 @@ err_nothing_to_delete = { other = "Норма с именем \"{{.Name}}\" не
 [cmd.stats]
 desc = { other = "Статистика по нормам" }
 title = { other = "📊 {{.From}} — {{.To}}" }
-norm_title = { other = "Норма: \"{{.Name}}\" {{.Required}}" }
+norm_title = { other = "{{.Name}} {{.Required}}" }
 passed = { other = "✅ Выполнили" }
 failed = { other = "❌ Не выполнили" }
 user_passed = { other = "{{.List}}. {{.User}} — {{.Messages}}" }

@@ -19,9 +19,21 @@ type Handler struct {
 }
 
 func NewHandler(
-	b *botapi.Bot, t *i18n.Translator, p *predicate.PermissionChecker, r *command.Registry, commandsURL, developerUsername string,
+	b *botapi.Bot,
+	t *i18n.Translator,
+	p *predicate.PermissionChecker,
+	r *command.Registry,
+	commandsURL,
+	developerUsername string,
 ) *Handler {
-	return &Handler{b, t, p, r, commandsURL, developerUsername}
+	return &Handler{
+		bot:               b,
+		translator:        t,
+		permissions:       p,
+		registry:          r,
+		commandsURL:       commandsURL,
+		developerUsername: developerUsername,
+	}
 }
 func (h *Handler) Register(registry *command.Registry) {
 	helpDef := &command.ActionDef{
