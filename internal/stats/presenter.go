@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/norm"
 	"fmt"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -114,6 +115,10 @@ func (p *Presenter) RenderProfile(
 ) string {
 	var b strings.Builder
 
+	now := time.Now()
+
+	status := profile.ChatMember.Status
+
 	b.WriteString(
 		p.translator.TData(
 			ch.Lang,
@@ -128,6 +133,87 @@ func (p *Presenter) RenderProfile(
 		),
 	)
 
+	b.WriteString(" · ")
+
+	b.WriteString(
+		fmt.Sprintf("%s %s", status.Emoji(), p.translator.T(ch.Lang, status.TranslationKey())),
+	)
+
+	b.WriteString("\n\n")
+
+	if profile.ChatMember.LeftAt.IsZero() {
+		days := int(now.Sub(profile.ChatMember.JoinedAt).Hours() / 24)
+
+		b.WriteString(
+			p.translator.TData(
+				ch.Lang,
+				i18n.Cmd.Profile.MemberSince,
+				i18n.CmdProfileMemberSinceArgs(
+					tghtml.DateTime(
+						profile.ChatMember.JoinedAt,
+						"wdt",
+						profile.ChatMember.JoinedAt.Format("02.01.2006"),
+					),
+					tghtml.DateTime(
+						profile.ChatMember.JoinedAt,
+						"r",
+						fmt.Sprintf("%d дн.", days),
+					),
+				),
+			),
+		)
+		b.WriteString("\n")
+	} else {
+		days := int(profile.ChatMember.LeftAt.Sub(profile.ChatMember.JoinedAt).Hours() / 24)
+
+		b.WriteString(
+			p.translator.TData(
+				ch.Lang,
+				i18n.Cmd.Profile.MemberPeriod,
+				i18n.CmdProfileMemberPeriodArgs(
+					tghtml.DateTime(
+						profile.ChatMember.JoinedAt,
+						"wdt",
+						profile.ChatMember.JoinedAt.Format("02.01.2006"),
+					),
+					tghtml.DateTime(
+						profile.ChatMember.LeftAt,
+						"wdt",
+						profile.ChatMember.LeftAt.Format("02.01.2006"),
+					),
+					fmt.Sprintf("%d дн.", days),
+				),
+			),
+		)
+		b.WriteString("\n")
+	}
+	restActive := profile.ChatMember.RestUntil.After(now)
+
+	if restActive {
+		b.WriteString(
+			p.translator.TData(
+				ch.Lang,
+				i18n.Cmd.Profile.RestUntil,
+				i18n.CmdProfileRestUntilArgs(
+					tghtml.DateTime(
+						profile.ChatMember.RestUntil,
+						"wdt",
+						profile.ChatMember.RestUntil.Format("02.01.2006"),
+					),
+				),
+			),
+		)
+		b.WriteString("\n")
+
+		b.WriteString(
+			p.translator.T(
+				ch.Lang,
+				i18n.Cmd.Profile.RestExempt,
+			),
+		)
+		b.WriteString("\n")
+	}
+
 	var content strings.Builder
 
 	content.WriteString(
@@ -136,62 +222,60 @@ func (p *Presenter) RenderProfile(
 			i18n.Cmd.Profile.Activity,
 			i18n.CmdProfileActivityArgs(
 				profile.DayCount,
+				profile.DayRollingCount,
 				profile.WeekCount,
+				profile.WeekRollingCount,
 				profile.MonthCount,
+				profile.MonthRollingCount,
 				profile.AllTimeCount,
 			),
 		),
 	)
 
-	content.WriteString("\n\n")
-
-	content.WriteString(
-		p.translator.TData(
-			ch.Lang,
-			i18n.Cmd.Profile.Rolling,
-			i18n.CmdProfileRollingArgs(
-				profile.DayRollingCount,
-				profile.WeekRollingCount,
-				profile.MonthRollingCount,
-			),
-		),
-	)
-
-	if len(profile.Norms) > 0 {
-		content.WriteString("\n\n")
-
-	}
-
-	b.WriteString("\n\n")
+	b.WriteString("\n")
 	b.WriteString(
 		tghtml.ExpandableBlockquote(
 			content.String(),
 		),
 	)
-	b.WriteString("\n\n")
 
-	for _, n := range profile.Norms {
-		normName := UcFirst(norm.LocalisedNormName(
-			p.translator,
-			ch.Lang,
-			n.Name,
-		))
+	if !restActive && len(profile.Norms) > 0 {
+		b.WriteString("\n\n")
 
-		key, arg := i18n.Cmd.Profile.NormFailed, i18n.CmdProfileNormFailedArgs(n.Current, normName, n.Required)
-		if n.Passed {
-			key, arg = i18n.Cmd.Profile.NormPassed, i18n.CmdProfileNormPassedArgs(normName, n.Required)
+		for _, n := range profile.Norms {
+			normName := UcFirst(
+				norm.LocalisedNormName(
+					p.translator,
+					ch.Lang,
+					n.Name,
+				),
+			)
+
+			key, arg := i18n.Cmd.Profile.NormFailed,
+				i18n.CmdProfileNormFailedArgs(
+					n.Current,
+					normName,
+					n.Required,
+				)
+
+			if n.Passed {
+				key, arg = i18n.Cmd.Profile.NormPassed,
+					i18n.CmdProfileNormPassedArgs(
+						normName,
+						n.Required,
+					)
+			}
+
+			b.WriteString(
+				p.translator.TData(
+					ch.Lang,
+					key,
+					arg,
+				),
+			)
+			b.WriteString("\n")
 		}
-
-		b.WriteString(
-			p.translator.TData(
-				ch.Lang,
-				key,
-				arg,
-			),
-		)
-
-		b.WriteString("\n")
 	}
 
-	return b.String()
+	return strings.TrimSpace(b.String())
 }

@@ -104,3 +104,22 @@ func (c ChatMember) IsNewbie(now time.Time, thresholdDays int32) bool {
 		now.AddDate(0, 0, -int(thresholdDays)),
 	)
 }
+
+func (s Status) Emoji() string {
+	switch s {
+	case StatusMember:
+		return "0️⃣"
+	case StatusModerator:
+		return "1️⃣"
+	case StatusAdmin:
+		return "2️⃣"
+	case StatusSeniorAdmin:
+		return "3️⃣"
+	case StatusCoOwner:
+		return "4️⃣"
+	case StatusOwner:
+		return "5️⃣"
+	default:
+		return "?"
+	}
+}

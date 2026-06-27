@@ -61,9 +61,12 @@ var (
 			Desc            MessageID
 			ExampleDate     MessageID
 			ExampleDuration MessageID
+			MemberPeriod    MessageID
+			MemberSince     MessageID
 			NormFailed      MessageID
 			NormPassed      MessageID
-			Rolling         MessageID
+			RestExempt      MessageID
+			RestUntil       MessageID
 			Title           MessageID
 			TotalMessages   MessageID
 		}
@@ -146,9 +149,12 @@ var (
 			Desc            MessageID
 			ExampleDate     MessageID
 			ExampleDuration MessageID
+			MemberPeriod    MessageID
+			MemberSince     MessageID
 			NormFailed      MessageID
 			NormPassed      MessageID
-			Rolling         MessageID
+			RestExempt      MessageID
+			RestUntil       MessageID
 			Title           MessageID
 			TotalMessages   MessageID
 		}{
@@ -156,9 +162,12 @@ var (
 			Desc:            "cmd.profile.desc",
 			ExampleDate:     "cmd.profile.example_date",
 			ExampleDuration: "cmd.profile.example_duration",
+			MemberPeriod:    "cmd.profile.member_period",
+			MemberSince:     "cmd.profile.member_since",
 			NormFailed:      "cmd.profile.norm_failed",
 			NormPassed:      "cmd.profile.norm_passed",
-			Rolling:         "cmd.profile.rolling",
+			RestExempt:      "cmd.profile.rest_exempt",
+			RestUntil:       "cmd.profile.rest_until",
 			Title:           "cmd.profile.title",
 			TotalMessages:   "cmd.profile.total_messages",
 		},
@@ -317,15 +326,43 @@ func CmdListNormsItemArgs(
 
 func CmdProfileActivityArgs(
 	day any,
+	dayRolling any,
 	month any,
+	monthRolling any,
 	total any,
 	week any,
+	weekRolling any,
 ) map[string]any {
 	return map[string]any{
-		"Day":   day,
-		"Month": month,
-		"Total": total,
-		"Week":  week,
+		"Day":          day,
+		"DayRolling":   dayRolling,
+		"Month":        month,
+		"MonthRolling": monthRolling,
+		"Total":        total,
+		"Week":         week,
+		"WeekRolling":  weekRolling,
+	}
+}
+
+func CmdProfileMemberPeriodArgs(
+	days any,
+	from any,
+	to any,
+) map[string]any {
+	return map[string]any{
+		"Days": days,
+		"From": from,
+		"To":   to,
+	}
+}
+
+func CmdProfileMemberSinceArgs(
+	date any,
+	days any,
+) map[string]any {
+	return map[string]any{
+		"Date": date,
+		"Days": days,
 	}
 }
 
@@ -351,15 +388,11 @@ func CmdProfileNormPassedArgs(
 	}
 }
 
-func CmdProfileRollingArgs(
-	day any,
-	month any,
-	week any,
+func CmdProfileRestUntilArgs(
+	date any,
 ) map[string]any {
 	return map[string]any{
-		"Day":   day,
-		"Month": month,
-		"Week":  week,
+		"Date": date,
 	}
 }
 
