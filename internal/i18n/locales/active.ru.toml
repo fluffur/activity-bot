@@ -87,7 +87,24 @@ example_date = { other = "отчет 1 июня 25 июля" }
 
 [cmd.profile]
 desc = { other = "Статистика участника" }
-title = { other = "📊 {{.From}} — {{.To}}" }
 total_messages = { other = "📨 Всего сообщений: {{.Total}}" }
 example_duration = { other = "профиль неделя" }
 example_date = { other = "профиль 1 июня 25 июля" }
+title = { other = "👤 {{.User}}" }
+activity = { other = """ㅤ
+          <b>📊 Статистика</b>
+
+Календарная активность
+▸ сегодня: {{.Day}}
+▸ неделя: {{.Week}}
+▸ месяц: {{.Month}}
+▸ всего: {{.Total}}""" }
+
+rolling = { other = """Последние периоды
+▸ сутки: {{.Day}}
+▸ 7 дней: {{.Week}}
+▸ 30 дней: {{.Month}}""" }
+
+norm_passed = { other = "✅ {{.Name}} — {{.Required}}" }
+
+norm_failed = { other = "⚠️ {{.Name}} — {{.Current}}/{{.Required}}" }

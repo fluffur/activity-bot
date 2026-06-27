@@ -98,3 +98,11 @@ func DateTime(t time.Time, format, fallback string) string {
 		fallback,
 	)
 }
+
+func Emoji(customEmojiID int, fallbackEmoji string) string {
+	if strings.TrimSpace(fallbackEmoji) != "" {
+		return fallbackEmoji
+	}
+
+	return fmt.Sprintf("<tg-emoji id=%d>%s</tg-emoji>", customEmojiID, fallbackEmoji)
+}

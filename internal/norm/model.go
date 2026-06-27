@@ -8,3 +8,17 @@ type Norm struct {
 
 	UserIDs []int64
 }
+
+func (n Norm) BelongsToUser(userID int64) bool {
+	if len(n.UserIDs) == 0 {
+		return true
+	}
+
+	for _, id := range n.UserIDs {
+		if id == userID {
+			return true
+		}
+	}
+
+	return false
+}

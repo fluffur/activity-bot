@@ -31,7 +31,10 @@ func resolveUserEntities(
 		switch entity.Type {
 		case botapi.EntityMention:
 			username := strings.TrimPrefix(entityStr, "@")
-			if cm, err := repo.GetByUsername(ctx, chatID, username); err == nil {
+
+			cm, err := repo.GetByUsername(ctx, chatID, username)
+
+			if err == nil {
 				parsed.Users = append(parsed.Users, cm)
 				used = append(used, Offset{byteStart, byteEnd})
 			}

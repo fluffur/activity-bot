@@ -1,0 +1,95 @@
+package stats
+
+import (
+	"activity-bot/internal/chatmember"
+	"activity-bot/internal/middleware/cctx"
+	"activity-bot/internal/predicate"
+	"fmt"
+	"time"
+
+	"github.com/gotd/botapi"
+)
+
+func (h *Handler) Profile(c *botapi.Context) error {
+	args, ok := predicate.GetParsedArgs(c)
+	if !ok {
+		return fmt.Errorf("profile invalid argument")
+	}
+	ch, err := cctx.Chat(c.Context)
+	if err != nil {
+		return fmt.Errorf("profile chat: %w", err)
+	}
+
+	var cm chatmember.ChatMember
+	if len(args.Users) != 0 {
+		cm = args.Users[0]
+	} else {
+		us, err := cctx.ChatMember(c.Context)
+		if err != nil {
+			return fmt.Errorf("profile chat member: %w", err)
+		}
+		cm = us
+	}
+
+	statsRange, err := buildProfileStatsRange(ch.WeekStartDay, ch.WeekStartTimeMicros)
+	if err != nil {
+		return fmt.Errorf("profile stats range: %w", err)
+	}
+
+	profile, err := h.service.GetProfileStats(c.Context, ch.ID, cm.User.ID, statsRange)
+	if err != nil {
+		return fmt.Errorf("profile stats: %w", err)
+	}
+
+	htmlMessage := h.presenter.RenderProfile(ch, profile)
+
+	_, err = c.Reply(
+		htmlMessage,
+		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview(),
+	)
+
+	return err
+
+}
+
+func buildProfileStatsRange(
+	weekStartDay int16,
+	weekStartTimeMicros int64,
+) (ProfileStatsRange, error) {
+	loc, _ := time.LoadLocation("Europe/Moscow")
+	now := time.Now().In(loc)
+
+	weekStart, _, err := currentChatWeekRange(
+		weekStartDay,
+		weekStartTimeMicros,
+	)
+	if err != nil {
+		return ProfileStatsRange{}, err
+	}
+
+	dayStart := time.Date(
+		now.Year(),
+		now.Month(),
+		now.Day(),
+		0, 0, 0, 0,
+		now.Location(),
+	)
+
+	monthStart := time.Date(
+		now.Year(),
+		now.Month(),
+		1,
+		0, 0, 0, 0,
+		now.Location(),
+	)
+
+	return ProfileStatsRange{
+		DayStart:          dayStart,
+		DayRollingStart:   now.Add(-24 * time.Hour),
+		WeekStart:         weekStart,
+		WeekRollingStart:  now.Add(-7 * 24 * time.Hour),
+		MonthStart:        monthStart,
+		MonthRollingStart: now.Add(-30 * 24 * time.Hour),
+	}, nil
+}

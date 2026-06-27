@@ -107,3 +107,91 @@ func UcFirst(s string) string {
 
 	return b.String()
 }
+
+func (p *Presenter) RenderProfile(
+	ch chat.Chat,
+	profile ProfileStats,
+) string {
+	var b strings.Builder
+
+	b.WriteString(
+		p.translator.TData(
+			ch.Lang,
+			i18n.Cmd.Profile.Title,
+			i18n.CmdProfileTitleArgs(
+				tghtml.MemberLink(
+					p.translator,
+					ch,
+					profile.ChatMember,
+				),
+			),
+		),
+	)
+
+	var content strings.Builder
+
+	content.WriteString(
+		p.translator.TData(
+			ch.Lang,
+			i18n.Cmd.Profile.Activity,
+			i18n.CmdProfileActivityArgs(
+				profile.DayCount,
+				profile.WeekCount,
+				profile.MonthCount,
+				profile.AllTimeCount,
+			),
+		),
+	)
+
+	content.WriteString("\n\n")
+
+	content.WriteString(
+		p.translator.TData(
+			ch.Lang,
+			i18n.Cmd.Profile.Rolling,
+			i18n.CmdProfileRollingArgs(
+				profile.DayRollingCount,
+				profile.WeekRollingCount,
+				profile.MonthRollingCount,
+			),
+		),
+	)
+
+	if len(profile.Norms) > 0 {
+		content.WriteString("\n\n")
+
+	}
+
+	b.WriteString("\n\n")
+	b.WriteString(
+		tghtml.ExpandableBlockquote(
+			content.String(),
+		),
+	)
+	b.WriteString("\n\n")
+
+	for _, n := range profile.Norms {
+		normName := UcFirst(norm.LocalisedNormName(
+			p.translator,
+			ch.Lang,
+			n.Name,
+		))
+
+		key, arg := i18n.Cmd.Profile.NormFailed, i18n.CmdProfileNormFailedArgs(n.Current, normName, n.Required)
+		if n.Passed {
+			key, arg = i18n.Cmd.Profile.NormPassed, i18n.CmdProfileNormPassedArgs(normName, n.Required)
+		}
+
+		b.WriteString(
+			p.translator.TData(
+				ch.Lang,
+				key,
+				arg,
+			),
+		)
+
+		b.WriteString("\n")
+	}
+
+	return b.String()
+}

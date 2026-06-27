@@ -31,7 +31,6 @@ var (
 		AddNorm struct {
 			Added           MessageID
 			Desc            MessageID
-			ErrInvalidName  MessageID
 			ErrInvalidValue MessageID
 			ExampleNamed    MessageID
 			ExampleSimple   MessageID
@@ -58,9 +57,13 @@ var (
 			Title MessageID
 		}
 		Profile struct {
+			Activity        MessageID
 			Desc            MessageID
 			ExampleDate     MessageID
 			ExampleDuration MessageID
+			NormFailed      MessageID
+			NormPassed      MessageID
+			Rolling         MessageID
 			Title           MessageID
 			TotalMessages   MessageID
 		}
@@ -89,7 +92,6 @@ var (
 		AddNorm: struct {
 			Added           MessageID
 			Desc            MessageID
-			ErrInvalidName  MessageID
 			ErrInvalidValue MessageID
 			ExampleNamed    MessageID
 			ExampleSimple   MessageID
@@ -98,7 +100,6 @@ var (
 		}{
 			Added:           "cmd.add_norm.added",
 			Desc:            "cmd.add_norm.desc",
-			ErrInvalidName:  "cmd.add_norm.err_invalid_name",
 			ErrInvalidValue: "cmd.add_norm.err_invalid_value",
 			ExampleNamed:    "cmd.add_norm.example_named",
 			ExampleSimple:   "cmd.add_norm.example_simple",
@@ -141,15 +142,23 @@ var (
 			Title: "cmd.list_norms.title",
 		},
 		Profile: struct {
+			Activity        MessageID
 			Desc            MessageID
 			ExampleDate     MessageID
 			ExampleDuration MessageID
+			NormFailed      MessageID
+			NormPassed      MessageID
+			Rolling         MessageID
 			Title           MessageID
 			TotalMessages   MessageID
 		}{
+			Activity:        "cmd.profile.activity",
 			Desc:            "cmd.profile.desc",
 			ExampleDate:     "cmd.profile.example_date",
 			ExampleDuration: "cmd.profile.example_duration",
+			NormFailed:      "cmd.profile.norm_failed",
+			NormPassed:      "cmd.profile.norm_passed",
+			Rolling:         "cmd.profile.rolling",
 			Title:           "cmd.profile.title",
 			TotalMessages:   "cmd.profile.total_messages",
 		},
@@ -250,14 +259,6 @@ func CmdAddNormAddedArgs(
 	}
 }
 
-func CmdAddNormErrInvalidNameArgs(
-	name any,
-) map[string]any {
-	return map[string]any{
-		"Name": name,
-	}
-}
-
 func CmdAddNormErrInvalidValueArgs(
 	max any,
 	min any,
@@ -314,13 +315,59 @@ func CmdListNormsItemArgs(
 	}
 }
 
-func CmdProfileTitleArgs(
-	from any,
-	to any,
+func CmdProfileActivityArgs(
+	day any,
+	month any,
+	total any,
+	week any,
 ) map[string]any {
 	return map[string]any{
-		"From": from,
-		"To":   to,
+		"Day":   day,
+		"Month": month,
+		"Total": total,
+		"Week":  week,
+	}
+}
+
+func CmdProfileNormFailedArgs(
+	current any,
+	name any,
+	required any,
+) map[string]any {
+	return map[string]any{
+		"Current":  current,
+		"Name":     name,
+		"Required": required,
+	}
+}
+
+func CmdProfileNormPassedArgs(
+	name any,
+	required any,
+) map[string]any {
+	return map[string]any{
+		"Name":     name,
+		"Required": required,
+	}
+}
+
+func CmdProfileRollingArgs(
+	day any,
+	month any,
+	week any,
+) map[string]any {
+	return map[string]any{
+		"Day":   day,
+		"Month": month,
+		"Week":  week,
+	}
+}
+
+func CmdProfileTitleArgs(
+	user any,
+) map[string]any {
+	return map[string]any{
+		"User": user,
 	}
 }
 

@@ -2,12 +2,16 @@ package predicate
 
 import (
 	"activity-bot/internal/chatmember"
+	"activity-bot/internal/message"
 	"activity-bot/internal/middleware/cctx"
 	"context"
+	"database/sql"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/log"
 
 	"github.com/gotd/botapi"
@@ -70,22 +74,25 @@ type token struct {
 
 type RuleChecker struct {
 	chatMemberRepository chatmember.Repository
+	messageRepository    message.Repository
 }
 
-func NewRuleChecker(cmr chatmember.Repository) *RuleChecker {
-	return &RuleChecker{cmr}
+func NewRuleChecker(cmr chatmember.Repository, mr message.Repository) *RuleChecker {
+	return &RuleChecker{cmr, mr}
 }
 
 func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 	return func(c *botapi.Context) bool {
 		argsMessage := Args(c)
 
-		if argsMessage == nil && !allRulesAreOptional(rules...) && len(rules) != 0 {
+		if argsMessage == nil && !allRulesAreOptionalOrUser(rules...) && len(rules) != 0 {
 			return false
 		}
 
 		text, entities := argsMessage.TextAndEntities()
-		if strings.TrimSpace(text) == "" && !allRulesAreOptional(rules...) && len(rules) != 0 {
+		if strings.TrimSpace(text) == "" && !allRulesAreOptionalOrUser(rules...) && len(rules) != 0 {
+			spew.Dump("FAIL", "rule user 1")
+
 			return false
 		}
 
@@ -99,6 +106,11 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 		parsed := ParsedArgs{}
 
 		usedOffsets = resolveUserEntities(c.Context, r.chatMemberRepository, ch.ID, text, entities, &parsed, usedOffsets)
+		if len(parsed.Users) == 0 {
+			if cm, ok := r.resolveReplyUser(c, ch.ID); ok {
+				parsed.Users = append(parsed.Users, cm)
+			}
+		}
 
 		for _, rule := range rules {
 			count := rule.Count
@@ -108,6 +120,10 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 
 			parsedCount := 0
 
+			if rule.Type == RuleUser {
+				parsedCount = len(parsed.Users)
+			}
+
 			if rule.Type == RuleText {
 				toks := getFreeTokens(text, usedOffsets)
 
@@ -115,6 +131,8 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 					if rule.Optional {
 						continue
 					}
+					spew.Dump("FAIL", "rule user 2")
+
 					return false
 				}
 
@@ -137,6 +155,8 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 				joinedText := strings.Join(textParts, " ")
 
 				if rule.TextValidate != nil && !rule.TextValidate(joinedText) {
+					spew.Dump("FAIL", "rule user 3")
+
 					return false
 				}
 
@@ -200,14 +220,6 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 						}
 					}
 
-					if !matched && rule.Type == RuleUser && parsedCount == 0 {
-						if cm, ok := r.resolveReplyUser(c.Context, ch.ID, c); ok {
-							parsed.Users = append(parsed.Users, cm)
-							parsedCount++
-							matched = true
-						}
-					}
-
 					if !matched {
 						break
 					}
@@ -215,12 +227,16 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 			}
 
 			if parsedCount == 0 && !rule.Optional {
+				spew.Dump("FAIL", "rule user 4")
+
 				return false
 			}
 		}
 
 		remaining := getFreeTokens(text, usedOffsets)
 		if len(remaining) > 0 {
+			spew.Dump("FAIL", "rule user 5")
+
 			return false
 		}
 
@@ -230,9 +246,9 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 	}
 }
 
-func allRulesAreOptional(rules ...Rule) bool {
+func allRulesAreOptionalOrUser(rules ...Rule) bool {
 	for _, rule := range rules {
-		if !rule.Optional {
+		if !rule.Optional && rule.Type != RuleUser {
 			return false
 		}
 	}
@@ -240,22 +256,41 @@ func allRulesAreOptional(rules ...Rule) bool {
 }
 
 func (r *RuleChecker) resolveReplyUser(
-	ctx context.Context,
-	chatID int64,
 	c *botapi.Context,
+	chatID int64,
 ) (chatmember.ChatMember, bool) {
 	m := c.Message()
-	if m == nil {
+	if m == nil || m.ReplyToMessage == nil {
 		return chatmember.ChatMember{}, false
 	}
 
-	reply := m.ReplyToMessage
+	cm, err := r.messageRepository.GetAuthor(
+		c.Context,
+		chatID,
+		int64(m.ReplyToMessage.MessageID),
+	)
+	if err == nil {
+		return cm, true
+	}
 
-	if reply == nil || reply.From == nil {
+	if !errors.Is(err, sql.ErrNoRows) {
 		return chatmember.ChatMember{}, false
 	}
 
-	cm, err := r.chatMemberRepository.Get(ctx, chatID, reply.From.ID)
+	reply, err := c.Bot.GetMessage(
+		c.Context,
+		botapi.ID(chatID),
+		m.ReplyToMessage.MessageID,
+	)
+	if err != nil || reply == nil || reply.From == nil {
+		return chatmember.ChatMember{}, false
+	}
+
+	cm, err = r.chatMemberRepository.Get(
+		c.Context,
+		chatID,
+		reply.From.ID,
+	)
 	if err != nil {
 		return chatmember.ChatMember{}, false
 	}

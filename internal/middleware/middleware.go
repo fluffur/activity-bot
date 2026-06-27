@@ -3,6 +3,7 @@ package middleware
 import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
+	"activity-bot/internal/message"
 	"activity-bot/internal/middleware/cctx"
 	"activity-bot/internal/pmsession"
 	"activity-bot/internal/user"
@@ -97,6 +98,38 @@ func ChatMemberMiddleware(ur user.Repository, cmr chatmember.Repository) botapi.
 
 			ctx = context.WithValue(ctx, cctx.ChatMemberKey{}, member)
 			c.Context = ctx
+
+			return next(c)
+		}
+	}
+}
+
+func SaveMessageMiddleware(messageRepository message.Repository) botapi.Middleware {
+	return func(next botapi.Handler) botapi.Handler {
+		return func(c *botapi.Context) error {
+			sender := c.Sender()
+			msg := c.Message()
+
+			if msg == nil || sender == nil {
+				return nil
+			}
+
+			if msg.Chat.Type == botapi.ChatTypePrivate {
+				return nil
+			}
+
+			if msg.From == nil || msg.From.IsBot {
+				return nil
+			}
+
+			if err := messageRepository.Save(
+				c.Context,
+				msg.Chat.ID,
+				sender.ID,
+				int64(msg.MessageID),
+			); err != nil {
+				return fmt.Errorf("save message: %w", err)
+			}
 
 			return next(c)
 		}

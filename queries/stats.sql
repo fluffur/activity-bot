@@ -1,8 +1,7 @@
 -- name: ChatStats :many
-SELECT
-    sqlc.embed(cm),
-    sqlc.embed(u),
-    COUNT(m.chat_id) AS messages_count
+SELECT sqlc.embed(cm),
+       sqlc.embed(u),
+       COUNT(m.chat_id) AS messages_count
 FROM chat_members cm
          JOIN users u
               ON u.id = cm.user_id
@@ -17,3 +16,33 @@ WHERE cm.chat_id = @chat_id
   AND NOT u.is_bot
 GROUP BY cm.chat_id, cm.user_id, u.id
 ORDER BY messages_count DESC;
+
+-- name: UserStats :one
+SELECT sqlc.embed(cm),
+       sqlc.embed(u),
+       sqlc.embed(c),
+
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= @day_start)           AS day_count,
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= @day_rolling_start)   AS day_rolling_count,
+
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= @week_start)          AS week_count,
+       COUNT(m.chat_id) FILTER ( WHERE m.created_at >= @week_rolling_start) AS week_rolling_count,
+
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= @month_start)         AS month_count,
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= @month_rolling_start) AS month_rolling_count,
+
+       COUNT(m.chat_id)                                                     AS all_time_count
+
+FROM chat_members cm
+         JOIN chats c
+              ON c.id = cm.chat_id
+         JOIN users u
+              ON u.id = cm.user_id
+         LEFT JOIN messages m
+                   ON m.chat_id = cm.chat_id
+                       AND m.user_id = cm.user_id
+WHERE cm.chat_id = @chat_id
+  AND cm.user_id = @user_id
+  AND NOT u.is_bot
+
+GROUP BY cm.chat_id, cm.user_id, u.id, c.id;

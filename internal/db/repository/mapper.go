@@ -97,3 +97,16 @@ func mapChatStats(msgCount int64, cm db.ChatMember, u db.User) stats.ChatStats {
 		MessagesCount: msgCount,
 	}
 }
+
+func mapProfileStats(s db.UserStatsRow) stats.ProfileStats {
+	return stats.ProfileStats{
+		ChatMember:        mapChatMemberFull(s.ChatMember, db.Chat{}, s.User),
+		DayCount:          s.DayCount,
+		DayRollingCount:   s.DayRollingCount,
+		WeekCount:         s.WeekCount,
+		WeekRollingCount:  s.WeekRollingCount,
+		MonthCount:        s.MonthCount,
+		MonthRollingCount: s.MonthRollingCount,
+		AllTimeCount:      s.AllTimeCount,
+	}
+}

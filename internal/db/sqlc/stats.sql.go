@@ -12,10 +12,9 @@ import (
 )
 
 const chatStats = `-- name: ChatStats :many
-SELECT
-    cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call,
-    u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot,
-    COUNT(m.chat_id) AS messages_count
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call,
+       u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot,
+       COUNT(m.chat_id) AS messages_count
 FROM chat_members cm
          JOIN users u
               ON u.id = cm.user_id
@@ -85,4 +84,125 @@ func (q *Queries) ChatStats(ctx context.Context, arg ChatStatsParams) ([]ChatSta
 		return nil, err
 	}
 	return items, nil
+}
+
+const userStats = `-- name: UserStats :one
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call,
+       u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot,
+       c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at, c.emojis_enabled, c.skip_call_confirmation,
+
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= $1)           AS day_count,
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= $2)   AS day_rolling_count,
+
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= $3)          AS week_count,
+       COUNT(m.chat_id) FILTER ( WHERE m.created_at >= $4) AS week_rolling_count,
+
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= $5)         AS month_count,
+       COUNT(m.chat_id) FILTER (WHERE m.created_at >= $6) AS month_rolling_count,
+
+       COUNT(m.chat_id)                                                     AS all_time_count
+
+FROM chat_members cm
+         JOIN chats c
+              ON c.id = cm.chat_id
+         JOIN users u
+              ON u.id = cm.user_id
+         LEFT JOIN messages m
+                   ON m.chat_id = cm.chat_id
+                       AND m.user_id = cm.user_id
+WHERE cm.chat_id = $7
+  AND cm.user_id = $8
+  AND NOT u.is_bot
+
+GROUP BY cm.chat_id, cm.user_id, u.id, c.id
+`
+
+type UserStatsParams struct {
+	DayStart          pgtype.Timestamptz `db:"day_start" json:"dayStart"`
+	DayRollingStart   pgtype.Timestamptz `db:"day_rolling_start" json:"dayRollingStart"`
+	WeekStart         pgtype.Timestamptz `db:"week_start" json:"weekStart"`
+	WeekRollingStart  pgtype.Timestamptz `db:"week_rolling_start" json:"weekRollingStart"`
+	MonthStart        pgtype.Timestamptz `db:"month_start" json:"monthStart"`
+	MonthRollingStart pgtype.Timestamptz `db:"month_rolling_start" json:"monthRollingStart"`
+	ChatID            int64              `db:"chat_id" json:"chatId"`
+	UserID            int64              `db:"user_id" json:"userId"`
+}
+
+type UserStatsRow struct {
+	ChatMember        ChatMember `db:"chat_member" json:"chatMember"`
+	User              User       `db:"user" json:"user"`
+	Chat              Chat       `db:"chat" json:"chat"`
+	DayCount          int64      `db:"day_count" json:"dayCount"`
+	DayRollingCount   int64      `db:"day_rolling_count" json:"dayRollingCount"`
+	WeekCount         int64      `db:"week_count" json:"weekCount"`
+	WeekRollingCount  int64      `db:"week_rolling_count" json:"weekRollingCount"`
+	MonthCount        int64      `db:"month_count" json:"monthCount"`
+	MonthRollingCount int64      `db:"month_rolling_count" json:"monthRollingCount"`
+	AllTimeCount      int64      `db:"all_time_count" json:"allTimeCount"`
+}
+
+func (q *Queries) UserStats(ctx context.Context, arg UserStatsParams) (UserStatsRow, error) {
+	row := q.db.QueryRow(ctx, userStats,
+		arg.DayStart,
+		arg.DayRollingStart,
+		arg.WeekStart,
+		arg.WeekRollingStart,
+		arg.MonthStart,
+		arg.MonthRollingStart,
+		arg.ChatID,
+		arg.UserID,
+	)
+	var i UserStatsRow
+	err := row.Scan(
+		&i.ChatMember.ChatID,
+		&i.ChatMember.UserID,
+		&i.ChatMember.JoinedAt,
+		&i.ChatMember.RestUntil,
+		&i.ChatMember.Tag,
+		&i.ChatMember.LeftAt,
+		&i.ChatMember.RestReason,
+		&i.ChatMember.Emoji,
+		&i.ChatMember.Status,
+		&i.ChatMember.EmojiJson,
+		&i.ChatMember.ExcludeFromCall,
+		&i.User.ID,
+		&i.User.Username,
+		&i.User.FirstName,
+		&i.User.LastName,
+		&i.User.CreatedAt,
+		&i.User.Gender,
+		&i.User.Emoji,
+		&i.User.CustomEmojiID,
+		&i.User.EmojiJson,
+		&i.User.IsBot,
+		&i.Chat.ID,
+		&i.Chat.NormWarn,
+		&i.Chat.NewbieThresholdDays,
+		&i.Chat.AiSystemPrompt,
+		&i.Chat.MaxLadder,
+		&i.Chat.CallOnJoin,
+		&i.Chat.WelcomeCallMessage,
+		&i.Chat.WeekStartDay,
+		&i.Chat.MaxWarns,
+		&i.Chat.NormBan,
+		&i.Chat.CommandPrefix,
+		&i.Chat.AllowPrefixless,
+		&i.Chat.MentionsPerMessage,
+		&i.Chat.MentionTypes,
+		&i.Chat.Title,
+		&i.Chat.TagsEnabled,
+		&i.Chat.WeekStartTime,
+		&i.Chat.BroadcastEnabled,
+		&i.Chat.RemovedAt,
+		&i.Chat.EmojisEnabled,
+		&i.Chat.SkipCallConfirmation,
+		&i.DayCount,
+		&i.DayRollingCount,
+		&i.WeekCount,
+		&i.WeekRollingCount,
+		&i.MonthCount,
+		&i.MonthRollingCount,
+		&i.AllTimeCount,
+	)
+	return i, err
 }

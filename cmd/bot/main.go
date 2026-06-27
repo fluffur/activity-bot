@@ -86,7 +86,7 @@ func main() {
 	statsRepository := repository.NewStatsRepository(queries)
 
 	permissions := predicate.NewPermissionsChecker(permissionRepository, translator)
-	rules := predicate.NewRuleChecker(chatMemberRepository)
+	rules := predicate.NewRuleChecker(chatMemberRepository, messageRepository)
 
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
 	statsPresenter := stats.NewPresenter(translator)
@@ -97,6 +97,7 @@ func main() {
 	bot.UseOuter(
 		middleware.ChatMiddleware(chatRepository, pmSessionRepository),
 		middleware.ChatMemberMiddleware(userRepository, chatMemberRepository),
+		middleware.SaveMessageMiddleware(messageRepository),
 	)
 
 	bot.Use(
@@ -110,7 +111,7 @@ func main() {
 	norm.NewHandler(bot, translator, permissions, rules, normRepository).Register(registry)
 	stats.NewHandler(bot, translator, permissions, rules, statsService, statsPresenter).Register(registry)
 
-	events.NewHandler(bot, translator, messageRepository, chatMemberService).Register()
+	events.NewHandler(bot, translator, chatMemberService).Register()
 
 	log.Info("Starting bot")
 

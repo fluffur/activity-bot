@@ -3,6 +3,16 @@ INSERT INTO messages(chat_id, user_id, created_at, message_id)
 VALUES ($1, $2, $3, $4)
 RETURNING *;
 
+-- name: GetMessageAuthor :one
+SELECT sqlc.embed(u), sqlc.embed(cm)
+FROM messages m
+         JOIN users u ON u.id = m.user_id
+         JOIN chat_members cm
+              ON cm.user_id = m.user_id
+                  AND cm.chat_id = m.chat_id
+WHERE m.message_id = $1
+  AND m.chat_id = $2;
+
 -- name: ChatMemberMessageStatsByChat :many
 WITH filtered_messages AS (SELECT m.chat_id, m.user_id
                            FROM messages m

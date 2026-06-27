@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"activity-bot/internal/chatmember"
 	db "activity-bot/internal/db/sqlc"
 	"activity-bot/internal/message"
 	"context"
@@ -32,4 +33,19 @@ func (r *MessageRepository) Save(ctx context.Context, chatID, userID, messageID 
 	})
 
 	return err
+}
+
+func (r *MessageRepository) GetAuthor(ctx context.Context, chatID, messageID int64) (chatmember.ChatMember, error) {
+	cm, err := r.queries.GetMessageAuthor(ctx, db.GetMessageAuthorParams{
+		MessageID: pgtype.Int8{
+			Int64: messageID,
+			Valid: true,
+		},
+		ChatID: chatID,
+	})
+	if err != nil {
+		return chatmember.ChatMember{}, err
+	}
+
+	return mapChatMemberFull(cm.ChatMember, db.Chat{}, cm.User), nil
 }

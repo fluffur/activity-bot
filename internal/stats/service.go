@@ -49,10 +49,7 @@ func NewService(cmr chatmember.Repository, nr norm.Repository, sr Repository) *S
 
 func (s *Service) GetChatStats(ctx context.Context, chatID int64, fromDate, toDate time.Time, newbieDays int32) (CalculatedStats, error) {
 	now := time.Now()
-	fmt.Println(fromDate)
-	fmt.Println(toDate)
-	fmt.Println(fromDate.Location())
-	fmt.Println(toDate.Location())
+
 	chatMembers, err := s.chatMemberRepo.List(ctx, chatmember.Filter{
 		ChatID: chatID,
 		IsBot:  chatmember.OptionalBool{Bool: false, Valid: true},
@@ -155,4 +152,41 @@ func (s *Service) GetChatStats(ctx context.Context, chatID int64, fromDate, toDa
 	}
 
 	return res, nil
+}
+
+func (s *Service) GetProfileStats(
+	ctx context.Context,
+	chatID,
+	userID int64,
+	statsRange ProfileStatsRange,
+) (ProfileStats, error) {
+	st, err := s.statsRepo.ProfileStats(
+		ctx,
+		chatID,
+		userID,
+		statsRange,
+	)
+	if err != nil {
+		return ProfileStats{}, fmt.Errorf("service stats: %w", err)
+	}
+
+	norms, err := s.normRepo.ListWithMembers(ctx, chatID)
+	if err != nil {
+		return ProfileStats{}, fmt.Errorf("list norms: %w", err)
+	}
+
+	for _, n := range norms {
+		if !n.BelongsToUser(userID) {
+			continue
+		}
+
+		st.Norms = append(st.Norms, ProfileNorm{
+			Name:     n.Name,
+			Required: n.Value,
+			Current:  st.WeekCount,
+			Passed:   st.WeekCount >= int64(n.Value),
+		})
+	}
+
+	return st, nil
 }

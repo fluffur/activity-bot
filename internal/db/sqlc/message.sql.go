@@ -286,6 +286,56 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 	return i, err
 }
 
+const getMessageAuthor = `-- name: GetMessageAuthor :one
+SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot, cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call
+FROM messages m
+         JOIN users u ON u.id = m.user_id
+         JOIN chat_members cm
+              ON cm.user_id = m.user_id
+                  AND cm.chat_id = m.chat_id
+WHERE m.message_id = $1
+  AND m.chat_id = $2
+`
+
+type GetMessageAuthorParams struct {
+	MessageID pgtype.Int8 `db:"message_id" json:"messageId"`
+	ChatID    int64       `db:"chat_id" json:"chatId"`
+}
+
+type GetMessageAuthorRow struct {
+	User       User       `db:"user" json:"user"`
+	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
+}
+
+func (q *Queries) GetMessageAuthor(ctx context.Context, arg GetMessageAuthorParams) (GetMessageAuthorRow, error) {
+	row := q.db.QueryRow(ctx, getMessageAuthor, arg.MessageID, arg.ChatID)
+	var i GetMessageAuthorRow
+	err := row.Scan(
+		&i.User.ID,
+		&i.User.Username,
+		&i.User.FirstName,
+		&i.User.LastName,
+		&i.User.CreatedAt,
+		&i.User.Gender,
+		&i.User.Emoji,
+		&i.User.CustomEmojiID,
+		&i.User.EmojiJson,
+		&i.User.IsBot,
+		&i.ChatMember.ChatID,
+		&i.ChatMember.UserID,
+		&i.ChatMember.JoinedAt,
+		&i.ChatMember.RestUntil,
+		&i.ChatMember.Tag,
+		&i.ChatMember.LeftAt,
+		&i.ChatMember.RestReason,
+		&i.ChatMember.Emoji,
+		&i.ChatMember.Status,
+		&i.ChatMember.EmojiJson,
+		&i.ChatMember.ExcludeFromCall,
+	)
+	return i, err
+}
+
 const userMessageActivityDaily = `-- name: UserMessageActivityDaily :many
 SELECT date_trunc('day', m.created_at)::date AS day,
        COUNT(m.chat_id)                      AS messages_count
