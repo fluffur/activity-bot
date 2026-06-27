@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/middleware/cctx"
+	"activity-bot/internal/utils/tghtml"
 	"context"
 	"errors"
 
@@ -73,20 +74,14 @@ func (p *PermissionChecker) Require(
 		}
 
 		if !cm.Permitted(status) {
-			chatID, ok := c.Chat()
-			if !ok {
-				return false
-			}
-
 			text := p.translator.TData(ch.Lang, i18n.System.NoPermission, i18n.SystemNoPermissionArgs(
-				p.translator.T(ch.Lang, status.TranslationKey())),
+				tghtml.Bold(p.translator.T(ch.Lang, status.TranslationKey()))),
 			)
 
 			if c.Update.CallbackQuery != nil {
-				_ = c.Bot.AnswerCallbackQuery(c.Context,
-					c.Update.CallbackQuery.ID, botapi.WithCallbackText(text))
+				_ = c.AnswerCallback(botapi.WithCallbackText(text))
 			} else if c.Update.Message != nil {
-				_, _ = c.Bot.SendMessage(c.Context, chatID, text, botapi.ReplyTo(c.Message().MessageID))
+				_, _ = c.Reply(text, botapi.WithParseMode(botapi.ParseModeHTML))
 			}
 		}
 

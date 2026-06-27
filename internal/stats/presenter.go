@@ -50,7 +50,7 @@ func (p *Presenter) RenderStats(ch chat.Chat, data CalculatedStats) string {
 				tghtml.Bold(UcFirst(norm.LocalisedNormName(p.translator, ch.Lang, r.NormName))),
 				tghtml.Code(fmt.Sprintf("%d", r.Required)),
 			)))
-			b.WriteString("\n")
+			b.WriteString("\n\n")
 
 			if len(r.Failed) > 0 {
 				var failed strings.Builder

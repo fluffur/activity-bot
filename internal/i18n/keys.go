@@ -57,6 +57,13 @@ var (
 			Item  MessageID
 			Title MessageID
 		}
+		Profile struct {
+			Desc            MessageID
+			ExampleDate     MessageID
+			ExampleDuration MessageID
+			Title           MessageID
+			TotalMessages   MessageID
+		}
 		ShowNorm struct {
 			Body     MessageID
 			Desc     MessageID
@@ -64,14 +71,16 @@ var (
 			NotFound MessageID
 		}
 		Stats struct {
-			Desc          MessageID
-			Failed        MessageID
-			NormTitle     MessageID
-			Passed        MessageID
-			Title         MessageID
-			TotalMessages MessageID
-			UserFailed    MessageID
-			UserPassed    MessageID
+			Desc            MessageID
+			ExampleDate     MessageID
+			ExampleDuration MessageID
+			Failed          MessageID
+			NormTitle       MessageID
+			Passed          MessageID
+			Title           MessageID
+			TotalMessages   MessageID
+			UserFailed      MessageID
+			UserPassed      MessageID
 		}
 		Summon struct {
 			Desc MessageID
@@ -131,6 +140,19 @@ var (
 			Item:  "cmd.list_norms.item",
 			Title: "cmd.list_norms.title",
 		},
+		Profile: struct {
+			Desc            MessageID
+			ExampleDate     MessageID
+			ExampleDuration MessageID
+			Title           MessageID
+			TotalMessages   MessageID
+		}{
+			Desc:            "cmd.profile.desc",
+			ExampleDate:     "cmd.profile.example_date",
+			ExampleDuration: "cmd.profile.example_duration",
+			Title:           "cmd.profile.title",
+			TotalMessages:   "cmd.profile.total_messages",
+		},
 		ShowNorm: struct {
 			Body     MessageID
 			Desc     MessageID
@@ -143,23 +165,27 @@ var (
 			NotFound: "cmd.show_norm.not_found",
 		},
 		Stats: struct {
-			Desc          MessageID
-			Failed        MessageID
-			NormTitle     MessageID
-			Passed        MessageID
-			Title         MessageID
-			TotalMessages MessageID
-			UserFailed    MessageID
-			UserPassed    MessageID
+			Desc            MessageID
+			ExampleDate     MessageID
+			ExampleDuration MessageID
+			Failed          MessageID
+			NormTitle       MessageID
+			Passed          MessageID
+			Title           MessageID
+			TotalMessages   MessageID
+			UserFailed      MessageID
+			UserPassed      MessageID
 		}{
-			Desc:          "cmd.stats.desc",
-			Failed:        "cmd.stats.failed",
-			NormTitle:     "cmd.stats.norm_title",
-			Passed:        "cmd.stats.passed",
-			Title:         "cmd.stats.title",
-			TotalMessages: "cmd.stats.total_messages",
-			UserFailed:    "cmd.stats.user_failed",
-			UserPassed:    "cmd.stats.user_passed",
+			Desc:            "cmd.stats.desc",
+			ExampleDate:     "cmd.stats.example_date",
+			ExampleDuration: "cmd.stats.example_duration",
+			Failed:          "cmd.stats.failed",
+			NormTitle:       "cmd.stats.norm_title",
+			Passed:          "cmd.stats.passed",
+			Title:           "cmd.stats.title",
+			TotalMessages:   "cmd.stats.total_messages",
+			UserFailed:      "cmd.stats.user_failed",
+			UserPassed:      "cmd.stats.user_passed",
 		},
 		Summon: struct {
 			Desc MessageID
@@ -285,6 +311,24 @@ func CmdListNormsItemArgs(
 	return map[string]any{
 		"Name":  name,
 		"Value": value,
+	}
+}
+
+func CmdProfileTitleArgs(
+	from any,
+	to any,
+) map[string]any {
+	return map[string]any{
+		"From": from,
+		"To":   to,
+	}
+}
+
+func CmdProfileTotalMessagesArgs(
+	total any,
+) map[string]any {
+	return map[string]any{
+		"Total": total,
 	}
 }
 

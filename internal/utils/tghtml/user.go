@@ -81,6 +81,20 @@ func ExpandableBlockquote(text string) string {
 	)
 }
 
-func DateTime(time time.Time, format, fallback string) string {
-	return fmt.Sprintf("<tg-time unix=\"%d\" format=%q>%s</tg-time>", time.Unix(), format, fallback)
+func DateTime(t time.Time, format, fallback string) string {
+	if abs := time.Since(t); abs < 0 {
+		abs = -abs
+		if abs > 3*365*24*time.Hour {
+			return fallback
+		}
+	} else if abs > 3*365*24*time.Hour {
+		return fallback
+	}
+
+	return fmt.Sprintf(
+		"<tg-time unix=\"%d\" format=%q>%s</tg-time>",
+		t.Unix(),
+		format,
+		fallback,
+	)
 }

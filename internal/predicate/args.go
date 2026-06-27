@@ -16,7 +16,7 @@ import (
 func NoArgs() botapi.Predicate {
 	return func(c *botapi.Context) bool {
 		args := Args(c)
-		return strings.TrimSpace(args.Text) == ""
+		return args == nil || strings.TrimSpace(args.Text) == ""
 	}
 }
 
@@ -33,10 +33,11 @@ const (
 const RuleVariadic = -1
 
 type Rule struct {
-	Type      RuleType
-	Optional  bool
-	Count     int
-	OnNextRow bool
+	Type         RuleType
+	Optional     bool
+	Count        int
+	OnNextRow    bool
+	TextValidate func(string) bool
 }
 
 type ParsedArgs struct {
@@ -109,7 +110,7 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 
 			if rule.Type == RuleText {
 				toks := getFreeTokens(text, usedOffsets)
-				log.For(c.Bot.Logger()).Debug(c.Context, "found free tokens", log.Int("count", count))
+
 				if len(toks) == 0 {
 					if rule.Optional {
 						continue
@@ -134,6 +135,11 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 				}
 
 				joinedText := strings.Join(textParts, " ")
+
+				if rule.TextValidate != nil && !rule.TextValidate(joinedText) {
+					return false
+				}
+
 				if joinedText != "" {
 					parsed.Texts = append(parsed.Texts, joinedText)
 					parsedCount++
@@ -194,6 +200,14 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 						}
 					}
 
+					if !matched && rule.Type == RuleUser && parsedCount == 0 {
+						if cm, ok := r.resolveReplyUser(c.Context, ch.ID, c); ok {
+							parsed.Users = append(parsed.Users, cm)
+							parsedCount++
+							matched = true
+						}
+					}
+
 					if !matched {
 						break
 					}
@@ -203,6 +217,11 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 			if parsedCount == 0 && !rule.Optional {
 				return false
 			}
+		}
+
+		remaining := getFreeTokens(text, usedOffsets)
+		if len(remaining) > 0 {
+			return false
 		}
 
 		c.Context = context.WithValue(c.Context, commandParsedArgsKey, parsed)
@@ -218,4 +237,28 @@ func allRulesAreOptional(rules ...Rule) bool {
 		}
 	}
 	return true
+}
+
+func (r *RuleChecker) resolveReplyUser(
+	ctx context.Context,
+	chatID int64,
+	c *botapi.Context,
+) (chatmember.ChatMember, bool) {
+	m := c.Message()
+	if m == nil {
+		return chatmember.ChatMember{}, false
+	}
+
+	reply := m.ReplyToMessage
+
+	if reply == nil || reply.From == nil {
+		return chatmember.ChatMember{}, false
+	}
+
+	cm, err := r.chatMemberRepository.Get(ctx, chatID, reply.From.ID)
+	if err != nil {
+		return chatmember.ChatMember{}, false
+	}
+
+	return cm, true
 }

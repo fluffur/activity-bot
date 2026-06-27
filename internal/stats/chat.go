@@ -64,12 +64,7 @@ func currentChatWeekRange(
 	weekStartDay int16,
 	weekStartTimeMicros int64,
 ) (time.Time, time.Time, error) {
-	loc, err := time.LoadLocation("Europe/Moscow")
-	if err != nil {
-		return time.Time{}, time.Time{}, err
-	}
-
-	now := time.Now().In(loc)
+	now := time.Now()
 
 	startTime := time.Duration(weekStartTimeMicros) * time.Microsecond
 
@@ -95,7 +90,7 @@ func currentChatWeekRange(
 		minutes,
 		seconds,
 		0,
-		loc,
+		now.Location(),
 	).AddDate(0, 0, -daysBack)
 
 	if start.After(now) {

@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/middleware/cctx"
 	"activity-bot/internal/predicate"
+	"activity-bot/internal/utils/tghtml"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -35,8 +36,10 @@ func (h *Handler) AddNorm(c *botapi.Context) error {
 	normMin := int32(1)
 	normMax := int32(10000)
 	if normValue < normMin || normValue > normMax {
+		normValueStr := tghtml.Bold(fmt.Sprintf("%d", normValue))
 		_, err := c.Reply(h.translator.TData(
-			ch.Lang, i18n.Cmd.AddNorm.ErrInvalidValue, i18n.CmdAddNormErrInvalidValueArgs(normValue, normMin, normMax)),
+			ch.Lang, i18n.Cmd.AddNorm.ErrInvalidValue, i18n.CmdAddNormErrInvalidValueArgs(normMax, normMin, normValueStr)),
+			botapi.WithParseMode(botapi.ParseModeHTML),
 		)
 
 		return err
@@ -49,11 +52,6 @@ func (h *Handler) AddNorm(c *botapi.Context) error {
 		if text != "" && text != LocalisedNormName(h.translator, ch.Lang, name) {
 			name = text
 		}
-	}
-
-	if !isValidNormName(name) {
-		_, err := c.Reply(h.translator.TData(ch.Lang, i18n.Cmd.AddNorm.ErrInvalidName, i18n.CmdAddNormErrInvalidNameArgs(name)))
-		return err
 	}
 
 	if err := h.normRepository.Set(c.Context, ch.ID, name, normValue); err != nil {
@@ -128,10 +126,6 @@ func (h *Handler) ShowNorm(c *botapi.Context) error {
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("show norm: %w", err)
-		}
-
-		if !isValidNormName(name) {
-			return nil
 		}
 
 		_, err := c.Reply(h.translator.TData(ch.Lang, i18n.Cmd.ShowNorm.NotFound,
@@ -213,7 +207,9 @@ func isValidNormName(name string) bool {
 		return false
 	}
 
-	if utf8.RuneCountInString(name) > 64 {
+	length := utf8.RuneCountInString(name)
+
+	if length > 20 || length < 2 {
 		return false
 	}
 

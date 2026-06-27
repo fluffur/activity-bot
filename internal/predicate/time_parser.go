@@ -62,24 +62,24 @@ func tryParseAdvancedDateTime(toks []token) (time.Time, int, bool) {
 	}
 
 	t0 := toks[0].text
-	now := time.Now()
+	loc, _ := time.LoadLocation("Europe/Moscow")
+	now := time.Now().In(loc)
 
-	// Сначала проверяем стандартные форматы в рамках ОДНОГО токена
 	// DD.MM.YYYY
-	if t, err := time.Parse("02.01.2006", t0); err == nil {
+	if t, err := time.ParseInLocation("02.01.2006", t0, loc); err == nil {
 		return t, 1, true
 	}
-	// DD.MM (подставляем текущий год)
-	if t, err := time.Parse("02.01", t0); err == nil {
+	// DD.MM
+	if t, err := time.ParseInLocation("02.01", t0, loc); err == nil {
 		parsedDate := time.Date(now.Year(), t.Month(), t.Day(), 0, 0, 0, 0, now.Location())
 		return parsedDate, 1, true
 	}
 	// YYYY-MM-DD
-	if t, err := time.Parse("2006-01-02", t0); err == nil {
+	if t, err := time.ParseInLocation("2006-01-02", t0, loc); err == nil {
 		return t, 1, true
 	}
 	// RFC3339
-	if t, err := time.Parse(time.RFC3339, t0); err == nil {
+	if t, err := time.ParseInLocation(time.RFC3339, t0, loc); err == nil {
 		return t, 1, true
 	}
 

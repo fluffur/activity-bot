@@ -49,7 +49,10 @@ func NewService(cmr chatmember.Repository, nr norm.Repository, sr Repository) *S
 
 func (s *Service) GetChatStats(ctx context.Context, chatID int64, fromDate, toDate time.Time, newbieDays int32) (CalculatedStats, error) {
 	now := time.Now()
-
+	fmt.Println(fromDate)
+	fmt.Println(toDate)
+	fmt.Println(fromDate.Location())
+	fmt.Println(toDate.Location())
 	chatMembers, err := s.chatMemberRepo.List(ctx, chatmember.Filter{
 		ChatID: chatID,
 		IsBot:  chatmember.OptionalBool{Bool: false, Valid: true},

@@ -3,7 +3,7 @@ add_bot_button = { other = "Добавить бота в группу" }
 bot_commands = { other = "Команды бота" }
 bot_added = { other = "Меня добавили в группу!\n\nТеперь, для того, чтобы я мог работать корректно, мне нужно выдать права администратора в группе (все пункты, кроме анонимности)" }
 bot_added_admin = { other = "Меня добавили в группу!\n\nТеперь можно приступить к настройке бота" }
-no_permission = { other = "Для выполнения этой команды требуются права \"{{.Status}}\"" }
+no_permission = { other = "Для выполнения этой команды требуются права {{.Status}}" }
 
 [user]
 unknown = { other = "участник" }
@@ -51,8 +51,7 @@ example_simple = { other = "+норма 50" }
 example_named = { other = "+норма 70 варн" }
 example_users = { other = """+норма 10 особенные
 @user1 @user2""" }
-err_invalid_value = { other = "Неверное значение нормы \"{{.Value}}\". Допустимый диапазон: от {{.Min}} до {{.Max}}." }
-err_invalid_name = { other = "Неверное название нормы \"{{.Name}}\". Допустимы только буквы и пробелы" }
+err_invalid_value = { other = "Неверное значение нормы {{.Value}}.\nДопустимый диапазон: от {{.Min}} до {{.Max}}." }
 added = { other = "Норма \"{{.Name}}\" ({{.Value}}) успешно установлена" }
 norm_general = { other = "общая" }
 
@@ -75,11 +74,20 @@ deleted = { other = "Норма \"{{.Name}}\" удалена" }
 err_nothing_to_delete = { other = "Норма с именем \"{{.Name}}\" не найдена для удаления" }
 
 [cmd.stats]
-desc = { other = "Статистика по нормам" }
+desc = { other = "Статистика чата по нормам" }
 title = { other = "📊 {{.From}} — {{.To}}" }
 norm_title = { other = "{{.Name}} {{.Required}}" }
-passed = { other = "✅ Выполнили" }
-failed = { other = "❌ Не выполнили" }
+passed = { other = "🏆 Выполнили норму" }
+failed = { other = "⚠️ Требуется активность" }
 user_passed = { other = "{{.List}}. {{.User}} — {{.Messages}}" }
 user_failed = { other = "{{.List}}. {{.User}} — {{.Messages}}/{{.Required}}" }
 total_messages = { other = "📨 Всего сообщений: {{.Total}}" }
+example_duration = { other = "отчет неделя" }
+example_date = { other = "отчет 1 июня 25 июля" }
+
+[cmd.profile]
+desc = { other = "Статистика участника" }
+title = { other = "📊 {{.From}} — {{.To}}" }
+total_messages = { other = "📨 Всего сообщений: {{.Total}}" }
+example_duration = { other = "профиль неделя" }
+example_date = { other = "профиль 1 июня 25 июля" }

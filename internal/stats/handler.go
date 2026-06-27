@@ -44,8 +44,8 @@ func (h *Handler) Register(registry *command.Registry) {
 		Trigger:     command.TriggerCommand,
 		MinStatus:   chatmember.StatusMember,
 		Category:    command.CategoryStats,
-		Description: "",
-		Examples:    nil,
+		Description: i18n.Cmd.Stats.Desc,
+		Examples:    []i18n.MessageID{i18n.Cmd.Stats.ExampleDuration, i18n.Cmd.Stats.ExampleDate},
 		Scope:       command.ScopeGroup,
 		ShowInHelp:  true,
 		Rules: []predicate.Rule{
@@ -53,11 +53,59 @@ func (h *Handler) Register(registry *command.Registry) {
 			{Type: predicate.RuleDateTime, Optional: true, Count: 2},
 		},
 	}
+
+	profileDef := &command.ActionDef{
+		Key:         "profile",
+		Aliases:     []string{"кто ты", "профиль"},
+		Trigger:     command.TriggerCommand,
+		MinStatus:   chatmember.StatusMember,
+		Category:    command.CategoryStats,
+		Description: i18n.Cmd.Profile.Desc,
+		Examples:    []i18n.MessageID{i18n.Cmd.Profile.ExampleDuration, i18n.Cmd.Profile.ExampleDate},
+		Scope:       command.ScopeGroup,
+		ShowInHelp:  true,
+		Rules: []predicate.Rule{
+			{Type: predicate.RuleUser, Optional: false, Count: 1},
+			{Type: predicate.RuleDuration, Optional: true, Count: 1},
+			{Type: predicate.RuleDateTime, Optional: true, Count: 2},
+		},
+	}
+
+	profileMeDef := &command.ActionDef{
+		Key:         "me",
+		Aliases:     []string{"кто я", "профиль"},
+		Trigger:     command.TriggerCommand,
+		MinStatus:   chatmember.StatusMember,
+		Category:    command.CategoryStats,
+		Description: i18n.Cmd.Profile.Desc,
+		Examples:    []i18n.MessageID{i18n.Cmd.Profile.ExampleDuration, i18n.Cmd.Profile.ExampleDate},
+		Scope:       command.ScopeGroup,
+		ShowInHelp:  true,
+		Rules: []predicate.Rule{
+			{Type: predicate.RuleDuration, Optional: true, Count: 1},
+			{Type: predicate.RuleDateTime, Optional: true, Count: 2},
+		},
+	}
+
 	registry.Add(chatDef)
+	registry.Add(profileDef)
+	registry.Add(profileMeDef)
 
 	h.bot.OnMessage(h.Chat,
 		predicate.Command(chatDef.Key, chatDef.Aliases...),
 		h.rules.With(chatDef.Rules...),
 		h.permissions.Require(chatDef.Key, chatDef.MinStatus),
+	)
+
+	h.bot.OnMessage(h.Profile,
+		predicate.Command(profileDef.Key, profileDef.Aliases...),
+		h.rules.With(profileDef.Rules...),
+		h.permissions.Require(profileDef.Key, profileDef.MinStatus),
+	)
+
+	h.bot.OnMessage(h.Profile,
+		predicate.Command(profileMeDef.Key, profileMeDef.Aliases...),
+		h.rules.With(profileMeDef.Rules...),
+		h.permissions.Require(profileMeDef.Key, profileMeDef.MinStatus),
 	)
 }

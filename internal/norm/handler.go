@@ -35,7 +35,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Rules: []predicate.Rule{
 			{Type: predicate.RuleNumber, Count: 1, Optional: false},
 			{Type: predicate.RuleUser, Count: predicate.RuleVariadic, Optional: true},
-			{Type: predicate.RuleText, Count: 1, Optional: true},
+			{Type: predicate.RuleText, Count: 1, Optional: true, TextValidate: isValidNormName},
 		},
 	}
 
@@ -60,7 +60,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Scope:       command.ScopeGroup,
 		ShowInHelp:  true,
 		Rules: []predicate.Rule{
-			{Type: predicate.RuleText, Count: 1, Optional: true},
+			{Type: predicate.RuleText, Count: 1, Optional: true, TextValidate: isValidNormName},
 		},
 	}
 
@@ -74,7 +74,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Scope:       command.ScopeGroup,
 		ShowInHelp:  true,
 		Rules: []predicate.Rule{
-			{Type: predicate.RuleText, Count: 1, Optional: false},
+			{Type: predicate.RuleText, Count: 1, Optional: false, TextValidate: isValidNormName},
 		},
 	}
 
@@ -92,6 +92,7 @@ func (h *Handler) Register(registry *command.Registry) {
 	h.bot.OnMessage(
 		h.ListNorms,
 		predicate.Command(listNormsDef.Key, listNormsDef.Aliases...),
+		predicate.NoArgs(),
 	)
 
 	h.bot.OnMessage(
