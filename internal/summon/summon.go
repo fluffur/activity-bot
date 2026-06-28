@@ -3,17 +3,21 @@ package summon
 import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
+	"activity-bot/internal/i18n"
 	"activity-bot/internal/middleware/cctx"
 	"activity-bot/internal/predicate"
 	"activity-bot/internal/utils/tghtml"
 	"fmt"
-	"log"
 	"strings"
+	"time"
+
+	"github.com/gotd/log"
+	"golang.org/x/time/rate"
 
 	"github.com/gotd/botapi"
 )
 
-func (h *Handler) Summon(c *botapi.Context) error {
+func (h *Handler) SummonAll(c *botapi.Context) error {
 	ch, err := cctx.Chat(c.Context)
 	if err != nil {
 		return fmt.Errorf("summon chat: %w", err)
@@ -29,13 +33,19 @@ func (h *Handler) Summon(c *botapi.Context) error {
 	if strings.TrimSpace(text) == "" {
 		text = ch.WelcomeCallMessage
 	}
-	if strings.TrimSpace(text) == "" {
-		text = "ㅤ"
-	}
 
-	cms, err := h.chatMemberService.ListHumanChatMembers(c.Context, ch.ID)
+	cms, err := h.chatMemberService.ListSummonChatMembers(c.Context, ch.ID)
 	if err != nil {
 		return fmt.Errorf("summon cms list: %w", err)
+	}
+
+	return h.Summon(c, text, ch, cms)
+}
+
+func (h *Handler) Summon(c *botapi.Context, text string, ch chat.Chat, cms []chatmember.ChatMember) error {
+	if _, loaded := h.activeSummons.LoadOrStore(ch.ID, struct{}{}); loaded {
+		_, err := c.Reply(h.translator.T(ch.Lang, i18n.Cmd.Summon.AlreadyRunning))
+		return err
 	}
 
 	mentions := BuildMentions(cms, ch.MentionTypes)
@@ -49,7 +59,21 @@ func (h *Handler) Summon(c *botapi.Context) error {
 
 	msgs := BuildMentionMessages(text, mentions, perMsg, sep)
 
-	return SendMessages(c, ch.ID, msgs)
+	go func() {
+		defer h.activeSummons.Delete(ch.ID)
+
+		if err := SendMessages(
+			c,
+			h.translator,
+			ch.Lang,
+			ch.ID,
+			msgs,
+		); err != nil {
+			log.For(c.Bot.Logger()).Error(c.Context, "send messages", log.Error(err))
+		}
+	}()
+
+	return nil
 }
 
 func BuildMentionMessages(
@@ -83,6 +107,8 @@ func BuildMentionMessages(
 
 func SendMessages(
 	c *botapi.Context,
+	t *i18n.Translator,
+	lang string,
 	chatID int64,
 	messages []string,
 ) error {
@@ -94,20 +120,26 @@ func SendMessages(
 		photoID = msg.Photo[len(msg.Photo)-1].FileID
 	}
 
+	chatLimiter := rate.NewLimiter(rate.Every(1500*time.Microsecond), 1)
 	for _, text := range messages {
+		if err := chatLimiter.Wait(c.Background()); err != nil {
+			return fmt.Errorf("send summon messages: %w", err)
+		}
 
 		var err error
 
 		if photoID != "" {
 			_, err = c.Bot.SendPhoto(
-				c.Context,
+				c.Background(),
 				botapi.ID(chatID),
 				botapi.FileID(photoID),
 				text,
 				botapi.WithParseMode(botapi.ParseModeHTML),
 			)
 		} else {
-			_, err = c.Reply(
+			_, err = c.Bot.SendMessage(
+				c.Background(),
+				botapi.ID(chatID),
 				text,
 				botapi.WithParseMode(botapi.ParseModeHTML),
 				botapi.DisableWebPagePreview(),
@@ -119,7 +151,19 @@ func SendMessages(
 		}
 	}
 
-	return nil
+	if err := chatLimiter.Wait(c.Background()); err != nil {
+		return fmt.Errorf("send summon last msg: %w", err)
+	}
+
+	_, err := c.Bot.SendMessage(
+		c.Background(),
+		botapi.ID(chatID),
+		t.T(lang, i18n.Cmd.Summon.Completed),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview(),
+	)
+
+	return err
 }
 
 func RenderMention(cm chatmember.ChatMember, mentionTypes chat.MentionTypes) string {
@@ -130,7 +174,7 @@ func RenderMention(cm chatmember.ChatMember, mentionTypes chat.MentionTypes) str
 	result := ""
 
 	if hasEmoji && cm.AnyEmoji() != "" {
-		result += cm.AnyEmoji()
+		result += cm.AnyEmoji() + " "
 	}
 
 	if hasRole && hasName && cm.Tag != "" {
@@ -149,10 +193,7 @@ func RenderMention(cm chatmember.ChatMember, mentionTypes chat.MentionTypes) str
 		result = "​"
 	}
 
-	log.Printf("result %q", result)
-	log.Println(hasEmoji, hasRole, hasName)
 	return tghtml.UserMention(cm.User.ID, result)
-
 }
 
 func ReplaceMentions(text string, entities []botapi.MessageEntity) string {

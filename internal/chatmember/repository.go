@@ -11,9 +11,10 @@ type OptionalBool struct {
 }
 
 type Filter struct {
-	ChatID int64
-	IsBot  OptionalBool
-	Left   OptionalBool
+	ChatID   int64
+	IsBot    OptionalBool
+	Left     OptionalBool
+	Excluded OptionalBool
 }
 
 type Repository interface {
@@ -26,4 +27,5 @@ type Repository interface {
 	MarkAllLeftExcept(ctx context.Context, chatID int64, userIDs []int64, leftAt time.Time) error
 	UpsertChatMembers(ctx context.Context, chatID int64, chatMembers []ChatMember) error
 	List(ctx context.Context, filter Filter) ([]ChatMember, error)
+	SetExcludeFromSummon(ctx context.Context, chatID, userID int64, excluded bool) error
 }

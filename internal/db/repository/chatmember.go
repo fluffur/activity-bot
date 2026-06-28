@@ -125,6 +125,10 @@ func (r *ChatMemberRepository) List(ctx context.Context, filter chatmember.Filte
 			Bool:  filter.Left.Bool,
 			Valid: filter.Left.Valid,
 		},
+		ExcludeFromCall: pgtype.Bool{
+			Bool:  filter.Excluded.Bool,
+			Valid: filter.Excluded.Valid,
+		},
 	}
 
 	cms, err := r.queries.ListChatMembers(ctx, params)
@@ -148,4 +152,12 @@ func (r *ChatMemberRepository) GetByUsername(ctx context.Context, chatID int64, 
 	}
 
 	return mapChatMemberFull(cm.ChatMember, db.Chat{}, cm.User), nil
+}
+
+func (r *ChatMemberRepository) SetExcludeFromSummon(ctx context.Context, chatID, userID int64, excluded bool) error {
+	return r.queries.SetChatMemberExcludeFromSummon(ctx, db.SetChatMemberExcludeFromSummonParams{
+		ExcludeFromCall: excluded,
+		UserID:          userID,
+		ChatID:          chatID,
+	})
 }

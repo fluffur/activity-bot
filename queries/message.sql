@@ -1,7 +1,9 @@
--- name: CreateMessage :one
+-- name: CreateMessage :exec
 INSERT INTO messages(chat_id, user_id, created_at, message_id)
 VALUES ($1, $2, $3, $4)
-RETURNING *;
+ON CONFLICT (chat_id, message_id)
+WHERE message_id IS NOT NULL
+  AND message_id <> 0 DO NOTHING;
 
 -- name: GetMessageAuthor :one
 SELECT sqlc.embed(u), sqlc.embed(cm)

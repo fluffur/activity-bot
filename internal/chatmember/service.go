@@ -124,7 +124,7 @@ func (s *Service) UpdateTag(ctx context.Context, chatID, userID int64, newRank s
 	return s.chatMemberRepo.SetTag(ctx, chatID, userID, newRank)
 }
 
-func (s *Service) ListHumanChatMembers(ctx context.Context, chatID int64) ([]ChatMember, error) {
+func (s *Service) ListSummonChatMembers(ctx context.Context, chatID int64) ([]ChatMember, error) {
 	return s.chatMemberRepo.List(ctx, Filter{
 		ChatID: chatID,
 		IsBot: OptionalBool{
@@ -135,5 +135,13 @@ func (s *Service) ListHumanChatMembers(ctx context.Context, chatID int64) ([]Cha
 			Bool:  false,
 			Valid: true,
 		},
+		Excluded: OptionalBool{
+			Bool:  false,
+			Valid: true,
+		},
 	})
+}
+
+func (s *Service) SetExcludeFromSummon(ctx context.Context, chatID, userID int64, excluded bool) error {
+	return s.chatMemberRepo.SetExcludeFromSummon(ctx, chatID, userID, excluded)
 }

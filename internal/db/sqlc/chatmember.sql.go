@@ -168,13 +168,18 @@ WHERE cm.chat_id = $1
     $3::boolean IS NULL
         OR (cm.left_at IS NOT NULL) = $3
     )
+  AND (
+    $4::boolean IS NULL
+        OR cm.exclude_from_call = $4
+    )
 ORDER BY cm.joined_at
 `
 
 type ListChatMembersParams struct {
-	ChatID  int64       `db:"chat_id" json:"chatId"`
-	IsBot   pgtype.Bool `db:"is_bot" json:"isBot"`
-	HasLeft pgtype.Bool `db:"has_left" json:"hasLeft"`
+	ChatID          int64       `db:"chat_id" json:"chatId"`
+	IsBot           pgtype.Bool `db:"is_bot" json:"isBot"`
+	HasLeft         pgtype.Bool `db:"has_left" json:"hasLeft"`
+	ExcludeFromCall pgtype.Bool `db:"exclude_from_call" json:"excludeFromCall"`
 }
 
 type ListChatMembersRow struct {
@@ -183,7 +188,12 @@ type ListChatMembersRow struct {
 }
 
 func (q *Queries) ListChatMembers(ctx context.Context, arg ListChatMembersParams) ([]ListChatMembersRow, error) {
-	rows, err := q.db.Query(ctx, listChatMembers, arg.ChatID, arg.IsBot, arg.HasLeft)
+	rows, err := q.db.Query(ctx, listChatMembers,
+		arg.ChatID,
+		arg.IsBot,
+		arg.HasLeft,
+		arg.ExcludeFromCall,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -258,6 +268,24 @@ type MarkChatMemberLeftParams struct {
 
 func (q *Queries) MarkChatMemberLeft(ctx context.Context, arg MarkChatMemberLeftParams) error {
 	_, err := q.db.Exec(ctx, markChatMemberLeft, arg.LeftAt, arg.UserID, arg.ChatID)
+	return err
+}
+
+const setChatMemberExcludeFromSummon = `-- name: SetChatMemberExcludeFromSummon :exec
+UPDATE chat_members
+SET exclude_from_call = $1
+WHERE user_id = $2
+  AND chat_id = $3
+`
+
+type SetChatMemberExcludeFromSummonParams struct {
+	ExcludeFromCall bool  `db:"exclude_from_call" json:"excludeFromCall"`
+	UserID          int64 `db:"user_id" json:"userId"`
+	ChatID          int64 `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) SetChatMemberExcludeFromSummon(ctx context.Context, arg SetChatMemberExcludeFromSummonParams) error {
+	_, err := q.db.Exec(ctx, setChatMemberExcludeFromSummon, arg.ExcludeFromCall, arg.UserID, arg.ChatID)
 	return err
 }
 

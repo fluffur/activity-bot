@@ -219,8 +219,3 @@ HAVING MAX(m.created_at) IS NULL
     OR MAX(m.created_at) < NOW() - INTERVAL '1 days'
 ORDER BY MAX(m.created_at) NULLS FIRST;
 
--- name: SetChatMemberExcludeFromCall :exec
-UPDATE chat_members
-SET exclude_from_call = $1
-WHERE user_id = $2
-  AND chat_id = $3;

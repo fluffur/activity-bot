@@ -255,10 +255,12 @@ func (q *Queries) ChatMessageActivityDaily(ctx context.Context, arg ChatMessageA
 	return items, nil
 }
 
-const createMessage = `-- name: CreateMessage :one
+const createMessage = `-- name: CreateMessage :exec
 INSERT INTO messages(chat_id, user_id, created_at, message_id)
 VALUES ($1, $2, $3, $4)
-RETURNING chat_id, user_id, created_at, id, message_id
+ON CONFLICT (chat_id, message_id)
+WHERE message_id IS NOT NULL
+  AND message_id <> 0 DO NOTHING
 `
 
 type CreateMessageParams struct {
@@ -268,22 +270,14 @@ type CreateMessageParams struct {
 	MessageID pgtype.Int8        `db:"message_id" json:"messageId"`
 }
 
-func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error) {
-	row := q.db.QueryRow(ctx, createMessage,
+func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) error {
+	_, err := q.db.Exec(ctx, createMessage,
 		arg.ChatID,
 		arg.UserID,
 		arg.CreatedAt,
 		arg.MessageID,
 	)
-	var i Message
-	err := row.Scan(
-		&i.ChatID,
-		&i.UserID,
-		&i.CreatedAt,
-		&i.ID,
-		&i.MessageID,
-	)
-	return i, err
+	return err
 }
 
 const getMessageAuthor = `-- name: GetMessageAuthor :one

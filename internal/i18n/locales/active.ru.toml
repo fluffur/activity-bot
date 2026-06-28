@@ -45,6 +45,16 @@ aliases_label = { other = "Синонимы: {{.Aliases}}" }
 
 [cmd.summon]
 desc = { other = "Созыв всех участников" }
+completed = { other = "Созыв завершен" }
+already_running = { other = "Созыв уже выполняется" }
+
+[cmd.unreg]
+desc = { other = "Исключить участника из общего созыва" }
+set = { other = "Вы исключены из общего созыва" }
+
+[cmd.reg]
+desc = { other = "Включить участника в общий созыв" }
+set = { other = "Вы включены в общий созыв" }
 
 [cmd.add_norm]
 desc = { other = "Добавить новую норму" }

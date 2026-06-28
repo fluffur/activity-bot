@@ -71,7 +71,11 @@ func Command(name string, aliases ...string) botapi.Predicate {
 			return false
 		}
 
-		botUsername := strings.ToLower(c.Bot.Self().Username)
+		self := c.Bot.Self()
+		if self == nil {
+			return false
+		}
+		botUsername := strings.ToLower(self.Username)
 
 		for _, cmd := range commands {
 			cmdLenBytes, ok := matchCommandAndGetLen(trimmedText, cmd, botUsername)
@@ -81,7 +85,6 @@ func Command(name string, aliases ...string) botapi.Predicate {
 
 			cmdEndRuneIdxInTrimmed := len([]rune(trimmedText[:cmdLenBytes]))
 
-			// Вычисляем абсолютное смещение рун в исходном сообщении `text`
 			prefixRunes := []rune(prefix)
 			absRuneIdx := len(prefixRunes) + leadingSpacesRunes + cmdEndRuneIdxInTrimmed
 
@@ -90,7 +93,6 @@ func Command(name string, aliases ...string) botapi.Predicate {
 				absRuneIdx = len(runes)
 			}
 
-			// Считаем UTF-16 смещение для корректного сдвига Telegram Entities
 			utf16Offset := len(utf16.Encode(runes[:absRuneIdx]))
 
 			var argsEntities []botapi.MessageEntity
@@ -132,9 +134,7 @@ func Command(name string, aliases ...string) botapi.Predicate {
 	}
 }
 
-// matchCommandAndGetLen проверяет команду и возвращает длину текста команды в байтах
 func matchCommandAndGetLen(trimmedText string, command string, botUsername string) (int, bool) {
-	// Работаем строго по ПЕРВОЙ строке, чтобы переносы \n не ломали логику
 	firstLine := trimmedText
 	if idx := strings.Index(trimmedText, "\n"); idx != -1 {
 		firstLine = trimmedText[:idx]
@@ -158,7 +158,6 @@ func matchCommandAndGetLen(trimmedText string, command string, botUsername strin
 			if word == cmdWord {
 				continue
 			}
-			// Проверка на обращение через @ к боту (+норма@my_bot)
 			if strings.HasPrefix(word, cmdWord+"@") {
 				username := strings.TrimPrefix(word, cmdWord+"@")
 				if username == botUsername {
@@ -173,10 +172,8 @@ func matchCommandAndGetLen(trimmedText string, command string, botUsername strin
 		}
 	}
 
-	// Вычисляем, сколько байт заняла команда в первой строке вместе со всеми внутренними пробелами
 	pos := len(cmdWords)
 
-	// Если после команды идет отдельный токен-аттачмент бота (например: "+норма @testbot")
 	if len(words) > pos && strings.HasPrefix(words[pos], "@") {
 		if strings.ToLower(words[pos][1:]) == botUsername {
 			pos++

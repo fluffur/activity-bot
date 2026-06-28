@@ -78,6 +78,10 @@ var (
 			Title           MessageID
 			TotalMessages   MessageID
 		}
+		Reg struct {
+			Desc MessageID
+			Set  MessageID
+		}
 		ShowNorm struct {
 			AllMembers MessageID
 			Body       MessageID
@@ -99,13 +103,19 @@ var (
 			UserPassed      MessageID
 		}
 		Summon struct {
-			Desc MessageID
+			AlreadyRunning MessageID
+			Completed      MessageID
+			Desc           MessageID
 		}
 		UnassignNorm struct {
 			Desc       MessageID
 			Example    MessageID
 			NoUsers    MessageID
 			Unassigned MessageID
+		}
+		Unreg struct {
+			Desc MessageID
+			Set  MessageID
 		}
 	}{
 		AddNorm: struct {
@@ -198,6 +208,13 @@ var (
 			Title:           "cmd.profile.title",
 			TotalMessages:   "cmd.profile.total_messages",
 		},
+		Reg: struct {
+			Desc MessageID
+			Set  MessageID
+		}{
+			Desc: "cmd.reg.desc",
+			Set:  "cmd.reg.set",
+		},
 		ShowNorm: struct {
 			AllMembers MessageID
 			Body       MessageID
@@ -237,9 +254,13 @@ var (
 			UserPassed:      "cmd.stats.user_passed",
 		},
 		Summon: struct {
-			Desc MessageID
+			AlreadyRunning MessageID
+			Completed      MessageID
+			Desc           MessageID
 		}{
-			Desc: "cmd.summon.desc",
+			AlreadyRunning: "cmd.summon.already_running",
+			Completed:      "cmd.summon.completed",
+			Desc:           "cmd.summon.desc",
 		},
 		UnassignNorm: struct {
 			Desc       MessageID
@@ -251,6 +272,13 @@ var (
 			Example:    "cmd.unassign_norm.example",
 			NoUsers:    "cmd.unassign_norm.no_users",
 			Unassigned: "cmd.unassign_norm.unassigned",
+		},
+		Unreg: struct {
+			Desc MessageID
+			Set  MessageID
+		}{
+			Desc: "cmd.unreg.desc",
+			Set:  "cmd.unreg.set",
 		},
 	}
 	Status = struct {
@@ -462,6 +490,14 @@ func CmdProfileTotalMessagesArgs(
 	}
 }
 
+func CmdRegSetArgs(
+	user any,
+) map[string]any {
+	return map[string]any{
+		"User": user,
+	}
+}
+
 func CmdShowNormBodyArgs(
 	name any,
 	value any,
@@ -543,6 +579,14 @@ func CmdUnassignNormUnassignedArgs(
 ) map[string]any {
 	return map[string]any{
 		"Name": name,
+	}
+}
+
+func CmdUnregSetArgs(
+	user any,
+) map[string]any {
+	return map[string]any{
+		"User": user,
 	}
 }
 

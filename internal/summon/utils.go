@@ -3,7 +3,7 @@ package summon
 import "activity-bot/internal/chat"
 
 func mentionSeparator(mt chat.MentionTypes) string {
-	if mt.Has(chat.MentionEmoji) {
+	if mt.Has(chat.MentionEmoji) && !mt.Has(chat.MentionRole) && !mt.Has(chat.MentionName) {
 		return " "
 	}
 	return ", "

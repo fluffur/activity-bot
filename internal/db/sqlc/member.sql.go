@@ -732,24 +732,6 @@ func (q *Queries) SetChatMemberEmojiJSON(ctx context.Context, arg SetChatMemberE
 	return err
 }
 
-const setChatMemberExcludeFromCall = `-- name: SetChatMemberExcludeFromCall :exec
-UPDATE chat_members
-SET exclude_from_call = $1
-WHERE user_id = $2
-  AND chat_id = $3
-`
-
-type SetChatMemberExcludeFromCallParams struct {
-	ExcludeFromCall bool  `db:"exclude_from_call" json:"excludeFromCall"`
-	UserID          int64 `db:"user_id" json:"userId"`
-	ChatID          int64 `db:"chat_id" json:"chatId"`
-}
-
-func (q *Queries) SetChatMemberExcludeFromCall(ctx context.Context, arg SetChatMemberExcludeFromCallParams) error {
-	_, err := q.db.Exec(ctx, setChatMemberExcludeFromCall, arg.ExcludeFromCall, arg.UserID, arg.ChatID)
-	return err
-}
-
 const setChatMemberStatus = `-- name: SetChatMemberStatus :exec
 UPDATE chat_members
 SET status = $1

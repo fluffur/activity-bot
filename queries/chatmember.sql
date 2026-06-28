@@ -92,6 +92,10 @@ WHERE cm.chat_id = @chat_id
     sqlc.narg(has_left)::boolean IS NULL
         OR (cm.left_at IS NOT NULL) = sqlc.narg(has_left)
     )
+  AND (
+    sqlc.narg(exclude_from_call)::boolean IS NULL
+        OR cm.exclude_from_call = sqlc.narg(exclude_from_call)
+    )
 ORDER BY cm.joined_at;
 
 -- name: GetChatMemberByUsername :one
@@ -101,3 +105,9 @@ FROM chat_members cm
 WHERE cm.chat_id = $1
   AND u.username ILIKE $2
 LIMIT 1;
+
+-- name: SetChatMemberExcludeFromSummon :exec
+UPDATE chat_members
+SET exclude_from_call = $1
+WHERE user_id = $2
+  AND chat_id = $3;
