@@ -17,6 +17,7 @@ type Category string
 
 const (
 	CategoryHelp       Category = "help"
+	CategoryNorm       Category = "norm"
 	CategoryStats      Category = "stats"
 	CategorySummon     Category = "summon"
 	CategoryModeration Category = "moderation"
@@ -28,6 +29,7 @@ func Categories() []Category {
 		CategoryHelp,
 		CategorySummon,
 		CategoryEvents,
+		CategoryNorm,
 		CategoryStats,
 	}
 }

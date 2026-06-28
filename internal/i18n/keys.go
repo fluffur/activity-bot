@@ -20,10 +20,12 @@ var (
 	}
 	Category = struct {
 		Help   MessageID
+		Norm   MessageID
 		Stats  MessageID
 		Summon MessageID
 	}{
 		Help:   "category.help",
+		Norm:   "category.norm",
 		Stats:  "category.stats",
 		Summon: "category.summon",
 	}
@@ -36,6 +38,12 @@ var (
 			ExampleSimple   MessageID
 			ExampleUsers    MessageID
 			NormGeneral     MessageID
+		}
+		AssignNorm struct {
+			Assigned MessageID
+			Desc     MessageID
+			Example  MessageID
+			NoUsers  MessageID
 		}
 		DeleteNorm struct {
 			Deleted            MessageID
@@ -71,10 +79,12 @@ var (
 			TotalMessages   MessageID
 		}
 		ShowNorm struct {
-			Body     MessageID
-			Desc     MessageID
-			Example  MessageID
-			NotFound MessageID
+			AllMembers MessageID
+			Body       MessageID
+			Desc       MessageID
+			Example    MessageID
+			Members    MessageID
+			NotFound   MessageID
 		}
 		Stats struct {
 			Desc            MessageID
@@ -90,6 +100,12 @@ var (
 		}
 		Summon struct {
 			Desc MessageID
+		}
+		UnassignNorm struct {
+			Desc       MessageID
+			Example    MessageID
+			NoUsers    MessageID
+			Unassigned MessageID
 		}
 	}{
 		AddNorm: struct {
@@ -108,6 +124,17 @@ var (
 			ExampleSimple:   "cmd.add_norm.example_simple",
 			ExampleUsers:    "cmd.add_norm.example_users",
 			NormGeneral:     "cmd.add_norm.norm_general",
+		},
+		AssignNorm: struct {
+			Assigned MessageID
+			Desc     MessageID
+			Example  MessageID
+			NoUsers  MessageID
+		}{
+			Assigned: "cmd.assign_norm.assigned",
+			Desc:     "cmd.assign_norm.desc",
+			Example:  "cmd.assign_norm.example",
+			NoUsers:  "cmd.assign_norm.no_users",
 		},
 		DeleteNorm: struct {
 			Deleted            MessageID
@@ -172,15 +199,19 @@ var (
 			TotalMessages:   "cmd.profile.total_messages",
 		},
 		ShowNorm: struct {
-			Body     MessageID
-			Desc     MessageID
-			Example  MessageID
-			NotFound MessageID
+			AllMembers MessageID
+			Body       MessageID
+			Desc       MessageID
+			Example    MessageID
+			Members    MessageID
+			NotFound   MessageID
 		}{
-			Body:     "cmd.show_norm.body",
-			Desc:     "cmd.show_norm.desc",
-			Example:  "cmd.show_norm.example",
-			NotFound: "cmd.show_norm.not_found",
+			AllMembers: "cmd.show_norm.all_members",
+			Body:       "cmd.show_norm.body",
+			Desc:       "cmd.show_norm.desc",
+			Example:    "cmd.show_norm.example",
+			Members:    "cmd.show_norm.members",
+			NotFound:   "cmd.show_norm.not_found",
 		},
 		Stats: struct {
 			Desc            MessageID
@@ -209,6 +240,17 @@ var (
 			Desc MessageID
 		}{
 			Desc: "cmd.summon.desc",
+		},
+		UnassignNorm: struct {
+			Desc       MessageID
+			Example    MessageID
+			NoUsers    MessageID
+			Unassigned MessageID
+		}{
+			Desc:       "cmd.unassign_norm.desc",
+			Example:    "cmd.unassign_norm.example",
+			NoUsers:    "cmd.unassign_norm.no_users",
+			Unassigned: "cmd.unassign_norm.unassigned",
 		},
 	}
 	Status = struct {
@@ -277,6 +319,14 @@ func CmdAddNormErrInvalidValueArgs(
 		"Max":   max,
 		"Min":   min,
 		"Value": value,
+	}
+}
+
+func CmdAssignNormAssignedArgs(
+	name any,
+) map[string]any {
+	return map[string]any{
+		"Name": name,
 	}
 }
 
@@ -485,6 +535,14 @@ func CmdStatsUserPassedArgs(
 		"List":     list,
 		"Messages": messages,
 		"User":     user,
+	}
+}
+
+func CmdUnassignNormUnassignedArgs(
+	name any,
+) map[string]any {
+	return map[string]any{
+		"Name": name,
 	}
 }
 

@@ -59,7 +59,7 @@ func (s *Service) GetChatStats(ctx context.Context, chatID int64, fromDate, toDa
 		return CalculatedStats{}, fmt.Errorf("service members list: %w", err)
 	}
 
-	norms, err := s.normRepo.ListWithMembers(ctx, chatID)
+	norms, err := s.normRepo.List(ctx, chatID)
 	if err != nil {
 		return CalculatedStats{}, fmt.Errorf("service norms: %w", err)
 	}
@@ -170,7 +170,7 @@ func (s *Service) GetProfileStats(
 		return ProfileStats{}, fmt.Errorf("service stats: %w", err)
 	}
 
-	norms, err := s.normRepo.ListWithMembers(ctx, chatID)
+	norms, err := s.normRepo.List(ctx, chatID)
 	if err != nil {
 		return ProfileStats{}, fmt.Errorf("list norms: %w", err)
 	}

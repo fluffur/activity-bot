@@ -105,6 +105,10 @@ func (c ChatMember) IsNewbie(now time.Time, thresholdDays int32) bool {
 	)
 }
 
+func (c ChatMember) IsLeft() bool {
+	return !c.LeftAt.IsZero()
+}
+
 func (s Status) Emoji() string {
 	switch s {
 	case StatusMember:

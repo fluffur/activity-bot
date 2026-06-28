@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"activity-bot/internal/chatmember"
 	db "activity-bot/internal/db/sqlc"
 	"activity-bot/internal/norm"
 	"context"
@@ -25,7 +26,18 @@ func (r *NormRepository) Get(ctx context.Context, chatID int64, name string) (no
 	return mapNorm(n), nil
 }
 
-func (r *NormRepository) Set(ctx context.Context, chatID int64, name string, value int32) error {
+func (r *NormRepository) GetNormMembers(ctx context.Context, normID int64) ([]chatmember.ChatMember, error) {
+	cms, err := r.queries.GetNormMembers(ctx, normID)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapList(cms, func(t db.GetNormMembersRow) chatmember.ChatMember {
+		return mapChatMemberFull(t.ChatMember, db.Chat{}, t.User)
+	}), nil
+}
+
+func (r *NormRepository) Set(ctx context.Context, chatID int64, name string, value int32) (int64, error) {
 	return r.queries.SetNorm(ctx, db.SetNormParams{
 		ChatID: chatID,
 		Name:   name,
@@ -33,22 +45,11 @@ func (r *NormRepository) Set(ctx context.Context, chatID int64, name string, val
 	})
 }
 
-func (r *NormRepository) List(ctx context.Context, chatID int64) ([]norm.Norm, error) {
-	norms, err := r.queries.ListNorms(ctx, chatID)
-	if err != nil {
-		return nil, err
-	}
-	return mapList(norms, mapNorm), nil
+func (r *NormRepository) Delete(ctx context.Context, normID int64) error {
+	return r.queries.DeleteNorm(ctx, normID)
 }
 
-func (r *NormRepository) Delete(ctx context.Context, chatID int64, name string) error {
-	return r.queries.DeleteNorm(ctx, db.DeleteNormParams{
-		ChatID: chatID,
-		Name:   name,
-	})
-}
-
-func (r *NormRepository) ListWithMembers(
+func (r *NormRepository) List(
 	ctx context.Context,
 	chatID int64,
 ) ([]norm.Norm, error) {
@@ -83,4 +84,19 @@ func (r *NormRepository) ListWithMembers(
 	}
 
 	return result, nil
+}
+
+func (r *NormRepository) Assign(ctx context.Context, normID int64, userIDs []int64) error {
+	return r.queries.AssignNormMembers(ctx, db.AssignNormMembersParams{
+		NormID:  normID,
+		UserIds: userIDs,
+	})
+
+}
+
+func (r *NormRepository) Unassign(ctx context.Context, normID int64, userIDs []int64) error {
+	return r.queries.UnassignNormMembers(ctx, db.UnassignNormMembersParams{
+		NormID:  normID,
+		UserIds: userIDs,
+	})
 }

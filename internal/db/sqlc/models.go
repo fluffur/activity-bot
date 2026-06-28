@@ -188,9 +188,8 @@ type ChatMember struct {
 }
 
 type ChatMemberNorm struct {
-	ChatID int64 `db:"chat_id" json:"chatId"`
-	UserID int64 `db:"user_id" json:"userId"`
 	NormID int64 `db:"norm_id" json:"normId"`
+	UserID int64 `db:"user_id" json:"userId"`
 }
 
 type ChatNorm struct {

@@ -11,20 +11,30 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const assignNormMembers = `-- name: AssignNormMembers :exec
+INSERT INTO chat_member_norms (norm_id, user_id)
+SELECT $1, unnest($2::bigint[])
+ON CONFLICT (norm_id, user_id) DO NOTHING
+`
+
+type AssignNormMembersParams struct {
+	NormID  int64   `db:"norm_id" json:"normId"`
+	UserIds []int64 `db:"user_ids" json:"userIds"`
+}
+
+func (q *Queries) AssignNormMembers(ctx context.Context, arg AssignNormMembersParams) error {
+	_, err := q.db.Exec(ctx, assignNormMembers, arg.NormID, arg.UserIds)
+	return err
+}
+
 const deleteNorm = `-- name: DeleteNorm :exec
 DELETE
 FROM chat_norms
-WHERE chat_id = $1
-  AND name = $2
+WHERE id = $1
 `
 
-type DeleteNormParams struct {
-	ChatID int64  `db:"chat_id" json:"chatId"`
-	Name   string `db:"name" json:"name"`
-}
-
-func (q *Queries) DeleteNorm(ctx context.Context, arg DeleteNormParams) error {
-	_, err := q.db.Exec(ctx, deleteNorm, arg.ChatID, arg.Name)
+func (q *Queries) DeleteNorm(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deleteNorm, id)
 	return err
 }
 
@@ -51,6 +61,62 @@ func (q *Queries) GetNorm(ctx context.Context, arg GetNormParams) (ChatNorm, err
 		&i.Value,
 	)
 	return i, err
+}
+
+const getNormMembers = `-- name: GetNormMembers :many
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot
+FROM chat_norms cn
+         JOIN chat_member_norms cmn ON cmn.norm_id = cn.id
+         JOIN chat_members cm ON cm.user_id = cmn.user_id AND cm.chat_id = cn.chat_id
+         JOIN users u ON u.id = cm.user_id
+WHERE cn.id = $1
+`
+
+type GetNormMembersRow struct {
+	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
+	User       User       `db:"user" json:"user"`
+}
+
+func (q *Queries) GetNormMembers(ctx context.Context, id int64) ([]GetNormMembersRow, error) {
+	rows, err := q.db.Query(ctx, getNormMembers, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetNormMembersRow{}
+	for rows.Next() {
+		var i GetNormMembersRow
+		if err := rows.Scan(
+			&i.ChatMember.ChatID,
+			&i.ChatMember.UserID,
+			&i.ChatMember.JoinedAt,
+			&i.ChatMember.RestUntil,
+			&i.ChatMember.Tag,
+			&i.ChatMember.LeftAt,
+			&i.ChatMember.RestReason,
+			&i.ChatMember.Emoji,
+			&i.ChatMember.Status,
+			&i.ChatMember.EmojiJson,
+			&i.ChatMember.ExcludeFromCall,
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
+			&i.User.EmojiJson,
+			&i.User.IsBot,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listNorms = `-- name: ListNorms :many
@@ -125,10 +191,11 @@ func (q *Queries) ListNormsWithMembers(ctx context.Context, chatID int64) ([]Lis
 	return items, nil
 }
 
-const setNorm = `-- name: SetNorm :exec
+const setNorm = `-- name: SetNorm :one
 INSERT INTO chat_norms(chat_id, name, value)
 VALUES ($1, $2, $3)
 ON CONFLICT (chat_id, name) DO UPDATE SET value = $3
+RETURNING id
 `
 
 type SetNormParams struct {
@@ -137,7 +204,26 @@ type SetNormParams struct {
 	Value  int32  `db:"value" json:"value"`
 }
 
-func (q *Queries) SetNorm(ctx context.Context, arg SetNormParams) error {
-	_, err := q.db.Exec(ctx, setNorm, arg.ChatID, arg.Name, arg.Value)
+func (q *Queries) SetNorm(ctx context.Context, arg SetNormParams) (int64, error) {
+	row := q.db.QueryRow(ctx, setNorm, arg.ChatID, arg.Name, arg.Value)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const unassignNormMembers = `-- name: UnassignNormMembers :exec
+DELETE
+FROM chat_member_norms
+WHERE norm_id = $1
+  AND user_id = ANY ($2::bigint[])
+`
+
+type UnassignNormMembersParams struct {
+	NormID  int64   `db:"norm_id" json:"normId"`
+	UserIds []int64 `db:"user_ids" json:"userIds"`
+}
+
+func (q *Queries) UnassignNormMembers(ctx context.Context, arg UnassignNormMembersParams) error {
+	_, err := q.db.Exec(ctx, unassignNormMembers, arg.NormID, arg.UserIds)
 	return err
 }
