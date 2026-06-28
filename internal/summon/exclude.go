@@ -5,7 +5,6 @@ import (
 	"activity-bot/internal/middleware/cctx"
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/botapi"
 )
 
@@ -21,7 +20,6 @@ func (h *Handler) Unreg(c *botapi.Context) error {
 		return fmt.Errorf("exclude from summon cm: %w", err)
 	}
 
-	spew.Dump(ch.ID, cm.User.ID)
 	if err := h.chatMemberService.SetExcludeFromSummon(c.Context, ch.ID, cm.User.ID, true); err != nil {
 		return fmt.Errorf("exclude from summon set: %w", err)
 	}
