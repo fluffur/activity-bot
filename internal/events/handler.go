@@ -13,8 +13,12 @@ type Handler struct {
 	memberService *chatmember.Service
 }
 
-func NewHandler(bot *botapi.Bot, t *i18n.Translator, ms *chatmember.Service) *Handler {
-	return &Handler{bot, t, ms}
+func NewHandler(b *botapi.Bot, t *i18n.Translator, ms *chatmember.Service) *Handler {
+	return &Handler{
+		bot:           b,
+		translator:    t,
+		memberService: ms,
+	}
 }
 
 func (h *Handler) Register() {

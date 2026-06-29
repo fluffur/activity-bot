@@ -31,7 +31,15 @@ func NewHandler(
 	cms *chatmember.Service,
 	fsm *fsm.Machine[State, StateData],
 ) *Handler {
-	return &Handler{b, t, p, chs, cms, sync.Map{}, fsm}
+	return &Handler{
+		bot:               b,
+		translator:        t,
+		permissions:       p,
+		chatService:       chs,
+		chatMemberService: cms,
+		activeSummons:     sync.Map{},
+		summonFSM:         fsm,
+	}
 }
 
 func (h *Handler) Register(registry *command.Registry) {
