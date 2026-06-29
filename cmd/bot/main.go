@@ -1,6 +1,7 @@
 package main
 
 import (
+	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/command"
 	"activity-bot/internal/config"
@@ -88,6 +89,7 @@ func main() {
 	permissions := predicate.NewPermissionsChecker(permissionRepository, translator)
 	rules := predicate.NewRuleChecker(chatMemberRepository, messageRepository)
 
+	chatService := chat.NewService(chatRepository)
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
 	statsPresenter := stats.NewPresenter(translator)
 	statsService := stats.NewService(chatMemberRepository, normRepository, statsRepository)
@@ -107,7 +109,7 @@ func main() {
 	)
 
 	help.NewHandler(bot, translator, permissions, registry, cfg.CommandsURL, cfg.DeveloperUsername).Register(registry)
-	summon.NewHandler(bot, translator, permissions, chatMemberService).Register(registry)
+	summon.NewHandler(bot, translator, permissions, chatService, chatMemberService).Register(registry)
 	norm.NewHandler(bot, translator, permissions, rules, normRepository).Register(registry)
 	stats.NewHandler(bot, translator, permissions, rules, statsService, statsPresenter).Register(registry)
 

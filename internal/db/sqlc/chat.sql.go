@@ -658,6 +658,22 @@ func (q *Queries) SetChatMaxLadder(ctx context.Context, arg SetChatMaxLadderPara
 	return err
 }
 
+const setChatMentionTypes = `-- name: SetChatMentionTypes :exec
+UPDATE chats
+SET mention_types = $1
+WHERE id = $2
+`
+
+type SetChatMentionTypesParams struct {
+	MentionTypes int32 `db:"mention_types" json:"mentionTypes"`
+	ChatID       int64 `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) SetChatMentionTypes(ctx context.Context, arg SetChatMentionTypesParams) error {
+	_, err := q.db.Exec(ctx, setChatMentionTypes, arg.MentionTypes, arg.ChatID)
+	return err
+}
+
 const setChatWelcomeCallMessage = `-- name: SetChatWelcomeCallMessage :exec
 UPDATE chats
 SET welcome_call_message = $1
@@ -708,22 +724,6 @@ func (q *Queries) UpdateChatAllowPrefixless(ctx context.Context, arg UpdateChatA
 	return err
 }
 
-const updateChatBanNorm = `-- name: UpdateChatBanNorm :exec
-UPDATE chats
-SET norm_ban = $1
-WHERE id = $2
-`
-
-type UpdateChatBanNormParams struct {
-	NormBan pgtype.Int4 `db:"norm_ban" json:"normBan"`
-	ID      int64       `db:"id" json:"id"`
-}
-
-func (q *Queries) UpdateChatBanNorm(ctx context.Context, arg UpdateChatBanNormParams) error {
-	_, err := q.db.Exec(ctx, updateChatBanNorm, arg.NormBan, arg.ID)
-	return err
-}
-
 const updateChatCallOnJoin = `-- name: UpdateChatCallOnJoin :exec
 UPDATE chats
 SET call_on_join = $1
@@ -753,22 +753,6 @@ type UpdateChatCommandPrefixParams struct {
 
 func (q *Queries) UpdateChatCommandPrefix(ctx context.Context, arg UpdateChatCommandPrefixParams) error {
 	_, err := q.db.Exec(ctx, updateChatCommandPrefix, arg.CommandPrefix, arg.ChatID)
-	return err
-}
-
-const updateChatMentionTypes = `-- name: UpdateChatMentionTypes :exec
-UPDATE chats
-SET mention_types = $1
-WHERE id = $2
-`
-
-type UpdateChatMentionTypesParams struct {
-	MentionTypes int32 `db:"mention_types" json:"mentionTypes"`
-	ChatID       int64 `db:"chat_id" json:"chatId"`
-}
-
-func (q *Queries) UpdateChatMentionTypes(ctx context.Context, arg UpdateChatMentionTypesParams) error {
-	_, err := q.db.Exec(ctx, updateChatMentionTypes, arg.MentionTypes, arg.ChatID)
 	return err
 }
 

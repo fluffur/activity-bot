@@ -46,3 +46,10 @@ func (r *ChatRepository) Get(ctx context.Context, id int64) (chat.Chat, error) {
 
 	return mapChat(u), nil
 }
+
+func (r *ChatRepository) SetMentionTypes(ctx context.Context, chatID int64, mentionTypes chat.MentionTypes) error {
+	return r.queries.SetChatMentionTypes(ctx, db.SetChatMentionTypesParams{
+		MentionTypes: int32(mentionTypes),
+		ChatID:       chatID,
+	})
+}

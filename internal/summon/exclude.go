@@ -25,7 +25,7 @@ func (h *Handler) Unreg(c *botapi.Context) error {
 	}
 
 	_, err = c.Reply(
-		h.translator.T(ch.Lang, i18n.Cmd.Unreg.Set),
+		h.translator.T(ch.Lang, i18n.Cmd.Summon.Unreg.Set),
 	)
 
 	return err
@@ -48,7 +48,7 @@ func (h *Handler) Reg(c *botapi.Context) error {
 	}
 
 	_, err = c.Reply(
-		h.translator.T(ch.Lang, i18n.Cmd.Reg.Set),
+		h.translator.T(ch.Lang, i18n.Cmd.Summon.Reg.Set),
 	)
 
 	return err

@@ -78,10 +78,6 @@ var (
 			Title           MessageID
 			TotalMessages   MessageID
 		}
-		Reg struct {
-			Desc MessageID
-			Set  MessageID
-		}
 		ShowNorm struct {
 			AllMembers MessageID
 			Body       MessageID
@@ -106,16 +102,30 @@ var (
 			AlreadyRunning MessageID
 			Completed      MessageID
 			Desc           MessageID
+			Reg            struct {
+				Desc MessageID
+				Set  MessageID
+			}
+			Style struct {
+				Desc   MessageID
+				Emoji  MessageID
+				Name   MessageID
+				Role   MessageID
+				Text   MessageID
+				Toggle struct {
+					Desc MessageID
+				}
+			}
+			Unreg struct {
+				Desc MessageID
+				Set  MessageID
+			}
 		}
 		UnassignNorm struct {
 			Desc       MessageID
 			Example    MessageID
 			NoUsers    MessageID
 			Unassigned MessageID
-		}
-		Unreg struct {
-			Desc MessageID
-			Set  MessageID
 		}
 	}{
 		AddNorm: struct {
@@ -208,13 +218,6 @@ var (
 			Title:           "cmd.profile.title",
 			TotalMessages:   "cmd.profile.total_messages",
 		},
-		Reg: struct {
-			Desc MessageID
-			Set  MessageID
-		}{
-			Desc: "cmd.reg.desc",
-			Set:  "cmd.reg.set",
-		},
 		ShowNorm: struct {
 			AllMembers MessageID
 			Body       MessageID
@@ -257,10 +260,63 @@ var (
 			AlreadyRunning MessageID
 			Completed      MessageID
 			Desc           MessageID
+			Reg            struct {
+				Desc MessageID
+				Set  MessageID
+			}
+			Style struct {
+				Desc   MessageID
+				Emoji  MessageID
+				Name   MessageID
+				Role   MessageID
+				Text   MessageID
+				Toggle struct {
+					Desc MessageID
+				}
+			}
+			Unreg struct {
+				Desc MessageID
+				Set  MessageID
+			}
 		}{
 			AlreadyRunning: "cmd.summon.already_running",
 			Completed:      "cmd.summon.completed",
 			Desc:           "cmd.summon.desc",
+			Reg: struct {
+				Desc MessageID
+				Set  MessageID
+			}{
+				Desc: "cmd.summon.reg.desc",
+				Set:  "cmd.summon.reg.set",
+			},
+			Style: struct {
+				Desc   MessageID
+				Emoji  MessageID
+				Name   MessageID
+				Role   MessageID
+				Text   MessageID
+				Toggle struct {
+					Desc MessageID
+				}
+			}{
+				Desc:  "cmd.summon.style.desc",
+				Emoji: "cmd.summon.style.emoji",
+				Name:  "cmd.summon.style.name",
+				Role:  "cmd.summon.style.role",
+				Text:  "cmd.summon.style.text",
+				Toggle: struct {
+					Desc MessageID
+				}{
+					Desc: "cmd.summon.style.toggle.desc",
+				},
+			},
+			Unreg: struct {
+				Desc MessageID
+				Set  MessageID
+			}{
+				Desc: "cmd.summon.unreg.desc",
+				Set:  "cmd.summon.unreg.set",
+			},
 		},
 		UnassignNorm: struct {
 			Desc       MessageID
@@ -273,13 +329,11 @@ var (
 			NoUsers:    "cmd.unassign_norm.no_users",
 			Unassigned: "cmd.unassign_norm.unassigned",
 		},
-		Unreg: struct {
-			Desc MessageID
-			Set  MessageID
-		}{
-			Desc: "cmd.unreg.desc",
-			Set:  "cmd.unreg.set",
-		},
+	}
+	Common = struct {
+		Close MessageID
+	}{
+		Close: "common.close",
 	}
 	Status = struct {
 		Coowner     MessageID
@@ -490,14 +544,6 @@ func CmdProfileTotalMessagesArgs(
 	}
 }
 
-func CmdRegSetArgs(
-	user any,
-) map[string]any {
-	return map[string]any{
-		"User": user,
-	}
-}
-
 func CmdShowNormBodyArgs(
 	name any,
 	value any,
@@ -579,14 +625,6 @@ func CmdUnassignNormUnassignedArgs(
 ) map[string]any {
 	return map[string]any{
 		"Name": name,
-	}
-}
-
-func CmdUnregSetArgs(
-	user any,
-) map[string]any {
-	return map[string]any{
-		"User": user,
 	}
 }
 

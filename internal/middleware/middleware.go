@@ -70,8 +70,16 @@ func ChatMemberMiddleware(ur user.Repository, cmr chatmember.Repository) botapi.
 			ctx := c.Context
 
 			sender := c.Sender()
+			msg := c.Message()
+			if msg == nil {
+				msg = c.Update.CallbackQuery.Message
+			}
 
-			userModel, err := getOrCreateUser(ctx, ur, sender, c.Message().Chat)
+			if msg == nil {
+				return next(c)
+			}
+
+			userModel, err := getOrCreateUser(ctx, ur, sender, msg.Chat)
 			if err != nil {
 				return err
 			}
@@ -111,7 +119,7 @@ func SaveMessageMiddleware(messageRepository message.Repository) botapi.Middlewa
 			msg := c.Message()
 
 			if msg == nil || sender == nil {
-				return nil
+				return next(c)
 			}
 
 			if msg.Chat.Type == botapi.ChatTypePrivate {

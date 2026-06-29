@@ -24,7 +24,7 @@ owner = { other = "владелец" }
 
 [category]
 help = { other = "Помощь" }
-summon = { other = "Созывы" }
+summon = { other = "Призывы" }
 stats = { other = "Статистика" }
 norm = { other = "Норма " }
 
@@ -44,17 +44,30 @@ examples = { other = "Примеры:" }
 aliases_label = { other = "Синонимы: {{.Aliases}}" }
 
 [cmd.summon]
-desc = { other = "Созыв всех участников" }
-completed = { other = "Созыв завершен" }
-already_running = { other = "Созыв уже выполняется" }
+desc = { other = "Призыв всех участников" }
+completed = { other = "Призыв завершен" }
+already_running = { other = "Призыв уже выполняется" }
 
-[cmd.unreg]
-desc = { other = "Исключить участника из общего созыва" }
-set = { other = "Вы исключены из общего созыва" }
+[cmd.summon.unreg]
+desc = { other = "Исключить участника из общего призыва" }
+set = { other = "Вы исключены из общего призыва" }
 
-[cmd.reg]
-desc = { other = "Включить участника в общий созыв" }
-set = { other = "Вы включены в общий созыв" }
+[cmd.summon.reg]
+desc = { other = "Включить участника в общий призыв" }
+set = { other = "Вы включены в общий призыв" }
+
+[cmd.summon.style]
+text = { other = "Выберите стиль призыва" }
+desc = { other = "Открыть настройки стиля упоминаний призыва" }
+emoji = { other = "Эмодзи" }
+name = { other = "Имя" }
+role = { other = "Роль" }
+[cmd.summon.style.toggle]
+desc = { other = "Выбор стиля упоминания призыва"}
+
+
+[common]
+close = { other = "Закрыть" }
 
 [cmd.add_norm]
 desc = { other = "Добавить новую норму" }

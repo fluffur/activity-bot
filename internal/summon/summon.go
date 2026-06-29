@@ -2,17 +2,11 @@ package summon
 
 import (
 	"activity-bot/internal/chat"
-	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/middleware/cctx"
 	"activity-bot/internal/predicate"
-	"activity-bot/internal/utils/tghtml"
 	"fmt"
 	"strings"
-	"time"
-
-	"github.com/gotd/log"
-	"golang.org/x/time/rate"
 
 	"github.com/gotd/botapi"
 )
@@ -42,208 +36,93 @@ func (h *Handler) SummonAll(c *botapi.Context) error {
 	return h.Summon(c, text, ch, cms)
 }
 
-func (h *Handler) Summon(c *botapi.Context, text string, ch chat.Chat, cms []chatmember.ChatMember) error {
-	if _, loaded := h.activeSummons.LoadOrStore(ch.ID, struct{}{}); loaded {
-		_, err := c.Reply(h.translator.T(ch.Lang, i18n.Cmd.Summon.AlreadyRunning))
-		return err
+func (h *Handler) SummonStyle(c *botapi.Context) error {
+	ch, err := cctx.Chat(c.Context)
+	if err != nil {
+		return fmt.Errorf("summon style chat: %w", err)
 	}
 
-	mentions := BuildMentions(cms, ch.MentionTypes)
-
-	sep := mentionSeparator(ch.MentionTypes)
-
-	perMsg := int(ch.MentionsPerMessage)
-	if perMsg <= 0 {
-		perMsg = len(mentions)
-	}
-
-	msgs := BuildMentionMessages(text, mentions, perMsg, sep)
-
-	go func() {
-		defer h.activeSummons.Delete(ch.ID)
-
-		if err := SendMessages(
-			c,
-			h.translator,
-			ch.Lang,
-			ch.ID,
-			msgs,
-		); err != nil {
-			log.For(c.Bot.Logger()).Error(c.Context, "send messages", log.Error(err))
-		}
-	}()
-
-	return nil
-}
-
-func BuildMentionMessages(
-	text string,
-	mentions []string,
-	perMsg int,
-	sep string,
-) []string {
-
-	if perMsg <= 0 {
-		perMsg = len(mentions)
-	}
-
-	groups := chunk(mentions, perMsg)
-
-	result := make([]string, 0, len(groups))
-
-	for _, g := range groups {
-		msg := text
-
-		if strings.TrimSpace(msg) != "" {
-			msg += "\n\n"
-		}
-
-		msg += strings.Join(g, sep)
-		result = append(result, msg)
-	}
-
-	return result
-}
-
-func SendMessages(
-	c *botapi.Context,
-	t *i18n.Translator,
-	lang string,
-	chatID int64,
-	messages []string,
-) error {
-
-	msg := c.Update.Message
-
-	var photoID string
-	if msg.Photo != nil && len(msg.Photo) > 0 {
-		photoID = msg.Photo[len(msg.Photo)-1].FileID
-	}
-
-	chatLimiter := rate.NewLimiter(rate.Every(1500*time.Microsecond), 1)
-	for _, text := range messages {
-		if err := chatLimiter.Wait(c.Background()); err != nil {
-			return fmt.Errorf("send summon messages: %w", err)
-		}
-
-		var err error
-
-		if photoID != "" {
-			_, err = c.Bot.SendPhoto(
-				c.Background(),
-				botapi.ID(chatID),
-				botapi.FileID(photoID),
-				text,
-				botapi.WithParseMode(botapi.ParseModeHTML),
-			)
-		} else {
-			_, err = c.Bot.SendMessage(
-				c.Background(),
-				botapi.ID(chatID),
-				text,
-				botapi.WithParseMode(botapi.ParseModeHTML),
-				botapi.DisableWebPagePreview(),
-			)
-		}
-
-		if err != nil {
-			return err
-		}
-	}
-
-	if err := chatLimiter.Wait(c.Background()); err != nil {
-		return fmt.Errorf("send summon last msg: %w", err)
-	}
-
-	_, err := c.Bot.SendMessage(
-		c.Background(),
-		botapi.ID(chatID),
-		t.T(lang, i18n.Cmd.Summon.Completed),
-		botapi.WithParseMode(botapi.ParseModeHTML),
-		botapi.DisableWebPagePreview(),
+	_, err = c.Reply(
+		h.translator.T(ch.Lang, i18n.Cmd.Summon.Style.Text),
+		botapi.WithReplyMarkup(mentionTypesKeyboard(h.translator, ch.Lang, ch.MentionTypes)),
 	)
 
 	return err
 }
 
-func RenderMention(cm chatmember.ChatMember, mentionTypes chat.MentionTypes) string {
-	hasEmoji := mentionTypes.Has(chat.MentionEmoji)
-	hasRole := mentionTypes.Has(chat.MentionRole)
-	hasName := mentionTypes.Has(chat.MentionName)
-
-	result := ""
-
-	if hasEmoji && cm.AnyEmoji() != "" {
-		result += cm.AnyEmoji() + " "
-	}
-
-	if hasRole && hasName && cm.Tag != "" {
-		result += fmt.Sprintf("%s (%s)", cm.Tag, cm.User.FullName())
-	} else if hasRole && cm.Tag != "" {
-		result += cm.Tag
-	} else if hasName {
-		result += cm.User.FullName()
-	}
-
-	if hasEmoji && !hasRole && !hasName {
-		result += "​"
-	}
-
-	if strings.TrimSpace(result) == "" {
-		result = "​"
-	}
-
-	return tghtml.UserMention(cm.User.ID, result)
+func (h *Handler) ToggleMentionEmoji(c *botapi.Context) error {
+	return h.toggleMentionStyle(c, chat.MentionEmoji)
 }
 
-func ReplaceMentions(text string, entities []botapi.MessageEntity) string {
-	result := text
-
-	for i := len(entities) - 1; i >= 0; i-- {
-		e := entities[i]
-
-		start := utf16ToRuneIndex(text, e.Offset)
-		end := utf16ToRuneIndex(text, e.Offset+e.Length)
-
-		switch e.Type {
-		case "mention":
-			username := text[start:end]
-			replacement := fmt.Sprintf(
-				`<a href="https://t.me/%s">%s</a>`,
-				username[1:],
-				username,
-			)
-
-			result = result[:start] + replacement + result[end:]
-
-		case "text_mention":
-			if e.User == nil {
-				continue
-			}
-
-			name := text[start:end]
-			replacement := fmt.Sprintf(
-				`<a href="tg://user?id=%d">%s</a>`,
-				e.User.ID,
-				name,
-			)
-
-			result = result[:start] + replacement + result[end:]
-		}
-	}
-
-	return result
+func (h *Handler) ToggleMentionName(c *botapi.Context) error {
+	return h.toggleMentionStyle(c, chat.MentionName)
 }
 
-func BuildMentions(
-	cms []chatmember.ChatMember,
-	mentionTypes chat.MentionTypes,
-) []string {
-	mentions := make([]string, len(cms))
+func (h *Handler) ToggleMentionRole(c *botapi.Context) error {
+	return h.toggleMentionStyle(c, chat.MentionRole)
+}
 
-	for i, cm := range cms {
-		mentions[i] = RenderMention(cm, mentionTypes)
+func (h *Handler) toggleMentionStyle(c *botapi.Context, flag chat.MentionTypes) error {
+
+	ch, err := cctx.Chat(c.Context)
+	if err != nil {
+		return fmt.Errorf("toggle mention type: %w", err)
 	}
 
-	return mentions
+	if ch.MentionTypes.Has(flag) {
+		ch.MentionTypes.Remove(flag)
+	} else {
+		ch.MentionTypes.Add(flag)
+	}
+
+	if err := h.chatService.SetMentionTypes(
+		c.Context,
+		ch.ID,
+		ch.MentionTypes,
+	); err != nil {
+		return err
+	}
+
+	_, _ = c.Bot.EditMessageReplyMarkup(
+		c.Context,
+		botapi.ID(ch.ID),
+		c.Update.CallbackQuery.Message.MessageID,
+		mentionTypesKeyboard(
+			h.translator,
+			ch.Lang,
+			ch.MentionTypes,
+		),
+	)
+
+	return c.AnswerCallback()
+}
+
+func mentionTypesKeyboard(
+	t *i18n.Translator,
+	lang string,
+	types chat.MentionTypes,
+) *botapi.InlineKeyboardMarkup {
+	return botapi.InlineKeyboard(
+		botapi.InlineRow(
+			botapi.InlineButtonData(
+				check(types.Has(chat.MentionEmoji))+
+					" "+t.T(lang, i18n.Cmd.Summon.Style.Emoji),
+				"summon:style:emoji",
+			),
+		),
+		botapi.InlineRow(
+			botapi.InlineButtonData(
+				check(types.Has(chat.MentionName))+
+					" "+t.T(lang, i18n.Cmd.Summon.Style.Name),
+				"summon:style:name",
+			),
+		),
+		botapi.InlineRow(
+			botapi.InlineButtonData(
+				check(types.Has(chat.MentionRole))+
+					" "+t.T(lang, i18n.Cmd.Summon.Style.Role),
+				"summon:style:role",
+			),
+		),
+	)
 }

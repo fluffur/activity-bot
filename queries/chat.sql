@@ -21,6 +21,11 @@ FROM chats
 WHERE id = $1
 LIMIT 1;
 
+-- name: SetChatMentionTypes :exec
+UPDATE chats
+SET mention_types = $1
+WHERE id = @chat_id;
+
 -- name: EnsureChatExists :one
 WITH ins AS (
     INSERT
@@ -50,11 +55,6 @@ UPDATE chats
 SET norm_warn = $1
 WHERE id = $2;
 
-
--- name: UpdateChatBanNorm :exec
-UPDATE chats
-SET norm_ban = $1
-WHERE id = $2;
 
 
 -- name: UpdateChatNewbieThreshold :exec
@@ -134,10 +134,7 @@ UPDATE chats
 SET mentions_per_message = $1
 WHERE id = @chat_id;
 
--- name: UpdateChatMentionTypes :exec
-UPDATE chats
-SET mention_types = $1
-WHERE id = @chat_id;
+
 
 -- name: UpdateChatWeekStartTime :exec
 UPDATE chats

@@ -74,14 +74,14 @@ func (p *PermissionChecker) Require(
 		}
 
 		if !cm.Permitted(status) {
-			text := p.translator.TData(ch.Lang, i18n.System.NoPermission, i18n.SystemNoPermissionArgs(
-				tghtml.Bold(p.translator.T(ch.Lang, status.TranslationKey()))),
-			)
-
 			if c.Update.CallbackQuery != nil {
-				_ = c.AnswerCallback(botapi.WithCallbackText(text))
+				_ = c.AnswerCallback(botapi.WithCallbackText(p.translator.TData(ch.Lang, i18n.System.NoPermission, i18n.SystemNoPermissionArgs(
+					p.translator.T(ch.Lang, status.TranslationKey())),
+				)))
 			} else if c.Update.Message != nil {
-				_, _ = c.Reply(text, botapi.WithParseMode(botapi.ParseModeHTML))
+				_, _ = c.Reply(p.translator.TData(ch.Lang, i18n.System.NoPermission, i18n.SystemNoPermissionArgs(
+					tghtml.Bold(p.translator.T(ch.Lang, status.TranslationKey()))),
+				), botapi.WithParseMode(botapi.ParseModeHTML))
 			}
 		}
 
