@@ -55,7 +55,7 @@ func (h *Handler) Register(registry *command.Registry) {
 	}
 
 	profileDef := &command.ActionDef{
-		Key:         "profile",
+		Key:         "you",
 		Aliases:     []string{"кто ты", "профиль"},
 		Trigger:     command.TriggerCommand,
 		MinStatus:   chatmember.StatusMember,

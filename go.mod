@@ -2,20 +2,21 @@ module activity-bot
 
 go 1.26
 
-replace github.com/gotd/botapi v0.2.1-0.20260619180154-ec97c6a751b3 => github.com/fluffur/botapi v0.0.0-20260629051251-932de80d62b8
+replace github.com/gotd/botapi v0.2.1-0.20260622211259-fbef619ad792 => github.com/fluffur/botapi v0.0.0-20260629051251-932de80d62b8
 
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/gotd/botapi v0.2.1-0.20260619180154-ec97c6a751b3
+	github.com/fluffur/botapi-fsm v0.0.0-20260629064858-4285051a22d8
+	github.com/gotd/botapi v0.2.1-0.20260622211259-fbef619ad792
 	github.com/gotd/log v0.1.0
 	github.com/gotd/log/logzap v0.1.1
 	github.com/gotd/td v0.159.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/nicksnyder/go-i18n/v2 v2.6.1
 	github.com/pressly/goose/v3 v3.27.1
-	github.com/redis/go-redis/v9 v9.20.1
+	github.com/redis/go-redis/v9 v9.21.0
 	github.com/rivo/uniseg v0.4.7
 	go.uber.org/zap v1.28.0
 	golang.org/x/text v0.38.0
@@ -63,7 +64,7 @@ require (
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/tools v0.46.0 // indirect
+	golang.org/x/tools v0.47.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	rsc.io/qr v0.2.0 // indirect
 )

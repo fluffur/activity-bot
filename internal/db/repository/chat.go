@@ -53,3 +53,10 @@ func (r *ChatRepository) SetMentionTypes(ctx context.Context, chatID int64, ment
 		ChatID:       chatID,
 	})
 }
+
+func (r *ChatRepository) SetSkipSummonConfirmation(ctx context.Context, chatID int64, confirmation bool) error {
+	return r.queries.SetChatSkipSummonConfirmation(ctx, db.SetChatSkipSummonConfirmationParams{
+		SkipCallConfirmation: confirmation,
+		ChatID:               chatID,
+	})
+}

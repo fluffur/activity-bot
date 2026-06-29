@@ -20,6 +20,7 @@ import (
 	"os/signal"
 	"time"
 
+	fsm "github.com/fluffur/botapi-fsm"
 	"github.com/gotd/log/logzap"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -108,8 +109,16 @@ func main() {
 		botapi.Logging(),
 	)
 
+	summonStore := fsm.NewRedisJSONStore[summon.State, summon.StateData](client, "fsm:summon:", 5*time.Hour)
+	summonFSM := fsm.New(
+		summonStore,
+		summon.StateIdle,
+		fsm.WithKeyFunc[summon.State, summon.StateData](fsm.ChatSenderKey),
+		fsm.WithUpdateKeyFunc[summon.State, summon.StateData](fsm.ChatSenderUpdateKey),
+	)
+
 	help.NewHandler(bot, translator, permissions, registry, cfg.CommandsURL, cfg.DeveloperUsername).Register(registry)
-	summon.NewHandler(bot, translator, permissions, chatService, chatMemberService).Register(registry)
+	summon.NewHandler(bot, translator, permissions, chatService, chatMemberService, summonFSM).Register(registry)
 	norm.NewHandler(bot, translator, permissions, rules, normRepository).Register(registry)
 	stats.NewHandler(bot, translator, permissions, rules, statsService, statsPresenter).Register(registry)
 

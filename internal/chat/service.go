@@ -23,3 +23,7 @@ func (s *Service) Get(ctx context.Context, chatID int64) (Chat, error) {
 func (s *Service) SetMentionTypes(ctx context.Context, chatID int64, mentionTypes MentionTypes) error {
 	return s.repository.SetMentionTypes(ctx, chatID, mentionTypes)
 }
+
+func (s *Service) SetSkipSummonConfirmation(ctx context.Context, chatID int64, skipSummonConfirmation bool) error {
+	return s.repository.SetSkipSummonConfirmation(ctx, chatID, skipSummonConfirmation)
+}

@@ -33,6 +33,9 @@ func (h *Handler) Help(c *botapi.Context) error {
 		sb.WriteString(tghtml.Bold(categoryTitle) + "\n")
 
 		for _, c := range cmds {
+			if !c.ShowInHelp {
+				continue
+			}
 			desc := tghtml.Escape(h.translator.T(lang, c.Description))
 			sb.WriteString(fmt.Sprintf("/%s — %s\n", c.Key, desc))
 

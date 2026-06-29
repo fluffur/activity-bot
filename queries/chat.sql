@@ -26,6 +26,12 @@ UPDATE chats
 SET mention_types = $1
 WHERE id = @chat_id;
 
+-- name: SetChatSkipSummonConfirmation :exec
+UPDATE chats
+SET skip_call_confirmation = $1
+WHERE id = @chat_id;
+
+
 -- name: EnsureChatExists :one
 WITH ins AS (
     INSERT
@@ -107,11 +113,6 @@ WHERE id = @chat_id;
 -- name: UpdateChatCallOnJoin :exec
 UPDATE chats
 SET call_on_join = $1
-WHERE id = @chat_id;
-
--- name: UpdateChatSkipCallConfirmation :exec
-UPDATE chats
-SET skip_call_confirmation = $1
 WHERE id = @chat_id;
 
 -- name: UpdateChatWeekStartDay :exec

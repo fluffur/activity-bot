@@ -15,7 +15,24 @@ import (
 	"github.com/gotd/botapi"
 )
 
-func (h *Handler) Summon(c *botapi.Context, text string, ch chat.Chat, cms []chatmember.ChatMember) error {
+func TextFromArgs(ch chat.Chat, args *botapi.Message) string {
+	var text string
+	if args != nil {
+		text = ReplaceMentions(args.OriginalTextHTML(), args.Entities)
+	}
+
+	if strings.TrimSpace(text) == "" {
+		text = ch.WelcomeCallMessage
+	}
+
+	if strings.TrimSpace(text) == "" && ch.MentionTypes == 0 {
+		text = "ㅤ"
+	}
+
+	return text
+}
+
+func (h *Handler) Summon(c *botapi.Context, text string, msgID int, ch chat.Chat, cms []chatmember.ChatMember) error {
 	if _, loaded := h.activeSummons.LoadOrStore(ch.ID, struct{}{}); loaded {
 		_, err := c.Reply(h.translator.T(ch.Lang, i18n.Cmd.Summon.AlreadyRunning))
 		return err
@@ -30,10 +47,6 @@ func (h *Handler) Summon(c *botapi.Context, text string, ch chat.Chat, cms []cha
 		perMsg = len(mentions)
 	}
 
-	if strings.TrimSpace(text) == "" && ch.MentionTypes == 0 {
-		text = "ㅤ"
-	}
-
 	msgs := BuildMentionMessages(text, mentions, perMsg, sep)
 
 	go func() {
@@ -44,6 +57,7 @@ func (h *Handler) Summon(c *botapi.Context, text string, ch chat.Chat, cms []cha
 			h.translator,
 			ch.Lang,
 			ch.ID,
+			msgID,
 			msgs,
 		); err != nil {
 			log.For(c.Bot.Logger()).Error(c.Context, "send messages", log.Error(err))
@@ -59,7 +73,6 @@ func BuildMentionMessages(
 	perMsg int,
 	sep string,
 ) []string {
-
 	if perMsg <= 0 {
 		perMsg = len(mentions)
 	}
@@ -87,10 +100,13 @@ func SendMessages(
 	t *i18n.Translator,
 	lang string,
 	chatID int64,
+	msgID int,
 	messages []string,
 ) error {
-
-	msg := c.Update.Message
+	msg, err := c.Bot.GetMessage(c.Background(), botapi.ID(chatID), msgID)
+	if err != nil {
+		return err
+	}
 
 	var photoID string
 	if msg.Photo != nil && len(msg.Photo) > 0 {
@@ -112,6 +128,7 @@ func SendMessages(
 				botapi.FileID(photoID),
 				text,
 				botapi.WithParseMode(botapi.ParseModeHTML),
+				botapi.ReplyTo(msgID),
 			)
 		} else {
 			_, err = c.Bot.SendMessage(
@@ -120,6 +137,7 @@ func SendMessages(
 				text,
 				botapi.WithParseMode(botapi.ParseModeHTML),
 				botapi.DisableWebPagePreview(),
+				botapi.ReplyTo(msgID),
 			)
 		}
 
@@ -132,7 +150,7 @@ func SendMessages(
 		return fmt.Errorf("send summon last msg: %w", err)
 	}
 
-	_, err := c.Bot.SendMessage(
+	_, err = c.Bot.SendMessage(
 		c.Background(),
 		botapi.ID(chatID),
 		t.T(lang, i18n.Cmd.Summon.Completed),
@@ -274,4 +292,40 @@ func chunk[T any](items []T, size int) [][]T {
 	}
 
 	return chunks
+}
+
+func (h *Handler) summonSession(
+	c *botapi.Context,
+) (*StateData, chat.Chat, error) {
+	session, ok, err := h.summonFSM.Get(c)
+	if err != nil {
+		return nil, chat.Chat{}, err
+	}
+
+	if !ok || session.State != StateAwaitConfirmation {
+		return nil, chat.Chat{}, nil
+	}
+
+	ch, err := h.chatService.Get(c.Context, session.Data.ChatID)
+	if err != nil {
+		return nil, chat.Chat{}, fmt.Errorf("get chat: %w", err)
+	}
+
+	sender := c.Sender()
+	if sender == nil {
+		return nil, ch, nil
+	}
+
+	if session.Data.UserID != sender.ID {
+		return nil, ch, c.AnswerCallback(
+			botapi.WithCallbackText(
+				h.translator.T(
+					ch.Lang,
+					i18n.Cmd.Summon.Confirm.OnlyInitiatorConfirm,
+				),
+			),
+		)
+	}
+
+	return &session.Data, ch, nil
 }

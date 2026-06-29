@@ -674,6 +674,22 @@ func (q *Queries) SetChatMentionTypes(ctx context.Context, arg SetChatMentionTyp
 	return err
 }
 
+const setChatSkipSummonConfirmation = `-- name: SetChatSkipSummonConfirmation :exec
+UPDATE chats
+SET skip_call_confirmation = $1
+WHERE id = $2
+`
+
+type SetChatSkipSummonConfirmationParams struct {
+	SkipCallConfirmation bool  `db:"skip_call_confirmation" json:"skipCallConfirmation"`
+	ChatID               int64 `db:"chat_id" json:"chatId"`
+}
+
+func (q *Queries) SetChatSkipSummonConfirmation(ctx context.Context, arg SetChatSkipSummonConfirmationParams) error {
+	_, err := q.db.Exec(ctx, setChatSkipSummonConfirmation, arg.SkipCallConfirmation, arg.ChatID)
+	return err
+}
+
 const setChatWelcomeCallMessage = `-- name: SetChatWelcomeCallMessage :exec
 UPDATE chats
 SET welcome_call_message = $1
@@ -785,22 +801,6 @@ type UpdateChatNewbieThresholdParams struct {
 
 func (q *Queries) UpdateChatNewbieThreshold(ctx context.Context, arg UpdateChatNewbieThresholdParams) error {
 	_, err := q.db.Exec(ctx, updateChatNewbieThreshold, arg.NewbieThresholdDays, arg.ID)
-	return err
-}
-
-const updateChatSkipCallConfirmation = `-- name: UpdateChatSkipCallConfirmation :exec
-UPDATE chats
-SET skip_call_confirmation = $1
-WHERE id = $2
-`
-
-type UpdateChatSkipCallConfirmationParams struct {
-	SkipCallConfirmation bool  `db:"skip_call_confirmation" json:"skipCallConfirmation"`
-	ChatID               int64 `db:"chat_id" json:"chatId"`
-}
-
-func (q *Queries) UpdateChatSkipCallConfirmation(ctx context.Context, arg UpdateChatSkipCallConfirmationParams) error {
-	_, err := q.db.Exec(ctx, updateChatSkipCallConfirmation, arg.SkipCallConfirmation, arg.ChatID)
 	return err
 }
 

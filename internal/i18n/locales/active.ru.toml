@@ -65,6 +65,18 @@ role = { other = "Роль" }
 [cmd.summon.style.toggle]
 desc = { other = "Выбор стиля упоминания призыва"}
 
+[cmd.summon.confirm]
+text = { other = "Подтвердить призыв всех участников?" }
+
+yes = { other = "✅ Да" }
+no = { other = "❌ Нет" }
+yes_and_disable = { other = "✅ Да и больше не спрашивать" }
+
+only_initiator_confirm = { other = "Подтвердить может только инициатор команды" }
+only_initiator_cancel = { other = "Отменить может только инициатор команды" }
+
+canceled = { other = "Призыв отменён" }
+disabled = { other = "Подтверждение отключено" }
 
 [common]
 close = { other = "Закрыть" }

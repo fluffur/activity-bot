@@ -101,8 +101,18 @@ var (
 		Summon struct {
 			AlreadyRunning MessageID
 			Completed      MessageID
-			Desc           MessageID
-			Reg            struct {
+			Confirm        struct {
+				Canceled             MessageID
+				Disabled             MessageID
+				No                   MessageID
+				OnlyInitiatorCancel  MessageID
+				OnlyInitiatorConfirm MessageID
+				Text                 MessageID
+				Yes                  MessageID
+				YesAndDisable        MessageID
+			}
+			Desc MessageID
+			Reg  struct {
 				Desc MessageID
 				Set  MessageID
 			}
@@ -259,8 +269,18 @@ var (
 		Summon: struct {
 			AlreadyRunning MessageID
 			Completed      MessageID
-			Desc           MessageID
-			Reg            struct {
+			Confirm        struct {
+				Canceled             MessageID
+				Disabled             MessageID
+				No                   MessageID
+				OnlyInitiatorCancel  MessageID
+				OnlyInitiatorConfirm MessageID
+				Text                 MessageID
+				Yes                  MessageID
+				YesAndDisable        MessageID
+			}
+			Desc MessageID
+			Reg  struct {
 				Desc MessageID
 				Set  MessageID
 			}
@@ -281,7 +301,26 @@ var (
 		}{
 			AlreadyRunning: "cmd.summon.already_running",
 			Completed:      "cmd.summon.completed",
-			Desc:           "cmd.summon.desc",
+			Confirm: struct {
+				Canceled             MessageID
+				Disabled             MessageID
+				No                   MessageID
+				OnlyInitiatorCancel  MessageID
+				OnlyInitiatorConfirm MessageID
+				Text                 MessageID
+				Yes                  MessageID
+				YesAndDisable        MessageID
+			}{
+				Canceled:             "cmd.summon.confirm.canceled",
+				Disabled:             "cmd.summon.confirm.disabled",
+				No:                   "cmd.summon.confirm.no",
+				OnlyInitiatorCancel:  "cmd.summon.confirm.only_initiator_cancel",
+				OnlyInitiatorConfirm: "cmd.summon.confirm.only_initiator_confirm",
+				Text:                 "cmd.summon.confirm.text",
+				Yes:                  "cmd.summon.confirm.yes",
+				YesAndDisable:        "cmd.summon.confirm.yes_and_disable",
+			},
+			Desc: "cmd.summon.desc",
 			Reg: struct {
 				Desc MessageID
 				Set  MessageID

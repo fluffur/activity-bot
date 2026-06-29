@@ -8,6 +8,8 @@ import (
 	"activity-bot/internal/predicate"
 	"sync"
 
+	fsm "github.com/fluffur/botapi-fsm"
+
 	"github.com/gotd/botapi"
 )
 
@@ -18,10 +20,18 @@ type Handler struct {
 	chatService       *chat.Service
 	chatMemberService *chatmember.Service
 	activeSummons     sync.Map
+	summonFSM         *fsm.Machine[State, StateData]
 }
 
-func NewHandler(b *botapi.Bot, t *i18n.Translator, p *predicate.PermissionChecker, chs *chat.Service, cms *chatmember.Service) *Handler {
-	return &Handler{b, t, p, chs, cms, sync.Map{}}
+func NewHandler(
+	b *botapi.Bot,
+	t *i18n.Translator,
+	p *predicate.PermissionChecker,
+	chs *chat.Service,
+	cms *chatmember.Service,
+	fsm *fsm.Machine[State, StateData],
+) *Handler {
+	return &Handler{b, t, p, chs, cms, sync.Map{}, fsm}
 }
 
 func (h *Handler) Register(registry *command.Registry) {
@@ -81,7 +91,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Category:    command.CategorySummon,
 		Description: i18n.Cmd.Summon.Style.Toggle.Desc,
 		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
+		ShowInHelp:  false,
 	}
 
 	registry.Add(summonDef)
@@ -98,6 +108,24 @@ func (h *Handler) Register(registry *command.Registry) {
 
 	h.bot.OnMessage(h.SummonAll,
 		predicate.Command(summonDef.Key, summonDef.Aliases...),
+		h.permissions.Require(summonDef.Key, summonDef.MinStatus),
+	)
+
+	h.bot.OnCallbackQuery(
+		h.ConfirmSummon,
+		botapi.CallbackData("summon:confirm"),
+		h.permissions.Require(summonDef.Key, summonDef.MinStatus),
+	)
+
+	h.bot.OnCallbackQuery(
+		h.CancelSummon,
+		botapi.CallbackData("summon:cancel"),
+		h.permissions.Require(summonDef.Key, summonDef.MinStatus),
+	)
+
+	h.bot.OnCallbackQuery(
+		h.ConfirmSummonDontAsk,
+		botapi.CallbackData("summon:confirm_dont_ask"),
 		h.permissions.Require(summonDef.Key, summonDef.MinStatus),
 	)
 
