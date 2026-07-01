@@ -8,6 +8,8 @@ import (
 	"github.com/gotd/botapi"
 )
 
+const CategoryHelp command.Category = "help"
+
 type Handler struct {
 	bot         *botapi.Bot
 	translator  *i18n.Translator
@@ -36,11 +38,13 @@ func NewHandler(
 	}
 }
 func (h *Handler) Register(registry *command.Registry) {
+	registry.AddCategory(CategoryHelp)
+
 	helpDef := &command.ActionDef{
 		Key:         "help",
 		Aliases:     []string{"help", "помощь"},
 		Trigger:     command.TriggerCommand,
-		Category:    command.CategoryHelp,
+		Category:    CategoryHelp,
 		Description: i18n.Cmd.Help.Desc,
 		ShowInHelp:  true,
 	}

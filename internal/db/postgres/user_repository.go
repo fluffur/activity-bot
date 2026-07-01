@@ -1,7 +1,7 @@
-package repository
+package postgres
 
 import (
-	db "activity-bot/internal/db/sqlc"
+	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/user"
 	"context"
 )
@@ -33,4 +33,12 @@ func (r *UserRepository) Get(ctx context.Context, id int64) (user.User, error) {
 	}
 
 	return mapUser(u), nil
+}
+
+func (r *UserRepository) Update(ctx context.Context, u user.User) error {
+	return r.queries.UpdateUser(ctx, db.UpdateUserParams{
+		Username:  text(u.Username),
+		FirstName: text(u.FirstName),
+		LastName:  text(u.LastName),
+	})
 }

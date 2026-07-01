@@ -42,48 +42,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 	return err
 }
 
-const ensureUserExists = `-- name: EnsureUserExists :one
-INSERT INTO users(id, username, first_name, last_name, is_bot)
-VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (id) DO UPDATE SET username   = $2,
-                               first_name = $3,
-                               last_name  = $4,
-                               is_bot     = $5
-RETURNING id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json, is_bot
-`
-
-type EnsureUserExistsParams struct {
-	ID        int64       `db:"id" json:"id"`
-	Username  pgtype.Text `db:"username" json:"username"`
-	FirstName pgtype.Text `db:"first_name" json:"firstName"`
-	LastName  pgtype.Text `db:"last_name" json:"lastName"`
-	IsBot     bool        `db:"is_bot" json:"isBot"`
-}
-
-func (q *Queries) EnsureUserExists(ctx context.Context, arg EnsureUserExistsParams) (User, error) {
-	row := q.db.QueryRow(ctx, ensureUserExists,
-		arg.ID,
-		arg.Username,
-		arg.FirstName,
-		arg.LastName,
-		arg.IsBot,
-	)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Username,
-		&i.FirstName,
-		&i.LastName,
-		&i.CreatedAt,
-		&i.Gender,
-		&i.Emoji,
-		&i.CustomEmojiID,
-		&i.EmojiJson,
-		&i.IsBot,
-	)
-	return i, err
-}
-
 const getUserByID = `-- name: GetUserByID :one
 SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json, is_bot
 FROM users
@@ -194,6 +152,25 @@ type SetUserGenderParams struct {
 
 func (q *Queries) SetUserGender(ctx context.Context, arg SetUserGenderParams) error {
 	_, err := q.db.Exec(ctx, setUserGender, arg.ID, arg.Gender)
+	return err
+}
+
+const updateUser = `-- name: UpdateUser :exec
+UPDATE users
+SET username   = $1,
+    first_name = $2,
+    last_name  = $3
+WHERE id = $1
+`
+
+type UpdateUserParams struct {
+	Username  pgtype.Text `db:"username" json:"username"`
+	FirstName pgtype.Text `db:"first_name" json:"firstName"`
+	LastName  pgtype.Text `db:"last_name" json:"lastName"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
+	_, err := q.db.Exec(ctx, updateUser, arg.Username, arg.FirstName, arg.LastName)
 	return err
 }
 

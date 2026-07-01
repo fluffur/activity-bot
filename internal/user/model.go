@@ -40,3 +40,11 @@ func New(id int64, firstName, lastName, username string, gender Gender, isBot bo
 func (u User) FullName() string {
 	return strings.TrimSpace(fmt.Sprintf("%s %s", u.FirstName, u.LastName))
 }
+
+func (u User) IsMale() bool {
+	return u.Gender == GenderMale
+}
+
+func (u User) IsFemale() bool {
+	return u.Gender == GenderFemale
+}

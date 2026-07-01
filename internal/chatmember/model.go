@@ -127,3 +127,11 @@ func (s Status) Emoji() string {
 		return "?"
 	}
 }
+
+func (c ChatMember) IsMale() bool {
+	return c.User.IsMale()
+}
+
+func (c ChatMember) IsFemale() bool {
+	return c.User.IsFemale()
+}

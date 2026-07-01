@@ -5,14 +5,16 @@ import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/command"
 	"activity-bot/internal/config"
-	"activity-bot/internal/db/repository"
-	db "activity-bot/internal/db/sqlc"
+	"activity-bot/internal/db/postgres"
+	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/events"
 	"activity-bot/internal/help"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/middleware"
 	"activity-bot/internal/norm"
+	"activity-bot/internal/notifier"
 	"activity-bot/internal/predicate"
+	"activity-bot/internal/rest"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/summon"
 	"context"
@@ -78,14 +80,14 @@ func main() {
 		log.Fatal("Create translator", zap.Error(err))
 	}
 
-	chatRepository := repository.NewChatRepository(queries)
-	userRepository := repository.NewUserRepository(queries)
-	chatMemberRepository := repository.NewChatMemberRepository(queries)
-	messageRepository := repository.NewMessageRepository(queries)
-	pmSessionRepository := repository.NewPMSessionRepository(queries)
-	permissionRepository := repository.NewPermissionRepository(queries)
-	normRepository := repository.NewNormRepository(queries)
-	statsRepository := repository.NewStatsRepository(queries)
+	chatRepository := postgres.NewChatRepository(queries)
+	userRepository := postgres.NewUserRepository(queries)
+	chatMemberRepository := postgres.NewChatMemberRepository(queries)
+	messageRepository := postgres.NewMessageRepository(queries)
+	pmSessionRepository := postgres.NewPMSessionRepository(queries)
+	permissionRepository := postgres.NewPermissionRepository(queries)
+	normRepository := postgres.NewNormRepository(queries)
+	statsRepository := postgres.NewStatsRepository(queries)
 
 	permissions := predicate.NewPermissionsChecker(permissionRepository, translator)
 	rules := predicate.NewRuleChecker(chatMemberRepository, messageRepository)
@@ -99,7 +101,11 @@ func main() {
 
 	bot.UseOuter(
 		middleware.ChatMiddleware(chatRepository, pmSessionRepository),
-		middleware.ChatMemberMiddleware(userRepository, chatMemberRepository),
+		middleware.ChatMemberMiddleware(
+			userRepository,
+			chatMemberRepository,
+			notifier.NewUsernameChangedNotifier(translator, chatMemberRepository),
+		),
 		middleware.SaveMessageMiddleware(messageRepository),
 	)
 
@@ -121,7 +127,7 @@ func main() {
 	summon.NewHandler(bot, translator, permissions, chatService, chatMemberService, summonFSM).Register(registry)
 	norm.NewHandler(bot, translator, permissions, rules, normRepository).Register(registry)
 	stats.NewHandler(bot, translator, permissions, rules, statsService, statsPresenter).Register(registry)
-
+	rest.NewHandler(bot, translator, permissions, rules, chatMemberService).Register(registry)
 	events.NewHandler(bot, translator, chatMemberService).Register()
 
 	log.Info("Starting bot")

@@ -1,8 +1,8 @@
-package repository
+package postgres
 
 import (
 	"activity-bot/internal/chatmember"
-	db "activity-bot/internal/db/sqlc"
+	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/norm"
 	"context"
 )
@@ -91,7 +91,6 @@ func (r *NormRepository) Assign(ctx context.Context, normID int64, userIDs []int
 		NormID:  normID,
 		UserIds: userIDs,
 	})
-
 }
 
 func (r *NormRepository) Unassign(ctx context.Context, normID int64, userIDs []int64) error {

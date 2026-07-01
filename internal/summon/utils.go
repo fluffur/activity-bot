@@ -40,7 +40,7 @@ func (h *Handler) Summon(c *botapi.Context, text string, msgID int, ch chat.Chat
 
 	mentions := BuildMentions(cms, ch.MentionTypes)
 
-	sep := mentionSeparator(ch.MentionTypes)
+	sep := MentionSeparator(ch.MentionTypes)
 
 	perMsg := int(ch.MentionsPerMessage)
 	if perMsg <= 0 {
@@ -250,7 +250,7 @@ func check(enabled bool) string {
 	return ""
 }
 
-func mentionSeparator(mt chat.MentionTypes) string {
+func MentionSeparator(mt chat.MentionTypes) string {
 	if mt.Has(chat.MentionEmoji) && !mt.Has(chat.MentionRole) && !mt.Has(chat.MentionName) || mt == 0 {
 		return " "
 	}

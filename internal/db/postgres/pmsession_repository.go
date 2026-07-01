@@ -1,8 +1,8 @@
-package repository
+package postgres
 
 import (
 	"activity-bot/internal/chat"
-	db "activity-bot/internal/db/sqlc"
+	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/pmsession"
 	"context"
 )

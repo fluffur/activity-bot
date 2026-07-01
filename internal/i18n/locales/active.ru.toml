@@ -4,6 +4,8 @@ bot_commands = { other = "Команды бота" }
 bot_added = { other = "Меня добавили в группу!\n\nТеперь, для того, чтобы я мог работать корректно, мне нужно выдать права администратора в группе (все пункты, кроме анонимности)" }
 bot_added_admin = { other = "Меня добавили в группу!\n\nТеперь можно приступить к настройке бота" }
 no_permission = { other = "Для выполнения этой команды требуются права {{.Status}}" }
+username_changed_male = { other = "{{.User}} сменил юзернейм {{.OldUsername}} ➜ {{.NewUsername}}"}
+username_changed_female = { other = "{{.User}} сменила юзернейм {{.OldUsername}} ➜ {{.NewUsername}}"}
 
 [user]
 unknown = { other = "участник" }
@@ -63,7 +65,7 @@ emoji = { other = "Эмодзи" }
 name = { other = "Имя" }
 role = { other = "Роль" }
 [cmd.summon.style.toggle]
-desc = { other = "Выбор стиля упоминания призыва"}
+desc = { other = "Выбор стиля упоминания призыва" }
 
 [cmd.summon.confirm]
 text = { other = "Подтвердить призыв всех участников?" }
@@ -167,3 +169,8 @@ activity = { other = """ㅤ
 norm_passed = { other = "✅ {{.Name}} — {{.Required}}" }
 
 norm_failed = { other = "⚠️ {{.Name}} — {{.Current}}/{{.Required}}" }
+
+[cmd.rest]
+desc = { other = "Показать информацию о ресте участника" }
+no_rest = { other = "Участник {{.User}} в данный момент не находится в ресте" }
+info = { other = "Участник {{.User}} находится в ресте до {{.Date}}" }

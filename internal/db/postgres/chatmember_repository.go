@@ -1,8 +1,8 @@
-package repository
+package postgres
 
 import (
 	"activity-bot/internal/chatmember"
-	db "activity-bot/internal/db/sqlc"
+	db "activity-bot/internal/db/postgres/sqlc"
 	"context"
 	"sort"
 	"time"
@@ -160,4 +160,18 @@ func (r *ChatMemberRepository) SetExcludeFromSummon(ctx context.Context, chatID,
 		UserID:          userID,
 		ChatID:          chatID,
 	})
+}
+
+func (r *ChatMemberRepository) ListAdmins(ctx context.Context, chatID int64, minStatus chatmember.Status) ([]chatmember.ChatMember, error) {
+	cms, err := r.queries.ListChatAdmins(ctx, db.ListChatAdminsParams{
+		ChatID: chatID,
+		Status: int16(minStatus),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return mapList(cms, func(r db.ListChatAdminsRow) chatmember.ChatMember {
+		return mapChatMemberFull(r.ChatMember, db.Chat{}, r.User)
+	}), nil
 }

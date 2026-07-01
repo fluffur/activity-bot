@@ -155,6 +155,68 @@ func (q *Queries) GetChatMemberByUsername(ctx context.Context, arg GetChatMember
 	return i, err
 }
 
+const listChatAdmins = `-- name: ListChatAdmins :many
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = $1
+  AND is_bot = false
+  AND cm.status >= $2
+ORDER BY cm.status DESC
+`
+
+type ListChatAdminsParams struct {
+	ChatID int64 `db:"chat_id" json:"chatId"`
+	Status int16 `db:"status" json:"status"`
+}
+
+type ListChatAdminsRow struct {
+	ChatMember ChatMember `db:"chat_member" json:"chatMember"`
+	User       User       `db:"user" json:"user"`
+}
+
+func (q *Queries) ListChatAdmins(ctx context.Context, arg ListChatAdminsParams) ([]ListChatAdminsRow, error) {
+	rows, err := q.db.Query(ctx, listChatAdmins, arg.ChatID, arg.Status)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListChatAdminsRow{}
+	for rows.Next() {
+		var i ListChatAdminsRow
+		if err := rows.Scan(
+			&i.ChatMember.ChatID,
+			&i.ChatMember.UserID,
+			&i.ChatMember.JoinedAt,
+			&i.ChatMember.RestUntil,
+			&i.ChatMember.Tag,
+			&i.ChatMember.LeftAt,
+			&i.ChatMember.RestReason,
+			&i.ChatMember.Emoji,
+			&i.ChatMember.Status,
+			&i.ChatMember.EmojiJson,
+			&i.ChatMember.ExcludeFromCall,
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.FirstName,
+			&i.User.LastName,
+			&i.User.CreatedAt,
+			&i.User.Gender,
+			&i.User.Emoji,
+			&i.User.CustomEmojiID,
+			&i.User.EmojiJson,
+			&i.User.IsBot,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listChatMembers = `-- name: ListChatMembers :many
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot
 FROM chat_members cm

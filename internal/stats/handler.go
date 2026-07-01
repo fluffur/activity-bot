@@ -9,6 +9,8 @@ import (
 	"github.com/gotd/botapi"
 )
 
+const CategoryStats command.Category = "stats"
+
 type Handler struct {
 	bot         *botapi.Bot
 	translator  *i18n.Translator
@@ -38,12 +40,14 @@ func NewHandler(
 }
 
 func (h *Handler) Register(registry *command.Registry) {
+	registry.AddCategory(CategoryStats)
+
 	chatDef := &command.ActionDef{
 		Key:         "stats",
 		Aliases:     []string{"отчет", "отчёт"},
 		Trigger:     command.TriggerCommand,
 		MinStatus:   chatmember.StatusMember,
-		Category:    command.CategoryStats,
+		Category:    CategoryStats,
 		Description: i18n.Cmd.Stats.Desc,
 		Examples:    []i18n.MessageID{i18n.Cmd.Stats.ExampleDuration, i18n.Cmd.Stats.ExampleDate},
 		Scope:       command.ScopeGroup,
@@ -59,7 +63,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Aliases:     []string{"кто ты", "профиль"},
 		Trigger:     command.TriggerCommand,
 		MinStatus:   chatmember.StatusMember,
-		Category:    command.CategoryStats,
+		Category:    CategoryStats,
 		Description: i18n.Cmd.Profile.Desc,
 		Examples:    []i18n.MessageID{i18n.Cmd.Profile.ExampleDuration, i18n.Cmd.Profile.ExampleDate},
 		Scope:       command.ScopeGroup,
@@ -76,7 +80,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Aliases:     []string{"кто я", "профиль"},
 		Trigger:     command.TriggerCommand,
 		MinStatus:   chatmember.StatusMember,
-		Category:    command.CategoryStats,
+		Category:    CategoryStats,
 		Description: i18n.Cmd.Profile.Desc,
 		Examples:    []i18n.MessageID{i18n.Cmd.Profile.ExampleDuration, i18n.Cmd.Profile.ExampleDate},
 		Scope:       command.ScopeGroup,

@@ -15,25 +15,6 @@ const (
 
 type Category string
 
-const (
-	CategoryHelp       Category = "help"
-	CategoryNorm       Category = "norm"
-	CategoryStats      Category = "stats"
-	CategorySummon     Category = "summon"
-	CategoryModeration Category = "moderation"
-	CategoryEvents     Category = "events"
-)
-
-func Categories() []Category {
-	return []Category{
-		CategoryHelp,
-		CategorySummon,
-		CategoryEvents,
-		CategoryNorm,
-		CategoryStats,
-	}
-}
-
 type Scope int
 
 const (
@@ -62,12 +43,21 @@ type ActionDef struct {
 }
 
 type Registry struct {
-	cmds []*ActionDef
-	idx  map[string]*ActionDef
+	cmds       []*ActionDef
+	idx        map[string]*ActionDef
+	categories []Category
 }
 
 func NewRegistry() *Registry {
 	return &Registry{idx: make(map[string]*ActionDef)}
+}
+
+func (r *Registry) AddCategory(category Category) {
+	r.categories = append(r.categories, category)
+}
+
+func (r *Registry) Categories() []Category {
+	return r.categories
 }
 
 func (r *Registry) Add(def *ActionDef) {

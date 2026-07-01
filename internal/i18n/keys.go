@@ -78,6 +78,11 @@ var (
 			Title           MessageID
 			TotalMessages   MessageID
 		}
+		Rest struct {
+			Desc   MessageID
+			Info   MessageID
+			NoRest MessageID
+		}
 		ShowNorm struct {
 			AllMembers MessageID
 			Body       MessageID
@@ -227,6 +232,15 @@ var (
 			RestUntil:       "cmd.profile.rest_until",
 			Title:           "cmd.profile.title",
 			TotalMessages:   "cmd.profile.total_messages",
+		},
+		Rest: struct {
+			Desc   MessageID
+			Info   MessageID
+			NoRest MessageID
+		}{
+			Desc:   "cmd.rest.desc",
+			Info:   "cmd.rest.info",
+			NoRest: "cmd.rest.no_rest",
 		},
 		ShowNorm: struct {
 			AllMembers MessageID
@@ -390,17 +404,21 @@ var (
 		SeniorAdmin: "status.senior_admin",
 	}
 	System = struct {
-		AddBotButton  MessageID
-		BotAdded      MessageID
-		BotAddedAdmin MessageID
-		BotCommands   MessageID
-		NoPermission  MessageID
+		AddBotButton          MessageID
+		BotAdded              MessageID
+		BotAddedAdmin         MessageID
+		BotCommands           MessageID
+		NoPermission          MessageID
+		UsernameChangedFemale MessageID
+		UsernameChangedMale   MessageID
 	}{
-		AddBotButton:  "system.add_bot_button",
-		BotAdded:      "system.bot_added",
-		BotAddedAdmin: "system.bot_added_admin",
-		BotCommands:   "system.bot_commands",
-		NoPermission:  "system.no_permission",
+		AddBotButton:          "system.add_bot_button",
+		BotAdded:              "system.bot_added",
+		BotAddedAdmin:         "system.bot_added_admin",
+		BotCommands:           "system.bot_commands",
+		NoPermission:          "system.no_permission",
+		UsernameChangedFemale: "system.username_changed_female",
+		UsernameChangedMale:   "system.username_changed_male",
 	}
 	User = struct {
 		JoinedFemale   MessageID
@@ -583,6 +601,24 @@ func CmdProfileTotalMessagesArgs(
 	}
 }
 
+func CmdRestInfoArgs(
+	date any,
+	user any,
+) map[string]any {
+	return map[string]any{
+		"Date": date,
+		"User": user,
+	}
+}
+
+func CmdRestNoRestArgs(
+	user any,
+) map[string]any {
+	return map[string]any{
+		"User": user,
+	}
+}
+
 func CmdShowNormBodyArgs(
 	name any,
 	value any,
@@ -672,6 +708,30 @@ func SystemNoPermissionArgs(
 ) map[string]any {
 	return map[string]any{
 		"Status": status,
+	}
+}
+
+func SystemUsernameChangedFemaleArgs(
+	newUsername any,
+	oldUsername any,
+	user any,
+) map[string]any {
+	return map[string]any{
+		"NewUsername": newUsername,
+		"OldUsername": oldUsername,
+		"User":        user,
+	}
+}
+
+func SystemUsernameChangedMaleArgs(
+	newUsername any,
+	oldUsername any,
+	user any,
+) map[string]any {
+	return map[string]any{
+		"NewUsername": newUsername,
+		"OldUsername": oldUsername,
+		"User":        user,
 	}
 }
 

@@ -1,9 +1,9 @@
-package repository
+package postgres
 
 import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
-	db "activity-bot/internal/db/sqlc"
+	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/norm"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/user"

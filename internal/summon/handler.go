@@ -13,6 +13,8 @@ import (
 	"github.com/gotd/botapi"
 )
 
+const CategorySummon command.Category = "summon"
+
 type Handler struct {
 	bot               *botapi.Bot
 	translator        *i18n.Translator
@@ -48,7 +50,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Aliases:     []string{"call", "калл", "колл", "каллалл"},
 		Trigger:     command.TriggerCommand,
 		MinStatus:   chatmember.StatusAdmin,
-		Category:    command.CategorySummon,
+		Category:    CategorySummon,
 		Description: i18n.Cmd.Summon.Desc,
 		Scope:       command.ScopeGroup,
 		Examples:    []i18n.MessageID{},
@@ -60,7 +62,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Aliases:     []string{"анрег"},
 		Trigger:     command.TriggerCommand,
 		MinStatus:   chatmember.StatusMember,
-		Category:    command.CategorySummon,
+		Category:    CategorySummon,
 		Description: i18n.Cmd.Summon.Reg.Desc,
 		Examples:    []i18n.MessageID{},
 		Scope:       command.ScopeGroup,
@@ -72,7 +74,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Aliases:     []string{"рег"},
 		Trigger:     command.TriggerCommand,
 		MinStatus:   chatmember.StatusMember,
-		Category:    command.CategorySummon,
+		Category:    CategorySummon,
 		Description: i18n.Cmd.Summon.Reg.Desc,
 		Examples:    []i18n.MessageID{},
 		Scope:       command.ScopeGroup,
@@ -84,7 +86,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Aliases:     []string{"каллтип", "каллстиль", "калл тип", "калл стиль"},
 		Trigger:     command.TriggerCommand,
 		MinStatus:   chatmember.StatusMember,
-		Category:    command.CategorySummon,
+		Category:    CategorySummon,
 		Description: i18n.Cmd.Summon.Style.Desc,
 		Examples:    []i18n.MessageID{},
 		Scope:       command.ScopeGroup,
@@ -96,7 +98,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Trigger:     command.TriggerCallback,
 		Parent:      summonStyleDef,
 		MinStatus:   chatmember.StatusSeniorAdmin,
-		Category:    command.CategorySummon,
+		Category:    CategorySummon,
 		Description: i18n.Cmd.Summon.Style.Toggle.Desc,
 		Scope:       command.ScopeGroup,
 		ShowInHelp:  false,

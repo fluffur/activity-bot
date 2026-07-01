@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gotd/log"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/gotd/botapi"
@@ -64,7 +65,11 @@ func ChatMiddleware(cr chat.Repository, sr pmsession.Repository) botapi.Middlewa
 	}
 }
 
-func ChatMemberMiddleware(ur user.Repository, cmr chatmember.Repository) botapi.Middleware {
+type UsernameChangedNotifier interface {
+	NotifyUsernameChanged(c *botapi.Context, oldUsername, newUsername string) error
+}
+
+func ChatMemberMiddleware(ur user.Repository, cmr chatmember.Repository, notifier UsernameChangedNotifier) botapi.Middleware {
 	return func(next botapi.Handler) botapi.Handler {
 		return func(c *botapi.Context) error {
 			ctx := c.Context
@@ -79,14 +84,14 @@ func ChatMemberMiddleware(ur user.Repository, cmr chatmember.Repository) botapi.
 				return next(c)
 			}
 
-			userModel, err := getOrCreateUser(ctx, ur, sender, msg.Chat)
+			userModel, userChanged, err := getOrCreateUser(ctx, ur, sender, msg.Chat)
 			if err != nil {
-				return err
+				return fmt.Errorf("chat member middleware get user: %w", err)
 			}
 
 			chatModel, err := cctx.Chat(ctx)
 			if err != nil {
-				return fmt.Errorf("no chat: %w", err)
+				return fmt.Errorf("chat member middleware get chat: %w", err)
 			}
 
 			if chatModel.ID == 0 {
@@ -101,11 +106,19 @@ func ChatMemberMiddleware(ur user.Repository, cmr chatmember.Repository) botapi.
 				userModel,
 			)
 			if err != nil {
-				return err
+				return fmt.Errorf("chat member middleware get chat member: %w", err)
 			}
 
 			ctx = context.WithValue(ctx, cctx.ChatMemberKey{}, member)
 			c.Context = ctx
+
+			if userChanged.NewUsername != "" {
+				if err := notifier.NotifyUsernameChanged(c, userChanged.OldUsername, userChanged.NewUsername); err != nil {
+					log.For(c.Bot.Logger()).Error(c.Context, "notify username changed", log.Error(err))
+
+					return next(c)
+				}
+			}
 
 			return next(c)
 		}
@@ -165,12 +178,17 @@ func getOrCreateChat(ctx context.Context, repo chat.Repository, ch botapi.Chat) 
 	return model, nil
 }
 
+type UserUpdate struct {
+	OldUsername string
+	NewUsername string
+}
+
 func getOrCreateUser(
 	ctx context.Context,
 	repo user.Repository,
 	sender *botapi.User,
 	c botapi.Chat,
-) (user.User, error) {
+) (model user.User, userUpdate UserUpdate, err error) {
 	var (
 		senderID                                        int64
 		senderUsername, senderFirstName, senderLastName string
@@ -191,16 +209,39 @@ func getOrCreateUser(
 		senderFirstName = c.FirstName
 		senderLastName = c.LastName
 	default:
-		return user.User{}, fmt.Errorf("no user")
+		return model, userUpdate, fmt.Errorf("no user")
 	}
 
-	model, err := repo.Get(ctx, senderID)
+	model, err = repo.Get(ctx, senderID)
 	if err == nil {
-		return model, nil
+		userUpdate.OldUsername = model.Username
+
+		if model.Username != senderUsername {
+			userUpdate.NewUsername = senderUsername
+			model.Username = senderUsername
+		}
+
+		if model.FirstName != senderFirstName {
+			model.FirstName = senderFirstName
+		}
+
+		if model.LastName != senderLastName {
+			model.LastName = senderLastName
+		}
+
+		if model.Username != senderUsername ||
+			model.FirstName != senderFirstName ||
+			model.LastName != senderLastName {
+			if err := repo.Update(ctx, model); err != nil {
+				return model, userUpdate, err
+			}
+		}
+
+		return model, userUpdate, nil
 	}
 
 	if !errors.Is(err, pgx.ErrNoRows) {
-		return user.User{}, fmt.Errorf("get user: %w", err)
+		return model, userUpdate, fmt.Errorf("get user: %w", err)
 	}
 
 	model = user.New(
@@ -214,10 +255,10 @@ func getOrCreateUser(
 	)
 
 	if err := repo.Create(ctx, model); err != nil {
-		return user.User{}, fmt.Errorf("create user: %w", err)
+		return model, userUpdate, fmt.Errorf("create user: %w", err)
 	}
 
-	return model, nil
+	return model, userUpdate, nil
 }
 
 func getOrCreateChatMember(

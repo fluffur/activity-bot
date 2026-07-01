@@ -111,3 +111,12 @@ UPDATE chat_members
 SET exclude_from_call = $1
 WHERE user_id = $2
   AND chat_id = $3;
+
+-- name: ListChatAdmins :many
+SELECT sqlc.embed(cm), sqlc.embed(u)
+FROM chat_members cm
+         JOIN users u ON u.id = cm.user_id
+WHERE cm.chat_id = $1
+  AND is_bot = false
+  AND cm.status >= $2
+ORDER BY cm.status DESC;

@@ -1,7 +1,6 @@
 package help
 
 import (
-	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/middleware/cctx"
 	"activity-bot/internal/predicate"
@@ -23,7 +22,7 @@ func (h *Handler) Help(c *botapi.Context) error {
 	groups := h.registry.ByCategory()
 	var sb strings.Builder
 
-	for _, cat := range command.Categories() {
+	for _, cat := range h.registry.Categories() {
 		cmds := groups[cat]
 		if len(cmds) == 0 {
 			continue

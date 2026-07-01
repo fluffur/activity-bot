@@ -1,7 +1,7 @@
-package repository
+package postgres
 
 import (
-	db "activity-bot/internal/db/sqlc"
+	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/stats"
 	"context"
 	"time"

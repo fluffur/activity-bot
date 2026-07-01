@@ -9,6 +9,8 @@ import (
 	"github.com/gotd/botapi"
 )
 
+const CategoryNorm command.Category = "norm"
+
 type Handler struct {
 	bot         *botapi.Bot
 	translator  *i18n.Translator
@@ -22,12 +24,14 @@ func NewHandler(b *botapi.Bot, t *i18n.Translator, p *predicate.PermissionChecke
 }
 
 func (h *Handler) Register(registry *command.Registry) {
+	registry.AddCategory(CategoryNorm)
+
 	addNormDef := &command.ActionDef{
 		Key:         "add_norm",
 		Trigger:     command.TriggerCommand,
 		Aliases:     []string{"+норма", "добавить норму"},
 		MinStatus:   chatmember.StatusSeniorAdmin,
-		Category:    command.CategoryNorm,
+		Category:    CategoryNorm,
 		Description: i18n.Cmd.AddNorm.Desc,
 		Examples:    []i18n.MessageID{i18n.Cmd.AddNorm.ExampleSimple, i18n.Cmd.AddNorm.ExampleNamed, i18n.Cmd.AddNorm.ExampleUsers},
 		Scope:       command.ScopeGroup,
@@ -44,7 +48,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Trigger:     command.TriggerCommand,
 		Aliases:     []string{"нормы"},
 		MinStatus:   chatmember.StatusMember,
-		Category:    command.CategoryNorm,
+		Category:    CategoryNorm,
 		Description: i18n.Cmd.ListNorms.Desc,
 		Scope:       command.ScopeGroup,
 		ShowInHelp:  true,
@@ -55,7 +59,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Trigger:     command.TriggerCommand,
 		Aliases:     []string{"норма"},
 		MinStatus:   chatmember.StatusMember,
-		Category:    command.CategoryNorm,
+		Category:    CategoryNorm,
 		Description: i18n.Cmd.ShowNorm.Desc,
 		Scope:       command.ScopeGroup,
 		ShowInHelp:  true,
@@ -69,7 +73,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Trigger:     command.TriggerCommand,
 		Aliases:     []string{"-норма", "удалить норму"},
 		MinStatus:   chatmember.StatusSeniorAdmin,
-		Category:    command.CategoryNorm,
+		Category:    CategoryNorm,
 		Description: i18n.Cmd.DeleteNorm.Desc,
 		Scope:       command.ScopeGroup,
 		ShowInHelp:  true,
@@ -83,7 +87,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Trigger:     command.TriggerCommand,
 		Aliases:     []string{"назначить норму", "назначить", "привязать норму", "привязать"},
 		MinStatus:   chatmember.StatusSeniorAdmin,
-		Category:    command.CategoryNorm,
+		Category:    CategoryNorm,
 		Description: i18n.Cmd.AssignNorm.Desc,
 		Examples:    []i18n.MessageID{i18n.Cmd.AssignNorm.Example},
 		Scope:       command.ScopeGroup,
@@ -99,7 +103,7 @@ func (h *Handler) Register(registry *command.Registry) {
 		Trigger:     command.TriggerCommand,
 		Aliases:     []string{"снять норму", "снять", "отвязать норму", "отвязать"},
 		MinStatus:   chatmember.StatusSeniorAdmin,
-		Category:    command.CategoryNorm,
+		Category:    CategoryNorm,
 		Description: i18n.Cmd.UnassignNorm.Desc,
 		Examples:    []i18n.MessageID{i18n.Cmd.UnassignNorm.Example},
 		Scope:       command.ScopeGroup,
