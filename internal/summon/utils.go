@@ -1,6 +1,7 @@
 package summon
 
 import (
+	"activity-bot/internal/cctx"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
@@ -15,9 +16,9 @@ import (
 	"github.com/gotd/botapi"
 )
 
-func TextFromArgs(ch chat.Chat, args *botapi.Message) string {
+func TextFromArgs(ch chat.Chat, args botapi.Message) string {
 	var text string
-	if args != nil {
+	if args.OriginalTextHTML() != "" {
 		text = ReplaceMentions(args.OriginalTextHTML(), args.Entities)
 	}
 
@@ -32,14 +33,23 @@ func TextFromArgs(ch chat.Chat, args *botapi.Message) string {
 	return text
 }
 
-func (h *Handler) Summon(c *botapi.Context, text string, msgID int, ch chat.Chat, cms []chatmember.ChatMember) error {
+func (h *Handler) Summon(
+	c *botapi.Context,
+	text string,
+	msgID int,
+	ch chat.Chat,
+	cms []chatmember.ChatMember,
+) error {
 	if _, loaded := h.activeSummons.LoadOrStore(ch.ID, struct{}{}); loaded {
-		_, err := c.Reply(h.translator.T(ch.Lang, i18n.Cmd.Summon.AlreadyRunning))
+		loc := cctx.MustLocalizer(c)
+
+		_, err := c.Reply(
+			loc.T(i18n.Cmd.Summon.AlreadyRunning, nil),
+		)
 		return err
 	}
 
 	mentions := BuildMentions(cms, ch.MentionTypes)
-
 	sep := MentionSeparator(ch.MentionTypes)
 
 	perMsg := int(ch.MentionsPerMessage)
@@ -54,13 +64,12 @@ func (h *Handler) Summon(c *botapi.Context, text string, msgID int, ch chat.Chat
 
 		if err := SendMessages(
 			c,
-			h.translator,
-			ch.Lang,
+			cctx.MustLocalizer(c),
 			ch.ID,
 			msgID,
 			msgs,
 		); err != nil {
-			log.For(c.Bot.Logger()).Error(c.Context, "send messages", log.Error(err))
+			log.For(c.Bot.Logger()).Error(c, "send messages", log.Error(err))
 		}
 	}()
 
@@ -97,8 +106,7 @@ func BuildMentionMessages(
 
 func SendMessages(
 	c *botapi.Context,
-	t *i18n.Translator,
-	lang string,
+	loc *i18n.Localizer,
 	chatID int64,
 	msgID int,
 	messages []string,
@@ -114,12 +122,11 @@ func SendMessages(
 	}
 
 	chatLimiter := rate.NewLimiter(rate.Every(1500*time.Microsecond), 1)
+
 	for _, text := range messages {
 		if err := chatLimiter.Wait(c.Background()); err != nil {
 			return fmt.Errorf("send summon messages: %w", err)
 		}
-
-		var err error
 
 		if photoID != "" {
 			_, err = c.Bot.SendPhoto(
@@ -153,7 +160,7 @@ func SendMessages(
 	_, err = c.Bot.SendMessage(
 		c.Background(),
 		botapi.ID(chatID),
-		t.T(lang, i18n.Cmd.Summon.Completed),
+		loc.T(i18n.Cmd.Summon.Completed, nil),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
 	)
@@ -306,7 +313,7 @@ func (h *Handler) summonSession(
 		return nil, chat.Chat{}, nil
 	}
 
-	ch, err := h.chatService.Get(c.Context, session.Data.ChatID)
+	ch, err := h.chatService.Get(c, session.Data.ChatID)
 	if err != nil {
 		return nil, chat.Chat{}, fmt.Errorf("get chat: %w", err)
 	}
@@ -317,12 +324,11 @@ func (h *Handler) summonSession(
 	}
 
 	if session.Data.UserID != sender.ID {
+		loc := cctx.MustLocalizer(c)
+
 		return nil, ch, c.AnswerCallback(
 			botapi.WithCallbackText(
-				h.translator.T(
-					ch.Lang,
-					i18n.Cmd.Summon.Confirm.OnlyInitiatorConfirm,
-				),
+				loc.T(i18n.Cmd.Summon.Confirm.OnlyInitiatorConfirm, nil),
 			),
 		)
 	}

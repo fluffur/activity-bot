@@ -1,7 +1,7 @@
 package predicate
 
 import (
-	"activity-bot/internal/middleware/cctx"
+	"activity-bot/internal/cctx"
 
 	"github.com/gotd/log"
 
@@ -12,7 +12,7 @@ func Chat() botapi.Predicate {
 	return func(c *botapi.Context) bool {
 		ch, err := cctx.Chat(c)
 		if err != nil {
-			log.For(c.Bot.Logger()).Error(c.Context, "no chat", log.Error(err))
+			log.For(c.Bot.Logger()).Error(c, "no chat", log.Error(err))
 			return false
 		}
 
@@ -24,7 +24,7 @@ func Private() botapi.Predicate {
 	return func(c *botapi.Context) bool {
 		ch, err := cctx.Chat(c)
 		if err != nil {
-			log.For(c.Bot.Logger()).Error(c.Context, "no chat", log.Error(err))
+			log.For(c.Bot.Logger()).Error(c, "no chat", log.Error(err))
 			return false
 		}
 

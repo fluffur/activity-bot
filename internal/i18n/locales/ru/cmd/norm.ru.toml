@@ -1,0 +1,41 @@
+[cmd.add_norm]
+desc = { other = "Добавить новую норму" }
+example_simple = { other = "+норма 50" }
+example_named = { other = "+норма 70 варн" }
+example_users = { other = """+норма 10 особенные
+@user1 @user2""" }
+err_invalid_value = { other = "Неверное значение нормы {{.Value}}.\nДопустимый диапазон: от {{.Min}} до {{.Max}}." }
+added = { other = "Норма {{.Name}} {{.Value}} успешно установлена" }
+norm_general = { other = "общая" }
+
+[cmd.list_norms]
+desc = { other = "Список всех норм" }
+title = { other = "Нормы:" }
+empty = { other = "Нормы отсутствуют" }
+item = { other = "• {{.Name}} — {{.Value}}" }
+
+[cmd.show_norm]
+desc = { other = "Просмотр нормы" }
+example = { other = "норма варн" }
+body = { other = "Норма \"{{.Name}}\": {{.Value}}" }
+not_found = { other = "Норма с названием {{.Name}} ещё не установлена\n\nПопробуйте ввести: {{.Code}}+норма {{.Name}} 100{{.CodeEnd}}" }
+members = { other = "👥 Участники:" }
+all_members = { other = "👥 Применяется ко всем участникам чата" }
+
+[cmd.assign_norm]
+desc = { other = "Назначить норму участникам" }
+example = { other = "назначить норму админы @user1 @user2" }
+assigned = { other = "Норма {{.Name}} успешно назначена указанным участникам" }
+no_users = { other = "Не удалось назначить норму на указанных участников" }
+
+[cmd.unassign_norm]
+desc = { other = "Снять норму участникам" }
+example = { other = "снять норму админы @user" }
+unassigned = { other = "Норма {{.Name}} успешно снята у указанных участников" }
+no_users = { other = "Не удалось снять норму у указанных участников" }
+
+[cmd.delete_norm]
+desc = { other = "Удалить норму" }
+example = { other = "-норма варн" }
+deleted = { other = "Норма \"{{.Name}}\" удалена" }
+err_nothing_to_delete = { other = "Норма с именем \"{{.Name}}\" не найдена для удаления" }

@@ -1,0 +1,10 @@
+[cmd.help]
+
+desc = { other = "Помощь по командам бота" }
+
+body = { other = "📚 {{.CommandsLink}}\n\nЕсли нужна помощь, обратитесь к {{.DeveloperLink}}" }
+
+syntax = { other = "Синтаксис:" }
+examples = { other = "Примеры:" }
+
+aliases_label = { other = "Синонимы: {{.Aliases}}" }

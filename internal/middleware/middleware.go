@@ -1,10 +1,11 @@
 package middleware
 
 import (
+	"activity-bot/internal/cctx"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
+	"activity-bot/internal/i18n"
 	"activity-bot/internal/message"
-	"activity-bot/internal/middleware/cctx"
 	"activity-bot/internal/pmsession"
 	"activity-bot/internal/user"
 	"context"
@@ -31,15 +32,13 @@ func ChatMiddleware(cr chat.Repository, sr pmsession.Repository) botapi.Middlewa
 				return next(c)
 			}
 
-			ctx := c.Context
 			chatModel := chat.New(0, "")
 
 			if msg.Chat.Type != botapi.ChatTypeGroup && msg.Chat.Type != botapi.ChatTypeSupergroup {
-				ch, err := sr.GetChat(ctx, msg.Chat.ID)
+				ch, err := sr.GetChat(c, msg.Chat.ID)
 				if err != nil {
 					if errors.Is(err, sql.ErrNoRows) {
-						ctx = context.WithValue(ctx, cctx.ChatKey{}, chatModel)
-						c.Context = ctx
+						c.Context = cctx.WithChat(c.Context, chatModel)
 
 						return next(c)
 					}
@@ -49,7 +48,7 @@ func ChatMiddleware(cr chat.Repository, sr pmsession.Repository) botapi.Middlewa
 
 				chatModel = ch
 			} else {
-				ch, err := getOrCreateChat(ctx, cr, msg.Chat)
+				ch, err := getOrCreateChat(c, cr, msg.Chat)
 				if err != nil {
 					return err
 				}
@@ -57,8 +56,7 @@ func ChatMiddleware(cr chat.Repository, sr pmsession.Repository) botapi.Middlewa
 				chatModel = ch
 			}
 
-			ctx = context.WithValue(ctx, cctx.ChatKey{}, chatModel)
-			c.Context = ctx
+			c.Context = cctx.WithChat(c.Context, chatModel)
 
 			return next(c)
 		}
@@ -72,8 +70,6 @@ type UsernameChangedNotifier interface {
 func ChatMemberMiddleware(ur user.Repository, cmr chatmember.Repository, notifier UsernameChangedNotifier) botapi.Middleware {
 	return func(next botapi.Handler) botapi.Handler {
 		return func(c *botapi.Context) error {
-			ctx := c.Context
-
 			sender := c.Sender()
 			msg := c.Message()
 			if msg == nil {
@@ -84,12 +80,12 @@ func ChatMemberMiddleware(ur user.Repository, cmr chatmember.Repository, notifie
 				return next(c)
 			}
 
-			userModel, userChanged, err := getOrCreateUser(ctx, ur, sender, msg.Chat)
+			userModel, userChanged, err := getOrCreateUser(c, ur, sender, msg.Chat)
 			if err != nil {
 				return fmt.Errorf("chat member middleware get user: %w", err)
 			}
 
-			chatModel, err := cctx.Chat(ctx)
+			chatModel, err := cctx.Chat(c)
 			if err != nil {
 				return fmt.Errorf("chat member middleware get chat: %w", err)
 			}
@@ -99,7 +95,7 @@ func ChatMemberMiddleware(ur user.Repository, cmr chatmember.Repository, notifie
 			}
 
 			member, err := getOrCreateChatMember(
-				ctx,
+				c,
 				cmr,
 				c.Bot,
 				chatModel,
@@ -109,12 +105,11 @@ func ChatMemberMiddleware(ur user.Repository, cmr chatmember.Repository, notifie
 				return fmt.Errorf("chat member middleware get chat member: %w", err)
 			}
 
-			ctx = context.WithValue(ctx, cctx.ChatMemberKey{}, member)
-			c.Context = ctx
+			c.Context = cctx.WithChatMember(c.Context, member)
 
 			if userChanged.NewUsername != "" {
 				if err := notifier.NotifyUsernameChanged(c, userChanged.OldUsername, userChanged.NewUsername); err != nil {
-					log.For(c.Bot.Logger()).Error(c.Context, "notify username changed", log.Error(err))
+					log.For(c.Bot.Logger()).Error(c, "notify username changed", log.Error(err))
 
 					return next(c)
 				}
@@ -144,7 +139,7 @@ func SaveMessageMiddleware(messageRepository message.Repository) botapi.Middlewa
 			}
 
 			if err := messageRepository.Save(
-				c.Context,
+				c,
 				msg.Chat.ID,
 				sender.ID,
 				int64(msg.MessageID),
@@ -176,6 +171,23 @@ func getOrCreateChat(ctx context.Context, repo chat.Repository, ch botapi.Chat) 
 	}
 
 	return model, nil
+}
+
+func LocalizationMiddleware(t *i18n.Translator) botapi.Middleware {
+	return func(next botapi.Handler) botapi.Handler {
+		return func(c *botapi.Context) error {
+			ch, err := cctx.Chat(c)
+			loc := t.Default()
+
+			if err == nil {
+				loc = t.Localizer(ch.Lang)
+			}
+
+			c.Context = cctx.WithLocalizer(c.Context, loc)
+
+			return next(c)
+		}
+	}
 }
 
 type UserUpdate struct {
@@ -215,23 +227,24 @@ func getOrCreateUser(
 	model, err = repo.Get(ctx, senderID)
 	if err == nil {
 		userUpdate.OldUsername = model.Username
-
+		updated := false
 		if model.Username != senderUsername {
+			updated = true
 			userUpdate.NewUsername = senderUsername
 			model.Username = senderUsername
 		}
 
 		if model.FirstName != senderFirstName {
+			updated = true
 			model.FirstName = senderFirstName
 		}
 
 		if model.LastName != senderLastName {
+			updated = true
 			model.LastName = senderLastName
 		}
 
-		if model.Username != senderUsername ||
-			model.FirstName != senderFirstName ||
-			model.LastName != senderLastName {
+		if updated {
 			if err := repo.Update(ctx, model); err != nil {
 				return model, userUpdate, err
 			}

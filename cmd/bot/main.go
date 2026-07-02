@@ -12,7 +12,6 @@ import (
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/middleware"
 	"activity-bot/internal/norm"
-	"activity-bot/internal/notifier"
 	"activity-bot/internal/predicate"
 	"activity-bot/internal/rest"
 	"activity-bot/internal/stats"
@@ -79,6 +78,8 @@ func main() {
 	if err != nil {
 		log.Fatal("Create translator", zap.Error(err))
 	}
+	loc := translator.Default()
+	_ = loc
 
 	chatRepository := postgres.NewChatRepository(queries)
 	userRepository := postgres.NewUserRepository(queries)
@@ -88,23 +89,25 @@ func main() {
 	permissionRepository := postgres.NewPermissionRepository(queries)
 	normRepository := postgres.NewNormRepository(queries)
 	statsRepository := postgres.NewStatsRepository(queries)
+	restRepository := postgres.NewRestRepository(queries, pool)
 
 	permissions := predicate.NewPermissionsChecker(permissionRepository, translator)
 	rules := predicate.NewRuleChecker(chatMemberRepository, messageRepository)
 
 	chatService := chat.NewService(chatRepository)
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
-	statsPresenter := stats.NewPresenter(translator)
 	statsService := stats.NewService(chatMemberRepository, normRepository, statsRepository)
+	restService := rest.NewService(restRepository)
 
 	registry := command.NewRegistry()
 
 	bot.UseOuter(
 		middleware.ChatMiddleware(chatRepository, pmSessionRepository),
+		middleware.LocalizationMiddleware(translator),
 		middleware.ChatMemberMiddleware(
 			userRepository,
 			chatMemberRepository,
-			notifier.NewUsernameChangedNotifier(translator, chatMemberRepository),
+			events.NewUsernameChangedNotifier(chatMemberRepository),
 		),
 		middleware.SaveMessageMiddleware(messageRepository),
 	)
@@ -123,11 +126,11 @@ func main() {
 		fsm.WithUpdateKeyFunc[summon.State, summon.StateData](fsm.ChatSenderUpdateKey),
 	)
 
-	help.NewHandler(bot, translator, permissions, registry, cfg.CommandsURL, cfg.DeveloperUsername).Register(registry)
-	summon.NewHandler(bot, translator, permissions, chatService, chatMemberService, summonFSM).Register(registry)
-	norm.NewHandler(bot, translator, permissions, rules, normRepository).Register(registry)
-	stats.NewHandler(bot, translator, permissions, rules, statsService, statsPresenter).Register(registry)
-	rest.NewHandler(bot, translator, permissions, rules, chatMemberService).Register(registry)
+	help.NewHandler(bot, permissions, registry, cfg.CommandsURL, cfg.DeveloperUsername).Register(registry)
+	summon.NewHandler(bot, permissions, chatService, chatMemberService, summonFSM).Register(registry)
+	norm.NewHandler(bot, permissions, rules, normRepository).Register(registry)
+	stats.NewHandler(bot, permissions, rules, statsService).Register(registry)
+	rest.NewHandler(bot, permissions, rules, restService, chatMemberService).Register(registry)
 	events.NewHandler(bot, translator, chatMemberService).Register()
 
 	log.Info("Starting bot")

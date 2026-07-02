@@ -160,17 +160,23 @@ UPDATE users
 SET username   = $1,
     first_name = $2,
     last_name  = $3
-WHERE id = $1
+WHERE id = $4
 `
 
 type UpdateUserParams struct {
 	Username  pgtype.Text `db:"username" json:"username"`
 	FirstName pgtype.Text `db:"first_name" json:"firstName"`
 	LastName  pgtype.Text `db:"last_name" json:"lastName"`
+	ID        int64       `db:"id" json:"id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
-	_, err := q.db.Exec(ctx, updateUser, arg.Username, arg.FirstName, arg.LastName)
+	_, err := q.db.Exec(ctx, updateUser,
+		arg.Username,
+		arg.FirstName,
+		arg.LastName,
+		arg.ID,
+	)
 	return err
 }
 

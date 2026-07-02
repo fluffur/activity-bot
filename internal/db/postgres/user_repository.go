@@ -37,6 +37,7 @@ func (r *UserRepository) Get(ctx context.Context, id int64) (user.User, error) {
 
 func (r *UserRepository) Update(ctx context.Context, u user.User) error {
 	return r.queries.UpdateUser(ctx, db.UpdateUserParams{
+		ID:        u.ID,
 		Username:  text(u.Username),
 		FirstName: text(u.FirstName),
 		LastName:  text(u.LastName),

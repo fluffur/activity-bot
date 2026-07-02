@@ -9,6 +9,7 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/user"
 
+	"github.com/gotd/botapi"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -144,4 +145,8 @@ func (s *Service) ListSummonChatMembers(ctx context.Context, chatID int64) ([]Ch
 
 func (s *Service) SetExcludeFromSummon(ctx context.Context, chatID, userID int64, excluded bool) error {
 	return s.chatMemberRepo.SetExcludeFromSummon(ctx, chatID, userID, excluded)
+}
+
+func (s *Service) Get(c *botapi.Context, chatID int64, userID int64) (ChatMember, error) {
+	return s.chatMemberRepo.Get(c, chatID, userID)
 }

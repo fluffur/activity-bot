@@ -1,0 +1,6 @@
+[category]
+help = { other = "Помощь" }
+summon = { other = "Призывы" }
+stats = { other = "Статистика" }
+norm = { other = "Норма" }
+rest = { other = "Рест" }

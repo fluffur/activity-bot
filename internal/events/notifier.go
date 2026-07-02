@@ -1,9 +1,9 @@
-package notifier
+package events
 
 import (
+	"activity-bot/internal/cctx"
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
-	"activity-bot/internal/middleware/cctx"
 	"activity-bot/internal/summon"
 	"activity-bot/internal/utils/tghtml"
 	"fmt"
@@ -13,39 +13,28 @@ import (
 )
 
 type UsernameChangedNotifier struct {
-	translator           *i18n.Translator
 	chatMemberRepository chatmember.Repository
 }
 
-func NewUsernameChangedNotifier(t *i18n.Translator, cmr chatmember.Repository) *UsernameChangedNotifier {
+func NewUsernameChangedNotifier(cmr chatmember.Repository) *UsernameChangedNotifier {
 	return &UsernameChangedNotifier{
-		translator:           t,
 		chatMemberRepository: cmr,
 	}
 }
 
 func (n *UsernameChangedNotifier) NotifyUsernameChanged(c *botapi.Context, oldUsername, newUsername string) error {
-	ch, err := cctx.Chat(c.Context)
-	if err != nil {
-		return fmt.Errorf("notify username changed: %w", err)
+	ch := cctx.MustChat(c)
+	cm := cctx.MustChatMember(c)
+	loc := cctx.MustLocalizer(c)
+	args := i18n.SystemUsernameChangedMaleData{
+		User:        tghtml.MemberMention(loc, ch, cm),
+		OldUsername: tghtml.Code("@" + oldUsername),
+		NewUsername: tghtml.Code("@" + newUsername),
 	}
 
-	cm, err := cctx.ChatMember(c.Context)
-	if err != nil {
-		return fmt.Errorf("notify username changed: %w", err)
-	}
+	text := loc.TGender(cm.User.Gender, i18n.System.UsernameChanged, args)
 
-	args := i18n.SystemUsernameChangedMaleArgs(
-		tghtml.Code("@"+newUsername),
-		tghtml.Code("@"+oldUsername),
-		tghtml.MemberLink(n.translator, ch, cm),
-	)
-
-	text := n.translator.TIf(
-		ch.Lang, cm.IsMale(), i18n.System.UsernameChangedMale, i18n.System.UsernameChangedFemale, args, args,
-	)
-
-	admins, err := n.chatMemberRepository.ListAdmins(c.Context, ch.ID, chatmember.StatusModerator)
+	admins, err := n.chatMemberRepository.ListAdmins(c, ch.ID, chatmember.StatusModerator)
 	if err != nil {
 		return fmt.Errorf("notify username changed list admins: %w", err)
 	}

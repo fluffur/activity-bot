@@ -1,0 +1,7 @@
+[status]
+member = { other = "участник" }
+moderator = { other = "модератор" }
+junior_admin = { other = "младший администратор" }
+senior_admin = { other = "старший администратор" }
+coowner = { other = "совладелец" }
+owner = { other = "владелец" }

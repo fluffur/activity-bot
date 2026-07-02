@@ -17,7 +17,6 @@ const CategorySummon command.Category = "summon"
 
 type Handler struct {
 	bot               *botapi.Bot
-	translator        *i18n.Translator
 	permissions       *predicate.PermissionChecker
 	chatService       *chat.Service
 	chatMemberService *chatmember.Service
@@ -27,7 +26,6 @@ type Handler struct {
 
 func NewHandler(
 	b *botapi.Bot,
-	t *i18n.Translator,
 	p *predicate.PermissionChecker,
 	chs *chat.Service,
 	cms *chatmember.Service,
@@ -35,7 +33,6 @@ func NewHandler(
 ) *Handler {
 	return &Handler{
 		bot:               b,
-		translator:        t,
 		permissions:       p,
 		chatService:       chs,
 		chatMemberService: cms,

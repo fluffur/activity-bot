@@ -1,6 +1,7 @@
 package predicate
 
 import (
+	"activity-bot/internal/cctx"
 	"activity-bot/internal/chatmember"
 	"context"
 	"strings"
@@ -15,7 +16,7 @@ func resolveUserEntities(
 	chatID int64,
 	text string,
 	entities []botapi.MessageEntity,
-	parsed *ParsedArgs,
+	parsed *cctx.ParsedArgs,
 	used []Offset,
 ) []Offset {
 	for _, entity := range entities {

@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/chatmember"
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/norm"
+	"activity-bot/internal/rest"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/user"
 )
@@ -109,4 +110,25 @@ func mapProfileStats(s db.UserStatsRow) stats.ProfileStats {
 		MonthRollingCount: s.MonthRollingCount,
 		AllTimeCount:      s.AllTimeCount,
 	}
+}
+
+func mapRestRequest(rr db.RestRequest) rest.Request {
+	return rest.Request{
+		ID:          rr.ID.Int64,
+		ChatID:      rr.ChatID,
+		UserID:      rr.UserID,
+		RequestedAt: rr.RequestedAt.Time,
+		UpdatedAt:   rr.UpdatedAt.Time,
+		RestUntil:   rr.RestUntil.Time,
+		Status:      string(rr.Status),
+		MessageID:   rr.MessageID.Int64,
+		Reason:      rr.Reason.String,
+	}
+}
+
+func mapRestRequestFull(rr db.RestRequest, cm db.ChatMember, u db.User) rest.Request {
+	r := mapRestRequest(rr)
+	r.ChatMember = mapChatMemberFull(cm, db.Chat{}, u)
+
+	return r
 }

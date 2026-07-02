@@ -1,9 +1,8 @@
 package stats
 
 import (
+	"activity-bot/internal/cctx"
 	"activity-bot/internal/chat"
-	"activity-bot/internal/middleware/cctx"
-	"activity-bot/internal/predicate"
 	"fmt"
 	"time"
 
@@ -11,27 +10,20 @@ import (
 )
 
 func (h *Handler) Chat(c *botapi.Context) error {
-	args, ok := predicate.GetParsedArgs(c)
-	if !ok {
-		return fmt.Errorf("chat no args")
-	}
-
-	ch, err := cctx.Chat(c.Context)
-	if err != nil {
-		return fmt.Errorf("stats chat: %w", err)
-	}
-
-	fromDate, toDate, err := h.parseTimeRange(ch, args)
+	args := cctx.MustArgs(c)
+	ch := cctx.MustChat(c)
+	fromDate, toDate, err := ParseTimeRange(ch, args)
 	if err != nil {
 		return fmt.Errorf("stats time range: %w", err)
 	}
 
-	calculatedData, err := h.service.GetChatStats(c.Context, ch.ID, fromDate, toDate, ch.NewbieThresholdDays)
+	calculatedData, err := h.service.GetChatStats(c, ch.ID, fromDate, toDate, ch.NewbieThresholdDays)
 	if err != nil {
 		return fmt.Errorf("failed to calculate stats: %w", err)
 	}
 
-	htmlMessage := h.presenter.RenderStats(ch, calculatedData)
+	loc := cctx.MustLocalizer(c)
+	htmlMessage := RenderStats(loc, ch, calculatedData)
 
 	_, err = c.Reply(
 		htmlMessage,
@@ -41,7 +33,7 @@ func (h *Handler) Chat(c *botapi.Context) error {
 	return err
 }
 
-func (h *Handler) parseTimeRange(ch chat.Chat, args predicate.ParsedArgs) (time.Time, time.Time, error) {
+func ParseTimeRange(ch chat.Chat, args cctx.ParsedArgs) (time.Time, time.Time, error) {
 	now := time.Now()
 
 	switch {

@@ -22,17 +22,17 @@ func ParseMentionedMembers(
 		case botapi.EntityMention:
 			username := strings.TrimPrefix(entityText(text, entity.Offset, entity.Length), "@")
 
-			cm, err := chatMemberRepo.GetByUsername(c.Context, chatID, username)
+			cm, err := chatMemberRepo.GetByUsername(c, chatID, username)
 			if err != nil {
-				log.For(c.Bot.Logger()).Warn(c.Context, "entity mention get by username", log.Error(err))
+				log.For(c.Bot.Logger()).Warn(c, "entity mention get by username", log.Error(err))
 				continue
 			}
 			members = append(members, cm)
 
 		case botapi.EntityTextMention:
-			cm, err := chatMemberRepo.Get(c.Context, chatID, entity.User.ID)
+			cm, err := chatMemberRepo.Get(c, chatID, entity.User.ID)
 			if err != nil {
-				log.For(c.Bot.Logger()).Warn(c.Context, "entity text mention get by username", log.Error(err))
+				log.For(c.Bot.Logger()).Warn(c, "entity text mention get by username", log.Error(err))
 				continue
 			}
 
@@ -44,9 +44,9 @@ func ParseMentionedMembers(
 				link = strings.TrimPrefix(strings.TrimPrefix(link, "https://"), "t.me/")
 				username := strings.TrimPrefix(link, "@")
 
-				cm, err := chatMemberRepo.GetByUsername(c.Context, chatID, username)
+				cm, err := chatMemberRepo.GetByUsername(c, chatID, username)
 				if err != nil {
-					log.For(c.Bot.Logger()).Warn(c.Context, "entity link get by username", log.Error(err))
+					log.For(c.Bot.Logger()).Warn(c, "entity link get by username", log.Error(err))
 					continue
 				}
 

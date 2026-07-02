@@ -1,0 +1,14 @@
+[system]
+add_bot_button = { other = "Добавить бота в группу" }
+bot_commands = { other = "Команды бота" }
+
+bot_added = { other = "Меня добавили в группу!\n\nТеперь, для того, чтобы я мог работать корректно, мне нужно выдать права администратора в группе (все пункты, кроме анонимности)" }
+
+bot_added_admin = { other = "Меня добавили в группу!\n\nТеперь можно приступить к настройке бота" }
+
+no_permission = { other = "Для выполнения этой команды требуются права {{.Status}}" }
+
+[system.username_changed]
+male = { other = "{{.User}} сменил юзернейм {{.OldUsername}} ➜ {{.NewUsername}}" }
+female = { other = "{{.User}} сменила юзернейм {{.OldUsername}} ➜ {{.NewUsername}}" }
+unknown = { other = "{{.User}} сменил юзернейм {{.OldUsername}} ➜ {{.NewUsername}}" }

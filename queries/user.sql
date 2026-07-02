@@ -7,7 +7,7 @@ UPDATE users
 SET username   = $1,
     first_name = $2,
     last_name  = $3
-WHERE id = $1;
+WHERE id = $4;
 
 -- name: GetUserByID :one
 SELECT *

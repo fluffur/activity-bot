@@ -1,0 +1,6 @@
+[arg_type]
+user = { other = "@user" }
+number = { other = "число" }
+duration = { other = "период" }
+datetime = { other = "дата" }
+text = { other = "текст" }

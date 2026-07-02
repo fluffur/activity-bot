@@ -29,10 +29,10 @@ func isValidNormName(name string) bool {
 	return true
 }
 
-func LocalisedNormName(t *i18n.Translator, lang string, name string) string {
+func LocalisedNormName(loc *i18n.Localizer, name string) string {
 	switch name {
 	case GeneralNormName:
-		return t.T(lang, i18n.Cmd.AddNorm.NormGeneral)
+		return loc.T(i18n.Cmd.AddNorm.NormGeneral, nil)
 	default:
 		return name
 	}

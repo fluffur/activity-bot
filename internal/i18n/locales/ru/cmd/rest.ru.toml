@@ -1,0 +1,58 @@
+[cmd.rest]
+
+desc = { other = "Информация о ресте участника" }
+
+info = { other = "{{.User}} находится в ресте до {{.Date}}" }
+info_reason = { other = "{{.User}} находится в ресте до {{.Date}}\nПричина: {{.Reason}}" }
+no_rest = { other = "{{.User}} в данный момент не находится в ресте" }
+
+set = { other = "Для {{.User}} установлен рест до {{.Date}}" }
+set_reason = { other = "Для {{.User}} установлен рест до {{.Date}}\nПричина: {{.Reason}}" }
+
+[cmd.end_rest]
+
+desc = { other = "Завершить рест" }
+
+ended = { other = "Рест {{.User}} завершён" }
+ended_self = { other = "Ваш рест завершён" }
+
+not_in_rest = { other = "{{.User}} не находится в ресте" }
+not_in_rest_self = { other = "Вы не находитесь в ресте" }
+
+[cmd.rests]
+
+desc = { other = "История рестов участника" }
+
+history_title = { other = "📋 История рестов {{.User}}" }
+
+history_item = { other = "{{.Index}}. 💤 {{.From}} → {{.To}} ({{.Duration}})" }
+
+history_item_reason = { other = "{{.Index}}. 💤 {{.From}} → {{.To}} ({{.Duration}})\n   💬 {{.Reason}}" }
+
+history_total = { other = "\n\nВсего рестов: {{.Count}}" }
+history_empty = { other = "У участника {{.User}} нет рестов" }
+
+deleted = { other = "Запрос на рест успешно удален" }
+deleted_active = { other = "Действительный запрос на рест удален" }
+
+[cmd.rest_request]
+
+created = { other = "Заявка на рест отправлена на рассмотрение" }
+
+approved = { other = "✅ Заявка на рест одобрена\n\nУчастник {{.User}} находится в ресте до {{.Date}}" }
+approved_short = { other = "Запрос одобрен" }
+
+rejected = { other = "❌ Заявка на рест отклонена" }
+
+title = { other = "История рестов {{.User}}" }
+empty = { other = "У {{.User}} отсутствуют ресты" }
+item = { other = "{{.Index}}. {{.From}} — {{.To}}" }
+
+no_request = { other = "Не найден запрос на рест" }
+
+approve_button = { other = "✅ Принять"}
+reject_button = { other = "❌ Отклонить"}
+
+text = { other = "Для {{.User}} запрошен рест до {{.Date}}" }
+text_reason = { other = "Для {{.User}} запрошен рест до {{.Date}}\nПричина: {{.Reason}}" }
+

@@ -13,80 +13,97 @@ import (
 	"activity-bot/internal/utils/tghtml"
 )
 
-type Presenter struct {
-	translator *i18n.Translator
-}
-
-func NewPresenter(t *i18n.Translator) *Presenter {
-	return &Presenter{translator: t}
-}
-
-func (p *Presenter) RenderStats(ch chat.Chat, data CalculatedStats) string {
+func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats) string {
 	var b strings.Builder
 
-	title := p.translator.TData(ch.Lang, i18n.Cmd.Stats.Title, i18n.CmdStatsTitleArgs(
-		tghtml.DateTime(data.FromDate, "wdt", data.FromDate.Format("02.01.2006")),
-		tghtml.DateTime(data.ToDate, "wdt", data.ToDate.Format("02.01.2006")),
+	b.WriteString(loc.T(
+		i18n.Cmd.Stats.Title,
+		i18n.CmdStatsTitleData{
+			From: tghtml.DefaultDateTime(data.FromDate),
+			To:   tghtml.DefaultDateTime(data.ToDate),
+		},
 	))
-	b.WriteString(title)
 	b.WriteString("\n\n")
 
 	if !data.HasNorms {
 		b.WriteString("<blockquote expandable>")
 		for i, u := range data.SimpleResults {
-			b.WriteString(fmt.Sprintf(
+			_, _ = fmt.Fprintf(
+				&b,
 				"%d. %s — %d",
 				i+1,
-				tghtml.MemberLink(p.translator, ch, u.Member),
+				tghtml.MemberLink(loc, ch, u.Member),
 				u.Messages,
-			))
+			)
+
 			if i != len(data.SimpleResults)-1 {
-				b.WriteString("\n")
+				b.WriteByte('\n')
 			}
 		}
 		b.WriteString("</blockquote>\n\n")
 	} else {
 		for _, r := range data.NormResults {
-			b.WriteString(p.translator.TData(ch.Lang, i18n.Cmd.Stats.NormTitle, i18n.CmdStatsNormTitleArgs(
-				tghtml.Bold(UcFirst(norm.LocalisedNormName(p.translator, ch.Lang, r.NormName))),
-				tghtml.Code(fmt.Sprintf("%d", r.Required)),
-			)))
+			b.WriteString(loc.T(
+				i18n.Cmd.Stats.NormTitle,
+				i18n.CmdStatsNormTitleData{
+					Name:     tghtml.Bold(UcFirst(norm.LocalisedNormName(loc, r.NormName))),
+					Required: tghtml.Code(fmt.Sprintf("%d", r.Required)),
+				},
+			))
 			b.WriteString("\n\n")
 
 			if len(r.Failed) > 0 {
 				var failed strings.Builder
+
 				for i, u := range r.Failed {
-					failed.WriteString(p.translator.TData(ch.Lang, i18n.Cmd.Stats.UserFailed, i18n.CmdStatsUserFailedArgs(
-						i+1,
-						u.Messages,
-						r.Required,
-						tghtml.MemberLink(p.translator, ch, u.Member),
-					)) + "\n")
+					failed.WriteString(loc.T(
+						i18n.Cmd.Stats.UserFailed,
+						i18n.CmdStatsUserFailedData{
+							List:     i + 1,
+							User:     tghtml.MemberLink(loc, ch, u.Member),
+							Messages: u.Messages,
+							Required: r.Required,
+						},
+					))
+					failed.WriteByte('\n')
 				}
-				b.WriteString(p.translator.T(ch.Lang, i18n.Cmd.Stats.Failed) + "\n")
-				b.WriteString(tghtml.ExpandableBlockquote(failed.String()) + "\n")
+
+				b.WriteString(loc.T(i18n.Cmd.Stats.Failed, nil))
+				b.WriteByte('\n')
+				b.WriteString(tghtml.ExpandableBlockquote(failed.String()))
+				b.WriteByte('\n')
 			}
 
 			if len(r.Passed) > 0 {
 				var passed strings.Builder
+
 				for i, u := range r.Passed {
-					passed.WriteString(p.translator.TData(ch.Lang, i18n.Cmd.Stats.UserPassed, i18n.CmdStatsUserPassedArgs(
-						i+1,
-						u.Messages,
-						tghtml.MemberLink(p.translator, ch, u.Member),
-					)) + "\n")
+					passed.WriteString(loc.T(
+						i18n.Cmd.Stats.UserPassed,
+						i18n.CmdStatsUserPassedData{
+							List:     i + 1,
+							User:     tghtml.MemberLink(loc, ch, u.Member),
+							Messages: u.Messages,
+						},
+					))
+					passed.WriteByte('\n')
 				}
-				b.WriteString(p.translator.T(ch.Lang, i18n.Cmd.Stats.Passed) + "\n")
-				b.WriteString(tghtml.ExpandableBlockquote(passed.String()) + "\n")
+
+				b.WriteString(loc.T(i18n.Cmd.Stats.Passed, nil))
+				b.WriteByte('\n')
+				b.WriteString(tghtml.ExpandableBlockquote(passed.String()))
+				b.WriteByte('\n')
 			}
-			b.WriteString("\n")
+
+			b.WriteByte('\n')
 		}
 	}
 
-	b.WriteString(p.translator.TData(
-		ch.Lang,
+	b.WriteString(loc.T(
 		i18n.Cmd.Stats.TotalMessages,
-		i18n.CmdStatsTotalMessagesArgs(data.TotalMessages),
+		i18n.CmdStatsTotalMessagesData{
+			Total: data.TotalMessages,
+		},
 	))
 
 	return b.String()
@@ -109,133 +126,80 @@ func UcFirst(s string) string {
 	return b.String()
 }
 
-func (p *Presenter) RenderProfile(
+func RenderProfile(
+	loc *i18n.Localizer,
 	ch chat.Chat,
 	profile ProfileStats,
 ) string {
 	var b strings.Builder
 
 	now := time.Now()
-
 	status := profile.ChatMember.Status
 
-	b.WriteString(
-		p.translator.TData(
-			ch.Lang,
-			i18n.Cmd.Profile.Title,
-			i18n.CmdProfileTitleArgs(
-				tghtml.MemberLink(
-					p.translator,
-					ch,
-					profile.ChatMember,
-				),
-			),
-		),
-	)
+	b.WriteString(loc.T(
+		i18n.Cmd.Profile.Title,
+		i18n.CmdProfileTitleData{
+			User: tghtml.MemberLink(loc, ch, profile.ChatMember),
+		},
+	))
 
 	b.WriteString(" · ")
-
-	b.WriteString(
-		fmt.Sprintf("%s %s", status.Emoji(), p.translator.T(ch.Lang, status.TranslationKey())),
-	)
-
+	b.WriteString(fmt.Sprintf("%s %s", status.Emoji(), loc.T(status.TranslationKey(), nil)))
 	b.WriteString("\n\n")
 
 	if profile.ChatMember.LeftAt.IsZero() {
-		days := int(now.Sub(profile.ChatMember.JoinedAt).Hours() / 24)
-
-		b.WriteString(
-			p.translator.TData(
-				ch.Lang,
-				i18n.Cmd.Profile.MemberSince,
-				i18n.CmdProfileMemberSinceArgs(
-					tghtml.DateTime(
-						profile.ChatMember.JoinedAt,
-						"wdt",
-						profile.ChatMember.JoinedAt.Format("02.01.2006"),
-					),
-					tghtml.DateTime(
-						profile.ChatMember.JoinedAt,
-						"r",
-						fmt.Sprintf("%d дн.", days),
-					),
-				),
-			),
-		)
+		b.WriteString(loc.T(
+			i18n.Cmd.Profile.MemberSince,
+			i18n.CmdProfileMemberSinceData{
+				Date: tghtml.DefaultDateTime(profile.ChatMember.JoinedAt),
+				Days: tghtml.RelativeDateTime(profile.ChatMember.JoinedAt, now),
+			},
+		))
 		b.WriteString("\n")
 	} else {
 		days := int(profile.ChatMember.LeftAt.Sub(profile.ChatMember.JoinedAt).Hours() / 24)
 
-		b.WriteString(
-			p.translator.TData(
-				ch.Lang,
-				i18n.Cmd.Profile.MemberPeriod,
-				i18n.CmdProfileMemberPeriodArgs(
-					tghtml.DateTime(
-						profile.ChatMember.JoinedAt,
-						"wdt",
-						profile.ChatMember.JoinedAt.Format("02.01.2006"),
-					),
-					tghtml.DateTime(
-						profile.ChatMember.LeftAt,
-						"wdt",
-						profile.ChatMember.LeftAt.Format("02.01.2006"),
-					),
-					fmt.Sprintf("%d дн.", days),
-				),
-			),
-		)
+		b.WriteString(loc.T(
+			i18n.Cmd.Profile.MemberPeriod,
+			i18n.CmdProfileMemberPeriodData{
+				From: tghtml.DefaultDateTime(profile.ChatMember.JoinedAt),
+				To:   tghtml.DefaultDateTime(profile.ChatMember.LeftAt),
+				Days: fmt.Sprintf("%d дн.", days),
+			},
+		))
 		b.WriteString("\n")
 	}
+
 	restActive := profile.ChatMember.RestUntil.After(now)
 
 	if restActive {
-		b.WriteString(
-			p.translator.TData(
-				ch.Lang,
-				i18n.Cmd.Profile.RestUntil,
-				i18n.CmdProfileRestUntilArgs(
-					tghtml.DateTime(
-						profile.ChatMember.RestUntil,
-						"wdt",
-						profile.ChatMember.RestUntil.Format("02.01.2006"),
-					),
-				),
-			),
-		)
+		b.WriteString(loc.T(
+			i18n.Cmd.Profile.RestUntil,
+			i18n.CmdProfileRestUntilData{
+				Date: tghtml.DefaultDateTime(profile.ChatMember.RestUntil),
+			},
+		))
 		b.WriteString("\n")
 
-		b.WriteString(
-			p.translator.T(
-				ch.Lang,
-				i18n.Cmd.Profile.RestExempt,
-			),
-		)
+		b.WriteString(loc.T(i18n.Cmd.Profile.RestExempt, nil))
 		b.WriteString("\n")
 	}
-
-	var content strings.Builder
-
-	content.WriteString(
-		p.translator.TData(
-			ch.Lang,
-			i18n.Cmd.Profile.Activity,
-			i18n.CmdProfileActivityArgs(
-				profile.DayCount,
-				profile.DayRollingCount,
-				profile.WeekCount,
-				profile.WeekRollingCount,
-				profile.MonthCount,
-				profile.MonthRollingCount,
-				profile.AllTimeCount,
-			),
-		),
-	)
 
 	b.WriteString("\n")
 	b.WriteString(
 		tghtml.ExpandableBlockquote(
-			content.String(),
+			loc.T(
+				i18n.Cmd.Profile.Activity,
+				i18n.CmdProfileActivityData{
+					Day:          profile.DayCount,
+					Week:         profile.WeekCount,
+					Month:        profile.MonthCount,
+					DayRolling:   profile.DayRollingCount,
+					WeekRolling:  profile.WeekRollingCount,
+					MonthRolling: profile.MonthRollingCount,
+					Total:        profile.AllTimeCount,
+				},
+			),
 		),
 	)
 
@@ -243,36 +207,27 @@ func (p *Presenter) RenderProfile(
 		b.WriteString("\n\n")
 
 		for _, n := range profile.Norms {
-			normName := UcFirst(
-				norm.LocalisedNormName(
-					p.translator,
-					ch.Lang,
-					n.Name,
-				),
-			)
-
-			key, arg := i18n.Cmd.Profile.NormFailed,
-				i18n.CmdProfileNormFailedArgs(
-					n.Current,
-					normName,
-					n.Required,
-				)
+			normName := UcFirst(norm.LocalisedNormName(loc, n.Name))
 
 			if n.Passed {
-				key, arg = i18n.Cmd.Profile.NormPassed,
-					i18n.CmdProfileNormPassedArgs(
-						normName,
-						n.Required,
-					)
+				b.WriteString(loc.T(
+					i18n.Cmd.Profile.NormPassed,
+					i18n.CmdProfileNormPassedData{
+						Name:     normName,
+						Required: n.Required,
+					},
+				))
+			} else {
+				b.WriteString(loc.T(
+					i18n.Cmd.Profile.NormFailed,
+					i18n.CmdProfileNormFailedData{
+						Name:     normName,
+						Current:  n.Current,
+						Required: n.Required,
+					},
+				))
 			}
 
-			b.WriteString(
-				p.translator.TData(
-					ch.Lang,
-					key,
-					arg,
-				),
-			)
 			b.WriteString("\n")
 		}
 	}

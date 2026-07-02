@@ -1,8 +1,8 @@
 package help
 
 import (
+	"activity-bot/internal/cctx"
 	"activity-bot/internal/i18n"
-	"activity-bot/internal/middleware/cctx"
 	"activity-bot/internal/predicate"
 	"activity-bot/internal/utils/tghtml"
 	"fmt"
@@ -13,11 +13,7 @@ import (
 )
 
 func (h *Handler) Help(c *botapi.Context) error {
-	ch, err := cctx.Chat(c.Context)
-	if err != nil {
-		return fmt.Errorf("help chat ctx: %w", err)
-	}
-	lang := ch.Lang
+	loc := cctx.MustLocalizer(c)
 
 	groups := h.registry.ByCategory()
 	var sb strings.Builder
@@ -28,44 +24,45 @@ func (h *Handler) Help(c *botapi.Context) error {
 			continue
 		}
 
-		categoryTitle := h.translator.T(lang, i18n.MessageID("category."+string(cat)))
+		categoryTitle := loc.T(i18n.MessageID("category."+string(cat)), nil)
 		sb.WriteString(tghtml.Bold(categoryTitle) + "\n")
 
-		for _, c := range cmds {
-			if !c.ShowInHelp {
+		for _, cmd := range cmds {
+			if !cmd.ShowInHelp {
 				continue
 			}
-			desc := tghtml.Escape(h.translator.T(lang, c.Description))
-			sb.WriteString(fmt.Sprintf("/%s — %s\n", c.Key, desc))
+			desc := tghtml.Escape(loc.T(cmd.Description, nil))
+			sb.WriteString(fmt.Sprintf("/%s — %s\n", cmd.Key, desc))
 
-			hasDetails := len(c.Rules) > 0 || len(c.Aliases) > 0 || len(c.Examples) > 0
+			hasDetails := len(cmd.Rules) > 0 || len(cmd.Aliases) > 0 || len(cmd.Examples) > 0
 			if hasDetails {
 				sb.WriteString("<blockquote expandable>")
 
 				var innerParts []string
 
-				if len(c.Rules) > 0 {
-					syntax := buildSyntaxString(c.Key, c.Rules, h.translator, lang)
-					label := h.translator.T(lang, i18n.Cmd.Help.Syntax)
+				if len(cmd.Rules) > 0 {
+					syntax := buildSyntaxString(cmd.Key, cmd.Rules, loc)
+					label := loc.T(i18n.Cmd.Help.Syntax, nil)
 					innerParts = append(innerParts, tghtml.Italic(label)+" "+tghtml.Code(syntax))
 				}
 
-				if len(c.Aliases) > 0 {
-					aliasesStr := strings.Join(c.Aliases, ", ")
+				if len(cmd.Aliases) > 0 {
+					aliasesStr := strings.Join(cmd.Aliases, ", ")
 
-					label := h.translator.TData(
-						lang,
+					label := loc.T(
 						i18n.Cmd.Help.AliasesLabel,
-						i18n.CmdHelpAliasesLabelArgs(tghtml.Escape(aliasesStr)),
+						i18n.CmdHelpAliasesLabelData{
+							Aliases: tghtml.Escape(aliasesStr),
+						},
 					)
 					innerParts = append(innerParts, label)
 				}
 
-				if len(c.Examples) > 0 {
-					label := h.translator.T(lang, i18n.Cmd.Help.Examples)
+				if len(cmd.Examples) > 0 {
+					label := loc.T(i18n.Cmd.Help.Examples, nil)
 					exampleBlock := tghtml.Italic(label)
-					for _, exID := range c.Examples {
-						exampleText := h.translator.T(lang, exID)
+					for _, exID := range cmd.Examples {
+						exampleText := loc.T(exID, nil)
 						exampleBlock += "\n• " + tghtml.Code(exampleText)
 					}
 					innerParts = append(innerParts, exampleBlock)
@@ -79,16 +76,16 @@ func (h *Handler) Help(c *botapi.Context) error {
 	}
 
 	log.Println(sb.String())
-	_, err = c.Reply(
+	_, err := c.Reply(
 		sb.String(),
 		botapi.WithParseMode(botapi.ParseModeHTML),
-		botapi.WithReplyMarkup(h.helpKeyboard(ch.Lang)),
+		botapi.WithReplyMarkup(h.helpKeyboard(loc)),
 	)
 
 	return err
 }
 
-func buildSyntaxString(commandName string, args []predicate.Rule, translator *i18n.Translator, lang string) string {
+func buildSyntaxString(commandName string, args []predicate.Rule, loc *i18n.Localizer) string {
 	var parts []string
 	parts = append(parts, "/"+commandName)
 
@@ -103,7 +100,7 @@ func buildSyntaxString(commandName string, args []predicate.Rule, translator *i1
 	for _, arg := range args {
 		var name string
 		if msgID, ok := argLabels[arg.Type]; ok {
-			name = translator.T(lang, msgID)
+			name = loc.T(msgID, nil)
 		} else {
 			name = string(arg.Type)
 		}
@@ -122,11 +119,11 @@ func buildSyntaxString(commandName string, args []predicate.Rule, translator *i1
 	return strings.Join(parts, " ")
 }
 
-func (h *Handler) helpKeyboard(lang string) *botapi.InlineKeyboardMarkup {
+func (h *Handler) helpKeyboard(loc *i18n.Localizer) *botapi.InlineKeyboardMarkup {
 	return &botapi.InlineKeyboardMarkup{
 		InlineKeyboard: [][]botapi.InlineKeyboardButton{{
 			{
-				Text: h.translator.T(lang, i18n.System.AddBotButton),
+				Text: loc.T(i18n.System.AddBotButton, nil),
 				URL:  tghtml.StartGroupLink(h.bot.Self().Username),
 			},
 		}},

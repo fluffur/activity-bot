@@ -21,11 +21,13 @@ var (
 	Category = struct {
 		Help   MessageID
 		Norm   MessageID
+		Rest   MessageID
 		Stats  MessageID
 		Summon MessageID
 	}{
 		Help:   "category.help",
 		Norm:   "category.norm",
+		Rest:   "category.rest",
 		Stats:  "category.stats",
 		Summon: "category.summon",
 	}
@@ -50,6 +52,13 @@ var (
 			Desc               MessageID
 			ErrNothingToDelete MessageID
 			Example            MessageID
+		}
+		EndRest struct {
+			Desc          MessageID
+			Ended         MessageID
+			EndedSelf     MessageID
+			NotInRest     MessageID
+			NotInRestSelf MessageID
 		}
 		Help struct {
 			AliasesLabel MessageID
@@ -79,9 +88,36 @@ var (
 			TotalMessages   MessageID
 		}
 		Rest struct {
-			Desc   MessageID
-			Info   MessageID
-			NoRest MessageID
+			Desc       MessageID
+			Info       MessageID
+			InfoReason MessageID
+			NoRest     MessageID
+			Set        MessageID
+			SetReason  MessageID
+		}
+		RestRequest struct {
+			ApproveButton MessageID
+			Approved      MessageID
+			ApprovedShort MessageID
+			Created       MessageID
+			Empty         MessageID
+			Item          MessageID
+			NoRequest     MessageID
+			RejectButton  MessageID
+			Rejected      MessageID
+			Text          MessageID
+			TextReason    MessageID
+			Title         MessageID
+		}
+		Rests struct {
+			Deleted           MessageID
+			DeletedActive     MessageID
+			Desc              MessageID
+			HistoryEmpty      MessageID
+			HistoryItem       MessageID
+			HistoryItemReason MessageID
+			HistoryTitle      MessageID
+			HistoryTotal      MessageID
 		}
 		ShowNorm struct {
 			AllMembers MessageID
@@ -182,6 +218,19 @@ var (
 			ErrNothingToDelete: "cmd.delete_norm.err_nothing_to_delete",
 			Example:            "cmd.delete_norm.example",
 		},
+		EndRest: struct {
+			Desc          MessageID
+			Ended         MessageID
+			EndedSelf     MessageID
+			NotInRest     MessageID
+			NotInRestSelf MessageID
+		}{
+			Desc:          "cmd.end_rest.desc",
+			Ended:         "cmd.end_rest.ended",
+			EndedSelf:     "cmd.end_rest.ended_self",
+			NotInRest:     "cmd.end_rest.not_in_rest",
+			NotInRestSelf: "cmd.end_rest.not_in_rest_self",
+		},
 		Help: struct {
 			AliasesLabel MessageID
 			Body         MessageID
@@ -234,13 +283,65 @@ var (
 			TotalMessages:   "cmd.profile.total_messages",
 		},
 		Rest: struct {
-			Desc   MessageID
-			Info   MessageID
-			NoRest MessageID
+			Desc       MessageID
+			Info       MessageID
+			InfoReason MessageID
+			NoRest     MessageID
+			Set        MessageID
+			SetReason  MessageID
 		}{
-			Desc:   "cmd.rest.desc",
-			Info:   "cmd.rest.info",
-			NoRest: "cmd.rest.no_rest",
+			Desc:       "cmd.rest.desc",
+			Info:       "cmd.rest.info",
+			InfoReason: "cmd.rest.info_reason",
+			NoRest:     "cmd.rest.no_rest",
+			Set:        "cmd.rest.set",
+			SetReason:  "cmd.rest.set_reason",
+		},
+		RestRequest: struct {
+			ApproveButton MessageID
+			Approved      MessageID
+			ApprovedShort MessageID
+			Created       MessageID
+			Empty         MessageID
+			Item          MessageID
+			NoRequest     MessageID
+			RejectButton  MessageID
+			Rejected      MessageID
+			Text          MessageID
+			TextReason    MessageID
+			Title         MessageID
+		}{
+			ApproveButton: "cmd.rest_request.approve_button",
+			Approved:      "cmd.rest_request.approved",
+			ApprovedShort: "cmd.rest_request.approved_short",
+			Created:       "cmd.rest_request.created",
+			Empty:         "cmd.rest_request.empty",
+			Item:          "cmd.rest_request.item",
+			NoRequest:     "cmd.rest_request.no_request",
+			RejectButton:  "cmd.rest_request.reject_button",
+			Rejected:      "cmd.rest_request.rejected",
+			Text:          "cmd.rest_request.text",
+			TextReason:    "cmd.rest_request.text_reason",
+			Title:         "cmd.rest_request.title",
+		},
+		Rests: struct {
+			Deleted           MessageID
+			DeletedActive     MessageID
+			Desc              MessageID
+			HistoryEmpty      MessageID
+			HistoryItem       MessageID
+			HistoryItemReason MessageID
+			HistoryTitle      MessageID
+			HistoryTotal      MessageID
+		}{
+			Deleted:           "cmd.rests.deleted",
+			DeletedActive:     "cmd.rests.deleted_active",
+			Desc:              "cmd.rests.desc",
+			HistoryEmpty:      "cmd.rests.history_empty",
+			HistoryItem:       "cmd.rests.history_item",
+			HistoryItemReason: "cmd.rests.history_item_reason",
+			HistoryTitle:      "cmd.rests.history_title",
+			HistoryTotal:      "cmd.rests.history_total",
 		},
 		ShowNorm: struct {
 			AllMembers MessageID
@@ -404,381 +505,349 @@ var (
 		SeniorAdmin: "status.senior_admin",
 	}
 	System = struct {
-		AddBotButton          MessageID
-		BotAdded              MessageID
-		BotAddedAdmin         MessageID
-		BotCommands           MessageID
-		NoPermission          MessageID
-		UsernameChangedFemale MessageID
-		UsernameChangedMale   MessageID
+		AddBotButton    MessageID
+		BotAdded        MessageID
+		BotAddedAdmin   MessageID
+		BotCommands     MessageID
+		NoPermission    MessageID
+		UsernameChanged struct {
+			Female  MessageID
+			Male    MessageID
+			Unknown MessageID
+		}
 	}{
-		AddBotButton:          "system.add_bot_button",
-		BotAdded:              "system.bot_added",
-		BotAddedAdmin:         "system.bot_added_admin",
-		BotCommands:           "system.bot_commands",
-		NoPermission:          "system.no_permission",
-		UsernameChangedFemale: "system.username_changed_female",
-		UsernameChangedMale:   "system.username_changed_male",
+		AddBotButton:  "system.add_bot_button",
+		BotAdded:      "system.bot_added",
+		BotAddedAdmin: "system.bot_added_admin",
+		BotCommands:   "system.bot_commands",
+		NoPermission:  "system.no_permission",
+		UsernameChanged: struct {
+			Female  MessageID
+			Male    MessageID
+			Unknown MessageID
+		}{
+			Female:  "system.username_changed.female",
+			Male:    "system.username_changed.male",
+			Unknown: "system.username_changed.unknown",
+		},
 	}
 	User = struct {
-		JoinedFemale   MessageID
-		JoinedMale     MessageID
-		LeftFemale     MessageID
-		LeftMale       MessageID
-		ReturnedFemale MessageID
-		ReturnedMale   MessageID
-		Unknown        MessageID
+		Joined struct {
+			Female  MessageID
+			Male    MessageID
+			Unknown MessageID
+		}
+		Left struct {
+			Female  MessageID
+			Male    MessageID
+			Unknown MessageID
+		}
+		Returned struct {
+			Female  MessageID
+			Male    MessageID
+			Unknown MessageID
+		}
+		Unknown MessageID
 	}{
-		JoinedFemale:   "user.joined_female",
-		JoinedMale:     "user.joined_male",
-		LeftFemale:     "user.left_female",
-		LeftMale:       "user.left_male",
-		ReturnedFemale: "user.returned_female",
-		ReturnedMale:   "user.returned_male",
-		Unknown:        "user.unknown",
+		Joined: struct {
+			Female  MessageID
+			Male    MessageID
+			Unknown MessageID
+		}{
+			Female:  "user.joined.female",
+			Male:    "user.joined.male",
+			Unknown: "user.joined.unknown",
+		},
+		Left: struct {
+			Female  MessageID
+			Male    MessageID
+			Unknown MessageID
+		}{
+			Female:  "user.left.female",
+			Male:    "user.left.male",
+			Unknown: "user.left.unknown",
+		},
+		Returned: struct {
+			Female  MessageID
+			Male    MessageID
+			Unknown MessageID
+		}{
+			Female:  "user.returned.female",
+			Male:    "user.returned.male",
+			Unknown: "user.returned.unknown",
+		},
+		Unknown: "user.unknown",
 	}
 )
 
-func CmdAddNormAddedArgs(
-	name any,
-	value any,
-) map[string]any {
-	return map[string]any{
-		"Name":  name,
-		"Value": value,
-	}
+type CmdUnassignNormUnassignedData struct {
+	Name any
 }
 
-func CmdAddNormErrInvalidValueArgs(
-	max any,
-	min any,
-	value any,
-) map[string]any {
-	return map[string]any{
-		"Max":   max,
-		"Min":   min,
-		"Value": value,
-	}
+type CmdDeleteNormDeletedData struct {
+	Name any
 }
 
-func CmdAssignNormAssignedArgs(
-	name any,
-) map[string]any {
-	return map[string]any{
-		"Name": name,
-	}
+type CmdDeleteNormErrNothingToDeleteData struct {
+	Name any
 }
 
-func CmdDeleteNormDeletedArgs(
-	name any,
-) map[string]any {
-	return map[string]any{
-		"Name": name,
-	}
+type CmdAddNormErrInvalidValueData struct {
+	Value any
+	Min   any
+	Max   any
 }
 
-func CmdDeleteNormErrNothingToDeleteArgs(
-	name any,
-) map[string]any {
-	return map[string]any{
-		"Name": name,
-	}
+type CmdAddNormAddedData struct {
+	Name  any
+	Value any
 }
 
-func CmdHelpAliasesLabelArgs(
-	aliases any,
-) map[string]any {
-	return map[string]any{
-		"Aliases": aliases,
-	}
+type CmdShowNormBodyData struct {
+	Name  any
+	Value any
 }
 
-func CmdHelpBodyArgs(
-	commandsLink any,
-	developerLink any,
-) map[string]any {
-	return map[string]any{
-		"CommandsLink":  commandsLink,
-		"DeveloperLink": developerLink,
-	}
+type CmdShowNormNotFoundData struct {
+	Name    any
+	Code    any
+	CodeEnd any
 }
 
-func CmdListNormsItemArgs(
-	name any,
-	value any,
-) map[string]any {
-	return map[string]any{
-		"Name":  name,
-		"Value": value,
-	}
+type CmdEndRestEndedData struct {
+	User any
 }
 
-func CmdProfileActivityArgs(
-	day any,
-	dayRolling any,
-	month any,
-	monthRolling any,
-	total any,
-	week any,
-	weekRolling any,
-) map[string]any {
-	return map[string]any{
-		"Day":          day,
-		"DayRolling":   dayRolling,
-		"Month":        month,
-		"MonthRolling": monthRolling,
-		"Total":        total,
-		"Week":         week,
-		"WeekRolling":  weekRolling,
-	}
+type CmdEndRestNotInRestData struct {
+	User any
 }
 
-func CmdProfileMemberPeriodArgs(
-	days any,
-	from any,
-	to any,
-) map[string]any {
-	return map[string]any{
-		"Days": days,
-		"From": from,
-		"To":   to,
-	}
+type CmdRestsHistoryItemData struct {
+	Index    any
+	From     any
+	To       any
+	Duration any
 }
 
-func CmdProfileMemberSinceArgs(
-	date any,
-	days any,
-) map[string]any {
-	return map[string]any{
-		"Date": date,
-		"Days": days,
-	}
+type CmdRestsHistoryItemReasonData struct {
+	Index    any
+	From     any
+	To       any
+	Duration any
+	Reason   any
 }
 
-func CmdProfileNormFailedArgs(
-	current any,
-	name any,
-	required any,
-) map[string]any {
-	return map[string]any{
-		"Current":  current,
-		"Name":     name,
-		"Required": required,
-	}
+type CmdRestsHistoryTotalData struct {
+	Count any
 }
 
-func CmdProfileNormPassedArgs(
-	name any,
-	required any,
-) map[string]any {
-	return map[string]any{
-		"Name":     name,
-		"Required": required,
-	}
+type CmdRestsHistoryEmptyData struct {
+	User any
 }
 
-func CmdProfileRestUntilArgs(
-	date any,
-) map[string]any {
-	return map[string]any{
-		"Date": date,
-	}
+type CmdRestsHistoryTitleData struct {
+	User any
 }
 
-func CmdProfileTitleArgs(
-	user any,
-) map[string]any {
-	return map[string]any{
-		"User": user,
-	}
+type CmdListNormsItemData struct {
+	Name  any
+	Value any
 }
 
-func CmdProfileTotalMessagesArgs(
-	total any,
-) map[string]any {
-	return map[string]any{
-		"Total": total,
-	}
+type CmdProfileNormPassedData struct {
+	Name     any
+	Required any
 }
 
-func CmdRestInfoArgs(
-	date any,
-	user any,
-) map[string]any {
-	return map[string]any{
-		"Date": date,
-		"User": user,
-	}
+type CmdProfileActivityData struct {
+	Day          any
+	Week         any
+	Month        any
+	DayRolling   any
+	WeekRolling  any
+	MonthRolling any
+	Total        any
 }
 
-func CmdRestNoRestArgs(
-	user any,
-) map[string]any {
-	return map[string]any{
-		"User": user,
-	}
+type CmdProfileMemberPeriodData struct {
+	From any
+	To   any
+	Days any
 }
 
-func CmdShowNormBodyArgs(
-	name any,
-	value any,
-) map[string]any {
-	return map[string]any{
-		"Name":  name,
-		"Value": value,
-	}
+type CmdProfileRestUntilData struct {
+	Date any
 }
 
-func CmdShowNormNotFoundArgs(
-	code any,
-	codeEnd any,
-	name any,
-) map[string]any {
-	return map[string]any{
-		"Code":    code,
-		"CodeEnd": codeEnd,
-		"Name":    name,
-	}
+type CmdProfileTitleData struct {
+	User any
 }
 
-func CmdStatsNormTitleArgs(
-	name any,
-	required any,
-) map[string]any {
-	return map[string]any{
-		"Name":     name,
-		"Required": required,
-	}
+type CmdProfileMemberSinceData struct {
+	Date any
+	Days any
 }
 
-func CmdStatsTitleArgs(
-	from any,
-	to any,
-) map[string]any {
-	return map[string]any{
-		"From": from,
-		"To":   to,
-	}
+type CmdProfileNormFailedData struct {
+	Name     any
+	Current  any
+	Required any
 }
 
-func CmdStatsTotalMessagesArgs(
-	total any,
-) map[string]any {
-	return map[string]any{
-		"Total": total,
-	}
+type CmdProfileTotalMessagesData struct {
+	Total any
 }
 
-func CmdStatsUserFailedArgs(
-	list any,
-	messages any,
-	required any,
-	user any,
-) map[string]any {
-	return map[string]any{
-		"List":     list,
-		"Messages": messages,
-		"Required": required,
-		"User":     user,
-	}
+type CmdRestRequestItemData struct {
+	Index any
+	From  any
+	To    any
 }
 
-func CmdStatsUserPassedArgs(
-	list any,
-	messages any,
-	user any,
-) map[string]any {
-	return map[string]any{
-		"List":     list,
-		"Messages": messages,
-		"User":     user,
-	}
+type CmdRestRequestTextData struct {
+	User any
+	Date any
 }
 
-func CmdUnassignNormUnassignedArgs(
-	name any,
-) map[string]any {
-	return map[string]any{
-		"Name": name,
-	}
+type CmdRestRequestTextReasonData struct {
+	User   any
+	Date   any
+	Reason any
 }
 
-func SystemNoPermissionArgs(
-	status any,
-) map[string]any {
-	return map[string]any{
-		"Status": status,
-	}
+type CmdRestRequestApprovedData struct {
+	User any
+	Date any
 }
 
-func SystemUsernameChangedFemaleArgs(
-	newUsername any,
-	oldUsername any,
-	user any,
-) map[string]any {
-	return map[string]any{
-		"NewUsername": newUsername,
-		"OldUsername": oldUsername,
-		"User":        user,
-	}
+type CmdRestRequestEmptyData struct {
+	User any
 }
 
-func SystemUsernameChangedMaleArgs(
-	newUsername any,
-	oldUsername any,
-	user any,
-) map[string]any {
-	return map[string]any{
-		"NewUsername": newUsername,
-		"OldUsername": oldUsername,
-		"User":        user,
-	}
+type CmdRestRequestTitleData struct {
+	User any
 }
 
-func UserJoinedFemaleArgs(
-	user any,
-) map[string]any {
-	return map[string]any{
-		"User": user,
-	}
+type CmdRestInfoData struct {
+	User any
+	Date any
 }
 
-func UserJoinedMaleArgs(
-	user any,
-) map[string]any {
-	return map[string]any{
-		"User": user,
-	}
+type CmdRestInfoReasonData struct {
+	User   any
+	Date   any
+	Reason any
 }
 
-func UserLeftFemaleArgs(
-	user any,
-) map[string]any {
-	return map[string]any{
-		"User": user,
-	}
+type CmdRestNoRestData struct {
+	User any
 }
 
-func UserLeftMaleArgs(
-	user any,
-) map[string]any {
-	return map[string]any{
-		"User": user,
-	}
+type CmdRestSetData struct {
+	User any
+	Date any
 }
 
-func UserReturnedFemaleArgs(
-	user any,
-) map[string]any {
-	return map[string]any{
-		"User": user,
-	}
+type CmdRestSetReasonData struct {
+	User   any
+	Date   any
+	Reason any
 }
 
-func UserReturnedMaleArgs(
-	user any,
-) map[string]any {
-	return map[string]any{
-		"User": user,
-	}
+type CmdStatsNormTitleData struct {
+	Name     any
+	Required any
+}
+
+type CmdStatsTitleData struct {
+	From any
+	To   any
+}
+
+type CmdStatsTotalMessagesData struct {
+	Total any
+}
+
+type CmdStatsUserPassedData struct {
+	List     any
+	User     any
+	Messages any
+}
+
+type CmdStatsUserFailedData struct {
+	List     any
+	User     any
+	Messages any
+	Required any
+}
+
+type CmdHelpBodyData struct {
+	CommandsLink  any
+	DeveloperLink any
+}
+
+type CmdHelpAliasesLabelData struct {
+	Aliases any
+}
+
+type CmdAssignNormAssignedData struct {
+	Name any
+}
+
+type SystemUsernameChangedMaleData struct {
+	User        any
+	OldUsername any
+	NewUsername any
+}
+
+type SystemUsernameChangedFemaleData struct {
+	User        any
+	OldUsername any
+	NewUsername any
+}
+
+type SystemUsernameChangedUnknownData struct {
+	User        any
+	OldUsername any
+	NewUsername any
+}
+
+type SystemNoPermissionData struct {
+	Status any
+}
+
+type UserJoinedMaleData struct {
+	User any
+}
+
+type UserJoinedFemaleData struct {
+	User any
+}
+
+type UserJoinedUnknownData struct {
+	User any
+}
+
+type UserReturnedUnknownData struct {
+	User any
+}
+
+type UserReturnedMaleData struct {
+	User any
+}
+
+type UserReturnedFemaleData struct {
+	User any
+}
+
+type UserLeftMaleData struct {
+	User any
+}
+
+type UserLeftFemaleData struct {
+	User any
+}
+
+type UserLeftUnknownData struct {
+	User any
 }

@@ -13,29 +13,23 @@ const CategoryStats command.Category = "stats"
 
 type Handler struct {
 	bot         *botapi.Bot
-	translator  *i18n.Translator
 	permissions *predicate.PermissionChecker
 	rules       *predicate.RuleChecker
 
-	service   *Service
-	presenter *Presenter
+	service *Service
 }
 
 func NewHandler(
 	b *botapi.Bot,
-	t *i18n.Translator,
 	p *predicate.PermissionChecker,
 	c *predicate.RuleChecker,
 	s *Service,
-	pr *Presenter,
 ) *Handler {
 	return &Handler{
 		bot:         b,
-		translator:  t,
 		rules:       c,
 		permissions: p,
 		service:     s,
-		presenter:   pr,
 	}
 }
 

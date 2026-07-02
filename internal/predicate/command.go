@@ -1,8 +1,7 @@
 package predicate
 
 import (
-	"activity-bot/internal/middleware/cctx"
-	"context"
+	"activity-bot/internal/cctx"
 	"strings"
 	"unicode"
 	"unicode/utf16"
@@ -14,17 +13,6 @@ import (
 
 var defaultPrefixes = []string{"!", "/", ".", "фм"}
 
-type argsKey struct{}
-
-var commandArgsKey = argsKey{}
-
-func Args(c *botapi.Context) *botapi.Message {
-	if val, ok := c.Context.Value(commandArgsKey).(*botapi.Message); ok {
-		return val
-	}
-
-	return nil
-}
 func Command(name string, aliases ...string) botapi.Predicate {
 	commands := make([]string, 0, len(aliases)+1)
 	commands = append(commands, normalize(name))
@@ -38,9 +26,9 @@ func Command(name string, aliases ...string) botapi.Predicate {
 			return false
 		}
 
-		ch, err := cctx.Chat(c.Context)
+		ch, err := cctx.Chat(c)
 		if err != nil {
-			log.For(c.Bot.Logger()).Error(c.Context, "command ctx chat", log.Error(err))
+			log.For(c.Bot.Logger()).Error(c, "command ctx chat", log.Error(err))
 			return false
 		}
 
@@ -104,7 +92,7 @@ func Command(name string, aliases ...string) botapi.Predicate {
 				}
 			}
 
-			argsMessage := &botapi.Message{
+			argsMessage := botapi.Message{
 				MessageID:       m.MessageID,
 				MessageThreadID: m.MessageThreadID,
 				From:            m.From,
@@ -126,7 +114,7 @@ func Command(name string, aliases ...string) botapi.Predicate {
 				argsMessage.CaptionEntities = argsEntities
 			}
 
-			c.Context = context.WithValue(c.Context, commandArgsKey, argsMessage)
+			c.Context = cctx.WithArgsMessage(c.Context, argsMessage)
 			return true
 		}
 

@@ -13,14 +13,18 @@ const CategoryNorm command.Category = "norm"
 
 type Handler struct {
 	bot         *botapi.Bot
-	translator  *i18n.Translator
 	rules       *predicate.RuleChecker
 	permissions *predicate.PermissionChecker
 	repository  Repository
 }
 
-func NewHandler(b *botapi.Bot, t *i18n.Translator, p *predicate.PermissionChecker, c *predicate.RuleChecker, nr Repository) *Handler {
-	return &Handler{b, t, c, p, nr}
+func NewHandler(b *botapi.Bot, p *predicate.PermissionChecker, r *predicate.RuleChecker, nr Repository) *Handler {
+	return &Handler{
+		bot:         b,
+		rules:       r,
+		permissions: p,
+		repository:  nr,
+	}
 }
 
 func (h *Handler) Register(registry *command.Registry) {
@@ -57,7 +61,7 @@ func (h *Handler) Register(registry *command.Registry) {
 	showNormDef := &command.ActionDef{
 		Key:         "norm",
 		Trigger:     command.TriggerCommand,
-		Aliases:     []string{"норма"},
+		Aliases:     []string{"норма какая", "какая норма", "а какая норма", "норма"},
 		MinStatus:   chatmember.StatusMember,
 		Category:    CategoryNorm,
 		Description: i18n.Cmd.ShowNorm.Desc,

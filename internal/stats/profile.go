@@ -1,9 +1,8 @@
 package stats
 
 import (
+	"activity-bot/internal/cctx"
 	"activity-bot/internal/chatmember"
-	"activity-bot/internal/middleware/cctx"
-	"activity-bot/internal/predicate"
 	"fmt"
 	"time"
 
@@ -11,11 +10,12 @@ import (
 )
 
 func (h *Handler) Profile(c *botapi.Context) error {
-	args, ok := predicate.GetParsedArgs(c)
-	if !ok {
-		return fmt.Errorf("profile invalid argument")
+	args, err := cctx.Args(c)
+	if err != nil {
+		return fmt.Errorf("profile: %w", err)
 	}
-	ch, err := cctx.Chat(c.Context)
+
+	ch, err := cctx.Chat(c)
 	if err != nil {
 		return fmt.Errorf("profile chat: %w", err)
 	}
@@ -24,7 +24,7 @@ func (h *Handler) Profile(c *botapi.Context) error {
 	if len(args.Users) != 0 {
 		cm = args.Users[0]
 	} else {
-		us, err := cctx.ChatMember(c.Context)
+		us, err := cctx.ChatMember(c)
 		if err != nil {
 			return fmt.Errorf("profile chat member: %w", err)
 		}
@@ -36,12 +36,13 @@ func (h *Handler) Profile(c *botapi.Context) error {
 		return fmt.Errorf("profile stats range: %w", err)
 	}
 
-	profile, err := h.service.GetProfileStats(c.Context, ch.ID, cm.User.ID, statsRange)
+	profile, err := h.service.GetProfileStats(c, ch.ID, cm.User.ID, statsRange)
 	if err != nil {
 		return fmt.Errorf("profile stats: %w", err)
 	}
 
-	htmlMessage := h.presenter.RenderProfile(ch, profile)
+	loc := cctx.MustLocalizer(c)
+	htmlMessage := RenderProfile(loc, ch, profile)
 
 	_, err = c.Reply(
 		htmlMessage,

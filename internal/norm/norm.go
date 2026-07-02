@@ -1,9 +1,8 @@
 package norm
 
 import (
+	"activity-bot/internal/cctx"
 	"activity-bot/internal/i18n"
-	"activity-bot/internal/middleware/cctx"
-	"activity-bot/internal/predicate"
 	"activity-bot/internal/utils/tghtml"
 	"database/sql"
 	"errors"
@@ -16,66 +15,63 @@ import (
 const GeneralNormName = "general"
 
 func (h *Handler) AddNorm(c *botapi.Context) error {
-	ch, err := cctx.Chat(c.Context)
-	if err != nil {
-		return fmt.Errorf("add norm: %w", err)
-	}
-
-	args, ok := predicate.GetParsedArgs(c)
-	if !ok {
-		return fmt.Errorf("add norm: no args")
-	}
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
+	args := cctx.MustArgs(c)
 
 	if len(args.Numbers) == 0 {
-		return fmt.Errorf("add norm no number")
+		return fmt.Errorf("add norm: no number")
 	}
 
-	normValue := int32(args.Numbers[0])
-	normMin := int32(1)
-	normMax := int32(10000)
-	normValueStr := tghtml.Code(fmt.Sprintf("%d", normValue))
+	value := int32(args.Numbers[0])
 
-	if normValue < normMin || normValue > normMax {
-		_, err := c.Reply(h.translator.TData(
-			ch.Lang, i18n.Cmd.AddNorm.ErrInvalidValue, i18n.CmdAddNormErrInvalidValueArgs(normMax, normMin, normValueStr)),
+	const (
+		min = int32(1)
+		max = int32(10000)
+	)
+
+	if value < min || value > max {
+		_, err := c.Reply(
+			loc.T(i18n.Cmd.AddNorm.ErrInvalidValue, i18n.CmdAddNormErrInvalidValueData{
+				Value: tghtml.Code(fmt.Sprintf("%d", value)),
+				Min:   min,
+				Max:   max,
+			}),
 			botapi.WithParseMode(botapi.ParseModeHTML),
 		)
-
 		return err
 	}
 
 	name := GeneralNormName
 	if len(args.Texts) > 0 {
-		text := strings.TrimSpace(args.Texts[0])
-
-		if text != "" && text != LocalisedNormName(h.translator, ch.Lang, name) {
+		if text := strings.TrimSpace(args.Texts[0]); text != "" && text != LocalisedNormName(loc, name) {
 			name = text
 		}
 	}
 
-	normID, err := h.repository.Set(c.Context, ch.ID, name, normValue)
+	normID, err := h.repository.Set(c, ch.ID, name, value)
 	if err != nil {
 		return fmt.Errorf("add norm: %w", err)
 	}
 
-	cms := args.Users
-	userIDs := make([]int64, 0, len(cms))
-	for _, cm := range cms {
-		if cm.User.IsBot {
-			continue
-		}
-		userIDs = append(userIDs, cm.User.ID)
-	}
-
-	if len(userIDs) > 0 {
-		if err := h.repository.Assign(c.Context, normID, userIDs); err != nil {
-			return fmt.Errorf("add norm assign: %w", err)
+	var ids []int64
+	for _, cm := range args.Users {
+		if !cm.User.IsBot {
+			ids = append(ids, cm.User.ID)
 		}
 	}
 
-	displayName := LocalisedNormName(h.translator, ch.Lang, name)
+	if len(ids) > 0 {
+		if err := h.repository.Assign(c, normID, ids); err != nil {
+			return fmt.Errorf("assign norm: %w", err)
+		}
+	}
+
 	_, err = c.Reply(
-		h.translator.TData(ch.Lang, i18n.Cmd.AddNorm.Added, i18n.CmdAddNormAddedArgs(tghtml.Bold(displayName), normValueStr)),
+		loc.T(i18n.Cmd.AddNorm.Added, i18n.CmdAddNormAddedData{
+			Name:  tghtml.Bold(LocalisedNormName(loc, name)),
+			Value: tghtml.Code(fmt.Sprintf("%d", value)),
+		}),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
 
@@ -83,106 +79,82 @@ func (h *Handler) AddNorm(c *botapi.Context) error {
 }
 
 func (h *Handler) ListNorms(c *botapi.Context) error {
-	ch, err := cctx.Chat(c.Context)
-	if err != nil {
-		return err
-	}
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
 
-	norms, err := h.repository.List(c.Context, ch.ID)
+	norms, err := h.repository.List(c, ch.ID)
 	if err != nil {
 		return err
 	}
 
 	if len(norms) == 0 {
-		_, err = c.Reply(
-			h.translator.T(ch.Lang, i18n.Cmd.ListNorms.Empty),
-		)
+		_, err := c.Reply(loc.T(i18n.Cmd.ListNorms.Empty, nil))
 		return err
 	}
 
 	var b strings.Builder
 
-	b.WriteString(h.translator.T(ch.Lang, i18n.Cmd.ListNorms.Title))
+	b.WriteString(loc.T(i18n.Cmd.ListNorms.Title, nil))
 	b.WriteString("\n\n")
 
 	for _, n := range norms {
-		b.WriteString(
-			h.translator.TData(
-				ch.Lang,
-				i18n.Cmd.ListNorms.Item,
-				i18n.CmdListNormsItemArgs(
-					LocalisedNormName(h.translator, ch.Lang, n.Name),
-					n.Value,
-				),
-			),
-		)
-
-		b.WriteString("\n")
+		b.WriteString(loc.T(i18n.Cmd.ListNorms.Item, i18n.CmdListNormsItemData{
+			Name:  LocalisedNormName(loc, n.Name),
+			Value: n.Value,
+		}))
+		b.WriteByte('\n')
 	}
-	_, err = c.Reply(b.String())
 
+	_, err = c.Reply(b.String())
 	return err
 }
 
 func (h *Handler) ShowNorm(c *botapi.Context) error {
-	ch, err := cctx.Chat(c.Context)
-	if err != nil {
-		return err
-	}
-
-	args, ok := predicate.GetParsedArgs(c)
-	if !ok {
-		return fmt.Errorf("show norm: no args")
-	}
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
+	args := cctx.MustArgs(c)
 
 	name := GeneralNormName
-
-	if len(args.Texts) > 0 && strings.TrimSpace(args.Texts[0]) != "" {
-		name = strings.TrimSpace(args.Texts[0])
-	}
-	norm, err := h.repository.Get(c.Context, ch.ID, name)
-	if err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("show norm: %w", err)
+	if len(args.Texts) > 0 {
+		if text := strings.TrimSpace(args.Texts[0]); text != "" {
+			name = text
 		}
+	}
 
-		_, err := c.Reply(h.translator.TData(ch.Lang, i18n.Cmd.ShowNorm.NotFound,
-			i18n.CmdShowNormNotFoundArgs(
-				"<code>", "</code>",
-				tghtml.Bold(LocalisedNormName(h.translator, ch.Lang, name))),
-		),
-			botapi.WithParseMode(botapi.ParseModeHTML),
-		)
-
+	n, err := h.repository.Get(c, ch.ID, name)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
 		return err
 	}
 
-	members, err := h.repository.GetNormMembers(c.Context, norm.ID)
+	members, err := h.repository.GetNormMembers(c, n.ID)
 	if err != nil {
-		return fmt.Errorf("show norm get members: %w", err)
+		return err
 	}
 
-	text := h.translator.TData(
-		ch.Lang,
-		i18n.Cmd.ShowNorm.Body,
-		i18n.CmdShowNormBodyArgs(
-			LocalisedNormName(h.translator, ch.Lang, norm.Name),
-			norm.Value,
-		),
-	)
+	var b strings.Builder
 
-	if len(members) > 0 {
-		text += "\n\n" + h.translator.T(ch.Lang, i18n.Cmd.ShowNorm.Members)
+	b.WriteString(loc.T(i18n.Cmd.ShowNorm.Body, i18n.CmdShowNormBodyData{
+		Name:  LocalisedNormName(loc, n.Name),
+		Value: n.Value,
+	}))
 
-		for _, member := range members {
-			text += "\n• " + tghtml.MemberLink(h.translator, ch, member)
-		}
+	b.WriteString("\n\n")
+
+	if len(members) == 0 {
+		b.WriteString(loc.T(i18n.Cmd.ShowNorm.AllMembers, nil))
 	} else {
-		text += "\n\n" + h.translator.T(ch.Lang, i18n.Cmd.ShowNorm.AllMembers)
+		b.WriteString(loc.T(i18n.Cmd.ShowNorm.Members, nil))
+		for _, m := range members {
+			b.WriteString("\n• ")
+			b.WriteString(tghtml.MemberLink(loc, ch, m))
+		}
 	}
 
 	_, err = c.Reply(
-		text,
+		b.String(),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
 	)
@@ -191,88 +163,73 @@ func (h *Handler) ShowNorm(c *botapi.Context) error {
 }
 
 func (h *Handler) DeleteNorm(c *botapi.Context) error {
-	ch, err := cctx.Chat(c.Context)
-	if err != nil {
-		return err
-	}
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
+	args := cctx.MustArgs(c)
 
-	args, ok := predicate.GetParsedArgs(c)
-	if !ok {
-		return fmt.Errorf("delete norm: no args")
-	}
 	if len(args.Texts) == 0 {
 		return fmt.Errorf("delete norm: no name")
 	}
 
 	name := strings.TrimSpace(args.Texts[0])
 
-	if name == h.translator.T(ch.Lang, i18n.Cmd.AddNorm.NormGeneral) {
+	if name == loc.T(i18n.Cmd.AddNorm.NormGeneral, nil) {
 		name = GeneralNormName
 	}
 
-	n, err := h.repository.Get(c.Context, ch.ID, name)
+	n, err := h.repository.Get(c, ch.ID, name)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("delete norm: %w", err)
+			return err
 		}
 
-		_, err := c.Reply(h.translator.TData(ch.Lang, i18n.Cmd.DeleteNorm.ErrNothingToDelete,
-			i18n.CmdDeleteNormErrNothingToDeleteArgs(LocalisedNormName(h.translator, ch.Lang, name))))
+		_, err := c.Reply(loc.T(i18n.Cmd.DeleteNorm.ErrNothingToDelete, i18n.CmdDeleteNormErrNothingToDeleteData{
+			Name: LocalisedNormName(loc, name),
+		}))
 		return err
 	}
 
-	if err := h.repository.Delete(c.Context, n.ID); err != nil {
-		return fmt.Errorf("delete norm: %w", err)
+	if err := h.repository.Delete(c, n.ID); err != nil {
+		return err
 	}
 
-	_, err = c.Reply(
-		h.translator.TData(
-			ch.Lang,
-			i18n.Cmd.DeleteNorm.Deleted,
-			i18n.CmdDeleteNormDeletedArgs(
-				LocalisedNormName(h.translator, ch.Lang, name),
-			),
-		),
-	)
+	_, err = c.Reply(loc.T(i18n.Cmd.DeleteNorm.Deleted, i18n.CmdDeleteNormDeletedData{
+		Name: LocalisedNormName(loc, name),
+	}))
 
 	return err
 }
-
 func (h *Handler) AssignNorm(c *botapi.Context) error {
-	ch, err := cctx.Chat(c.Context)
-	if err != nil {
-		return fmt.Errorf("assign: %w", err)
-	}
-
-	args, ok := predicate.GetParsedArgs(c)
-	if !ok {
-		return fmt.Errorf("assign: no args")
-	}
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
+	args := cctx.MustArgs(c)
 
 	if len(args.Texts) == 0 {
 		return fmt.Errorf("assign: no name")
 	}
 
-	name := args.Texts[0]
+	name := strings.TrimSpace(args.Texts[0])
 
-	n, err := h.repository.Get(c.Context, ch.ID, name)
+	n, err := h.repository.Get(c, ch.ID, name)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("assign get norm: %w", err)
 		}
 
-		_, err := c.Reply(h.translator.TData(ch.Lang, i18n.Cmd.ShowNorm.NotFound,
-			i18n.CmdShowNormNotFoundArgs(
-				"<code>", "</code>",
-				tghtml.Bold(LocalisedNormName(h.translator, ch.Lang, name))),
-		), botapi.WithParseMode(botapi.ParseModeHTML))
+		_, err = c.Reply(
+			loc.T(i18n.Cmd.ShowNorm.NotFound, i18n.CmdShowNormNotFoundData{
+				Name:    tghtml.Bold(LocalisedNormName(loc, name)),
+				Code:    "<code>",
+				CodeEnd: "</code>",
+			}),
+			botapi.WithParseMode(botapi.ParseModeHTML),
+		)
 
 		return err
 	}
 
-	cms := args.Users
-	userIDs := make([]int64, 0, len(cms))
-	for _, cm := range cms {
+	var userIDs []int64
+	for _, cm := range args.Users {
 		if cm.User.IsBot && cm.IsLeft() {
 			continue
 		}
@@ -280,16 +237,18 @@ func (h *Handler) AssignNorm(c *botapi.Context) error {
 	}
 
 	if len(userIDs) == 0 {
-		_, err := c.Reply(h.translator.T(ch.Lang, i18n.Cmd.AssignNorm.NoUsers))
+		_, err = c.Reply(loc.T(i18n.Cmd.AssignNorm.NoUsers, nil))
 		return err
 	}
 
-	if err := h.repository.Assign(c.Context, n.ID, userIDs); err != nil {
+	if err := h.repository.Assign(c, n.ID, userIDs); err != nil {
 		return fmt.Errorf("assign norm: %w", err)
 	}
 
-	_, err = c.Reply(h.translator.TData(ch.Lang, i18n.Cmd.AssignNorm.Assigned,
-		i18n.CmdAssignNormAssignedArgs(tghtml.Bold(LocalisedNormName(h.translator, ch.Lang, name)))),
+	_, err = c.Reply(
+		loc.T(i18n.Cmd.AssignNorm.Assigned, i18n.CmdAssignNormAssignedData{
+			Name: tghtml.Bold(LocalisedNormName(loc, name)),
+		}),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
 
@@ -297,40 +256,36 @@ func (h *Handler) AssignNorm(c *botapi.Context) error {
 }
 
 func (h *Handler) UnassignNorm(c *botapi.Context) error {
-	ch, err := cctx.Chat(c.Context)
-	if err != nil {
-		return fmt.Errorf("unassign: %w", err)
-	}
-
-	args, ok := predicate.GetParsedArgs(c)
-	if !ok {
-		return fmt.Errorf("unassign: no args")
-	}
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
+	args := cctx.MustArgs(c)
 
 	if len(args.Texts) == 0 {
 		return fmt.Errorf("unassign: no name")
 	}
 
-	name := args.Texts[0]
+	name := strings.TrimSpace(args.Texts[0])
 
-	n, err := h.repository.Get(c.Context, ch.ID, name)
+	n, err := h.repository.Get(c, ch.ID, name)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("unassign get norm: %w", err)
 		}
 
-		_, err := c.Reply(h.translator.TData(ch.Lang, i18n.Cmd.ShowNorm.NotFound,
-			i18n.CmdShowNormNotFoundArgs(
-				"<code>", "</code>",
-				tghtml.Bold(LocalisedNormName(h.translator, ch.Lang, name))),
-		), botapi.WithParseMode(botapi.ParseModeHTML))
+		_, err = c.Reply(
+			loc.T(i18n.Cmd.ShowNorm.NotFound, i18n.CmdShowNormNotFoundData{
+				Name:    tghtml.Bold(LocalisedNormName(loc, name)),
+				Code:    "<code>",
+				CodeEnd: "</code>",
+			}),
+			botapi.WithParseMode(botapi.ParseModeHTML),
+		)
 
 		return err
 	}
 
-	cms := args.Users
-	userIDs := make([]int64, 0, len(cms))
-	for _, cm := range cms {
+	var userIDs []int64
+	for _, cm := range args.Users {
 		if cm.User.IsBot {
 			continue
 		}
@@ -338,19 +293,20 @@ func (h *Handler) UnassignNorm(c *botapi.Context) error {
 	}
 
 	if len(userIDs) == 0 {
-		_, err := c.Reply(h.translator.T(ch.Lang, i18n.Cmd.UnassignNorm.NoUsers))
+		_, err = c.Reply(loc.T(i18n.Cmd.UnassignNorm.NoUsers, nil))
 		return err
 	}
 
-	if err := h.repository.Unassign(c.Context, n.ID, userIDs); err != nil {
+	if err := h.repository.Unassign(c, n.ID, userIDs); err != nil {
 		return fmt.Errorf("unassign norm: %w", err)
 	}
 
-	_, err = c.Reply(h.translator.TData(ch.Lang, i18n.Cmd.UnassignNorm.Unassigned,
-		i18n.CmdUnassignNormUnassignedArgs(tghtml.Bold(LocalisedNormName(h.translator, ch.Lang, name)))),
+	_, err = c.Reply(
+		loc.T(i18n.Cmd.UnassignNorm.Unassigned, i18n.CmdUnassignNormUnassignedData{
+			Name: tghtml.Bold(LocalisedNormName(loc, name)),
+		}),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
 
 	return err
-
 }

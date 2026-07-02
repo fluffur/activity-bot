@@ -12,7 +12,6 @@ const CategoryHelp command.Category = "help"
 
 type Handler struct {
 	bot         *botapi.Bot
-	translator  *i18n.Translator
 	permissions *predicate.PermissionChecker
 	registry    *command.Registry
 
@@ -22,7 +21,6 @@ type Handler struct {
 
 func NewHandler(
 	b *botapi.Bot,
-	t *i18n.Translator,
 	p *predicate.PermissionChecker,
 	r *command.Registry,
 	commandsURL,
@@ -30,7 +28,6 @@ func NewHandler(
 ) *Handler {
 	return &Handler{
 		bot:               b,
-		translator:        t,
 		permissions:       p,
 		registry:          r,
 		commandsURL:       commandsURL,

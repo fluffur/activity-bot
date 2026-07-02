@@ -1,0 +1,37 @@
+[cmd.profile]
+
+desc = { other = "Статистика участника" }
+
+example_duration = { other = "профиль неделя" }
+example_date = { other = "профиль 1 июня 25 июля" }
+
+title = { other = "👤 {{.User}}" }
+
+member_since = { other = "В чате с {{.Date}} ({{.Days}})" }
+member_period = { other = "{{.From}} — {{.To}} ({{.Days}})" }
+
+rest_until = { other = "💤 Рест до {{.Date}}" }
+rest_exempt = { other = "🕊 Освобождён от выполнения нормы" }
+
+norm_passed = { other = "✅ {{.Name}} — {{.Required}}" }
+norm_failed = { other = "⚠️ {{.Name}} — {{.Current}}/{{.Required}}" }
+
+total_messages = { other = "📨 Всего сообщений: {{.Total}}" }
+
+activity = { other = """ㅤ
+          📊 Статистика
+
+📅 Календарная активность
+• Сегодня — {{.Day}}
+• Неделя — {{.Week}}
+• Месяц — {{.Month}}
+
+📈 Скользящая активность
+• Последние 24 часа — {{.DayRolling}}
+• Последние 7 дней — {{.WeekRolling}}
+• Последние 30 дней — {{.MonthRolling}}
+
+📨 Всего сообщений: {{.Total}}
+""" }
+
+

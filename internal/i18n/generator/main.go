@@ -40,7 +40,7 @@ func main() {
 	}
 	out.WriteString(")\n\n")
 
-	writeArgsFunctions(&out, root)
+	writeDataStructs(&out, root)
 
 	if err := os.WriteFile("./keys.go", out.Bytes(), 0o644); err != nil {
 		panic(err)
@@ -119,6 +119,29 @@ func writeStructFieldInit(out *bytes.Buffer, node *Node, indent int) {
 	fmt.Fprintf(out, "%s},\n", tabs)
 }
 
+func writeDataStructs(out *bytes.Buffer, node *Node) {
+	if node.IsLeaf && len(node.Params) > 0 {
+		parts := strings.Split(node.FullPath, ".")
+		for i := range parts {
+			parts[i] = toGoName(parts[i])
+		}
+
+		typeName := strings.Join(parts, "") + "Data"
+
+		fmt.Fprintf(out, "type %s struct {\n", typeName)
+
+		for _, param := range node.Params {
+			fmt.Fprintf(out, "\t%s any\n", toGoName(param))
+		}
+
+		out.WriteString("}\n\n")
+	}
+
+	for _, child := range node.Children {
+		writeDataStructs(out, child)
+	}
+}
+
 func writeArgsFunctions(out *bytes.Buffer, node *Node) {
 	if node.IsLeaf && len(node.Params) > 0 {
 		parts := strings.Split(node.FullPath, ".")
@@ -145,31 +168,36 @@ func writeArgsFunctions(out *bytes.Buffer, node *Node) {
 }
 
 func collectTree() (*Node, error) {
-	root := &Node{Name: "root", Children: make(map[string]*Node)}
-	entries, err := os.ReadDir("locales")
-	if err != nil {
-		return nil, err
+	root := &Node{
+		Name:     "root",
+		Children: make(map[string]*Node),
 	}
 
-	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".toml" {
-			continue
-		}
-
-		data, err := os.ReadFile(filepath.Join("locales", entry.Name()))
+	err := filepath.Walk("locales", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		var rawMap map[string]any
-		if err := toml.Unmarshal(data, &rawMap); err != nil {
-			return nil, err
+		if info.IsDir() || filepath.Ext(path) != ".toml" {
+			return nil
 		}
 
-		buildTreeFromMap(root, rawMap, "")
-	}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
 
-	return root, nil
+		var raw map[string]any
+		if err := toml.Unmarshal(data, &raw); err != nil {
+			return err
+		}
+
+		buildTreeFromMap(root, raw, "")
+
+		return nil
+	})
+
+	return root, err
 }
 
 func buildTreeFromMap(current *Node, raw map[string]any, prefix string) {
@@ -201,32 +229,41 @@ func buildTreeFromMap(current *Node, raw map[string]any, prefix string) {
 
 func extractParams(text string) []string {
 	matches := paramRegexp.FindAllStringSubmatch(text, -1)
+
 	seen := make(map[string]struct{})
 	var params []string
+
 	for _, match := range matches {
 		name := match[1]
-		if _, ok := seen[name]; !ok {
-			seen[name] = struct{}{}
-			params = append(params, name)
+		if _, ok := seen[name]; ok {
+			continue
 		}
+
+		seen[name] = struct{}{}
+		params = append(params, name)
 	}
-	sort.Strings(params)
+
 	return params
 }
 
 func mergeParams(a, b []string) []string {
 	seen := make(map[string]struct{})
+	result := make([]string, 0, len(a)+len(b))
+
 	for _, v := range a {
-		seen[v] = struct{}{}
+		if _, ok := seen[v]; !ok {
+			seen[v] = struct{}{}
+			result = append(result, v)
+		}
 	}
+
 	for _, v := range b {
-		seen[v] = struct{}{}
+		if _, ok := seen[v]; !ok {
+			seen[v] = struct{}{}
+			result = append(result, v)
+		}
 	}
-	result := make([]string, 0, len(seen))
-	for v := range seen {
-		result = append(result, v)
-	}
-	sort.Strings(result)
+
 	return result
 }
 

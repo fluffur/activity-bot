@@ -1,33 +1,29 @@
 package summon
 
 import (
+	"activity-bot/internal/cctx"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/i18n"
-	"activity-bot/internal/middleware/cctx"
-	"activity-bot/internal/predicate"
 	"fmt"
 
 	"github.com/gotd/botapi"
 )
 
 func (h *Handler) SummonAll(c *botapi.Context) error {
-	ch, err := cctx.Chat(c.Context)
-	if err != nil {
-		return fmt.Errorf("summon chat: %w", err)
-	}
+	ch := cctx.MustChat(c)
 
 	m := c.Message()
 	if m == nil {
 		return nil
 	}
 
-	args := predicate.Args(c)
+	args, _ := cctx.ArgsMessage(c)
 
 	if !ch.SkipCallConfirmation {
 		return h.RequestSummonConfirmation(c, TextFromArgs(ch, args), m.MessageID)
 	}
 
-	cms, err := h.chatMemberService.ListSummonChatMembers(c.Context, ch.ID)
+	cms, err := h.chatMemberService.ListSummonChatMembers(c, ch.ID)
 	if err != nil {
 		return fmt.Errorf("summon cms list: %w", err)
 	}
@@ -40,46 +36,36 @@ func (h *Handler) RequestSummonConfirmation(
 	text string,
 	msgID int,
 ) error {
-	ch, err := cctx.Chat(c.Context)
-	if err != nil {
-		return err
-	}
+	ch := cctx.MustChat(c)
+	cm := cctx.MustChatMember(c)
+	loc := cctx.MustLocalizer(c)
 
-	cm, err := cctx.ChatMember(c.Context)
-	if err != nil {
-		return err
-	}
-
-	err = h.summonFSM.Enter(c, StateAwaitConfirmation, StateData{
+	if err := h.summonFSM.Enter(c, StateAwaitConfirmation, StateData{
 		Text:      text,
 		MessageID: msgID,
 		ChatID:    ch.ID,
-		UserID:    cm.User.ID,
-	})
-	if err != nil {
+		UserID:    cm.ID(),
+	}); err != nil {
 		return err
 	}
 
-	_, err = c.Reply(
-		h.translator.T(ch.Lang, i18n.Cmd.Summon.Confirm.Text),
+	_, err := c.Reply(
+		loc.T(i18n.Cmd.Summon.Confirm.Text, nil),
 		botapi.WithReplyMarkup(
 			botapi.InlineKeyboard(
 				botapi.InlineRow(
 					botapi.InlineButtonData(
-						h.translator.T(ch.Lang, i18n.Cmd.Summon.Confirm.Yes),
+						loc.T(i18n.Cmd.Summon.Confirm.Yes, nil),
 						"summon:confirm",
 					),
 					botapi.InlineButtonData(
-						h.translator.T(ch.Lang, i18n.Cmd.Summon.Confirm.No),
+						loc.T(i18n.Cmd.Summon.Confirm.No, nil),
 						"summon:cancel",
 					),
 				),
 				botapi.InlineRow(
 					botapi.InlineButtonData(
-						h.translator.T(
-							ch.Lang,
-							i18n.Cmd.Summon.Confirm.YesAndDisable,
-						),
+						loc.T(i18n.Cmd.Summon.Confirm.YesAndDisable, nil),
 						"summon:confirm_dont_ask",
 					),
 				),
@@ -104,15 +90,12 @@ func (h *Handler) ConfirmSummon(c *botapi.Context) error {
 
 	chatID, _ := c.Chat()
 	_ = c.Bot.DeleteMessage(
-		c.Context,
+		c,
 		chatID,
 		c.Update.CallbackQuery.Message.MessageID,
 	)
 
-	cms, err := h.chatMemberService.ListSummonChatMembers(
-		c.Context,
-		ch.ID,
-	)
+	cms, err := h.chatMemberService.ListSummonChatMembers(c, ch.ID)
 	if err != nil {
 		return fmt.Errorf("summon cms list: %w", err)
 	}
@@ -127,34 +110,24 @@ func (h *Handler) ConfirmSummon(c *botapi.Context) error {
 }
 
 func (h *Handler) CancelSummon(c *botapi.Context) error {
-	data, ch, err := h.summonSession(c)
-	if err != nil || data == nil {
-		return err
-	}
-
+	loc := cctx.MustLocalizer(c)
 	if err := h.summonFSM.Clear(c); err != nil {
 		return err
 	}
 
 	chatID, _ := c.Chat()
 
+	text := loc.T(i18n.Cmd.Summon.Confirm.Canceled, nil)
+
 	_, _ = c.Bot.EditMessageText(
-		c.Context,
+		c,
 		chatID,
 		c.Update.CallbackQuery.Message.MessageID,
-		h.translator.T(
-			ch.Lang,
-			i18n.Cmd.Summon.Confirm.Canceled,
-		),
+		text,
 	)
 
 	return c.AnswerCallback(
-		botapi.WithCallbackText(
-			h.translator.T(
-				ch.Lang,
-				i18n.Cmd.Summon.Confirm.Canceled,
-			),
-		),
+		botapi.WithCallbackText(text),
 	)
 }
 
@@ -164,11 +137,9 @@ func (h *Handler) ConfirmSummonDontAsk(c *botapi.Context) error {
 		return err
 	}
 
-	if err := h.chatService.SetSkipSummonConfirmation(
-		c.Context,
-		ch.ID,
-		true,
-	); err != nil {
+	loc := cctx.MustLocalizer(c)
+
+	if err := h.chatService.SetSkipSummonConfirmation(c, ch.ID, true); err != nil {
 		return fmt.Errorf("update chat: %w", err)
 	}
 
@@ -176,53 +147,38 @@ func (h *Handler) ConfirmSummonDontAsk(c *botapi.Context) error {
 		return err
 	}
 
+	text := loc.T(i18n.Cmd.Summon.Confirm.Disabled, nil)
+
 	_ = c.AnswerCallback(
-		botapi.WithCallbackText(
-			h.translator.T(
-				ch.Lang,
-				i18n.Cmd.Summon.Confirm.Disabled,
-			),
-		),
+		botapi.WithCallbackText(text),
 	)
 
 	chatID, _ := c.Chat()
 
 	_, _ = c.Bot.EditMessageText(
-		c.Context,
+		c,
 		chatID,
 		c.Update.CallbackQuery.Message.MessageID,
-		h.translator.T(
-			ch.Lang,
-			i18n.Cmd.Summon.Confirm.Disabled,
-		),
+		text,
 	)
 
-	cms, err := h.chatMemberService.ListSummonChatMembers(
-		c.Context,
-		ch.ID,
-	)
+	cms, err := h.chatMemberService.ListSummonChatMembers(c, ch.ID)
 	if err != nil {
 		return fmt.Errorf("summon cms list: %w", err)
 	}
 
-	return h.Summon(
-		c,
-		data.Text,
-		data.MessageID,
-		ch,
-		cms,
-	)
+	return h.Summon(c, data.Text, data.MessageID, ch, cms)
 }
 
 func (h *Handler) SummonStyle(c *botapi.Context) error {
-	ch, err := cctx.Chat(c.Context)
-	if err != nil {
-		return fmt.Errorf("summon style chat: %w", err)
-	}
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
 
-	_, err = c.Reply(
-		h.translator.T(ch.Lang, i18n.Cmd.Summon.Style.Text),
-		botapi.WithReplyMarkup(mentionTypesKeyboard(h.translator, ch.Lang, ch.MentionTypes)),
+	_, err := c.Reply(
+		loc.T(i18n.Cmd.Summon.Style.Text, nil),
+		botapi.WithReplyMarkup(
+			mentionTypesKeyboard(loc, ch.MentionTypes),
+		),
 	)
 
 	return err
@@ -241,10 +197,8 @@ func (h *Handler) ToggleMentionRole(c *botapi.Context) error {
 }
 
 func (h *Handler) toggleMentionStyle(c *botapi.Context, flag chat.MentionTypes) error {
-	ch, err := cctx.Chat(c.Context)
-	if err != nil {
-		return fmt.Errorf("toggle mention type: %w", err)
-	}
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
 
 	if ch.MentionTypes.Has(flag) {
 		ch.MentionTypes.Remove(flag)
@@ -252,52 +206,39 @@ func (h *Handler) toggleMentionStyle(c *botapi.Context, flag chat.MentionTypes) 
 		ch.MentionTypes.Add(flag)
 	}
 
-	if err := h.chatService.SetMentionTypes(
-		c.Context,
-		ch.ID,
-		ch.MentionTypes,
-	); err != nil {
+	if err := h.chatService.SetMentionTypes(c, ch.ID, ch.MentionTypes); err != nil {
 		return err
 	}
 
 	_, _ = c.Bot.EditMessageReplyMarkup(
-		c.Context,
+		c,
 		botapi.ID(ch.ID),
 		c.Update.CallbackQuery.Message.MessageID,
-		mentionTypesKeyboard(
-			h.translator,
-			ch.Lang,
-			ch.MentionTypes,
-		),
+		mentionTypesKeyboard(loc, ch.MentionTypes),
 	)
 
 	return c.AnswerCallback()
 }
-
 func mentionTypesKeyboard(
-	t *i18n.Translator,
-	lang string,
+	loc *i18n.Localizer,
 	types chat.MentionTypes,
 ) *botapi.InlineKeyboardMarkup {
 	return botapi.InlineKeyboard(
 		botapi.InlineRow(
 			botapi.InlineButtonData(
-				check(types.Has(chat.MentionEmoji))+
-					" "+t.T(lang, i18n.Cmd.Summon.Style.Emoji),
+				check(types.Has(chat.MentionEmoji))+" "+loc.T(i18n.Cmd.Summon.Style.Emoji, nil),
 				"summon:style:emoji",
 			),
 		),
 		botapi.InlineRow(
 			botapi.InlineButtonData(
-				check(types.Has(chat.MentionName))+
-					" "+t.T(lang, i18n.Cmd.Summon.Style.Name),
+				check(types.Has(chat.MentionName))+" "+loc.T(i18n.Cmd.Summon.Style.Name, nil),
 				"summon:style:name",
 			),
 		),
 		botapi.InlineRow(
 			botapi.InlineButtonData(
-				check(types.Has(chat.MentionRole))+
-					" "+t.T(lang, i18n.Cmd.Summon.Style.Role),
+				check(types.Has(chat.MentionRole))+" "+loc.T(i18n.Cmd.Summon.Style.Role, nil),
 				"summon:style:role",
 			),
 		),

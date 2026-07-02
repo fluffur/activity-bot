@@ -135,3 +135,7 @@ func (c ChatMember) IsMale() bool {
 func (c ChatMember) IsFemale() bool {
 	return c.User.IsFemale()
 }
+
+func (c ChatMember) ID() int64 {
+	return c.User.ID
+}

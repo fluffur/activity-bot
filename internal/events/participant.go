@@ -41,7 +41,6 @@ func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.Up
 
 	return nil
 }
-
 func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateChannelParticipant, chatID int64) error {
 	ue := e.Users[u.UserID]
 
@@ -58,47 +57,63 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 		return fmt.Errorf("handler process join: %w", err)
 	}
 
+	loc := h.translator.Localizer(res.ChatMember.Chat.Lang)
+
 	if res.IsNew && participant.IsSelf(u.NewParticipant) {
 		members, err := participant.GetChatMembers(h.bot, ctx, e, u.ChannelID)
 		if err != nil {
 			return fmt.Errorf("get chat members on bot join: %w", err)
 		}
 
-		if err = h.memberService.SyncChatMembers(ctx, chatID, chatmembers.ExtractMembers(members)); err != nil {
+		if err = h.memberService.SyncChatMembers(
+			ctx,
+			chatID,
+			chatmembers.ExtractMembers(members),
+		); err != nil {
 			return fmt.Errorf("sync chat members: %w", err)
 		}
 
-		text := h.translator.TIf(
-			res.ChatMember.Chat.Lang,
-			participant.IsAdmin(u.NewParticipant),
-			i18n.System.BotAddedAdmin,
-			i18n.System.BotAdded,
-			nil,
-			nil,
-		)
+		var text string
+		if participant.IsAdmin(u.NewParticipant) {
+			text = loc.T(i18n.System.BotAddedAdmin, nil)
+		} else {
+			text = loc.T(i18n.System.BotAdded, nil)
+		}
 
-		_, err = h.bot.SendMessage(ctx, botapi.ID(chatID), text, botapi.WithParseMode(botapi.ParseModeHTML))
+		_, err = h.bot.SendMessage(
+			ctx,
+			botapi.ID(chatID),
+			text,
+			botapi.WithParseMode(botapi.ParseModeHTML),
+		)
 
 		return err
 	}
 
 	cm := res.ChatMember
-	us := cm.User
-	ch := cm.Chat
 
-	mention := tghtml.UserMention(us.ID, cm.Display(h.translator.T(ch.Lang, i18n.User.Unknown), ch.EmojisEnabled))
+	mention := tghtml.MemberMention(loc, cm.Chat, cm)
 
-	keyFemale, keyMale := i18n.User.ReturnedFemale, i18n.User.ReturnedMale
-	argsFemale, argsMale := i18n.UserReturnedFemaleArgs(mention), i18n.UserReturnedMaleArgs(mention)
-
+	key := i18n.User.Returned
+	data := i18n.UserReturnedMaleData{
+		User: mention,
+	}
 	if res.IsNew {
-		keyFemale, keyMale = i18n.User.JoinedFemale, i18n.User.JoinedMale
-		argsFemale, argsMale = i18n.UserJoinedFemaleArgs(mention), i18n.UserJoinedMaleArgs(mention)
+		key = i18n.User.Joined
 	}
 
-	text := h.translator.TIf(ch.Lang, us.Gender == user.GenderFemale, keyFemale, keyMale, argsFemale, argsMale)
+	text := loc.TGender(
+		cm.User.Gender,
+		key,
+		data,
+	)
 
-	_, err = h.bot.SendMessage(ctx, botapi.ID(chatID), text, botapi.WithParseMode(botapi.ParseModeHTML))
+	_, err = h.bot.SendMessage(
+		ctx,
+		botapi.ID(chatID),
+		text,
+		botapi.WithParseMode(botapi.ParseModeHTML),
+	)
 
 	return err
 }
@@ -109,21 +124,24 @@ func (h *Handler) processLeft(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 		return fmt.Errorf("handler process left: %w", err)
 	}
 
-	us := cm.User
-	ch := cm.Chat
+	loc := h.translator.Localizer(cm.Chat.Lang)
 
-	mention := tghtml.UserMention(us.ID, cm.Display(h.translator.T(ch.Lang, i18n.User.Unknown), ch.EmojisEnabled))
+	mention := tghtml.MemberMention(loc, cm.Chat, cm)
 
-	text := h.translator.TIf(
-		ch.Lang,
-		us.Gender == user.GenderFemale,
-		i18n.User.LeftFemale,
-		i18n.User.LeftMale,
-		i18n.UserLeftFemaleArgs(mention),
-		i18n.UserLeftMaleArgs(mention),
+	text := loc.TGender(
+		cm.User.Gender,
+		i18n.User.Left,
+		i18n.UserLeftMaleData{
+			User: mention,
+		},
 	)
 
-	_, err = h.bot.SendMessage(ctx, botapi.ID(chatID), text, botapi.WithParseMode(botapi.ParseModeHTML))
+	_, err = h.bot.SendMessage(
+		ctx,
+		botapi.ID(chatID),
+		text,
+		botapi.WithParseMode(botapi.ParseModeHTML),
+	)
 
 	return err
 }
