@@ -1,10 +1,14 @@
 package rest
 
 import (
+	"activity-bot/internal/action"
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/option"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/predicate"
+	"activity-bot/internal/rule"
 
 	"github.com/gotd/botapi"
 )
@@ -16,7 +20,7 @@ type Handler struct {
 	permissions *predicate.PermissionChecker
 	rules       *predicate.RuleChecker
 
-	chatMemberSerivce *chatmember.Service
+	chatMemberService *chatmember.Service
 	service           *Service
 }
 
@@ -32,105 +36,78 @@ func NewHandler(
 		permissions:       p,
 		rules:             rs,
 		service:           rsrv,
-		chatMemberSerivce: cms,
+		chatMemberService: cms,
 	}
 }
 
 func (h *Handler) Register(registry *command.Registry) {
 	registry.AddCategory(CategoryRest)
 
-	showRestDef := &command.ActionDef{
-		Key:         "rest",
-		Aliases:     []string{"рест", "мой рест"},
-		Trigger:     command.TriggerCommand,
-		MinStatus:   chatmember.StatusMember,
-		Category:    CategoryRest,
-		Description: i18n.Cmd.Rest.Desc,
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleUser, Optional: true, Count: 1},
-		},
-	}
+	showRestDef := action.NewCommand(
+		"rest",
+		i18n.Cmd.Rest.Desc,
+		CategoryRest,
+		permission.StatusMember,
+		option.WithAliases("рест", "мой рест"),
+		option.WithRules(rule.User().Optional()),
+	)
 
-	setRestDef := &command.ActionDef{
-		Key:         "set_rest",
-		Aliases:     []string{"рест", "+рест", "установить рест"},
-		Trigger:     command.TriggerCommand,
-		MinStatus:   chatmember.StatusModerator,
-		Category:    CategoryRest,
-		Description: i18n.Cmd.Rest.Desc,
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleUser, Optional: true, Count: 1},
-			{Type: predicate.RuleDurationOrDateTime, Optional: false, Count: 1},
-			{Type: predicate.RuleText, Optional: true, Count: 1},
-		},
-	}
+	setRestDef := action.NewCommand(
+		"set_rest",
+		i18n.Cmd.Rest.Desc,
+		CategoryRest,
+		permission.StatusModerator,
+		option.WithAliases("рест", "+рест", "установить рест"),
+		option.WithRules(
+			rule.User().Optional(),
+			rule.DateTimeOrDuration(),
+			rule.Text().Optional(),
+		),
+	)
 
-	endRestDef := &command.ActionDef{
-		Key:         "end_rest",
-		Aliases:     []string{"-рест", "завершить рест"},
-		Trigger:     command.TriggerCommand,
-		MinStatus:   chatmember.StatusModerator,
-		Category:    CategoryRest,
-		Description: i18n.Cmd.EndRest.Desc,
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleUser, Optional: true, Count: 1},
-		},
-	}
+	endRestDef := action.NewCommand(
+		"end_rest",
+		i18n.Cmd.EndRest.Desc,
+		CategoryRest,
+		permission.StatusModerator,
+		option.WithAliases("-рест", "завершить рест"),
+		option.WithRules(rule.User().Optional()),
+	)
 
-	allRestDef := &command.ActionDef{
-		Key:         "rests",
-		Aliases:     []string{"ресты", "все ресты"},
-		Trigger:     command.TriggerCommand,
-		MinStatus:   chatmember.StatusModerator,
-		Category:    CategoryRest,
-		Description: i18n.Cmd.Rests.Desc,
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleUser, Optional: true, Count: 1},
-		},
-	}
+	allRestDef := action.NewCommand(
+		"rests",
+		i18n.Cmd.Rests.Desc,
+		CategoryRest,
+		permission.StatusModerator,
+		option.WithAliases("ресты", "все ресты"),
+		option.WithRules(rule.User().Optional()),
+	)
 
-	approveRequestDef := &command.ActionDef{
-		Key:        "approve:",
-		Trigger:    command.TriggerCallback,
-		Parent:     setRestDef,
-		MinStatus:  chatmember.StatusModerator,
-		Category:   CategoryRest,
-		Scope:      command.ScopeGroup,
-		ShowInHelp: false,
-	}
+	approveRequestDef := action.NewCallback(
+		"approve:",
+		CategoryRest,
+		permission.StatusModerator,
+		setRestDef,
+	)
 
-	rejectRequestDef := &command.ActionDef{
-		Key:        "reject:",
-		Trigger:    command.TriggerCallback,
-		Parent:     setRestDef,
-		MinStatus:  chatmember.StatusModerator,
-		Category:   CategoryRest,
-		Scope:      command.ScopeGroup,
-		ShowInHelp: false,
-	}
+	rejectRequestDef := action.NewCallback(
+		"reject:",
+		CategoryRest,
+		permission.StatusModerator,
+		setRestDef,
+	)
 
-	removeRequestDef := &command.ActionDef{
-		Key:         "rests_delete",
-		Aliases:     []string{"-рест", "-ресты", "удалить рест"},
-		Description: i18n.Cmd.Rests.Delete.Desc,
-		Trigger:     command.TriggerCommand,
-		MinStatus:   chatmember.StatusModerator,
-		Category:    CategoryRest,
-		Scope:       command.ScopeGroup,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleUser, Optional: true, Count: 1},
-			{Type: predicate.RuleNumber, Optional: false, Count: 1},
-		},
-		ShowInHelp: true,
-	}
+	removeRequestDef := action.NewCommand(
+		"rests_delete",
+		i18n.Cmd.Rests.Delete.Desc,
+		CategoryRest,
+		permission.StatusModerator,
+		option.WithAliases("-рест", "-ресты", "удалить рест"),
+		option.WithRules(
+			rule.User().Optional(),
+			rule.Number(),
+		),
+	)
 
 	registry.Add(showRestDef)
 	registry.Add(setRestDef)
@@ -186,5 +163,4 @@ func (h *Handler) Register(registry *command.Registry) {
 		h.rules.With(removeRequestDef.Rules...),
 		h.permissions.Require(removeRequestDef.Key, removeRequestDef.MinStatus),
 	)
-
 }

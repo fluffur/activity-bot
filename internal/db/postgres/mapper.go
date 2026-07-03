@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/chatmember"
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/norm"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/rest"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/user"
@@ -15,6 +16,7 @@ func mapList[T any, V any](list []T, fn func(T) V) []V {
 	for i, v := range list {
 		l[i] = fn(v)
 	}
+
 	return l
 }
 
@@ -66,7 +68,7 @@ func mapChatMember(m db.ChatMember) chatmember.ChatMember {
 		RestUntil:       m.RestUntil.Time,
 		RestReason:      m.RestReason.String,
 		Tag:             m.Tag.String,
-		Status:          chatmember.Status(m.Status),
+		Status:          permission.Status(m.Status),
 		Emojis:          m.Emoji.String,
 		JoinedAt:        m.JoinedAt.Time,
 		LeftAt:          m.LeftAt.Time,
@@ -128,6 +130,7 @@ func mapRestRequest(rr db.RestRequest) rest.Request {
 
 func mapRestRequestFull(rr db.RestRequest, cm db.ChatMember, u db.User) rest.Request {
 	r := mapRestRequest(rr)
+
 	r.ChatMember = mapChatMemberFull(cm, db.Chat{}, u)
 
 	return r

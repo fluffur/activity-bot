@@ -51,6 +51,7 @@ func loadLocales(bundle *goi18n.Bundle) error {
 		}
 
 		_, err = bundle.LoadMessageFileFS(localeFS, path)
+
 		return err
 	})
 }

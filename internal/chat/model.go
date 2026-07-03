@@ -14,6 +14,7 @@ func (t *MentionTypes) Has(flag MentionTypes) bool {
 	if t == nil {
 		return false
 	}
+
 	return *t&flag == flag
 }
 

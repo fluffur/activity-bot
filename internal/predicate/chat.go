@@ -13,6 +13,7 @@ func Chat() botapi.Predicate {
 		ch, err := cctx.Chat(c)
 		if err != nil {
 			log.For(c.Bot.Logger()).Error(c, "no chat", log.Error(err))
+
 			return false
 		}
 
@@ -25,6 +26,7 @@ func Private() botapi.Predicate {
 		ch, err := cctx.Chat(c)
 		if err != nil {
 			log.For(c.Bot.Logger()).Error(c, "no chat", log.Error(err))
+
 			return false
 		}
 

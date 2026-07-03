@@ -3,6 +3,7 @@ package postgres
 import (
 	"activity-bot/internal/chatmember"
 	db "activity-bot/internal/db/postgres/sqlc"
+	"activity-bot/internal/permission"
 	"context"
 	"sort"
 	"time"
@@ -132,7 +133,6 @@ func (r *ChatMemberRepository) List(ctx context.Context, filter chatmember.Filte
 	}
 
 	cms, err := r.queries.ListChatMembers(ctx, params)
-
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +162,7 @@ func (r *ChatMemberRepository) SetExcludeFromSummon(ctx context.Context, chatID,
 	})
 }
 
-func (r *ChatMemberRepository) ListAdmins(ctx context.Context, chatID int64, minStatus chatmember.Status) ([]chatmember.ChatMember, error) {
+func (r *ChatMemberRepository) ListAdmins(ctx context.Context, chatID int64, minStatus permission.Status) ([]chatmember.ChatMember, error) {
 	cms, err := r.queries.ListChatAdmins(ctx, db.ListChatAdminsParams{
 		ChatID: chatID,
 		Status: int16(minStatus),

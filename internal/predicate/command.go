@@ -15,7 +15,9 @@ var defaultPrefixes = []string{"!", "/", ".", "фм"}
 
 func Command(name string, aliases ...string) botapi.Predicate {
 	commands := make([]string, 0, len(aliases)+1)
+
 	commands = append(commands, normalize(name))
+
 	for _, alias := range aliases {
 		commands = append(commands, normalize(alias))
 	}
@@ -29,6 +31,7 @@ func Command(name string, aliases ...string) botapi.Predicate {
 		ch, err := cctx.Chat(c)
 		if err != nil {
 			log.For(c.Bot.Logger()).Error(c, "command ctx chat", log.Error(err))
+
 			return false
 		}
 
@@ -55,6 +58,7 @@ func Command(name string, aliases ...string) botapi.Predicate {
 		}
 
 		trimmedText := string(rawTextAfterPrefixRunes[leadingSpacesRunes:])
+
 		trimmedText = strings.TrimRightFunc(trimmedText, unicode.IsSpace)
 
 		if trimmedText == "" {
@@ -65,6 +69,7 @@ func Command(name string, aliases ...string) botapi.Predicate {
 		if self == nil {
 			return false
 		}
+
 		botUsername := strings.ToLower(self.Username)
 
 		for _, cmd := range commands {
@@ -86,9 +91,11 @@ func Command(name string, aliases ...string) botapi.Predicate {
 			utf16Offset := len(utf16.Encode(runes[:absRuneIdx]))
 
 			var argsEntities []botapi.MessageEntity
+
 			for _, ent := range entities {
 				if ent.Offset >= utf16Offset {
 					shiftedEnt := ent
+
 					shiftedEnt.Offset = ent.Offset - utf16Offset
 					argsEntities = append(argsEntities, shiftedEnt)
 				}
@@ -117,6 +124,7 @@ func Command(name string, aliases ...string) botapi.Predicate {
 			}
 
 			c.Context = cctx.WithArgsMessage(c.Context, argsMessage)
+
 			return true
 		}
 
@@ -124,7 +132,7 @@ func Command(name string, aliases ...string) botapi.Predicate {
 	}
 }
 
-func matchCommandAndGetLen(trimmedText string, command string, botUsername string) (int, bool) {
+func matchCommandAndGetLen(trimmedText, command, botUsername string) (int, bool) {
 	firstLine := trimmedText
 	if idx := strings.Index(trimmedText, "\n"); idx != -1 {
 		firstLine = trimmedText[:idx]
@@ -148,12 +156,14 @@ func matchCommandAndGetLen(trimmedText string, command string, botUsername strin
 			if word == cmdWord {
 				continue
 			}
+
 			if strings.HasPrefix(word, cmdWord+"@") {
 				username := strings.TrimPrefix(word, cmdWord+"@")
 				if username == botUsername {
 					continue
 				}
 			}
+
 			return 0, false
 		}
 
@@ -172,119 +182,14 @@ func matchCommandAndGetLen(trimmedText string, command string, botUsername strin
 
 	lastWordToFind := words[pos-1]
 	lastWordIdx := strings.Index(strings.ToLower(firstLine), strings.ToLower(lastWordToFind))
+
 	if lastWordIdx == -1 {
 		return 0, false
 	}
 
 	bytesLen := lastWordIdx + len(lastWordToFind)
+
 	return bytesLen, true
-}
-
-func findWordStartRuneIndex(text string, wordIndex int) int {
-	runes := []rune(text)
-	n := len(runes)
-
-	inWord := false
-	wordCount := 0
-
-	for i := 0; i < n; i++ {
-		isSpace := unicode.IsSpace(runes[i])
-		if !isSpace && !inWord {
-			inWord = true
-			if wordCount == wordIndex {
-				return i
-			}
-			wordCount++
-		} else if isSpace && inWord {
-			inWord = false
-		}
-	}
-	return n
-}
-
-func findWordEndRuneIndex(text string, wordIndex int) int {
-	runes := []rune(text)
-	n := len(runes)
-
-	inWord := false
-	wordCount := 0
-
-	for i := 0; i < n; i++ {
-		isSpace := unicode.IsSpace(runes[i])
-		if !isSpace && !inWord {
-			inWord = true
-			wordCount++
-		} else if isSpace && inWord {
-			inWord = false
-			if wordCount == wordIndex {
-				return i
-			}
-		}
-	}
-	if inWord && wordCount == wordIndex {
-		return n
-	}
-	return n
-}
-
-func parseCommand(
-	originalText string,
-	command string,
-	botUsername string,
-) (string, int, bool) {
-	words := strings.Fields(originalText)
-
-	if len(words) == 0 {
-		return "", 0, false
-	}
-
-	cmdWords := strings.Fields(command)
-
-	if len(words) < len(cmdWords) {
-		return "", 0, false
-	}
-
-	for i, cmdWord := range cmdWords {
-		word := strings.ToLower(words[i])
-
-		last := i == len(cmdWords)-1
-
-		if last {
-			if word == cmdWord {
-				continue
-			}
-
-			if strings.HasPrefix(word, cmdWord+"@") {
-				username := strings.TrimPrefix(word, cmdWord+"@")
-
-				if username == botUsername {
-					continue
-				}
-			}
-
-			return "", 0, false
-		}
-
-		if word != cmdWord {
-			return "", 0, false
-		}
-	}
-
-	pos := len(cmdWords)
-
-	if len(words) > pos && strings.HasPrefix(words[pos], "@") {
-		if strings.ToLower(words[pos][1:]) != botUsername {
-			return "", 0, false
-		}
-
-		pos++
-	}
-
-	if len(words) <= pos {
-		return "", pos, true
-	}
-
-	return strings.Join(words[pos:], " "), pos, true
 }
 
 func normalize(s string) string {

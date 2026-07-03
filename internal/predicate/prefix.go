@@ -13,6 +13,7 @@ func SensitiveCommand() botapi.Predicate {
 		if msg == nil {
 			return false
 		}
+
 		p := cctx.MustCommandPrefix(c)
 
 		return p != "" || strings.HasPrefix(msg.Text, "+")

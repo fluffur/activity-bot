@@ -79,7 +79,9 @@ func main() {
 	if err != nil {
 		log.Fatal("Create translator", zap.Error(err))
 	}
+
 	loc := translator.Default()
+
 	_ = loc
 
 	chatRepository := postgres.NewChatRepository(queries)

@@ -18,13 +18,13 @@ const (
 func (h *Handler) categoriesKeyboard(
 	loc *i18n.Localizer,
 ) *botapi.InlineKeyboardMarkup {
-
 	var rows [][]botapi.InlineKeyboardButton
 
 	for _, category := range h.registry.Categories() {
 		cmds := h.registry.ByCategory(category)
 
 		hasCommands := false
+
 		for _, cmd := range cmds {
 			if cmd.ShowInHelp {
 				hasCommands = true
@@ -133,7 +133,6 @@ func (h *Handler) commandsKeyboard(
 	loc *i18n.Localizer,
 	category command.Category,
 ) *botapi.InlineKeyboardMarkup {
-
 	var rows [][]botapi.InlineKeyboardButton
 
 	for _, cmd := range h.registry.ByCategory(category) {

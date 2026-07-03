@@ -1,10 +1,14 @@
 package moderation
 
 import (
+	"activity-bot/internal/action"
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/option"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/predicate"
+	"activity-bot/internal/rule"
 
 	"github.com/gotd/botapi"
 )
@@ -37,35 +41,29 @@ func NewHandler(
 func (h *Handler) Register(registry *command.Registry) {
 	registry.AddCategory(CategoryModeration)
 
-	setRole := &command.ActionDef{
-		Key:         "set_role",
-		Aliases:     []string{"+роль", "роль"},
-		Trigger:     command.TriggerCommand,
-		MinStatus:   chatmember.StatusAdmin,
-		Category:    CategoryModeration,
-		Description: i18n.Cmd.Moderation.SetRole.Desc,
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleUser, Optional: true, Count: 1},
-			{Type: predicate.RuleText, Optional: false, Count: 1},
-		},
-	}
+	setRole := action.NewCommand(
+		"set_role",
+		i18n.Cmd.Moderation.SetRole.Desc,
+		CategoryModeration,
+		permission.StatusAdmin,
+		option.WithAliases("+роль", "роль"),
+		option.WithRules(
+			rule.User().Optional(),
+			rule.Text().Validate(isValidRoleString),
+		),
+	)
 
-	setRoleAdmin := &command.ActionDef{
-		Key:         "set_role_admin",
-		Aliases:     []string{"+адмроль", "адмроль"},
-		Trigger:     command.TriggerCommand,
-		MinStatus:   chatmember.StatusCoOwner,
-		Category:    CategoryModeration,
-		Description: i18n.Cmd.Moderation.SetRoleAdmin.Desc,
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleUser, Optional: true, Count: 1},
-			{Type: predicate.RuleText, Optional: false, Count: 1},
-		},
-	}
+	setRoleAdmin := action.NewCommand(
+		"set_role_admin",
+		i18n.Cmd.Moderation.SetRoleAdmin.Desc,
+		CategoryModeration,
+		permission.StatusCoOwner,
+		option.WithAliases("+адмроль", "адмроль"),
+		option.WithRules(
+			rule.User().Optional(),
+			rule.Text().Validate(isValidRoleString),
+		),
+	)
 
 	registry.Add(setRole)
 	registry.Add(setRoleAdmin)
@@ -82,5 +80,4 @@ func (h *Handler) Register(registry *command.Registry) {
 		h.rules.With(setRole.Rules...),
 		h.permissions.Require(setRole.Key, setRole.MinStatus),
 	)
-
 }

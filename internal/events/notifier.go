@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/cctx"
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/summon"
 	"activity-bot/internal/utils/tghtml"
 	"fmt"
@@ -34,10 +35,11 @@ func (n *UsernameChangedNotifier) NotifyUsernameChanged(c *botapi.Context, oldUs
 
 	text := loc.TGender(cm.User.Gender, i18n.System.UsernameChanged, args)
 
-	admins, err := n.chatMemberRepository.ListAdmins(c, ch.ID, chatmember.StatusModerator)
+	admins, err := n.chatMemberRepository.ListAdmins(c, ch.ID, permission.StatusModerator)
 	if err != nil {
 		return fmt.Errorf("notify username changed list admins: %w", err)
 	}
+
 	if len(admins) > 0 {
 		mentions := summon.BuildMentions(admins, ch.MentionTypes)
 

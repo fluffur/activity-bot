@@ -34,7 +34,6 @@ func resolveUserEntities(
 			username := strings.TrimPrefix(entityStr, "@")
 
 			cm, err := repo.GetByUsername(ctx, chatID, username)
-
 			if err == nil {
 				parsed.Users = append(parsed.Users, cm)
 				used = append(used, Offset{byteStart, byteEnd})
@@ -50,12 +49,15 @@ func resolveUserEntities(
 			if strings.Contains(entityStr, "t.me/") {
 				parts := strings.Split(entityStr, "/")
 				username := strings.TrimPrefix(parts[len(parts)-1], "@")
+
 				if cm, err := repo.GetByUsername(ctx, chatID, username); err == nil {
 					parsed.Users = append(parsed.Users, cm)
 					used = append(used, Offset{byteStart, byteEnd})
 				}
 			}
+		default:
 		}
 	}
+
 	return used
 }

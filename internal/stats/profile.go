@@ -21,6 +21,7 @@ func (h *Handler) Profile(c *botapi.Context) error {
 	}
 
 	var cm chatmember.ChatMember
+
 	if len(args.Users) != 0 {
 		cm = args.Users[0]
 	} else {
@@ -28,13 +29,11 @@ func (h *Handler) Profile(c *botapi.Context) error {
 		if err != nil {
 			return fmt.Errorf("profile chat member: %w", err)
 		}
+
 		cm = us
 	}
 
-	statsRange, err := buildProfileStatsRange(ch.WeekStartDay, ch.WeekStartTimeMicros)
-	if err != nil {
-		return fmt.Errorf("profile stats range: %w", err)
-	}
+	statsRange := buildProfileStatsRange(ch.WeekStartDay, ch.WeekStartTimeMicros)
 
 	profile, err := h.service.GetProfileStats(c, ch.ID, cm.User.ID, statsRange)
 	if err != nil {
@@ -51,23 +50,19 @@ func (h *Handler) Profile(c *botapi.Context) error {
 	)
 
 	return err
-
 }
 
 func buildProfileStatsRange(
 	weekStartDay int16,
 	weekStartTimeMicros int64,
-) (ProfileStatsRange, error) {
+) ProfileStatsRange {
 	loc, _ := time.LoadLocation("Europe/Moscow")
 	now := time.Now().In(loc)
 
-	weekStart, _, err := currentChatWeekRange(
+	weekStart, _ := currentChatWeekRange(
 		weekStartDay,
 		weekStartTimeMicros,
 	)
-	if err != nil {
-		return ProfileStatsRange{}, err
-	}
 
 	dayStart := time.Date(
 		now.Year(),
@@ -92,5 +87,5 @@ func buildProfileStatsRange(
 		WeekRollingStart:  now.Add(-7 * 24 * time.Hour),
 		MonthStart:        monthStart,
 		MonthRollingStart: now.Add(-30 * 24 * time.Hour),
-	}, nil
+	}
 }

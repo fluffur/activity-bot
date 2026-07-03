@@ -22,12 +22,13 @@ func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.Up
 	log.Printf("participant %+v\n", u)
 
 	var peerID constant.TDLibPeerID
+
 	peerID.Channel(u.ChannelID)
 
 	chatID := int64(peerID)
 
 	if u.NewParticipant == nil || participant.IsBanned(u.NewParticipant) {
-		return h.processLeft(ctx, e, u, chatID)
+		return h.processLeft(ctx, u, chatID)
 	}
 
 	if u.PrevParticipant == nil || participant.IsBanned(u.PrevParticipant) {
@@ -74,6 +75,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 		}
 
 		var text string
+
 		if participant.IsAdmin(u.NewParticipant) {
 			text = loc.T(i18n.System.BotAddedAdmin, nil)
 		} else {
@@ -98,6 +100,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	data := i18n.UserReturnedMaleData{
 		User: mention,
 	}
+
 	if res.IsNew {
 		key = i18n.User.Joined
 	}
@@ -118,7 +121,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	return err
 }
 
-func (h *Handler) processLeft(ctx context.Context, e tg.Entities, u *tg.UpdateChannelParticipant, chatID int64) error {
+func (h *Handler) processLeft(ctx context.Context, u *tg.UpdateChannelParticipant, chatID int64) error {
 	cm, err := h.memberService.HandleLeft(ctx, chatID, u.UserID)
 	if err != nil {
 		return fmt.Errorf("handler process left: %w", err)

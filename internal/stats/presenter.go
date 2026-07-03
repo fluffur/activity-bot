@@ -27,6 +27,7 @@ func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats) string
 
 	if !data.HasNorms {
 		b.WriteString("<blockquote expandable>")
+
 		for i, u := range data.SimpleResults {
 			_, _ = fmt.Fprintf(
 				&b,
@@ -40,6 +41,7 @@ func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats) string
 				b.WriteByte('\n')
 			}
 		}
+
 		b.WriteString("</blockquote>\n\n")
 	} else {
 		for _, r := range data.NormResults {
@@ -119,6 +121,7 @@ func UcFirst(s string) string {
 	rUpper := unicode.ToUpper(r)
 
 	var b strings.Builder
+
 	b.Grow(len(s))
 	b.WriteRune(rUpper)
 	b.WriteString(s[size:])

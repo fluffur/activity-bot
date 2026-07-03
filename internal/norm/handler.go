@@ -1,10 +1,13 @@
 package norm
 
 import (
-	"activity-bot/internal/chatmember"
+	"activity-bot/internal/action"
 	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/option"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/predicate"
+	"activity-bot/internal/rule"
 
 	"github.com/gotd/botapi"
 )
@@ -30,93 +33,71 @@ func NewHandler(b *botapi.Bot, p *predicate.PermissionChecker, r *predicate.Rule
 func (h *Handler) Register(registry *command.Registry) {
 	registry.AddCategory(CategoryNorm)
 
-	addNormDef := &command.ActionDef{
-		Key:         "add_norm",
-		Trigger:     command.TriggerCommand,
-		Aliases:     []string{"+норма", "добавить норму", "норма"},
-		MinStatus:   chatmember.StatusSeniorAdmin,
-		Category:    CategoryNorm,
-		Description: i18n.Cmd.AddNorm.Desc,
-		Examples:    []i18n.MessageID{i18n.Cmd.AddNorm.ExampleSimple, i18n.Cmd.AddNorm.ExampleNamed, i18n.Cmd.AddNorm.ExampleUsers},
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleNumber, Count: 1, Optional: false},
-			{Type: predicate.RuleUser, Count: predicate.RuleVariadic, Optional: true},
-			{Type: predicate.RuleText, Count: 1, Optional: true, TextValidate: isValidNormName},
-		},
-	}
+	addNormDef := action.NewCommand(
+		"add_norm",
+		i18n.Cmd.AddNorm.Desc,
+		CategoryNorm,
+		permission.StatusSeniorAdmin,
+		option.WithAliases("+норма", "добавить норму", "норма"),
+		option.WithExamples(i18n.Cmd.AddNorm.ExampleSimple, i18n.Cmd.AddNorm.ExampleNamed, i18n.Cmd.AddNorm.ExampleUsers),
+		option.WithRules(
+			rule.User().Optional().Variadic(),
+			rule.Number(),
+			rule.Text().Optional().Validate(isValidNormName),
+		),
+	)
 
-	listNormsDef := &command.ActionDef{
-		Key:         "list_norms",
-		Trigger:     command.TriggerCommand,
-		Aliases:     []string{"нормы"},
-		MinStatus:   chatmember.StatusMember,
-		Category:    CategoryNorm,
-		Description: i18n.Cmd.ListNorms.Desc,
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-	}
+	listNormsDef := action.NewCommand(
+		"list_norms",
+		i18n.Cmd.ListNorms.Desc,
+		CategoryNorm,
+		permission.StatusMember,
+		option.WithAliases("нормы"),
+	)
 
-	showNormDef := &command.ActionDef{
-		Key:         "norm",
-		Trigger:     command.TriggerCommand,
-		Aliases:     []string{"норма какая", "какая норма", "а какая норма", "норма"},
-		MinStatus:   chatmember.StatusMember,
-		Category:    CategoryNorm,
-		Description: i18n.Cmd.ShowNorm.Desc,
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleText, Count: 1, Optional: true, TextValidate: isValidNormName},
-		},
-	}
+	showNormDef := action.NewCommand(
+		"norm",
+		i18n.Cmd.ShowNorm.Desc,
+		CategoryNorm,
+		permission.StatusMember,
+		option.WithAliases("норма какая", "какая норма", "а какая норма", "норма"),
+		option.WithRules(rule.Text().Optional().Validate(isValidNormName)),
+	)
 
-	deleteNormDef := &command.ActionDef{
-		Key:         "delete_norm",
-		Trigger:     command.TriggerCommand,
-		Aliases:     []string{"-норма", "удалить норму"},
-		MinStatus:   chatmember.StatusSeniorAdmin,
-		Category:    CategoryNorm,
-		Description: i18n.Cmd.DeleteNorm.Desc,
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleText, Count: 1, Optional: false, TextValidate: isValidNormName},
-		},
-	}
+	deleteNormDef := action.NewCommand(
+		"delete_norm",
+		i18n.Cmd.DeleteNorm.Desc,
+		CategoryNorm,
+		permission.StatusSeniorAdmin,
+		option.WithAliases("-норма", "удалить норму"),
+		option.WithRules(rule.Text().Validate(isValidNormName)),
+	)
 
-	assignNormDef := &command.ActionDef{
-		Key:         "assign_norm",
-		Trigger:     command.TriggerCommand,
-		Aliases:     []string{"назначить норму", "назначить", "привязать норму", "привязать"},
-		MinStatus:   chatmember.StatusSeniorAdmin,
-		Category:    CategoryNorm,
-		Description: i18n.Cmd.AssignNorm.Desc,
-		Examples:    []i18n.MessageID{i18n.Cmd.AssignNorm.Example},
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleUser, Count: predicate.RuleVariadic, Optional: false},
-			{Type: predicate.RuleText, Count: 1, Optional: false, TextValidate: isValidNormName},
-		},
-	}
+	assignNormDef := action.NewCommand(
+		"assign_norm",
+		i18n.Cmd.AssignNorm.Desc,
+		CategoryNorm,
+		permission.StatusSeniorAdmin,
+		option.WithAliases("назначить норму", "назначить", "привязать норму", "привязать"),
+		option.WithExamples(i18n.Cmd.AssignNorm.Example),
+		option.WithRules(
+			rule.User().Variadic(),
+			rule.Text().Validate(isValidNormName),
+		),
+	)
 
-	unassignNormDef := &command.ActionDef{
-		Key:         "unassign_norm",
-		Trigger:     command.TriggerCommand,
-		Aliases:     []string{"снять норму", "снять", "отвязать норму", "отвязать"},
-		MinStatus:   chatmember.StatusSeniorAdmin,
-		Category:    CategoryNorm,
-		Description: i18n.Cmd.UnassignNorm.Desc,
-		Examples:    []i18n.MessageID{i18n.Cmd.UnassignNorm.Example},
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleUser, Count: predicate.RuleVariadic, Optional: false},
-			{Type: predicate.RuleText, Count: 1, Optional: false, TextValidate: isValidNormName},
-		},
-	}
+	unassignNormDef := action.NewCommand(
+		"unassign_norm",
+		i18n.Cmd.UnassignNorm.Desc,
+		CategoryNorm,
+		permission.StatusSeniorAdmin,
+		option.WithAliases("снять норму", "снять", "отвязать норму", "отвязать"),
+		option.WithExamples(i18n.Cmd.UnassignNorm.Example),
+		option.WithRules(
+			rule.User().Variadic(),
+			rule.Text().Validate(isValidNormName),
+		),
+	)
 
 	registry.Add(addNormDef)
 	registry.Add(listNormsDef)

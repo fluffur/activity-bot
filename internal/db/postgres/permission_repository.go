@@ -1,8 +1,8 @@
 package postgres
 
 import (
-	"activity-bot/internal/chatmember"
 	db "activity-bot/internal/db/postgres/sqlc"
+	"activity-bot/internal/permission"
 	"context"
 )
 
@@ -14,7 +14,7 @@ func NewPermissionRepository(queries *db.Queries) *PermissionRepository {
 	return &PermissionRepository{queries: queries}
 }
 
-func (r *PermissionRepository) CommandPermission(ctx context.Context, chatID int64, name string) (chatmember.Status, error) {
+func (r *PermissionRepository) CommandPermission(ctx context.Context, chatID int64, name string) (permission.Status, error) {
 	p, err := r.queries.GetCommandPermission(ctx, db.GetCommandPermissionParams{
 		ChatID:     chatID,
 		CommandKey: name,
@@ -23,5 +23,5 @@ func (r *PermissionRepository) CommandPermission(ctx context.Context, chatID int
 		return 0, err
 	}
 
-	return chatmember.Status(p.RequiredStatus), nil
+	return permission.Status(p.RequiredStatus), nil
 }

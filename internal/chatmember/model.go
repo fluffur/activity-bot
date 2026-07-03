@@ -2,21 +2,10 @@ package chatmember
 
 import (
 	"activity-bot/internal/chat"
-	"activity-bot/internal/i18n"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/user"
 	"strings"
 	"time"
-)
-
-type Status int16
-
-const (
-	StatusMember Status = iota
-	StatusModerator
-	StatusAdmin
-	StatusSeniorAdmin
-	StatusCoOwner
-	StatusOwner
 )
 
 type ChatMember struct {
@@ -25,14 +14,14 @@ type ChatMember struct {
 	RestUntil       time.Time
 	RestReason      string
 	Tag             string
-	Status          Status
+	Status          permission.Status
 	Emojis          string
 	JoinedAt        time.Time
 	LeftAt          time.Time
 	ExcludeFromCall bool
 }
 
-func New(u user.User, c chat.Chat, tag string, status Status, now time.Time) ChatMember {
+func New(u user.User, c chat.Chat, tag string, status permission.Status, now time.Time) ChatMember {
 	return ChatMember{
 		User:     u,
 		Chat:     c,
@@ -64,7 +53,7 @@ func (c ChatMember) Display(unknown string, emojis bool) string {
 	return name
 }
 
-func (c ChatMember) Permitted(status Status) bool {
+func (c ChatMember) Permitted(status permission.Status) bool {
 	return c.Status >= status
 }
 
@@ -74,25 +63,6 @@ func (c ChatMember) AnyEmoji() string {
 	}
 
 	return c.User.Emojis
-}
-
-func (s Status) TranslationKey() i18n.MessageID {
-	switch s {
-	case StatusMember:
-		return i18n.Status.Member
-	case StatusModerator:
-		return i18n.Status.Moderator
-	case StatusAdmin:
-		return i18n.Status.JuniorAdmin
-	case StatusSeniorAdmin:
-		return i18n.Status.SeniorAdmin
-	case StatusCoOwner:
-		return i18n.Status.Coowner
-	case StatusOwner:
-		return i18n.Status.Owner
-	default:
-		return i18n.Status.Member
-	}
 }
 
 func (c ChatMember) IsResting(now time.Time) bool {
@@ -109,25 +79,6 @@ func (c ChatMember) IsLeft() bool {
 	return !c.LeftAt.IsZero()
 }
 
-func (s Status) Emoji() string {
-	switch s {
-	case StatusMember:
-		return "0️⃣"
-	case StatusModerator:
-		return "1️⃣"
-	case StatusAdmin:
-		return "2️⃣"
-	case StatusSeniorAdmin:
-		return "3️⃣"
-	case StatusCoOwner:
-		return "4️⃣"
-	case StatusOwner:
-		return "5️⃣"
-	default:
-		return "?"
-	}
-}
-
 func (c ChatMember) IsMale() bool {
 	return c.User.IsMale()
 }
@@ -141,5 +92,5 @@ func (c ChatMember) ID() int64 {
 }
 
 func (c ChatMember) IsOwner() bool {
-	return c.Status == StatusOwner
+	return c.Status == permission.StatusOwner
 }

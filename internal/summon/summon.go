@@ -89,6 +89,7 @@ func (h *Handler) ConfirmSummon(c *botapi.Context) error {
 	_ = c.AnswerCallback()
 
 	chatID, _ := c.Chat()
+
 	_ = c.Bot.DeleteMessage(
 		c,
 		chatID,

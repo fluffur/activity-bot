@@ -30,6 +30,7 @@ func tryParseAdvancedDuration(toks []token) (time.Duration, int, bool) {
 		val, err := strconv.ParseInt(t0, 10, 64)
 		if err == nil {
 			t1 := strings.ToLower(toks[1].text)
+
 			var multiplier time.Duration
 
 			switch {
@@ -69,15 +70,18 @@ func tryParseAdvancedDateTime(toks []token) (time.Time, int, bool) {
 	if t, err := time.ParseInLocation("02.01.2006", t0, loc); err == nil {
 		return t, 1, true
 	}
+
 	// DD.MM
 	if t, err := time.ParseInLocation("02.01", t0, loc); err == nil {
 		parsedDate := time.Date(now.Year(), t.Month(), t.Day(), 0, 0, 0, 0, now.Location())
 		return parsedDate, 1, true
 	}
+
 	// YYYY-MM-DD
 	if t, err := time.ParseInLocation("2006-01-02", t0, loc); err == nil {
 		return t, 1, true
 	}
+
 	// RFC3339
 	if t, err := time.ParseInLocation(time.RFC3339, t0, loc); err == nil {
 		return t, 1, true
@@ -88,16 +92,20 @@ func tryParseAdvancedDateTime(toks []token) (time.Time, int, bool) {
 		if err == nil && day >= 1 && day <= 31 {
 			monthStr := strings.ToLower(toks[1].text)
 			month := matchRussianMonth(monthStr)
+
 			if month != 0 {
 				year := now.Year()
 				consumed := 2
+
 				if len(toks) >= 3 {
 					if y, err := strconv.Atoi(toks[2].text); err == nil && y > 2000 && y < 2100 {
 						year = y
 						consumed = 3
 					}
 				}
+
 				parsedDate := time.Date(year, month, day, 0, 0, 0, 0, now.Location())
+
 				return parsedDate, consumed, true
 			}
 		}
@@ -133,5 +141,6 @@ func matchRussianMonth(m string) time.Month {
 	case strings.HasPrefix(m, "дек"):
 		return time.December
 	}
+
 	return 0
 }

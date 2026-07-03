@@ -1,6 +1,7 @@
 package chatmember
 
 import (
+	"activity-bot/internal/permission"
 	"context"
 	"errors"
 	"fmt"
@@ -9,8 +10,9 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/user"
 
-	"github.com/gotd/botapi"
 	"github.com/jackc/pgx/v5"
+
+	"github.com/gotd/botapi"
 )
 
 type Service struct {
@@ -72,7 +74,7 @@ func (s *Service) HandleJoin(
 		}
 
 		isNewMember = true
-		cm = New(userr, chatt, rank, StatusMember, time.Now())
+		cm = New(userr, chatt, rank, permission.StatusMember, time.Now())
 
 		if err = s.chatMemberRepo.Create(ctx, cm); err != nil {
 			return JoinResult{}, fmt.Errorf("service create member: %w", err)
@@ -147,6 +149,6 @@ func (s *Service) SetExcludeFromSummon(ctx context.Context, chatID, userID int64
 	return s.chatMemberRepo.SetExcludeFromSummon(ctx, chatID, userID, excluded)
 }
 
-func (s *Service) Get(c *botapi.Context, chatID int64, userID int64) (ChatMember, error) {
+func (s *Service) Get(c *botapi.Context, chatID, userID int64) (ChatMember, error) {
 	return s.chatMemberRepo.Get(c, chatID, userID)
 }

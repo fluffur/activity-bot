@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/message"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/pmsession"
 	"activity-bot/internal/user"
 	"context"
@@ -72,6 +73,7 @@ func ChatMemberMiddleware(ur user.Repository, cmr chatmember.Repository, notifie
 		return func(c *botapi.Context) error {
 			sender := c.Sender()
 			msg := c.Message()
+
 			if msg == nil {
 				msg = c.Update.CallbackQuery.Message
 			}
@@ -227,7 +229,9 @@ func getOrCreateUser(
 	model, err = repo.Get(ctx, senderID)
 	if err == nil {
 		userUpdate.OldUsername = model.Username
+
 		updated := false
+
 		if model.Username != senderUsername {
 			updated = true
 			userUpdate.NewUsername = senderUsername
@@ -318,24 +322,24 @@ func getOrCreateChatMember(
 	return member, nil
 }
 
-func parseChatMember(cm botapi.ChatMember) (chatmember.Status, string, error) {
+func parseChatMember(cm botapi.ChatMember) (permission.Status, string, error) {
 	switch v := cm.(type) {
 	case *botapi.ChatMemberOwner:
-		return chatmember.StatusOwner, v.CustomTitle, nil
+		return permission.StatusOwner, v.CustomTitle, nil
 
 	case *botapi.ChatMemberAdministrator:
-		return chatmember.StatusMember, v.CustomTitle, nil
+		return permission.StatusMember, v.CustomTitle, nil
 
 	case *botapi.ChatMemberMember:
-		return chatmember.StatusMember, v.Tag, nil
+		return permission.StatusMember, v.Tag, nil
 
 	case *botapi.ChatMemberRestricted:
-		return chatmember.StatusMember, v.Tag, nil
+		return permission.StatusMember, v.Tag, nil
 
 	case *botapi.ChatMemberLeft, *botapi.ChatMemberBanned:
-		return chatmember.StatusMember, "", fmt.Errorf("user is not active chat member")
+		return permission.StatusMember, "", fmt.Errorf("user is not active chat member")
 
 	default:
-		return chatmember.StatusMember, "", fmt.Errorf("unknown chat member type")
+		return permission.StatusMember, "", fmt.Errorf("unknown chat member type")
 	}
 }

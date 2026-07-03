@@ -31,7 +31,7 @@ func (r *RestRepository) GetRestMembers(ctx context.Context, chatID int64) ([]ch
 	}), nil
 }
 
-func (r *RestRepository) SetRest(ctx context.Context, chatID int64, userID int64, restUntil time.Time, reason string) error {
+func (r *RestRepository) SetRest(ctx context.Context, chatID, userID int64, restUntil time.Time, reason string) error {
 	return r.queries.SetMemberRest(ctx, db.SetMemberRestParams{
 		RestUntil: pgtype.Timestamptz{
 			Time:  restUntil,
@@ -46,7 +46,7 @@ func (r *RestRepository) SetRest(ctx context.Context, chatID int64, userID int64
 	})
 }
 
-func (r *RestRepository) EndMemberRest(ctx context.Context, chatID int64, userID int64) error {
+func (r *RestRepository) EndMemberRest(ctx context.Context, chatID, userID int64) error {
 	return r.queries.EndMemberRest(ctx, db.EndMemberRestParams{
 		ChatID: chatID,
 		UserID: userID,
@@ -71,7 +71,6 @@ func (r *RestRepository) AddRequest(ctx context.Context, request rest.Request) e
 		},
 		Status: db.RestStatus(request.Status),
 	})
-
 }
 
 func (r *RestRepository) ApproveRequest(ctx context.Context, request rest.Request) error {
@@ -83,7 +82,6 @@ func (r *RestRepository) ApproveRequest(ctx context.Context, request rest.Reques
 			Valid: request.MessageID != 0,
 		},
 	})
-
 }
 
 func (r *RestRepository) ApproveRequestWithTx(ctx context.Context, request rest.Request) error {
@@ -127,7 +125,6 @@ func (r *RestRepository) RejectRequest(ctx context.Context, chatID, userID, mess
 			Valid: messageID != 0,
 		},
 	})
-
 }
 
 func (r *RestRepository) GetRequest(ctx context.Context, chatID, userID, messageID int64) (rest.Request, error) {
@@ -144,10 +141,9 @@ func (r *RestRepository) GetRequest(ctx context.Context, chatID, userID, message
 	}
 
 	return mapRestRequest(er), nil
-
 }
 
-func (r *RestRepository) SetRestWithHistory(ctx context.Context, chatID int64, userID int64, messageID int64, until time.Time, reason string) error {
+func (r *RestRepository) SetRestWithHistory(ctx context.Context, chatID, userID, messageID int64, until time.Time, reason string) error {
 	return r.withTx(ctx, func(q *db.Queries) error {
 		if err := q.SetMemberRest(ctx, db.SetMemberRestParams{
 			ChatID: chatID,
@@ -219,7 +215,7 @@ func (r *RestRepository) withTx(
 
 	q := r.queries.WithTx(tx)
 
-	if err = fn(q); err != nil {
+	if err := fn(q); err != nil {
 		return err
 	}
 
@@ -232,7 +228,6 @@ func (r *RestRepository) DeleteRestRequest(ctx context.Context, requestID int64)
 
 func (r *RestRepository) DeleteRestRequestAndEndRest(ctx context.Context, chatID, userID, requestID int64) error {
 	return r.withTx(ctx, func(q *db.Queries) error {
-
 		if err := q.EndMemberRest(ctx, db.EndMemberRestParams{
 			ChatID: chatID,
 			UserID: userID,

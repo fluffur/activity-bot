@@ -24,6 +24,7 @@ func (r *StatsRepository) ChatStats(ctx context.Context, chatID int64, fromDate,
 	if err != nil {
 		return nil, err
 	}
+
 	return mapList(chatStats, func(t db.ChatStatsRow) stats.ChatStats {
 		return mapChatStats(t.MessagesCount, t.ChatMember, t.User)
 	}), nil

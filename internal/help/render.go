@@ -3,7 +3,7 @@ package help
 import (
 	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
-	"activity-bot/internal/predicate"
+	"activity-bot/internal/rule"
 	"activity-bot/internal/utils/tghtml"
 	"strings"
 )
@@ -115,19 +115,19 @@ func (h *Handler) renderCommand(
 
 func buildSyntaxString(
 	commandName string,
-	args []predicate.Rule,
+	args []rule.Rule,
 	loc *i18n.Localizer,
 ) string {
 	var parts []string
 
 	parts = append(parts, "/"+commandName)
 
-	labels := map[predicate.RuleType]i18n.MessageID{
-		predicate.RuleUser:     i18n.ArgType.User,
-		predicate.RuleNumber:   i18n.ArgType.Number,
-		predicate.RuleDuration: i18n.ArgType.Duration,
-		predicate.RuleDateTime: i18n.ArgType.Datetime,
-		predicate.RuleText:     i18n.ArgType.Text,
+	labels := map[rule.RuleType]i18n.MessageID{
+		rule.RuleUser:     i18n.ArgType.User,
+		rule.RuleNumber:   i18n.ArgType.Number,
+		rule.RuleDuration: i18n.ArgType.Duration,
+		rule.RuleDateTime: i18n.ArgType.Datetime,
+		rule.RuleText:     i18n.ArgType.Text,
 	}
 
 	for _, arg := range args {
@@ -137,11 +137,11 @@ func buildSyntaxString(
 			name = loc.T(id, nil)
 		}
 
-		if arg.Count == predicate.RuleVariadic {
-			name += "..."
+		if arg.CountArgs == rule.RuleVariadic {
+			name += "…"
 		}
 
-		if arg.Optional {
+		if arg.IsOptional {
 			name = "[" + name + "]"
 		} else {
 			name = "<" + name + ">"

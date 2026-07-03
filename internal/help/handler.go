@@ -1,9 +1,13 @@
 package help
 
 import (
+	"activity-bot/internal/action"
 	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/option"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/predicate"
+	"activity-bot/internal/rule"
 
 	"github.com/gotd/botapi"
 )
@@ -40,26 +44,22 @@ func NewHandler(
 func (h *Handler) Register(registry *command.Registry) {
 	registry.AddCategory(CategoryHelp)
 
-	helpDef := &command.ActionDef{
-		Key:         "help",
-		Aliases:     []string{"help", "помощь"},
-		Trigger:     command.TriggerCommand,
-		Category:    CategoryHelp,
-		Description: i18n.Cmd.Help.Desc,
-		ShowInHelp:  true,
-	}
+	helpDef := action.NewCommand(
+		"help",
+		i18n.Cmd.Help.Desc,
+		CategoryHelp,
+		permission.StatusMember,
+		option.WithAliases("помощь"),
+	)
 
-	helpCommandDef := &command.ActionDef{
-		Key:      "help_command",
-		Aliases:  []string{"help", "помощь"},
-		Trigger:  command.TriggerCommand,
-		Category: CategoryHelp,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleText, Count: 1},
-		},
-		Description: i18n.Cmd.HelpCommand.Desc,
-		ShowInHelp:  true,
-	}
+	helpCommandDef := action.NewCommand(
+		"help_command",
+		i18n.Cmd.HelpCommand.Desc,
+		CategoryHelp,
+		permission.StatusMember,
+		option.WithAliases("помощь"),
+		option.WithRules(rule.Rule{Type: rule.RuleText, CountArgs: 1}),
+	)
 
 	registry.Add(helpDef)
 	registry.Add(helpCommandDef)
@@ -98,5 +98,4 @@ func (h *Handler) Register(registry *command.Registry) {
 		h.ShowCommand,
 		botapi.CallbackPrefix(callbackHelpCommand+":"),
 	)
-
 }

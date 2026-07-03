@@ -49,7 +49,6 @@ func (h *Handler) ShowCategory(c *botapi.Context) error {
 			h.commandsKeyboard(loc, category),
 		),
 	)
-
 	if err != nil {
 		return fmt.Errorf("edit help category: %w", err)
 	}
@@ -72,7 +71,6 @@ func (h *Handler) ShowCategories(c *botapi.Context) error {
 			h.categoriesKeyboard(loc),
 		),
 	)
-
 	if err != nil {
 		return fmt.Errorf("edit help categories: %w", err)
 	}
@@ -89,6 +87,7 @@ func (h *Handler) ShowCommand(c *botapi.Context) error {
 	)
 
 	spew.Dump(data)
+
 	if len(data) != 4 {
 		return c.AnswerCallback()
 	}
@@ -102,7 +101,9 @@ func (h *Handler) ShowCommand(c *botapi.Context) error {
 	}
 
 	chatID, _ := c.Chat()
+
 	spew.Dump(h.renderCommand(loc, cmd))
+
 	_, err := c.Bot.EditMessageText(
 		c,
 		chatID,
@@ -113,7 +114,6 @@ func (h *Handler) ShowCommand(c *botapi.Context) error {
 			h.commandKeyboard(loc, category, key),
 		),
 	)
-
 	if err != nil {
 		return fmt.Errorf("edit help command: %w", err)
 	}
@@ -127,12 +127,15 @@ func (h *Handler) ShowCommandHelp(
 	loc := cctx.MustLocalizer(c)
 	args := cctx.MustArgs(c)
 
-	if len(args.Texts[0]) == 0 {
+	name, ok := args.Text()
+	if !ok {
 		return nil
 	}
 
-	name := strings.ToLower(args.Texts[0])
+	name = strings.ToLower(name)
+
 	cmd, ok := h.registry.FindByKeyOrAlias(name)
+
 	if !ok {
 		return nil
 	}

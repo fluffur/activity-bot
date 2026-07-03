@@ -1,10 +1,13 @@
 package stats
 
 import (
-	"activity-bot/internal/chatmember"
+	"activity-bot/internal/action"
 	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/option"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/predicate"
+	"activity-bot/internal/rule"
 
 	"github.com/gotd/botapi"
 )
@@ -36,54 +39,38 @@ func NewHandler(
 func (h *Handler) Register(registry *command.Registry) {
 	registry.AddCategory(CategoryStats)
 
-	chatDef := &command.ActionDef{
-		Key:         "stats",
-		Aliases:     []string{"отчет", "отчёт"},
-		Trigger:     command.TriggerCommand,
-		MinStatus:   chatmember.StatusMember,
-		Category:    CategoryStats,
-		Description: i18n.Cmd.Stats.Desc,
-		Examples:    []i18n.MessageID{i18n.Cmd.Stats.ExampleDuration, i18n.Cmd.Stats.ExampleDate},
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleDuration, Optional: true, Count: 1},
-			{Type: predicate.RuleDateTime, Optional: true, Count: 2},
-		},
-	}
+	chatDef := action.NewCommand(
+		"stats",
+		i18n.Cmd.Stats.Desc,
+		CategoryStats,
+		permission.StatusMember,
+		option.WithAliases("отчет", "отчёт"),
+		option.WithExamples(i18n.Cmd.Stats.ExampleDuration, i18n.Cmd.Stats.ExampleDate),
+		option.WithRules(rule.DateTimeOrDuration().Optional()),
+	)
 
-	profileDef := &command.ActionDef{
-		Key:         "you",
-		Aliases:     []string{"кто ты", "профиль"},
-		Trigger:     command.TriggerCommand,
-		MinStatus:   chatmember.StatusMember,
-		Category:    CategoryStats,
-		Description: i18n.Cmd.Profile.Desc,
-		Examples:    []i18n.MessageID{i18n.Cmd.Profile.ExampleDuration, i18n.Cmd.Profile.ExampleDate},
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleUser, Optional: false, Count: 1},
-			{Type: predicate.RuleDuration, Optional: true, Count: 1},
-			{Type: predicate.RuleDateTime, Optional: true, Count: 2},
-		},
-	}
+	profileDef := action.NewCommand(
+		"you",
+		i18n.Cmd.Profile.Desc,
+		CategoryStats,
+		permission.StatusMember,
+		option.WithAliases("кто ты", "профиль"),
+		option.WithExamples(i18n.Cmd.Profile.ExampleDuration, i18n.Cmd.Profile.ExampleDate),
+		option.WithRules(
+			rule.User(),
+			rule.DateTimeOrDuration().Optional(),
+		),
+	)
 
-	profileMeDef := &command.ActionDef{
-		Key:         "me",
-		Aliases:     []string{"кто я", "профиль"},
-		Trigger:     command.TriggerCommand,
-		MinStatus:   chatmember.StatusMember,
-		Category:    CategoryStats,
-		Description: i18n.Cmd.Profile.Desc,
-		Examples:    []i18n.MessageID{i18n.Cmd.Profile.ExampleDuration, i18n.Cmd.Profile.ExampleDate},
-		Scope:       command.ScopeGroup,
-		ShowInHelp:  true,
-		Rules: []predicate.Rule{
-			{Type: predicate.RuleDuration, Optional: true, Count: 1},
-			{Type: predicate.RuleDateTime, Optional: true, Count: 2},
-		},
-	}
+	profileMeDef := action.NewCommand(
+		"me",
+		i18n.Cmd.Profile.Desc,
+		CategoryStats,
+		permission.StatusMember,
+		option.WithAliases("кто я", "профиль"),
+		option.WithExamples(i18n.Cmd.Profile.ExampleDuration, i18n.Cmd.Profile.ExampleDate),
+		option.WithRules(rule.DateTimeOrDuration().Optional()),
+	)
 
 	registry.Add(chatDef)
 	registry.Add(profileDef)

@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/cctx"
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/message"
+	"activity-bot/internal/rule"
 	"database/sql"
 	"errors"
 	"strconv"
@@ -20,27 +21,6 @@ func NoArgs() botapi.Predicate {
 		args, err := cctx.ArgsMessage(c)
 		return err != nil || strings.TrimSpace(args.Text) == ""
 	}
-}
-
-type RuleType string
-
-const (
-	RuleUser               RuleType = "user"
-	RuleNumber             RuleType = "number"
-	RuleDuration           RuleType = "duration"
-	RuleDateTime           RuleType = "datetime"
-	RuleDurationOrDateTime RuleType = "duration_or_datetime"
-	RuleText               RuleType = "text"
-)
-
-const RuleVariadic = -1
-
-type Rule struct {
-	Type         RuleType
-	Optional     bool
-	Count        int
-	OnNextRow    bool
-	TextValidate func(string) bool
 }
 
 type Offset struct {
@@ -63,7 +43,7 @@ func NewRuleChecker(cmr chatmember.Repository, mr message.Repository) *RuleCheck
 	return &RuleChecker{cmr, mr}
 }
 
-func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
+func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 	return func(c *botapi.Context) bool {
 		argsMessage, err := cctx.ArgsMessage(c)
 
@@ -81,10 +61,12 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 		ch, err := cctx.Chat(c)
 		if err != nil {
 			log.For(c.Bot.Logger()).Error(c, "with args: chat ctx missing", log.Error(err))
+
 			return false
 		}
 
 		var usedOffsets []Offset
+
 		parsed := cctx.ParsedArgs{}
 
 		usedOffsets = resolveUserEntities(c, r.chatMemberRepository, ch.ID, text, entities, &parsed, usedOffsets)
@@ -94,32 +76,34 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 			}
 		}
 
-		for _, rule := range rules {
-			count := rule.Count
-			if count == RuleVariadic {
+		for _, rul := range rules {
+			count := rul.CountArgs
+			if count == rule.RuleVariadic {
 				count = 50
 			}
 
 			parsedCount := 0
 
-			if rule.Type == RuleUser {
+			if rul.Type == rule.RuleUser {
 				parsedCount = len(parsed.Users)
 			}
 
-			if rule.Type == RuleText {
+			if rul.Type == rule.RuleText {
 				toks := getFreeTokens(text, usedOffsets)
 
 				if len(toks) == 0 {
-					if rule.Optional {
+					if rul.IsOptional {
 						continue
 					}
+
 					spew.Dump("FAIL", "rule user 2")
 
 					return false
 				}
 
 				var textParts []string
-				if rule.OnNextRow {
+
+				if rul.OnNextRow {
 					newLineIdx := strings.Index(text, "\n")
 					for _, tok := range toks {
 						if newLineIdx != -1 && tok.start > newLineIdx {
@@ -136,7 +120,7 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 
 				joinedText := strings.Join(textParts, " ")
 
-				if rule.TextValidate != nil && !rule.TextValidate(joinedText) {
+				if rul.TextValidate != nil && !rul.TextValidate(joinedText) {
 					spew.Dump("FAIL", "rule user 3")
 
 					return false
@@ -154,44 +138,53 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 					}
 
 					matched := false
+
 					for idx, tok := range toks {
-						if rule.Type == RuleUser {
+						if rul.Type == rule.RuleUser {
 							if id, err := strconv.ParseInt(tok.text, 10, 64); err == nil {
 								if cm, err := r.chatMemberRepository.Get(c, ch.ID, id); err == nil {
 									parsed.Users = append(parsed.Users, cm)
 									usedOffsets = append(usedOffsets, Offset{tok.start, tok.end})
 									parsedCount++
+
 									matched = true
+
 									break
 								}
 							}
 						}
 
-						if rule.Type == RuleDuration {
+						if rul.Type == rule.RuleDuration {
 							if d, consumed, ok := tryParseAdvancedDuration(toks[idx:]); ok {
 								parsed.Durations = append(parsed.Durations, d)
 								for k := 0; k < consumed; k++ {
 									usedOffsets = append(usedOffsets, Offset{toks[idx+k].start, toks[idx+k].end})
 								}
+
 								parsedCount++
+
 								matched = true
+
 								break
 							}
 						}
 
-						if rule.Type == RuleDateTime {
+						if rul.Type == rule.RuleDateTime {
 							if t, consumed, ok := tryParseAdvancedDateTime(toks[idx:]); ok {
 								parsed.DateTimes = append(parsed.DateTimes, t)
 								for k := 0; k < consumed; k++ {
 									usedOffsets = append(usedOffsets, Offset{toks[idx+k].start, toks[idx+k].end})
 								}
+
 								parsedCount++
+
 								matched = true
+
 								break
 							}
 						}
 
-						if rule.Type == RuleDurationOrDateTime {
+						if rul.Type == rule.RuleDateTimeOrDuration {
 							if d, consumed, ok := tryParseAdvancedDuration(toks[idx:]); ok {
 								parsed.Durations = append(parsed.Durations, d)
 
@@ -203,7 +196,9 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 								}
 
 								parsedCount++
+
 								matched = true
+
 								break
 							}
 
@@ -218,17 +213,21 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 								}
 
 								parsedCount++
+
 								matched = true
+
 								break
 							}
 						}
 
-						if rule.Type == RuleNumber {
+						if rul.Type == rule.RuleNumber {
 							if num, err := strconv.ParseInt(tok.text, 10, 64); err == nil {
 								parsed.Numbers = append(parsed.Numbers, num)
 								usedOffsets = append(usedOffsets, Offset{tok.start, tok.end})
 								parsedCount++
+
 								matched = true
+
 								break
 							}
 						}
@@ -240,7 +239,7 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 				}
 			}
 
-			if parsedCount == 0 && !rule.Optional {
+			if parsedCount == 0 && !rul.IsOptional {
 				spew.Dump("FAIL", "rule user 4")
 
 				return false
@@ -260,12 +259,13 @@ func (r *RuleChecker) With(rules ...Rule) botapi.Predicate {
 	}
 }
 
-func allRulesAreOptionalOrUser(rules ...Rule) bool {
-	for _, rule := range rules {
-		if !rule.Optional && rule.Type != RuleUser {
+func allRulesAreOptionalOrUser(rules ...rule.Rule) bool {
+	for _, r := range rules {
+		if !r.IsOptional && r.Type != rule.RuleUser {
 			return false
 		}
 	}
+
 	return true
 }
 

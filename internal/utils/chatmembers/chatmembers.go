@@ -2,6 +2,7 @@ package chatmembers
 
 import (
 	"activity-bot/internal/chatmember"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/user"
 
 	"github.com/gotd/botapi"
@@ -25,7 +26,7 @@ func ExtractMembers(members []botapi.ChatMember) []chatmember.ChatMember {
 		case *botapi.ChatMemberOwner:
 			cm.User = fillUser(m.User)
 			cm.Tag = m.CustomTitle
-			cm.Status = chatmember.StatusOwner
+			cm.Status = permission.StatusOwner
 
 		case *botapi.ChatMemberRestricted:
 			cm.User = fillUser(m.User)

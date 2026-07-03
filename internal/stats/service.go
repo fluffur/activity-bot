@@ -70,9 +70,12 @@ func (s *Service) GetChatStats(ctx context.Context, chatID int64, fromDate, toDa
 	}
 
 	statsByUserID := make(map[int64]int64)
+
 	var totalMessages int64
+
 	for _, stat := range chatStats {
 		statsByUserID[stat.ChatMember.User.ID] = stat.MessagesCount
+
 		totalMessages += stat.MessagesCount
 	}
 
@@ -84,10 +87,12 @@ func (s *Service) GetChatStats(ctx context.Context, chatID int64, fromDate, toDa
 	}
 
 	var activeMembers []chatmember.ChatMember
+
 	for _, m := range chatMembers {
 		if m.IsResting(now) || m.IsNewbie(now, newbieDays) {
 			continue
 		}
+
 		activeMembers = append(activeMembers, m)
 	}
 
@@ -102,16 +107,20 @@ func (s *Service) GetChatStats(ctx context.Context, chatID int64, fromDate, toDa
 		slices.SortFunc(res.SimpleResults, func(a, b UserResult) int {
 			return cmp.Compare(b.Messages, a.Messages)
 		})
+
 		return res, nil
 	}
 
 	userNorms := make(map[int64][]norm.Norm)
+
 	var commonNorms []norm.Norm
+
 	for _, n := range norms {
 		if len(n.UserIDs) == 0 {
 			commonNorms = append(commonNorms, n)
 			continue
 		}
+
 		for _, uID := range n.UserIDs {
 			userNorms[uID] = append(userNorms[uID], n)
 		}

@@ -12,10 +12,8 @@ import (
 func (h *Handler) Chat(c *botapi.Context) error {
 	args := cctx.MustArgs(c)
 	ch := cctx.MustChat(c)
-	fromDate, toDate, err := ParseTimeRange(ch, args)
-	if err != nil {
-		return fmt.Errorf("stats time range: %w", err)
-	}
+
+	fromDate, toDate := ParseTimeRange(ch, args)
 
 	calculatedData, err := h.service.GetChatStats(c, ch.ID, fromDate, toDate, ch.NewbieThresholdDays)
 	if err != nil {
@@ -30,32 +28,31 @@ func (h *Handler) Chat(c *botapi.Context) error {
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
 	)
+
 	return err
 }
 
-func ParseTimeRange(ch chat.Chat, args cctx.ParsedArgs) (time.Time, time.Time, error) {
+func ParseTimeRange(ch chat.Chat, args cctx.ParsedArgs) (from, to time.Time) {
 	now := time.Now()
 
 	switch {
 	case len(args.Durations) == 1:
-		return now.Add(-args.Durations[0]), now, nil
+		return now.Add(-args.Durations[0]), now
 
 	case len(args.DateTimes) == 2:
-		return args.DateTimes[0], args.DateTimes[1], nil
+		return args.DateTimes[0], args.DateTimes[1]
 
 	default:
-		from, to, err := currentChatWeekRange(ch.WeekStartDay, ch.WeekStartTimeMicros)
-		if err != nil {
-			return time.Time{}, time.Time{}, fmt.Errorf("current week range: %w", err)
-		}
-		return from, to, nil
+		from, to = currentChatWeekRange(ch.WeekStartDay, ch.WeekStartTimeMicros)
+
+		return from, to
 	}
 }
 
 func currentChatWeekRange(
 	weekStartDay int16,
 	weekStartTimeMicros int64,
-) (time.Time, time.Time, error) {
+) (from, to time.Time) {
 	now := time.Now()
 
 	startTime := time.Duration(weekStartTimeMicros) * time.Microsecond
@@ -89,5 +86,5 @@ func currentChatWeekRange(
 		start = start.AddDate(0, 0, -7)
 	}
 
-	return start, now, nil
+	return start, now
 }

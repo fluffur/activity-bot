@@ -26,19 +26,20 @@ func (h *Handler) AddNorm(c *botapi.Context) error {
 	value := int32(args.Numbers[0])
 
 	const (
-		min = int32(1)
-		max = int32(10000)
+		minValue = int32(1)
+		maxValue = int32(10000)
 	)
 
-	if value < min || value > max {
+	if value < minValue || value > maxValue {
 		_, err := c.Reply(
 			loc.T(i18n.Cmd.AddNorm.ErrInvalidValue, i18n.CmdAddNormErrInvalidValueData{
 				Value: tghtml.Code(fmt.Sprintf("%d", value)),
-				Min:   min,
-				Max:   max,
+				Min:   minValue,
+				Max:   maxValue,
 			}),
 			botapi.WithParseMode(botapi.ParseModeHTML),
 		)
+
 		return err
 	}
 
@@ -55,6 +56,7 @@ func (h *Handler) AddNorm(c *botapi.Context) error {
 	}
 
 	var ids []int64
+
 	for _, cm := range args.Users {
 		if !cm.User.IsBot {
 			ids = append(ids, cm.User.ID)
@@ -106,6 +108,7 @@ func (h *Handler) ListNorms(c *botapi.Context) error {
 	}
 
 	_, err = c.Reply(b.String())
+
 	return err
 }
 
@@ -115,6 +118,7 @@ func (h *Handler) ShowNorm(c *botapi.Context) error {
 	args := cctx.MustArgs(c)
 
 	name := GeneralNormName
+
 	if len(args.Texts) > 0 {
 		if text := strings.TrimSpace(args.Texts[0]); text != "" {
 			name = text
@@ -126,6 +130,7 @@ func (h *Handler) ShowNorm(c *botapi.Context) error {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
 		}
+
 		return err
 	}
 
@@ -147,6 +152,7 @@ func (h *Handler) ShowNorm(c *botapi.Context) error {
 		b.WriteString(loc.T(i18n.Cmd.ShowNorm.AllMembers, nil))
 	} else {
 		b.WriteString(loc.T(i18n.Cmd.ShowNorm.Members, nil))
+
 		for _, m := range members {
 			b.WriteString("\n• ")
 			b.WriteString(tghtml.MemberLink(loc, ch, m))
@@ -186,6 +192,7 @@ func (h *Handler) DeleteNorm(c *botapi.Context) error {
 		_, err := c.Reply(loc.T(i18n.Cmd.DeleteNorm.ErrNothingToDelete, i18n.CmdDeleteNormErrNothingToDeleteData{
 			Name: LocalisedNormName(loc, name),
 		}))
+
 		return err
 	}
 
@@ -229,10 +236,12 @@ func (h *Handler) AssignNorm(c *botapi.Context) error {
 	}
 
 	var userIDs []int64
+
 	for _, cm := range args.Users {
 		if cm.User.IsBot && cm.IsLeft() {
 			continue
 		}
+
 		userIDs = append(userIDs, cm.User.ID)
 	}
 
@@ -285,10 +294,12 @@ func (h *Handler) UnassignNorm(c *botapi.Context) error {
 	}
 
 	var userIDs []int64
+
 	for _, cm := range args.Users {
 		if cm.User.IsBot {
 			continue
 		}
+
 		userIDs = append(userIDs, cm.User.ID)
 	}
 

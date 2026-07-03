@@ -1,47 +1,5 @@
 package command
 
-import (
-	"activity-bot/internal/chatmember"
-	"activity-bot/internal/i18n"
-	"activity-bot/internal/predicate"
-)
-
-type TriggerType string
-
-const (
-	TriggerCommand  TriggerType = "command"
-	TriggerCallback TriggerType = "callback"
-)
-
-type Category string
-
-type Scope int
-
-const (
-	ScopeAny     Scope = 0
-	ScopePrivate Scope = 1
-	ScopeGroup   Scope = 2
-)
-
-type ActionDef struct {
-	Key string
-
-	Aliases []string
-
-	Trigger TriggerType
-
-	Parent *ActionDef
-
-	MinStatus   chatmember.Status
-	Category    Category
-	Description i18n.MessageID
-	Examples    []i18n.MessageID
-	Scope       Scope
-
-	ShowInHelp bool
-	Rules      []predicate.Rule
-}
-
 type Registry struct {
 	cmds       []*ActionDef
 	idx        map[string]*ActionDef
@@ -75,6 +33,7 @@ func (r *Registry) Get(alias string) (*ActionDef, bool) {
 func (r *Registry) All() []*ActionDef {
 	out := make([]*ActionDef, len(r.cmds))
 	copy(out, r.cmds)
+
 	return out
 }
 
@@ -83,6 +42,7 @@ func (r *Registry) Grouped() map[Category][]*ActionDef {
 	for _, c := range r.cmds {
 		out[c.Category] = append(out[c.Category], c)
 	}
+
 	return out
 }
 

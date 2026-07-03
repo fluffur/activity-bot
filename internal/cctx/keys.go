@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/permission"
 	"context"
 	"fmt"
 
@@ -87,14 +88,14 @@ func Args(
 	return args, nil
 }
 
-func WithCommandPermission(ctx context.Context, status chatmember.Status) context.Context {
+func WithCommandPermission(ctx context.Context, status permission.Status) context.Context {
 	return context.WithValue(ctx, commandPermissionKey{}, status)
 }
 
-func Permission(ctx context.Context) (chatmember.Status, error) {
-	status, ok := ctx.Value(commandPermissionKey{}).(chatmember.Status)
+func Permission(ctx context.Context) (permission.Status, error) {
+	status, ok := ctx.Value(commandPermissionKey{}).(permission.Status)
 	if !ok {
-		return chatmember.StatusMember, fmt.Errorf("parsed args not found")
+		return permission.StatusMember, fmt.Errorf("parsed args not found")
 	}
 
 	return status, nil
@@ -149,8 +150,8 @@ func MustArgs(ctx context.Context) ParsedArgs {
 	return args
 }
 
-func MustPermission(ctx context.Context) chatmember.Status {
-	status, ok := ctx.Value(commandPermissionKey{}).(chatmember.Status)
+func MustPermission(ctx context.Context) permission.Status {
+	status, ok := ctx.Value(commandPermissionKey{}).(permission.Status)
 	if !ok {
 		panic("chatmember.Status not found in context")
 	}
@@ -176,5 +177,6 @@ func MustCommandPrefix(ctx context.Context) string {
 	if !ok {
 		panic("commandPrefix not found in context")
 	}
+
 	return prefix
 }

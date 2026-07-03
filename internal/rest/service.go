@@ -18,15 +18,22 @@ func (s *Service) GetRestMembers(ctx context.Context, chatID int64) ([]chatmembe
 	return s.repo.GetRestMembers(ctx, chatID)
 }
 
-func (s *Service) SetMemberRest(ctx context.Context, chatID int64, userID int64, until time.Time, reason string) error {
+func (s *Service) SetMemberRest(ctx context.Context, chatID, userID int64, until time.Time, reason string) error {
 	return s.repo.SetRest(ctx, chatID, userID, until, reason)
 }
 
-func (s *Service) SetMemberRestWithHistory(ctx context.Context, chatID int64, userID int64, messageID int64, until time.Time, reason string) error {
+func (s *Service) SetMemberRestWithHistory(
+	ctx context.Context,
+	chatID,
+	userID,
+	messageID int64,
+	until time.Time,
+	reason string,
+) error {
 	return s.repo.SetRestWithHistory(ctx, chatID, userID, messageID, until, reason)
 }
 
-func (s *Service) EndMemberRest(ctx context.Context, chatID int64, userID int64) error {
+func (s *Service) EndMemberRest(ctx context.Context, chatID, userID int64) error {
 	return s.repo.EndMemberRest(ctx, chatID, userID)
 }
 
@@ -41,7 +48,7 @@ func (s *Service) CreateRestRequest(ctx context.Context, chatID, userID, message
 	})
 }
 
-func (s *Service) GetRestRequest(ctx context.Context, chatID int64, userID, messageID int64) (Request, error) {
+func (s *Service) GetRestRequest(ctx context.Context, chatID, userID, messageID int64) (Request, error) {
 	return s.repo.GetRequest(ctx, chatID, userID, messageID)
 }
 

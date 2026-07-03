@@ -1,6 +1,7 @@
 package chatmember
 
 import (
+	"activity-bot/internal/permission"
 	"context"
 	"time"
 )
@@ -27,6 +28,6 @@ type Repository interface {
 	MarkAllLeftExcept(ctx context.Context, chatID int64, userIDs []int64, leftAt time.Time) error
 	UpsertChatMembers(ctx context.Context, chatID int64, chatMembers []ChatMember) error
 	List(ctx context.Context, filter Filter) ([]ChatMember, error)
-	ListAdmins(ctx context.Context, chatID int64, minStatus Status) ([]ChatMember, error)
+	ListAdmins(ctx context.Context, chatID int64, minStatus permission.Status) ([]ChatMember, error)
 	SetExcludeFromSummon(ctx context.Context, chatID, userID int64, excluded bool) error
 }

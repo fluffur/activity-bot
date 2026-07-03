@@ -23,6 +23,7 @@ func (r *NormRepository) Get(ctx context.Context, chatID int64, name string) (no
 	if err != nil {
 		return norm.Norm{}, err
 	}
+
 	return mapNorm(n), nil
 }
 

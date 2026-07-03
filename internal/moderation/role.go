@@ -18,16 +18,13 @@ func (h *Handler) SetRole(c *botapi.Context) error {
 	args := cctx.MustArgs(c)
 	ch := cctx.MustChat(c)
 
-	if len(args.Texts) == 0 {
-		return nil
+	u, ok := args.User()
+	if ok {
+		cm = u
 	}
 
-	if len(args.Users) > 0 {
-		cm = args.Users[0]
-	}
-
-	newRole := args.Texts[0]
-	if utf8.RuneCountInString(newRole) > 16 {
+	newRole, ok := args.Text()
+	if !ok {
 		return nil
 	}
 
@@ -43,8 +40,10 @@ func (h *Handler) SetRole(c *botapi.Context) error {
 			} else {
 				_, err = c.Reply(loc.T(i18n.Cmd.Moderation.SetRole.ChatAdmin, nil))
 			}
+
 			return err
 		}
+
 		if tgErr, ok := errors.AsType[*tgerr.Error](err); ok && tgErr.Type == "CHAT_ADMIN_REQUIRED" {
 			_, err = c.Reply(loc.T(i18n.Cmd.Moderation.SetRole.NoRights, nil))
 
@@ -71,16 +70,13 @@ func (h *Handler) SetRoleAdmin(c *botapi.Context) error {
 	args := cctx.MustArgs(c)
 	ch := cctx.MustChat(c)
 
-	if len(args.Texts) == 0 {
-		return nil
+	u, ok := args.User()
+	if ok {
+		cm = u
 	}
 
-	if len(args.Users) > 0 {
-		cm = args.Users[0]
-	}
-
-	newRole := args.Texts[0]
-	if utf8.RuneCountInString(newRole) > 16 {
+	newRole, ok := args.Text()
+	if !ok {
 		return nil
 	}
 
@@ -96,8 +92,10 @@ func (h *Handler) SetRoleAdmin(c *botapi.Context) error {
 			} else {
 				_, err = c.Reply(loc.T(i18n.Cmd.Moderation.SetRoleAdmin.ChatAdmin, nil))
 			}
+
 			return err
 		}
+
 		if tgErr, ok := errors.AsType[*tgerr.Error](err); ok && tgErr.Type == "CHAT_ADMIN_REQUIRED" {
 			_, err = c.Reply(loc.T(i18n.Cmd.Moderation.SetRoleAdmin.NoRights, nil))
 
@@ -124,4 +122,8 @@ func (h *Handler) SetRoleAdmin(c *botapi.Context) error {
 	}
 
 	return nil
+}
+
+func isValidRoleString(text string) bool {
+	return utf8.RuneCountInString(text) <= 16
 }

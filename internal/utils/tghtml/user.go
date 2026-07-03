@@ -105,6 +105,7 @@ func RelativeDateTime(from, to time.Time) string {
 
 	if months < 0 {
 		years--
+
 		months += 12
 	}
 
@@ -120,6 +121,7 @@ func RelativeDateTime(from, to time.Time) string {
 		if d <= 0 {
 			d = 1
 		}
+
 		fallback = plural(d, "день", "дня", "дней")
 	}
 

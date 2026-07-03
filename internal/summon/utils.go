@@ -18,6 +18,7 @@ import (
 
 func TextFromArgs(ch chat.Chat, args botapi.Message) string {
 	var text string
+
 	if args.OriginalTextHTML() != "" {
 		text = ReplaceMentions(args.OriginalTextHTML(), args.Entities)
 	}
@@ -46,6 +47,7 @@ func (h *Handler) Summon(
 		_, err := c.Reply(
 			loc.T(i18n.Cmd.Summon.AlreadyRunning, nil),
 		)
+
 		return err
 	}
 
@@ -98,6 +100,7 @@ func BuildMentionMessages(
 		}
 
 		msg += strings.Join(g, sep)
+
 		result = append(result, msg)
 	}
 
@@ -117,6 +120,7 @@ func SendMessages(
 	}
 
 	var photoID string
+
 	if msg.Photo != nil && len(msg.Photo) > 0 {
 		photoID = msg.Photo[len(msg.Photo)-1].FileID
 	}
@@ -179,11 +183,12 @@ func RenderMention(cm chatmember.ChatMember, mentionTypes chat.MentionTypes) str
 		result += cm.AnyEmoji() + " "
 	}
 
-	if hasRole && hasName && cm.Tag != "" {
+	switch {
+	case hasRole && hasName && cm.Tag != "":
 		result += fmt.Sprintf("%s (%s)", cm.Tag, cm.User.FullName())
-	} else if hasRole && cm.Tag != "" {
+	case hasRole && cm.Tag != "":
 		result += cm.Tag
-	} else if hasName {
+	case hasName:
 		result += cm.User.FullName()
 	}
 
@@ -231,6 +236,7 @@ func ReplaceMentions(text string, entities []botapi.MessageEntity) string {
 			)
 
 			result = result[:start] + replacement + result[end:]
+		default:
 		}
 	}
 
@@ -254,6 +260,7 @@ func check(enabled bool) string {
 	if enabled {
 		return "✅"
 	}
+
 	return ""
 }
 
@@ -261,6 +268,7 @@ func MentionSeparator(mt chat.MentionTypes) string {
 	if mt.Has(chat.MentionEmoji) && !mt.Has(chat.MentionRole) && !mt.Has(chat.MentionName) || mt == 0 {
 		return " "
 	}
+
 	return ", "
 }
 

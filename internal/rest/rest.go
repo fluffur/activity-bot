@@ -39,6 +39,7 @@ func (h *Handler) ShowRest(c *botapi.Context) error {
 	restUntil := tghtml.DefaultDateTime(cm.RestUntil)
 
 	var text string
+
 	if cm.RestReason == "" {
 		text = loc.T(i18n.Cmd.Rest.Info, i18n.CmdRestInfoData{
 			User: cmMention,
@@ -83,6 +84,7 @@ func (h *Handler) SetRest(c *botapi.Context) error {
 	}
 
 	var reason string
+
 	if len(args.Texts) != 0 {
 		reason = args.Texts[0]
 	}
@@ -106,6 +108,7 @@ func (h *Handler) SetRest(c *botapi.Context) error {
 	date := tghtml.DefaultDateTime(until)
 
 	var text string
+
 	if reason == "" {
 		text = loc.T(
 			i18n.Cmd.Rest.Set,
@@ -235,6 +238,7 @@ func (h *Handler) AllUserRests(c *botapi.Context) error {
 		),
 	)
 	text.WriteString("\n\n<blockquote expandable>")
+
 	for i, req := range requests {
 		if i > 0 {
 			text.WriteString("\n\n")
@@ -267,6 +271,7 @@ func (h *Handler) AllUserRests(c *botapi.Context) error {
 			)
 		}
 	}
+
 	text.WriteString("</blockquote>")
 
 	text.WriteString(
@@ -314,6 +319,7 @@ func (h *Handler) ApproveRestRequest(c *botapi.Context) error {
 				loc.T(i18n.Cmd.RestRequest.NoRequest, nil),
 			),
 		)
+
 		return fmt.Errorf("get rest request: %w", err)
 	}
 
@@ -328,7 +334,7 @@ func (h *Handler) ApproveRestRequest(c *botapi.Context) error {
 		return fmt.Errorf("approve rest request: %w", err)
 	}
 
-	member, err := h.chatMemberSerivce.Get(
+	member, err := h.chatMemberService.Get(
 		c,
 		ch.ID,
 		userID,
@@ -353,7 +359,6 @@ func (h *Handler) ApproveRestRequest(c *botapi.Context) error {
 		text,
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
-
 	if err != nil {
 		return fmt.Errorf("edit approved request: %w", err)
 	}
@@ -415,7 +420,6 @@ func (h *Handler) RejectRestRequest(c *botapi.Context) error {
 		text,
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
-
 	if err != nil {
 		return fmt.Errorf("edit approved request: %w", err)
 	}
@@ -432,9 +436,11 @@ func (h *Handler) RemoveRestRequest(c *botapi.Context) error {
 	loc := cctx.MustLocalizer(c)
 
 	var number int
+
 	if len(args.Numbers) > 0 {
 		number = int(args.Numbers[0])
 	}
+
 	if number == 0 {
 		return nil
 	}
@@ -448,6 +454,7 @@ func (h *Handler) RemoveRestRequest(c *botapi.Context) error {
 	if err != nil {
 		return fmt.Errorf("remove rest request: get requests: %w", err)
 	}
+
 	if number > len(requests) {
 		return nil
 	}
@@ -458,6 +465,7 @@ func (h *Handler) RemoveRestRequest(c *botapi.Context) error {
 		if err := h.service.DeleteRestRequestAndEndRest(c, ch.ID, request.UserID, request.ID); err != nil {
 			return fmt.Errorf("remove rest request: delete and end rest: %w", err)
 		}
+
 		_, err = c.Reply(
 			loc.T(i18n.Cmd.Rests.Delete.DeletedActive, nil),
 		)
@@ -499,6 +507,7 @@ func (h *Handler) createRestRequest(
 	date := tghtml.DefaultDateTime(until)
 
 	var text string
+
 	if reason == "" {
 		text = loc.T(
 			i18n.Cmd.RestRequest.Text,

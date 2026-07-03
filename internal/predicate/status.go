@@ -2,8 +2,8 @@ package predicate
 
 import (
 	"activity-bot/internal/cctx"
-	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/utils/tghtml"
 	"context"
 	"errors"
@@ -15,7 +15,7 @@ import (
 )
 
 type PermissionRepository interface {
-	CommandPermission(ctx context.Context, chatID int64, name string) (chatmember.Status, error)
+	CommandPermission(ctx context.Context, chatID int64, name string) (permission.Status, error)
 }
 
 type PermissionChecker struct {
@@ -29,7 +29,7 @@ func NewPermissionsChecker(repo PermissionRepository, translator *i18n.Translato
 
 func (p *PermissionChecker) Pass(
 	name string,
-	defaultStatus chatmember.Status,
+	defaultStatus permission.Status,
 ) botapi.Predicate {
 	return func(c *botapi.Context) bool {
 		status, ok := p.status(c, name, defaultStatus)
@@ -45,7 +45,7 @@ func (p *PermissionChecker) Pass(
 
 func (p *PermissionChecker) Require(
 	name string,
-	defaultStatus chatmember.Status,
+	defaultStatus permission.Status,
 ) botapi.Predicate {
 	return func(c *botapi.Context) bool {
 		status, ok := p.status(c, name, defaultStatus)
@@ -67,6 +67,7 @@ func (p *PermissionChecker) Require(
 		}
 
 		loc := cctx.MustLocalizer(c)
+
 		if cm.Permitted(status) {
 			return true
 		}
@@ -82,6 +83,7 @@ func (p *PermissionChecker) Require(
 					),
 				),
 			)
+
 			return false
 		}
 
@@ -109,11 +111,10 @@ func getStatus(
 	ctx context.Context,
 	chatID int64,
 	name string,
-	defaultStatus chatmember.Status,
+	defaultStatus permission.Status,
 	repo PermissionRepository,
-) (chatmember.Status, error) {
+) (permission.Status, error) {
 	status, err := repo.CommandPermission(ctx, chatID, name)
-
 	if err == nil {
 		return status, nil
 	}
@@ -128,11 +129,12 @@ func getStatus(
 func (p *PermissionChecker) status(
 	c *botapi.Context,
 	name string,
-	defaultStatus chatmember.Status,
-) (chatmember.Status, bool) {
+	defaultStatus permission.Status,
+) (permission.Status, bool) {
 	ch, err := cctx.Chat(c)
 	if err != nil {
 		glog.For(c.Bot.Logger()).Error(c, "status no chat", glog.Error(err))
+
 		return 0, false
 	}
 
@@ -147,6 +149,7 @@ func (p *PermissionChecker) status(
 	status, err := getStatus(c, ch.ID, name, defaultStatus, p.repo)
 	if err != nil {
 		glog.For(c.Bot.Logger()).Error(c, "get status error", glog.Error(err))
+
 		return 0, false
 	}
 
