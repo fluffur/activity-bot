@@ -110,7 +110,7 @@ func (h *Handler) ShowCommand(c *botapi.Context) error {
 		h.renderCommand(loc, cmd),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.WithReplyMarkup(
-			h.commandKeyboard(category, key),
+			h.commandKeyboard(loc, category, key),
 		),
 	)
 
@@ -141,7 +141,7 @@ func (h *Handler) ShowCommandHelp(
 		h.renderCommand(loc, cmd),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.WithReplyMarkup(
-			h.commandKeyboard(cmd.Category, cmd.Key),
+			h.commandKeyboard(loc, cmd.Category, cmd.Key),
 		),
 	)
 

@@ -13,10 +13,10 @@ func (h *Handler) renderCategories(loc *i18n.Localizer) string {
 
 	sb.WriteString("📖 ")
 	sb.WriteString(tghtml.Bold(loc.T(i18n.Cmd.Help.Desc, nil)))
-	sb.WriteString("\nМожно узнать информацию о любой команде: <code>помощь название команды</code> или воспользоваться клавиатурой ниже")
+	sb.WriteString("\n")
+	sb.WriteString(loc.T(i18n.Cmd.Help.Body, nil))
 	sb.WriteString("\n\n")
-
-	sb.WriteString("Выберите категорию команд.")
+	sb.WriteString(loc.T(i18n.Cmd.Help.ChooseCategory, nil))
 
 	return sb.String()
 }

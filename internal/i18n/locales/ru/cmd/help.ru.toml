@@ -2,12 +2,16 @@
 
 desc = { other = "Помощь по командам бота" }
 
-body = { other = "📚 {{.CommandsLink}}\n\nЕсли нужна помощь, обратитесь к {{.DeveloperLink}}" }
+body = { other = "Можно узнать информацию о любой команде: <code>помощь название команды</code> или воспользоваться клавиатурой ниже" }
+choose_category = { other = "Выберите категорию команд." }
 
 syntax = { other = "Синтаксис:" }
 examples = { other = "Примеры:" }
 
 aliases_label = { other = "Синонимы:" }
+
+button_commands = { other = "⬅️ Команды" }
+button_back = { other = "⬅️ Назад" }
 
 [cmd.help_command]
 

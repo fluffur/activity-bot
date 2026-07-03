@@ -66,6 +66,7 @@ func (h *Handler) categoriesKeyboard(
 }
 
 func (h *Handler) commandKeyboard(
+	loc *i18n.Localizer,
 	category command.Category,
 	key string,
 ) *botapi.InlineKeyboardMarkup {
@@ -109,7 +110,7 @@ func (h *Handler) commandKeyboard(
 	rows := [][]botapi.InlineKeyboardButton{
 		{
 			botapi.InlineButtonData(
-				"⬅️ Команды",
+				loc.T(i18n.Cmd.Help.ButtonCommands, nil),
 				fmt.Sprintf(
 					"%s:%s",
 					callbackHelpCategory,
@@ -158,7 +159,7 @@ func (h *Handler) commandsKeyboard(
 	rows = append(rows,
 		botapi.InlineRow(
 			botapi.InlineButtonData(
-				"⬅️ Назад",
+				loc.T(i18n.Cmd.Help.ButtonBack, nil),
 				callbackHelpCategories,
 			),
 		),
