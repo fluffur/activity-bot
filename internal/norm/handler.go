@@ -33,7 +33,7 @@ func (h *Handler) Register(registry *command.Registry) {
 	addNormDef := &command.ActionDef{
 		Key:         "add_norm",
 		Trigger:     command.TriggerCommand,
-		Aliases:     []string{"+норма", "добавить норму"},
+		Aliases:     []string{"+норма", "добавить норму", "норма"},
 		MinStatus:   chatmember.StatusSeniorAdmin,
 		Category:    CategoryNorm,
 		Description: i18n.Cmd.AddNorm.Desc,
@@ -127,6 +127,7 @@ func (h *Handler) Register(registry *command.Registry) {
 
 	h.bot.OnMessage(h.AddNorm,
 		predicate.Command(addNormDef.Key, addNormDef.Aliases...),
+		predicate.SensitiveCommand(),
 		h.rules.With(addNormDef.Rules...),
 		h.permissions.Require(addNormDef.Key, addNormDef.MinStatus),
 	)

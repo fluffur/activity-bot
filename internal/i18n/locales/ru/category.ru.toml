@@ -4,3 +4,4 @@ summon = { other = "Призывы" }
 stats = { other = "Статистика" }
 norm = { other = "Норма" }
 rest = { other = "Рест" }
+moderation = { other = "Модерация" }

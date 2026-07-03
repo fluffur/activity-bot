@@ -139,3 +139,7 @@ func (c ChatMember) IsFemale() bool {
 func (c ChatMember) ID() int64 {
 	return c.User.ID
 }
+
+func (c ChatMember) IsOwner() bool {
+	return c.Status == StatusOwner
+}

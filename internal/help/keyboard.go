@@ -1,0 +1,170 @@
+package help
+
+import (
+	"activity-bot/internal/command"
+	"activity-bot/internal/i18n"
+	"activity-bot/internal/utils/tghtml"
+	"fmt"
+
+	"github.com/gotd/botapi"
+)
+
+const (
+	callbackHelpCategories = "help:categories"
+	callbackHelpCategory   = "help:category"
+	callbackHelpCommand    = "help:command"
+)
+
+func (h *Handler) categoriesKeyboard(
+	loc *i18n.Localizer,
+) *botapi.InlineKeyboardMarkup {
+
+	var rows [][]botapi.InlineKeyboardButton
+
+	for _, category := range h.registry.Categories() {
+		cmds := h.registry.ByCategory(category)
+
+		hasCommands := false
+		for _, cmd := range cmds {
+			if cmd.ShowInHelp {
+				hasCommands = true
+				break
+			}
+		}
+
+		if !hasCommands {
+			continue
+		}
+
+		title := loc.T(
+			i18n.MessageID("category."+string(category)),
+			nil,
+		)
+
+		rows = append(rows,
+			botapi.InlineRow(
+				botapi.InlineButtonData(
+					title,
+					fmt.Sprintf("%s:%s", callbackHelpCategory, category),
+				),
+			),
+		)
+	}
+
+	rows = append(rows,
+		botapi.InlineRow(
+			botapi.InlineButtonURL(
+				loc.T(i18n.System.AddBotButton, nil),
+				tghtml.StartGroupLink(h.bot.Self().Username),
+			),
+		),
+	)
+
+	return &botapi.InlineKeyboardMarkup{
+		InlineKeyboard: rows,
+	}
+}
+
+func (h *Handler) commandKeyboard(
+	category command.Category,
+	key string,
+) *botapi.InlineKeyboardMarkup {
+	index := h.registry.CommandIndex(category, key)
+	cmds := h.registry.ByCategory(category)
+
+	if index == -1 {
+		return nil
+	}
+
+	var nav []botapi.InlineKeyboardButton
+
+	if index > 0 {
+		nav = append(nav,
+			botapi.InlineButtonData(
+				"◀️",
+				fmt.Sprintf(
+					"%s:%s:%s",
+					callbackHelpCommand,
+					category,
+					cmds[index-1].Key,
+				),
+			),
+		)
+	}
+
+	if index+1 < len(cmds) {
+		nav = append(nav,
+			botapi.InlineButtonData(
+				"▶️",
+				fmt.Sprintf(
+					"%s:%s:%s",
+					callbackHelpCommand,
+					category,
+					cmds[index+1].Key,
+				),
+			),
+		)
+	}
+
+	rows := [][]botapi.InlineKeyboardButton{
+		{
+			botapi.InlineButtonData(
+				"⬅️ Команды",
+				fmt.Sprintf(
+					"%s:%s",
+					callbackHelpCategory,
+					category,
+				),
+			),
+		},
+	}
+
+	if len(nav) > 0 {
+		rows = append(rows, nav)
+	}
+
+	return &botapi.InlineKeyboardMarkup{
+		InlineKeyboard: rows,
+	}
+}
+
+func (h *Handler) commandsKeyboard(
+	loc *i18n.Localizer,
+	category command.Category,
+) *botapi.InlineKeyboardMarkup {
+
+	var rows [][]botapi.InlineKeyboardButton
+
+	for _, cmd := range h.registry.ByCategory(category) {
+		if !cmd.ShowInHelp {
+			continue
+		}
+
+		rows = append(rows,
+			botapi.InlineRow(
+				botapi.InlineButtonData(
+					"/"+cmd.Key,
+					fmt.Sprintf(
+						"%s:%s:%s",
+						callbackHelpCommand,
+						category,
+						cmd.Key,
+					),
+				),
+			),
+		)
+	}
+
+	rows = append(rows,
+		botapi.InlineRow(
+			botapi.InlineButtonData(
+				"⬅️ Назад",
+				callbackHelpCategories,
+			),
+		),
+	)
+
+	return &botapi.InlineKeyboardMarkup{
+		InlineKeyboard: rows,
+	}
+}

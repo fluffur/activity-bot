@@ -11,6 +11,7 @@ import (
 	"activity-bot/internal/help"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/middleware"
+	"activity-bot/internal/moderation"
 	"activity-bot/internal/norm"
 	"activity-bot/internal/predicate"
 	"activity-bot/internal/rest"
@@ -126,11 +127,12 @@ func main() {
 		fsm.WithUpdateKeyFunc[summon.State, summon.StateData](fsm.ChatSenderUpdateKey),
 	)
 
-	help.NewHandler(bot, permissions, registry, cfg.CommandsURL, cfg.DeveloperUsername).Register(registry)
+	help.NewHandler(bot, rules, permissions, registry, cfg.CommandsURL, cfg.DeveloperUsername).Register(registry)
 	summon.NewHandler(bot, permissions, chatService, chatMemberService, summonFSM).Register(registry)
 	norm.NewHandler(bot, permissions, rules, normRepository).Register(registry)
 	stats.NewHandler(bot, permissions, rules, statsService).Register(registry)
 	rest.NewHandler(bot, permissions, rules, restService, chatMemberService).Register(registry)
+	moderation.NewHandler(bot, rules, permissions, chatMemberService).Register(registry)
 	events.NewHandler(bot, translator, chatMemberService).Register()
 
 	log.Info("Starting bot")

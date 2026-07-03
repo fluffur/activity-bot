@@ -44,6 +44,8 @@ func Command(name string, aliases ...string) botapi.Predicate {
 			return false
 		}
 
+		c.Context = cctx.WithCommandPrefix(c.Context, prefix)
+
 		rawTextAfterPrefix := text[len(prefix):]
 		rawTextAfterPrefixRunes := []rune(rawTextAfterPrefix)
 

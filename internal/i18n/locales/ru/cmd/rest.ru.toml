@@ -32,6 +32,8 @@ history_item_reason = { other = "{{.Index}}. 💤 {{.From}} → {{.To}} ({{.Dura
 history_total = { other = "\n\nВсего рестов: {{.Count}}" }
 history_empty = { other = "У участника {{.User}} нет рестов" }
 
+[cmd.rests.delete]
+desc = { other = "Удалить запрос на рест из истории рестов" }
 deleted = { other = "Запрос на рест успешно удален" }
 deleted_active = { other = "Действительный запрос на рест удален" }
 
@@ -50,8 +52,8 @@ item = { other = "{{.Index}}. {{.From}} — {{.To}}" }
 
 no_request = { other = "Не найден запрос на рест" }
 
-approve_button = { other = "✅ Принять"}
-reject_button = { other = "❌ Отклонить"}
+approve_button = { other = "✅ Принять" }
+reject_button = { other = "❌ Отклонить" }
 
 text = { other = "Для {{.User}} запрошен рест до {{.Date}}" }
 text_reason = { other = "Для {{.User}} запрошен рест до {{.Date}}\nПричина: {{.Reason}}" }

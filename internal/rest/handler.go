@@ -118,12 +118,13 @@ func (h *Handler) Register(registry *command.Registry) {
 	}
 
 	removeRequestDef := &command.ActionDef{
-		Key:       "rests_delete",
-		Aliases:   []string{"-рест", "-ресты", "удалить рест"},
-		Trigger:   command.TriggerCommand,
-		MinStatus: chatmember.StatusModerator,
-		Category:  CategoryRest,
-		Scope:     command.ScopeGroup,
+		Key:         "rests_delete",
+		Aliases:     []string{"-рест", "-ресты", "удалить рест"},
+		Description: i18n.Cmd.Rests.Delete.Desc,
+		Trigger:     command.TriggerCommand,
+		MinStatus:   chatmember.StatusModerator,
+		Category:    CategoryRest,
+		Scope:       command.ScopeGroup,
 		Rules: []predicate.Rule{
 			{Type: predicate.RuleUser, Optional: true, Count: 1},
 			{Type: predicate.RuleNumber, Optional: false, Count: 1},

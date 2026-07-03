@@ -12,6 +12,7 @@ const CategoryHelp command.Category = "help"
 
 type Handler struct {
 	bot         *botapi.Bot
+	rules       *predicate.RuleChecker
 	permissions *predicate.PermissionChecker
 	registry    *command.Registry
 
@@ -21,6 +22,7 @@ type Handler struct {
 
 func NewHandler(
 	b *botapi.Bot,
+	rules *predicate.RuleChecker,
 	p *predicate.PermissionChecker,
 	r *command.Registry,
 	commandsURL,
@@ -29,6 +31,7 @@ func NewHandler(
 	return &Handler{
 		bot:               b,
 		permissions:       p,
+		rules:             rules,
 		registry:          r,
 		commandsURL:       commandsURL,
 		developerUsername: developerUsername,
@@ -46,15 +49,54 @@ func (h *Handler) Register(registry *command.Registry) {
 		ShowInHelp:  true,
 	}
 
-	registry.Add(helpDef)
+	helpCommandDef := &command.ActionDef{
+		Key:      "help_command",
+		Aliases:  []string{"help", "помощь"},
+		Trigger:  command.TriggerCommand,
+		Category: CategoryHelp,
+		Rules: []predicate.Rule{
+			{Type: predicate.RuleText, Count: 1},
+		},
+		Description: i18n.Cmd.HelpCommand.Desc,
+		ShowInHelp:  true,
+	}
 
-	h.bot.OnMessage(h.Help,
+	registry.Add(helpDef)
+	registry.Add(helpCommandDef)
+
+	h.bot.OnMessage(
+		h.ShowCommandHelp,
+		predicate.Command(helpCommandDef.Key, helpCommandDef.Aliases...),
+		h.rules.With(helpCommandDef.Rules...),
+	)
+
+	h.bot.OnMessage(
+		h.Help,
 		predicate.Command(helpDef.Key, helpDef.Aliases...),
 		predicate.NoArgs(),
 	)
 
-	h.bot.OnCommand("start", "Start bot", h.Help,
+	h.bot.OnCommand(
+		"start",
+		"Start bot",
+		h.Help,
 		predicate.Private(),
 		predicate.NoArgs(),
 	)
+
+	h.bot.OnCallbackQuery(
+		h.ShowCategories,
+		botapi.CallbackData(callbackHelpCategories),
+	)
+
+	h.bot.OnCallbackQuery(
+		h.ShowCategory,
+		botapi.CallbackPrefix(callbackHelpCategory+":"),
+	)
+
+	h.bot.OnCallbackQuery(
+		h.ShowCommand,
+		botapi.CallbackPrefix(callbackHelpCommand+":"),
+	)
+
 }

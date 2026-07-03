@@ -7,4 +7,9 @@ body = { other = "📚 {{.CommandsLink}}\n\nЕсли нужна помощь, о
 syntax = { other = "Синтаксис:" }
 examples = { other = "Примеры:" }
 
-aliases_label = { other = "Синонимы: {{.Aliases}}" }
+aliases_label = { other = "Синонимы:" }
+
+[cmd.help_command]
+
+desc = { other = "Информация о команде" }
+

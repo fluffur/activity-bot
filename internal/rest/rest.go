@@ -459,7 +459,7 @@ func (h *Handler) RemoveRestRequest(c *botapi.Context) error {
 			return fmt.Errorf("remove rest request: delete and end rest: %w", err)
 		}
 		_, err = c.Reply(
-			loc.T(i18n.Cmd.Rests.DeletedActive, nil),
+			loc.T(i18n.Cmd.Rests.Delete.DeletedActive, nil),
 		)
 
 		return err
@@ -470,7 +470,7 @@ func (h *Handler) RemoveRestRequest(c *botapi.Context) error {
 	}
 
 	_, err = c.Reply(
-		loc.T(i18n.Cmd.Rests.Deleted, nil),
+		loc.T(i18n.Cmd.Rests.Delete.Deleted, nil),
 	)
 
 	return err

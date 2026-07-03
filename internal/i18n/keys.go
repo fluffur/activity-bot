@@ -19,17 +19,19 @@ var (
 		User:     "arg_type.user",
 	}
 	Category = struct {
-		Help   MessageID
-		Norm   MessageID
-		Rest   MessageID
-		Stats  MessageID
-		Summon MessageID
+		Help       MessageID
+		Moderation MessageID
+		Norm       MessageID
+		Rest       MessageID
+		Stats      MessageID
+		Summon     MessageID
 	}{
-		Help:   "category.help",
-		Norm:   "category.norm",
-		Rest:   "category.rest",
-		Stats:  "category.stats",
-		Summon: "category.summon",
+		Help:       "category.help",
+		Moderation: "category.moderation",
+		Norm:       "category.norm",
+		Rest:       "category.rest",
+		Stats:      "category.stats",
+		Summon:     "category.summon",
 	}
 	Cmd = struct {
 		AddNorm struct {
@@ -67,11 +69,30 @@ var (
 			Examples     MessageID
 			Syntax       MessageID
 		}
+		HelpCommand struct {
+			Desc MessageID
+		}
 		ListNorms struct {
 			Desc  MessageID
 			Empty MessageID
 			Item  MessageID
 			Title MessageID
+		}
+		Moderation struct {
+			SetRole struct {
+				ChatAdmin   MessageID
+				ChatCreator MessageID
+				Desc        MessageID
+				NoRights    MessageID
+				Set         MessageID
+			}
+			SetRoleAdmin struct {
+				ChatAdmin   MessageID
+				ChatCreator MessageID
+				Desc        MessageID
+				NoRights    MessageID
+				Set         MessageID
+			}
 		}
 		Profile struct {
 			Activity        MessageID
@@ -110,8 +131,11 @@ var (
 			Title         MessageID
 		}
 		Rests struct {
-			Deleted           MessageID
-			DeletedActive     MessageID
+			Delete struct {
+				Deleted       MessageID
+				DeletedActive MessageID
+				Desc          MessageID
+			}
 			Desc              MessageID
 			HistoryEmpty      MessageID
 			HistoryItem       MessageID
@@ -244,6 +268,11 @@ var (
 			Examples:     "cmd.help.examples",
 			Syntax:       "cmd.help.syntax",
 		},
+		HelpCommand: struct {
+			Desc MessageID
+		}{
+			Desc: "cmd.help_command.desc",
+		},
 		ListNorms: struct {
 			Desc  MessageID
 			Empty MessageID
@@ -254,6 +283,49 @@ var (
 			Empty: "cmd.list_norms.empty",
 			Item:  "cmd.list_norms.item",
 			Title: "cmd.list_norms.title",
+		},
+		Moderation: struct {
+			SetRole struct {
+				ChatAdmin   MessageID
+				ChatCreator MessageID
+				Desc        MessageID
+				NoRights    MessageID
+				Set         MessageID
+			}
+			SetRoleAdmin struct {
+				ChatAdmin   MessageID
+				ChatCreator MessageID
+				Desc        MessageID
+				NoRights    MessageID
+				Set         MessageID
+			}
+		}{
+			SetRole: struct {
+				ChatAdmin   MessageID
+				ChatCreator MessageID
+				Desc        MessageID
+				NoRights    MessageID
+				Set         MessageID
+			}{
+				ChatAdmin:   "cmd.moderation.set_role.chat_admin",
+				ChatCreator: "cmd.moderation.set_role.chat_creator",
+				Desc:        "cmd.moderation.set_role.desc",
+				NoRights:    "cmd.moderation.set_role.no_rights",
+				Set:         "cmd.moderation.set_role.set",
+			},
+			SetRoleAdmin: struct {
+				ChatAdmin   MessageID
+				ChatCreator MessageID
+				Desc        MessageID
+				NoRights    MessageID
+				Set         MessageID
+			}{
+				ChatAdmin:   "cmd.moderation.set_role_admin.chat_admin",
+				ChatCreator: "cmd.moderation.set_role_admin.chat_creator",
+				Desc:        "cmd.moderation.set_role_admin.desc",
+				NoRights:    "cmd.moderation.set_role_admin.no_rights",
+				Set:         "cmd.moderation.set_role_admin.set",
+			},
 		},
 		Profile: struct {
 			Activity        MessageID
@@ -325,8 +397,11 @@ var (
 			Title:         "cmd.rest_request.title",
 		},
 		Rests: struct {
-			Deleted           MessageID
-			DeletedActive     MessageID
+			Delete struct {
+				Deleted       MessageID
+				DeletedActive MessageID
+				Desc          MessageID
+			}
 			Desc              MessageID
 			HistoryEmpty      MessageID
 			HistoryItem       MessageID
@@ -334,8 +409,15 @@ var (
 			HistoryTitle      MessageID
 			HistoryTotal      MessageID
 		}{
-			Deleted:           "cmd.rests.deleted",
-			DeletedActive:     "cmd.rests.deleted_active",
+			Delete: struct {
+				Deleted       MessageID
+				DeletedActive MessageID
+				Desc          MessageID
+			}{
+				Deleted:       "cmd.rests.delete.deleted",
+				DeletedActive: "cmd.rests.delete.deleted_active",
+				Desc:          "cmd.rests.delete.desc",
+			},
 			Desc:              "cmd.rests.desc",
 			HistoryEmpty:      "cmd.rests.history_empty",
 			HistoryItem:       "cmd.rests.history_item",
@@ -580,46 +662,65 @@ var (
 	}
 )
 
-type CmdUnassignNormUnassignedData struct {
-	Name any
-}
-
-type CmdDeleteNormDeletedData struct {
-	Name any
-}
-
-type CmdDeleteNormErrNothingToDeleteData struct {
-	Name any
-}
-
-type CmdAddNormErrInvalidValueData struct {
-	Value any
-	Min   any
-	Max   any
-}
-
-type CmdAddNormAddedData struct {
-	Name  any
-	Value any
-}
-
-type CmdShowNormBodyData struct {
-	Name  any
-	Value any
-}
-
-type CmdShowNormNotFoundData struct {
-	Name    any
-	Code    any
-	CodeEnd any
-}
-
-type CmdEndRestEndedData struct {
+type CmdRestRequestEmptyData struct {
 	User any
 }
 
-type CmdEndRestNotInRestData struct {
+type CmdRestRequestTextData struct {
 	User any
+	Date any
+}
+
+type CmdRestRequestTextReasonData struct {
+	User   any
+	Date   any
+	Reason any
+}
+
+type CmdRestRequestApprovedData struct {
+	User any
+	Date any
+}
+
+type CmdRestRequestTitleData struct {
+	User any
+}
+
+type CmdRestRequestItemData struct {
+	Index any
+	From  any
+	To    any
+}
+
+type CmdHelpBodyData struct {
+	CommandsLink  any
+	DeveloperLink any
+}
+
+type CmdRestInfoData struct {
+	User any
+	Date any
+}
+
+type CmdRestInfoReasonData struct {
+	User   any
+	Date   any
+	Reason any
+}
+
+type CmdRestNoRestData struct {
+	User any
+}
+
+type CmdRestSetData struct {
+	User any
+	Date any
+}
+
+type CmdRestSetReasonData struct {
+	User   any
+	Date   any
+	Reason any
 }
 
 type CmdRestsHistoryItemData struct {
@@ -649,119 +750,21 @@ type CmdRestsHistoryTitleData struct {
 	User any
 }
 
-type CmdListNormsItemData struct {
-	Name  any
-	Value any
-}
-
-type CmdProfileNormPassedData struct {
-	Name     any
-	Required any
-}
-
-type CmdProfileActivityData struct {
-	Day          any
-	Week         any
-	Month        any
-	DayRolling   any
-	WeekRolling  any
-	MonthRolling any
-	Total        any
-}
-
-type CmdProfileMemberPeriodData struct {
+type CmdStatsTitleData struct {
 	From any
 	To   any
-	Days any
 }
 
-type CmdProfileRestUntilData struct {
-	Date any
-}
-
-type CmdProfileTitleData struct {
-	User any
-}
-
-type CmdProfileMemberSinceData struct {
-	Date any
-	Days any
-}
-
-type CmdProfileNormFailedData struct {
-	Name     any
-	Current  any
+type CmdStatsUserFailedData struct {
+	List     any
+	User     any
+	Messages any
 	Required any
-}
-
-type CmdProfileTotalMessagesData struct {
-	Total any
-}
-
-type CmdRestRequestItemData struct {
-	Index any
-	From  any
-	To    any
-}
-
-type CmdRestRequestTextData struct {
-	User any
-	Date any
-}
-
-type CmdRestRequestTextReasonData struct {
-	User   any
-	Date   any
-	Reason any
-}
-
-type CmdRestRequestApprovedData struct {
-	User any
-	Date any
-}
-
-type CmdRestRequestEmptyData struct {
-	User any
-}
-
-type CmdRestRequestTitleData struct {
-	User any
-}
-
-type CmdRestInfoData struct {
-	User any
-	Date any
-}
-
-type CmdRestInfoReasonData struct {
-	User   any
-	Date   any
-	Reason any
-}
-
-type CmdRestNoRestData struct {
-	User any
-}
-
-type CmdRestSetData struct {
-	User any
-	Date any
-}
-
-type CmdRestSetReasonData struct {
-	User   any
-	Date   any
-	Reason any
 }
 
 type CmdStatsNormTitleData struct {
 	Name     any
 	Required any
-}
-
-type CmdStatsTitleData struct {
-	From any
-	To   any
 }
 
 type CmdStatsTotalMessagesData struct {
@@ -774,24 +777,111 @@ type CmdStatsUserPassedData struct {
 	Messages any
 }
 
-type CmdStatsUserFailedData struct {
-	List     any
-	User     any
-	Messages any
-	Required any
+type CmdDeleteNormDeletedData struct {
+	Name any
 }
 
-type CmdHelpBodyData struct {
-	CommandsLink  any
-	DeveloperLink any
+type CmdDeleteNormErrNothingToDeleteData struct {
+	Name any
 }
 
-type CmdHelpAliasesLabelData struct {
-	Aliases any
+type CmdListNormsItemData struct {
+	Name  any
+	Value any
 }
 
 type CmdAssignNormAssignedData struct {
 	Name any
+}
+
+type CmdEndRestEndedData struct {
+	User any
+}
+
+type CmdEndRestNotInRestData struct {
+	User any
+}
+
+type CmdModerationSetRoleAdminSetData struct {
+	User any
+}
+
+type CmdModerationSetRoleSetData struct {
+	User any
+}
+
+type CmdAddNormErrInvalidValueData struct {
+	Value any
+	Min   any
+	Max   any
+}
+
+type CmdAddNormAddedData struct {
+	Name  any
+	Value any
+}
+
+type CmdShowNormNotFoundData struct {
+	Name    any
+	Code    any
+	CodeEnd any
+}
+
+type CmdShowNormBodyData struct {
+	Name  any
+	Value any
+}
+
+type CmdProfileTotalMessagesData struct {
+	Total any
+}
+
+type CmdProfileTitleData struct {
+	User any
+}
+
+type CmdProfileMemberSinceData struct {
+	Date any
+	Days any
+}
+
+type CmdProfileActivityData struct {
+	Day          any
+	Week         any
+	Month        any
+	DayRolling   any
+	WeekRolling  any
+	MonthRolling any
+	Total        any
+}
+
+type CmdProfileRestUntilData struct {
+	Date any
+}
+
+type CmdProfileNormPassedData struct {
+	Name     any
+	Required any
+}
+
+type CmdProfileNormFailedData struct {
+	Name     any
+	Current  any
+	Required any
+}
+
+type CmdProfileMemberPeriodData struct {
+	From any
+	To   any
+	Days any
+}
+
+type CmdUnassignNormUnassignedData struct {
+	Name any
+}
+
+type SystemNoPermissionData struct {
+	Status any
 }
 
 type SystemUsernameChangedMaleData struct {
@@ -810,10 +900,6 @@ type SystemUsernameChangedUnknownData struct {
 	User        any
 	OldUsername any
 	NewUsername any
-}
-
-type SystemNoPermissionData struct {
-	Status any
 }
 
 type UserJoinedMaleData struct {

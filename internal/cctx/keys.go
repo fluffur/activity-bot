@@ -17,6 +17,7 @@ type (
 	parsedArgsKey        struct{}
 	commandPermissionKey struct{}
 	localizerKey         struct{}
+	commandPrefixKey     struct{}
 )
 
 func WithChat(ctx context.Context, ch chat.Chat) context.Context {
@@ -164,4 +165,16 @@ func MustLocalizer(ctx context.Context) *i18n.Localizer {
 	}
 
 	return loc
+}
+
+func WithCommandPrefix(ctx context.Context, prefix string) context.Context {
+	return context.WithValue(ctx, commandPrefixKey{}, prefix)
+}
+
+func MustCommandPrefix(ctx context.Context) string {
+	prefix, ok := ctx.Value(commandPrefixKey{}).(string)
+	if !ok {
+		panic("commandPrefix not found in context")
+	}
+	return prefix
 }
