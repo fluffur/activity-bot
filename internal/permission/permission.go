@@ -13,6 +13,10 @@ const (
 	StatusOwner
 )
 
+func IsValidStatus(s int64) bool {
+	return s >= 0 && s <= 5
+}
+
 func (s Status) TranslationKey() i18n.MessageID {
 	switch s {
 	case StatusMember:

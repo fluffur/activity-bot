@@ -93,6 +93,7 @@ func main() {
 	normRepository := postgres.NewNormRepository(queries)
 	statsRepository := postgres.NewStatsRepository(queries)
 	restRepository := postgres.NewRestRepository(queries, pool)
+	moderationRepository := postgres.NewModerationRepository(queries)
 
 	permissions := predicate.NewPermissionsChecker(permissionRepository, translator)
 	rules := predicate.NewRuleChecker(chatMemberRepository, messageRepository)
@@ -101,6 +102,7 @@ func main() {
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
 	statsService := stats.NewService(chatMemberRepository, normRepository, statsRepository)
 	restService := rest.NewService(restRepository)
+	moderationService := moderation.NewService(moderationRepository, chatMemberRepository, cfg.DeveloperID)
 
 	registry := command.NewRegistry()
 
@@ -134,7 +136,7 @@ func main() {
 	norm.NewHandler(bot, permissions, rules, normRepository).Register(registry)
 	stats.NewHandler(bot, permissions, rules, statsService).Register(registry)
 	rest.NewHandler(bot, permissions, rules, restService, chatMemberService).Register(registry)
-	moderation.NewHandler(bot, rules, permissions, chatMemberService).Register(registry)
+	moderation.NewHandler(bot, rules, permissions, moderationService, chatMemberService).Register(registry)
 	events.NewHandler(bot, translator, chatMemberService).Register()
 
 	log.Info("Starting bot")

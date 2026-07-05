@@ -21,6 +21,7 @@ type Handler struct {
 	rules       *predicate.RuleChecker
 	permissions *predicate.PermissionChecker
 
+	service           *Service
 	chatMemberService *chatmember.Service
 }
 
@@ -28,12 +29,14 @@ func NewHandler(
 	b *botapi.Bot,
 	r *predicate.RuleChecker,
 	p *predicate.PermissionChecker,
+	service *Service,
 	cms *chatmember.Service,
 ) *Handler {
 	return &Handler{
 		bot:               b,
 		rules:             r,
 		permissions:       p,
+		service:           service,
 		chatMemberService: cms,
 	}
 }
@@ -65,8 +68,22 @@ func (h *Handler) Register(registry *command.Registry) {
 		),
 	)
 
+	ban := action.NewCommand(
+		"ban",
+		i18n.Cmd.Moderation.Ban.Desc,
+		CategoryModeration,
+		permission.StatusSeniorAdmin,
+		option.WithAliases("бан", "кик"),
+		option.WithRules(
+			rule.User(),
+			rule.DateTimeOrDuration().Optional(),
+			rule.Text().Optional(),
+		),
+	)
+
 	registry.Add(setRole)
 	registry.Add(setRoleAdmin)
+	registry.Add(ban)
 
 	h.bot.OnMessage(
 		h.SetRoleAdmin,
@@ -80,4 +97,11 @@ func (h *Handler) Register(registry *command.Registry) {
 		h.rules.With(setRole.Rules...),
 		h.permissions.Require(setRole.Key, setRole.MinStatus),
 	)
+	h.bot.OnMessage(
+		h.Ban,
+		predicate.Command(ban.Key, ban.Aliases...),
+		h.rules.With(ban.Rules...),
+		h.permissions.Require(ban.Key, ban.MinStatus),
+	)
+
 }

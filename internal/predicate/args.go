@@ -240,7 +240,7 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 			}
 
 			if parsedCount == 0 && !rul.IsOptional {
-				spew.Dump("FAIL", "rule user 4")
+				spew.Dump("FAIL", "rule user 4", parsedCount, rul.IsOptional)
 
 				return false
 			}

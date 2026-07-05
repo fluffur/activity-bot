@@ -94,3 +94,11 @@ func (c ChatMember) ID() int64 {
 func (c ChatMember) IsOwner() bool {
 	return c.Status == permission.StatusOwner
 }
+
+func (c ChatMember) CanModerate(m ChatMember) bool {
+	return c.Status > m.Status
+}
+
+func (c ChatMember) Gender() user.Gender {
+	return c.User.Gender
+}

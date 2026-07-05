@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/permission"
 	"fmt"
 	"html"
 	"strings"
@@ -166,4 +167,8 @@ func Emoji(customEmojiID int, fallbackEmoji string) string {
 	}
 
 	return fmt.Sprintf("<tg-emoji id=%d>%s</tg-emoji>", customEmojiID, fallbackEmoji)
+}
+
+func Status(loc *i18n.Localizer, s permission.Status) string {
+	return loc.T(s.TranslationKey(), nil)
 }
