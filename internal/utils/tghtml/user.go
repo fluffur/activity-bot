@@ -70,6 +70,10 @@ func Code(text string) string {
 	return "<code>" + Escape(text) + "</code>"
 }
 
+func Number(n int64) string {
+	return Code(fmt.Sprintf("%d", n))
+}
+
 func Pre(text string) string {
 	return "<pre>" + Escape(text) + "</pre>"
 }

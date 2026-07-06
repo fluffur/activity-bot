@@ -7,12 +7,12 @@ import (
 )
 
 type Warn struct {
-	ID         int64
-	ChatMember chatmember.ChatMember
-	Moderator  chatmember.ChatMember
-	Reason     string
-	CreatedAt  time.Time
-	ExpiresAt  time.Time
+	ID        int64
+	Target    chatmember.ChatMember
+	Moderator chatmember.ChatMember
+	Reason    string
+	CreatedAt time.Time
+	ExpiresAt time.Time
 }
 
 type Repository interface {

@@ -107,7 +107,6 @@ func (h *Handler) Actions() []*command.ActionDef {
 			option.WithPermission(permission.StatusSeniorAdmin),
 			option.WithAliases(
 				"снять норму",
-				"снять",
 				"отвязать норму",
 				"отвязать",
 			),

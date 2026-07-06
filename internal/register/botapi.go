@@ -2,6 +2,8 @@ package register
 
 import (
 	"activity-bot/internal/command"
+	"activity-bot/internal/i18n"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/predicate"
 
 	"github.com/gotd/botapi"
@@ -114,4 +116,26 @@ func buildCallbackPredicates(
 	predicates = append(predicates, action.ExtraPredicates...)
 
 	return predicates
+}
+
+func BotCommands(registry *command.Registry, loc *i18n.Localizer, scope command.Scope, forAdmins bool) (botCommands []botapi.BotCommand) {
+	for _, action := range registry.All() {
+		if !forAdmins && action.Permission != permission.StatusMember {
+			continue
+		}
+
+		cmd, ok := action.Trigger.(*command.CommandTrigger)
+		if !ok || !cmd.Scope.BelongsTo(scope) {
+			continue
+		}
+
+		botCommand := botapi.BotCommand{
+			Command:     action.Key,
+			Description: loc.T(action.Description, nil),
+		}
+
+		botCommands = append(botCommands, botCommand)
+	}
+
+	return
 }

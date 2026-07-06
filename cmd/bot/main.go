@@ -27,6 +27,8 @@ import (
 	"os/signal"
 	"time"
 
+	glog "github.com/gotd/log"
+
 	fsm "github.com/fluffur/botapi-fsm"
 	"github.com/gotd/log/logzap"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -68,11 +70,6 @@ func main() {
 	})
 	defer func() { _ = client.Close() }()
 
-	translator, err := i18n.New()
-	if err != nil {
-		log.Fatal("Create translator", zap.Error(err))
-	}
-
 	chatRepository := postgres.NewChatRepository(queries)
 	userRepository := postgres.NewUserRepository(queries)
 	chatMemberRepository := postgres.NewChatMemberRepository(queries)
@@ -84,14 +81,20 @@ func main() {
 	restRepository := postgres.NewRestRepository(queries, pool)
 	moderationRepository := postgres.NewModerationRepository(queries)
 
-	permissions := predicate.NewPermissionsChecker(permissionRepository, translator)
-	rules := predicate.NewRuleChecker(chatMemberRepository, messageRepository)
-
 	chatService := chat.NewService(chatRepository)
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
 	statsService := stats.NewService(chatMemberRepository, normRepository, statsRepository)
 	restService := rest.NewService(restRepository)
 	moderationService := moderation.NewService(moderationRepository, chatMemberRepository, cfg.DeveloperID)
+
+	translator, err := i18n.New()
+	if err != nil {
+		log.Fatal("Create translator", zap.Error(err))
+	}
+	loc := translator.Default()
+
+	permissions := predicate.NewPermissionsChecker(permissionRepository)
+	rules := predicate.NewRuleChecker(chatMemberRepository, messageRepository)
 
 	summonFSM := fsm.New(
 		fsm.NewRedisJSONStore[summon.State, summon.StateData](client, "fsm:summon:", 5*time.Hour),
@@ -115,11 +118,15 @@ func main() {
 		registry.Add(h.Actions())
 	}
 
-	bot, err := botapi.New(cfg.BotToken, botapi.Options{
-		AppID:                      cfg.AppID,
-		AppHash:                    cfg.AppHash,
-		Logger:                     logzap.New(log),
-		Storage:                    store,
+	var bot *botapi.Bot
+	bot, err = botapi.New(cfg.BotToken, botapi.Options{
+		AppID:   cfg.AppID,
+		AppHash: cfg.AppHash,
+		Logger:  logzap.New(log),
+		Storage: store,
+		OnStart: func(ctx context.Context) {
+			registerBotCommands(ctx, bot, registry, loc)
+		},
 		FloodWait:                  true,
 		DisableCommandRegistration: true,
 	})
@@ -127,7 +134,6 @@ func main() {
 		log.Fatal("Create bot", zap.Error(err))
 	}
 
-	// for every bot
 	registerMiddlewares(
 		bot,
 		translator,
@@ -173,4 +179,27 @@ func registerMiddlewares(
 		botapi.Timeout(time.Minute),
 		botapi.Logging(),
 	)
+}
+
+func registerBotCommands(ctx context.Context, bot *botapi.Bot, registry *command.Registry, loc *i18n.Localizer) {
+	if err := bot.SetMyCommands(ctx,
+		register.BotCommands(registry, loc, command.ScopePrivate, false),
+		botapi.WithCommandScope(botapi.BotCommandScopeAllPrivateChats()),
+	); err != nil {
+		glog.For(bot.Logger()).Error(ctx, "Set private commands", glog.Error(err))
+	}
+
+	if err := bot.SetMyCommands(ctx,
+		register.BotCommands(registry, loc, command.ScopeGroup, false),
+		botapi.WithCommandScope(botapi.BotCommandScopeAllGroupChats()),
+	); err != nil {
+		glog.For(bot.Logger()).Error(ctx, "Set group commands", glog.Error(err))
+	}
+
+	if err := bot.SetMyCommands(ctx,
+		register.BotCommands(registry, loc, command.ScopeGroup, true),
+		botapi.WithCommandScope(botapi.BotCommandScopeAllChatAdministrators()),
+	); err != nil {
+		glog.For(bot.Logger()).Error(ctx, "Set admin commands", glog.Error(err))
+	}
 }

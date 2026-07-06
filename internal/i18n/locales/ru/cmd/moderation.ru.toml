@@ -18,7 +18,6 @@ action = { other = "{{.User}} {{.Action}} {{.Until}}" }
 reason = { other = "Причина: {{.Reason}}" }
 moderator = { other = "Модератор: {{.Moderator}}" }
 warns = { other = "Предупреждений: {{.Current}}/{{.Max}}" }
-
 forever = { other = "навсегда" }
 until = { other = "до {{.Until}}" }
 
@@ -57,6 +56,10 @@ desc = { other = "Выдать предупреждение участнику" 
 [cmd.moderation.mute]
 desc = { other = "Замутить участника" }
 
+[cmd.moderation.unban]
+desc = { other = "Снять ограничения с участника (разбан, размут)" }
+unbanned = { other = "Ограничения для {{.User}} успешно сняты"}
+
 
 [cmd.moderation.set_status]
 desc = { other = "Установить статус участнику" }
@@ -68,3 +71,45 @@ success = { other = "Статус для {{.User}} изменён на {{.Status
 desc = { other = "Обнулить статус участника" }
 cant_moderate = { other = "Невозможно обнулить статус этого участника" }
 success = { other = "Права у {{.User}} сняты" }
+
+[cmd.moderation.unwarn]
+desc = { other = "Снять предупреждение" }
+success = { other = "Снято одно предупреждение для {{.User}}\nПредупреждений: {{.Left}}/{{.Total}}" }
+
+[cmd.moderation.clear_warns]
+desc = { other = "Очистить предупреждения участника" }
+success = { other = "Все предупреждения для {{.User}} очищены" }
+
+[cmd.moderation.show_warns]
+desc = { other = "Показать предупреждения участника" }
+
+header = { other = "⚠️ Предупреждения {{.User}} ({{.Current}}/{{.Max}})" }
+
+empty = { other = "У {{.User}} нет активных предупреждений" }
+
+item = { other = "{{.Index}}. Выдан {{.Created}}\nМодератор: {{.Moderator}}" }
+
+expires = { other = "Истекает: {{.Until}}" }
+
+reason = { other = "Причина: {{.Reason}}" }
+
+[cmd.moderation.max_warns]
+desc = { other = "Показать лимит предупреждений" }
+show = { other = "Текущий лимит предупреждений: {{.Max}}" }
+
+[cmd.moderation.set_max_warns]
+desc = { other = "Установить лимит предупреждений" }
+set = { other = "Лимит предупреждений изменён на {{.Max}}" }
+
+[cmd.moderation.warn_list]
+desc = { other = "Предупреждения в чате" }
+
+header = { other = "⚠️ Активные предупреждения ({{.Count}}), лимит: {{.MaxWarns}}" }
+
+empty = { other = "В этом чате нет активных предупреждений" }
+
+item = { other = "{{.Index}}. {{.User}}\nВыдан: {{.Created}}\nМодератор: {{.Moderator}}" }
+
+expires = { other = "Истекает: {{.Until}}" }
+
+reason = { other = "Причина: {{.Reason}}" }

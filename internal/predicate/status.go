@@ -19,12 +19,11 @@ type PermissionRepository interface {
 }
 
 type PermissionChecker struct {
-	repo       PermissionRepository
-	translator *i18n.Translator
+	repo PermissionRepository
 }
 
-func NewPermissionsChecker(repo PermissionRepository, translator *i18n.Translator) *PermissionChecker {
-	return &PermissionChecker{repo, translator}
+func NewPermissionsChecker(repo PermissionRepository) *PermissionChecker {
+	return &PermissionChecker{repo}
 }
 
 func (p *PermissionChecker) Pass(

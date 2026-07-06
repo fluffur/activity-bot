@@ -18,6 +18,10 @@ const (
 	ScopeGroup   Scope = 2
 )
 
+func (s Scope) BelongsTo(scope Scope) bool {
+	return scope == s || scope == ScopeAny
+}
+
 type Trigger interface {
 	isTrigger()
 	IndexKeys() []string

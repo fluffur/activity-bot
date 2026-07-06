@@ -68,6 +68,6 @@ func IsAdmin(p tg.ChannelParticipantClass) bool {
 }
 
 func IsBanned(p tg.ChannelParticipantClass) bool {
-	_, ok := p.(*tg.ChannelParticipantBanned)
-	return ok
+	b, ok := p.(*tg.ChannelParticipantBanned)
+	return ok && b.Left
 }

@@ -78,12 +78,12 @@ func (r *ModerationRepository) GetActiveWarns(ctx context.Context, chatID, userI
 	results := make([]moderation.Warn, len(warns))
 	for i, warn := range warns {
 		results[i] = moderation.Warn{
-			ID:         warn.ID,
-			Moderator:  mapChatMemberFull(warn.ChatMember, db.Chat{}, warn.User),
-			ChatMember: mapChatMemberFull(warn.ChatMember_2, db.Chat{}, warn.User_2),
-			Reason:     warn.Reason.String,
-			CreatedAt:  warn.CreatedAt.Time,
-			ExpiresAt:  warn.ExpiresAt.Time,
+			ID:        warn.ID,
+			Moderator: mapChatMemberFull(warn.ChatMember, db.Chat{}, warn.User),
+			Target:    mapChatMemberFull(warn.ChatMember_2, db.Chat{}, warn.User_2),
+			Reason:    warn.Reason.String,
+			CreatedAt: warn.CreatedAt.Time,
+			ExpiresAt: warn.ExpiresAt.Time,
 		}
 	}
 
@@ -136,12 +136,12 @@ func (r *ModerationRepository) GetActiveWarnsByChat(ctx context.Context, chatID 
 	results := make([]moderation.Warn, len(warns))
 	for i, warn := range warns {
 		results[i] = moderation.Warn{
-			ID:         warn.ID,
-			Moderator:  mapChatMemberFull(warn.ChatMember, db.Chat{}, warn.User),
-			ChatMember: mapChatMemberFull(warn.ChatMember_2, db.Chat{}, warn.User_2),
-			Reason:     warn.Reason.String,
-			CreatedAt:  warn.CreatedAt.Time,
-			ExpiresAt:  warn.ExpiresAt.Time,
+			ID:        warn.ID,
+			Moderator: mapChatMemberFull(warn.ChatMember, db.Chat{}, warn.User),
+			Target:    mapChatMemberFull(warn.ChatMember_2, db.Chat{}, warn.User_2),
+			Reason:    warn.Reason.String,
+			CreatedAt: warn.CreatedAt.Time,
+			ExpiresAt: warn.ExpiresAt.Time,
 		}
 	}
 

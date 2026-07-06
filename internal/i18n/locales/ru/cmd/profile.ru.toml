@@ -18,10 +18,7 @@ norm_failed = { other = "⚠️ {{.Name}} — {{.Current}}/{{.Required}}" }
 
 total_messages = { other = "📨 Всего сообщений: {{.Total}}" }
 
-activity = { other = """ㅤ
-          📊 Статистика
-
-📅 Календарная активность
+activity = { other = """📅 Календарная активность
 • Сегодня — {{.Day}}
 • Неделя — {{.Week}}
 • Месяц — {{.Month}}
