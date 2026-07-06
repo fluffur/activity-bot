@@ -18,7 +18,7 @@ func NewModerationRepository(queries *db.Queries) *ModerationRepository {
 	return &ModerationRepository{queries}
 }
 
-func (r *ModerationRepository) SetStatus(ctx context.Context, chatID int64, userID int64, status int16) error {
+func (r *ModerationRepository) SetStatus(ctx context.Context, chatID, userID int64, status int16) error {
 	return r.queries.SetChatMemberStatus(ctx, db.SetChatMemberStatusParams{
 		ChatID: chatID,
 		UserID: userID,
@@ -37,7 +37,15 @@ func (r *ModerationRepository) GetAdmins(ctx context.Context, chatID int64) ([]c
 	}), nil
 }
 
-func (r *ModerationRepository) CreateModerationAction(ctx context.Context, actionType string, chatID, userID, modID int64, reason string, until time.Time) error {
+func (r *ModerationRepository) CreateModerationAction(
+	ctx context.Context,
+	actionType string,
+	chatID,
+	userID,
+	modID int64,
+	reason string,
+	until time.Time,
+) error {
 	return r.queries.CreateModerationAction(ctx, db.CreateModerationActionParams{
 		Type:        db.ModerationType(actionType),
 		ChatID:      chatID,
@@ -66,6 +74,7 @@ func (r *ModerationRepository) GetActiveWarns(ctx context.Context, chatID, userI
 	if err != nil {
 		return nil, err
 	}
+
 	results := make([]moderation.Warn, len(warns))
 	for i, warn := range warns {
 		results[i] = moderation.Warn{
@@ -77,6 +86,7 @@ func (r *ModerationRepository) GetActiveWarns(ctx context.Context, chatID, userI
 			ExpiresAt:  warn.ExpiresAt.Time,
 		}
 	}
+
 	return results, nil
 }
 
@@ -122,6 +132,7 @@ func (r *ModerationRepository) GetActiveWarnsByChat(ctx context.Context, chatID 
 	if err != nil {
 		return nil, err
 	}
+
 	results := make([]moderation.Warn, len(warns))
 	for i, warn := range warns {
 		results[i] = moderation.Warn{
@@ -133,5 +144,6 @@ func (r *ModerationRepository) GetActiveWarnsByChat(ctx context.Context, chatID 
 			ExpiresAt:  warn.ExpiresAt.Time,
 		}
 	}
+
 	return results, nil
 }

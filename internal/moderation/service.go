@@ -41,6 +41,7 @@ func (s *Service) SetStatus(ctx context.Context, chatID int64, sender, m chatmem
 	if !sender.CanModerate(m) {
 		return ErrUserCantBeModerated
 	}
+
 	if status >= sender.Status {
 		return ErrUserStatusInvalid
 	}
@@ -117,12 +118,13 @@ func (s *Service) Warn(
 	moderator chatmember.ChatMember,
 	reason string,
 	until time.Time,
-) (warnsCount int64, err error) {
+) (warnsCount int32, err error) {
 	chatID := ch.ID
 
 	if !moderator.CanModerate(target) {
 		return 0, ErrUserCantBeModerated
 	}
+
 	if err := s.repo.CreateModerationAction(ctx, "warn", chatID, target.ID(), moderator.ID(), reason, until); err != nil {
 		return 0, err
 	}
@@ -132,14 +134,18 @@ func (s *Service) Warn(
 		return 0, err
 	}
 
+	warnsCount = int32(count)
+
 	maxWarns := ch.MaxWarns
-	if int32(count) >= maxWarns {
+
+	if warnsCount >= maxWarns {
 		_ = s.repo.CreateModerationAction(ctx, "ban", chatID, target.ID(), moderator.ID(), reason, time.Time{})
 		_ = s.repo.ClearWarns(ctx, chatID, target.ID())
-		return count, nil
+
+		return warnsCount, nil
 	}
 
-	return count, nil
+	return warnsCount, nil
 }
 
 func (s *Service) Unban(ctx context.Context, chatID, userID int64) error {
@@ -152,6 +158,7 @@ func (s *Service) Unwarn(ctx context.Context, chatID, userID int64) (int, error)
 	}
 
 	count, err := s.repo.GetWarnsCount(ctx, chatID, userID)
+
 	return int(count), err
 }
 

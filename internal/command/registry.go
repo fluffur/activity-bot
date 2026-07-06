@@ -1,97 +1,85 @@
 package command
 
+import "slices"
+
 type Registry struct {
-	cmds       []*ActionDef
-	idx        map[string]*ActionDef
+	actions []*ActionDef
+
+	byKey              map[string]*ActionDef
+	byAlias            map[string]*ActionDef
+	byCategory         map[Category][]*ActionDef
+	commandsByCategory map[Category][]*ActionDef
+
 	categories []Category
 }
 
 func NewRegistry() *Registry {
-	return &Registry{idx: make(map[string]*ActionDef)}
-}
-
-func (r *Registry) AddCategory(category Category) {
-	r.categories = append(r.categories, category)
-}
-
-func (r *Registry) Categories() []Category {
-	return r.categories
-}
-
-func (r *Registry) Add(def *ActionDef) {
-	r.cmds = append(r.cmds, def)
-	for _, a := range def.Aliases {
-		r.idx[a] = def
+	return &Registry{
+		byKey:              make(map[string]*ActionDef),
+		byAlias:            make(map[string]*ActionDef),
+		byCategory:         make(map[Category][]*ActionDef),
+		commandsByCategory: make(map[Category][]*ActionDef),
 	}
 }
 
-func (r *Registry) Get(alias string) (*ActionDef, bool) {
-	def, ok := r.idx[alias]
-	return def, ok
+func (r *Registry) Add(defs []*ActionDef) {
+	for _, def := range defs {
+		r.actions = append(r.actions, def)
+		r.byKey[def.Key] = def
+
+		for _, key := range def.Trigger.IndexKeys() {
+			r.byAlias[key] = def
+		}
+
+		if _, ok := r.byCategory[def.Category]; !ok {
+			r.categories = append(r.categories, def.Category)
+		}
+
+		r.byCategory[def.Category] = append(r.byCategory[def.Category], def)
+
+		if _, ok := def.Trigger.(*CommandTrigger); ok {
+			r.commandsByCategory[def.Category] = append(
+				r.commandsByCategory[def.Category],
+				def,
+			)
+		}
+	}
 }
 
 func (r *Registry) All() []*ActionDef {
-	out := make([]*ActionDef, len(r.cmds))
-	copy(out, r.cmds)
-
-	return out
+	return slices.Clone(r.actions)
 }
 
-func (r *Registry) Grouped() map[Category][]*ActionDef {
-	out := make(map[Category][]*ActionDef)
-	for _, c := range r.cmds {
-		out[c.Category] = append(out[c.Category], c)
-	}
-
-	return out
+func (r *Registry) Categories() []Category {
+	return slices.Clone(r.categories)
 }
 
 func (r *Registry) ByCategory(category Category) []*ActionDef {
-	var out []*ActionDef
-
-	for _, cmd := range r.cmds {
-		if cmd.Category == category {
-			out = append(out, cmd)
-		}
-	}
-
-	return out
+	return slices.Clone(r.byCategory[category])
 }
 
 func (r *Registry) Find(key string) (*ActionDef, bool) {
-	for _, cmd := range r.cmds {
-		if cmd.Key == key {
-			return cmd, true
-		}
-	}
-
-	return nil, false
+	def, ok := r.byKey[key]
+	return def, ok
 }
 
-func (r *Registry) CategoryIndex(category Category) int {
-	for i, c := range r.categories {
-		if c == category {
-			return i
-		}
-	}
-
-	return -1
+func (r *Registry) FindAlias(alias string) (*ActionDef, bool) {
+	def, ok := r.byAlias[alias]
+	return def, ok
 }
 
-func (r *Registry) CommandIndex(category Category, key string) int {
-	cmds := r.ByCategory(category)
-
-	for i, cmd := range cmds {
-		if cmd.Key == key {
-			return i
-		}
+func (r *Registry) FindByKeyOrAlias(name string) (*ActionDef, bool) {
+	if def, ok := r.byKey[name]; ok {
+		return def, true
 	}
 
-	return -1
+	def, ok := r.byAlias[name]
+
+	return def, ok
 }
 
-func (r *Registry) NextCommand(category Category, key string) *ActionDef {
-	cmds := r.ByCategory(category)
+func (r *Registry) Next(category Category, key string) *ActionDef {
+	cmds := r.commandsByCategory[category]
 
 	for i, cmd := range cmds {
 		if cmd.Key == key && i+1 < len(cmds) {
@@ -102,8 +90,8 @@ func (r *Registry) NextCommand(category Category, key string) *ActionDef {
 	return nil
 }
 
-func (r *Registry) PrevCommand(category Category, key string) *ActionDef {
-	cmds := r.ByCategory(category)
+func (r *Registry) Prev(category Category, key string) *ActionDef {
+	cmds := r.commandsByCategory[category]
 
 	for i, cmd := range cmds {
 		if cmd.Key == key && i > 0 {
@@ -112,22 +100,4 @@ func (r *Registry) PrevCommand(category Category, key string) *ActionDef {
 	}
 
 	return nil
-}
-
-func (r *Registry) FindByKeyOrAlias(name string) (*ActionDef, bool) {
-	for _, cmd := range r.cmds {
-		if cmd.Key == name {
-			return cmd, true
-		}
-	}
-
-	for _, cmd := range r.cmds {
-		for _, alias := range cmd.Aliases {
-			if alias == name {
-				return cmd, true
-			}
-		}
-	}
-
-	return nil, false
 }

@@ -1,52 +1,70 @@
 [cmd.moderation]
 [cmd.moderation.set_role]
 desc = { other = "Установить роль (тег) участнику" }
-
 chat_creator = { other = "Я не могу изменить тег владельца группы\n\nРоль сохранена, но владелец должен изменить тег вручную" }
-
 chat_admin = { other = "Я не могу изменить тег этого администратора\n\nРоль сохранена, но тег должен изменить владелец группы или сам администратор" }
-
 no_rights = { other = "У меня нет права изменять теги участников\n\nРоль сохранена, но тег не изменён. Проверьте мои права администратора" }
-
 set = { other = "Роль для {{.User}} установлена" }
 
 [cmd.moderation.set_role_admin]
 desc = { other = "Установить роль (тег) участнику и выдать минимальные права администратора" }
-
 chat_creator = { other = "Я не могу изменить тег владельца группы\n\nРоль сохранена, но владелец должен изменить тег вручную" }
-
 chat_admin = { other = "Я не могу переназначить этого админа\n\nРоль сохранена, но чтобы я назначил участника админом и установил тег, нужно сначала снять с него права админа" }
-
 no_rights = { other = "У меня нет права назначать админов и устанавливать теги участников\n\nРоль сохранена, но тег не изменён. Проверьте мои права администратора" }
-
 set = { other = "Роль для {{.User}} установлена" }
+
+[cmd.moderation.templates]
+action = { other = "{{.User}} {{.Action}} {{.Until}}" }
+reason = { other = "Причина: {{.Reason}}" }
+moderator = { other = "Модератор: {{.Moderator}}" }
+warns = { other = "Предупреждений: {{.Current}}/{{.Max}}" }
+
+forever = { other = "навсегда" }
+until = { other = "до {{.Until}}" }
+
+[cmd.moderation.actions.ban]
+male = { other = "забанен" }
+female = { other = "забанена" }
+unknown = { other = "забанен" }
+
+[cmd.moderation.actions.warn]
+male = { other = "получил предупреждение" }
+female = { other = "получила предупреждение" }
+unknown = { other = "получил предупреждение" }
+
+[cmd.moderation.actions.mute]
+male = { other = "замучен" }
+female = { other = "лишена права писать" }
+unknown = { other = "лишён права писать" }
+
+[cmd.moderation.actions.kick]
+male = { other = "исключён" }
+female = { other = "исключена" }
+unknown = { other = "исключён" }
+
 
 [cmd.moderation.ban]
 desc = { other = "Забанить участника" }
-forver = { other = "навсегда" }
-until = { other = "до {{.Until}}" }
 
-[cmd.moderation.ban.banned]
-female = { other = "{{.User}} забанена {{.Until}}\nМодератор: {{.Moderator}}" }
-male = { other = "{{.User}} забанен {{.Until}}\nМодератор: {{.Moderator}}" }
-unknown = { other = "{{.User}} забанен {{.Until}}\nМодератор: {{.Moderator}}" }
 
-[cmd.moderation.ban.banned_reason]
-female = { other = "{{.User}} забанена {{.Until}}\nПричина: {{.Reason}}\nМодератор: {{.Moderator}}" }
-male = { other = "{{.User}} забанен {{.Until}}\nПричина: {{.Reason}}\nМодератор: {{.Moderator}}" }
-unknown = { other = "{{.User}} забанен {{.Until}}\nПричина: {{.Reason}}\nМодератор: {{.Moderator}}" }
+[cmd.moderation.kick]
+desc = { other = "Кикнуть участника" }
+
+[cmd.moderation.warn]
+desc = { other = "Выдать предупреждение участнику" }
+
+
+[cmd.moderation.mute]
+desc = { other = "Замутить участника" }
+
 
 [cmd.moderation.set_status]
 desc = { other = "Установить статус участнику" }
-
 cant_moderate = { other = "Невозможно изменить статус этого участника" }
 invalid_status = { other = "Указан недопустимый статус" }
-
 success = { other = "Статус для {{.User}} изменён на {{.Status}}" }
 
 [cmd.moderation.remove_admin]
 desc = { other = "Обнулить статус участника" }
-
 cant_moderate = { other = "Невозможно обнулить статус этого участника" }
-
-success = { other = "Права администратора у {{.User}} сняты" }
+success = { other = "Права у {{.User}} сняты" }

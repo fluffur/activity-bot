@@ -18,7 +18,7 @@ func (h *Handler) Help(c *botapi.Context) error {
 		h.renderCategories(loc),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.WithReplyMarkup(
-			h.categoriesKeyboard(loc),
+			h.categoriesKeyboard(c.Bot.Self().Username, loc),
 		),
 	)
 
@@ -68,7 +68,7 @@ func (h *Handler) ShowCategories(c *botapi.Context) error {
 		h.renderCategories(loc),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.WithReplyMarkup(
-			h.categoriesKeyboard(loc),
+			h.categoriesKeyboard(c.Bot.Self().Username, loc),
 		),
 	)
 	if err != nil {

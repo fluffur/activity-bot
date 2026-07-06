@@ -9,13 +9,8 @@ import (
 	"github.com/gotd/botapi"
 )
 
-const (
-	callbackHelpCategories = "help:categories"
-	callbackHelpCategory   = "help:category"
-	callbackHelpCommand    = "help:command"
-)
-
 func (h *Handler) categoriesKeyboard(
+	botUsername string,
 	loc *i18n.Localizer,
 ) *botapi.InlineKeyboardMarkup {
 	var rows [][]botapi.InlineKeyboardButton
@@ -55,7 +50,7 @@ func (h *Handler) categoriesKeyboard(
 		botapi.InlineRow(
 			botapi.InlineButtonURL(
 				loc.T(i18n.System.AddBotButton, nil),
-				tghtml.StartGroupLink(h.bot.Self().Username),
+				tghtml.StartGroupLink(botUsername),
 			),
 		),
 	)
@@ -70,16 +65,14 @@ func (h *Handler) commandKeyboard(
 	category command.Category,
 	key string,
 ) *botapi.InlineKeyboardMarkup {
-	index := h.registry.CommandIndex(category, key)
-	cmds := h.registry.ByCategory(category)
+	var (
+		rows [][]botapi.InlineKeyboardButton
+		nav  []botapi.InlineKeyboardButton
+	)
 
-	if index == -1 {
-		return nil
-	}
+	h.registry.Find("")
 
-	var nav []botapi.InlineKeyboardButton
-
-	if index > 0 {
+	if prev := h.registry.Prev(category, key); prev != nil {
 		nav = append(nav,
 			botapi.InlineButtonData(
 				"◀️",
@@ -87,13 +80,13 @@ func (h *Handler) commandKeyboard(
 					"%s:%s:%s",
 					callbackHelpCommand,
 					category,
-					cmds[index-1].Key,
+					prev.Key,
 				),
 			),
 		)
 	}
 
-	if index+1 < len(cmds) {
+	if next := h.registry.Next(category, key); next != nil {
 		nav = append(nav,
 			botapi.InlineButtonData(
 				"▶️",
@@ -101,24 +94,20 @@ func (h *Handler) commandKeyboard(
 					"%s:%s:%s",
 					callbackHelpCommand,
 					category,
-					cmds[index+1].Key,
+					next.Key,
 				),
 			),
 		)
 	}
 
-	rows := [][]botapi.InlineKeyboardButton{
-		{
+	rows = append(rows,
+		botapi.InlineRow(
 			botapi.InlineButtonData(
 				loc.T(i18n.Cmd.Help.ButtonCommands, nil),
-				fmt.Sprintf(
-					"%s:%s",
-					callbackHelpCategory,
-					category,
-				),
+				fmt.Sprintf("%s:%s", callbackHelpCategory, category),
 			),
-		},
-	}
+		),
+	)
 
 	if len(nav) > 0 {
 		rows = append(rows, nav)

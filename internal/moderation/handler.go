@@ -7,101 +7,108 @@ import (
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/option"
 	"activity-bot/internal/permission"
-	"activity-bot/internal/predicate"
 	"activity-bot/internal/rule"
-
-	"github.com/gotd/botapi"
 )
 
 const CategoryModeration command.Category = "moderation"
 
 type Handler struct {
-	bot *botapi.Bot
-
-	rules       *predicate.RuleChecker
-	permissions *predicate.PermissionChecker
-
 	service           *Service
 	chatMemberService *chatmember.Service
 }
 
 func NewHandler(
-	b *botapi.Bot,
-	r *predicate.RuleChecker,
-	p *predicate.PermissionChecker,
 	service *Service,
 	cms *chatmember.Service,
 ) *Handler {
 	return &Handler{
-		bot:               b,
-		rules:             r,
-		permissions:       p,
 		service:           service,
 		chatMemberService: cms,
 	}
 }
 
-func (h *Handler) Register(registry *command.Registry) {
-	registry.AddCategory(CategoryModeration)
-
-	setRole := action.NewCommand(
-		"set_role",
-		i18n.Cmd.Moderation.SetRole.Desc,
-		CategoryModeration,
-		permission.StatusAdmin,
-		option.WithAliases("+роль", "роль"),
-		option.WithRules(
-			rule.User().Optional(),
-			rule.Text().Validate(isValidRoleString),
+func (h *Handler) Actions() []*command.ActionDef {
+	return []*command.ActionDef{
+		action.NewCommand(
+			"set_role",
+			h.SetRole,
+			i18n.Cmd.Moderation.SetRole.Desc,
+			CategoryModeration,
+			option.WithPermission(permission.StatusModerator),
+			option.WithAliases("+роль", "роль"),
+			option.WithRules(
+				rule.User().Optional(),
+				rule.Text().Validate(isValidRoleString),
+			),
 		),
-	)
 
-	setRoleAdmin := action.NewCommand(
-		"set_role_admin",
-		i18n.Cmd.Moderation.SetRoleAdmin.Desc,
-		CategoryModeration,
-		permission.StatusCoOwner,
-		option.WithAliases("+адмроль", "адмроль"),
-		option.WithRules(
-			rule.User().Optional(),
-			rule.Text().Validate(isValidRoleString),
+		action.NewCommand(
+			"set_role_admin",
+			h.SetRoleAdmin,
+			i18n.Cmd.Moderation.SetRoleAdmin.Desc,
+			CategoryModeration,
+			option.WithPermission(permission.StatusCoOwner),
+			option.WithAliases("+адмроль", "адмроль"),
+			option.WithRules(
+				rule.User().Optional(),
+				rule.Text().Validate(isValidRoleString),
+			),
 		),
-	)
 
-	ban := action.NewCommand(
-		"ban",
-		i18n.Cmd.Moderation.Ban.Desc,
-		CategoryModeration,
-		permission.StatusSeniorAdmin,
-		option.WithAliases("бан", "кик"),
-		option.WithRules(
-			rule.User(),
-			rule.DateTimeOrDuration().Optional(),
-			rule.Text().Optional(),
+		action.NewCommand(
+			"ban",
+			h.Ban,
+			i18n.Cmd.Moderation.Ban.Desc,
+			CategoryModeration,
+			option.WithPermission(permission.StatusSeniorAdmin),
+			option.WithAliases("бан", "кик"),
+			option.WithRules(
+				rule.User(),
+				rule.DateTimeOrDuration().Optional(),
+				rule.Text().Optional(),
+			),
 		),
-	)
 
-	registry.Add(setRole)
-	registry.Add(setRoleAdmin)
-	registry.Add(ban)
+		action.NewCommand(
+			"mute",
+			h.Mute,
+			i18n.Cmd.Moderation.Mute.Desc,
+			CategoryModeration,
+			option.WithPermission(permission.StatusAdmin),
+			option.WithAliases("мут", "молчать"),
+			option.WithRules(
+				rule.User(),
+				rule.DateTimeOrDuration().Optional(),
+				rule.Text().Optional(),
+			),
+		),
 
-	h.bot.OnMessage(
-		h.SetRoleAdmin,
-		predicate.Command(setRoleAdmin.Key, setRoleAdmin.Aliases...),
-		h.rules.With(setRoleAdmin.Rules...),
-		h.permissions.Require(setRoleAdmin.Key, setRoleAdmin.MinStatus),
-	)
-	h.bot.OnMessage(
-		h.SetRole,
-		predicate.Command(setRole.Key, setRole.Aliases...),
-		h.rules.With(setRole.Rules...),
-		h.permissions.Require(setRole.Key, setRole.MinStatus),
-	)
-	h.bot.OnMessage(
-		h.Ban,
-		predicate.Command(ban.Key, ban.Aliases...),
-		h.rules.With(ban.Rules...),
-		h.permissions.Require(ban.Key, ban.MinStatus),
-	)
+		action.NewCommand(
+			"kick",
+			h.Kick,
+			i18n.Cmd.Moderation.Kick.Desc,
+			CategoryModeration,
+			option.WithPermission(permission.StatusSeniorAdmin),
+			option.WithAliases("кик"),
+			option.WithRules(
+				rule.User(),
+				rule.DateTimeOrDuration().Optional(),
+				rule.Text().Optional(),
+			),
+		),
 
+		action.NewCommand(
+			"warn",
+			h.Warn,
+			i18n.Cmd.Moderation.Warn.Desc,
+			CategoryModeration,
+			option.WithPermission(permission.StatusSeniorAdmin),
+			option.WithAliases("варн", "пред"),
+			option.WithRules(
+				rule.User(),
+				rule.DateTimeOrDuration().Optional(),
+				rule.Text().Optional(),
+			),
+		),
+	}
 }

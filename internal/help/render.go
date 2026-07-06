@@ -69,30 +69,34 @@ func (h *Handler) renderCommand(
 
 	sb.WriteString("\n\n")
 
-	if len(cmd.Rules) > 0 {
-		sb.WriteString(tghtml.Bold(loc.T(i18n.Cmd.Help.Syntax, nil)))
-		sb.WriteString("\n")
-
-		sb.WriteString(
-			tghtml.Code(
-				buildSyntaxString(cmd.Key, cmd.Rules, loc),
-			),
-		)
-
-		sb.WriteString("\n\n")
-	}
-
-	if len(cmd.Aliases) > 0 {
-		sb.WriteString(tghtml.Bold(loc.T(i18n.Cmd.Help.AliasesLabel, nil)))
-		sb.WriteString("\n")
-
-		for _, alias := range cmd.Aliases {
-			sb.WriteString("• ")
-			sb.WriteString(tghtml.Code(alias))
+	if trigger, ok := cmd.Trigger.(*command.CommandTrigger); ok {
+		rules := trigger.Rules
+		if len(rules) > 0 {
+			sb.WriteString(tghtml.Bold(loc.T(i18n.Cmd.Help.Syntax, nil)))
 			sb.WriteString("\n")
+
+			sb.WriteString(
+				tghtml.Code(
+					buildSyntaxString(cmd.Key, rules, loc),
+				),
+			)
+
+			sb.WriteString("\n\n")
 		}
 
-		sb.WriteString("\n")
+		aliases := trigger.Aliases
+		if len(aliases) > 0 {
+			sb.WriteString(tghtml.Bold(loc.T(i18n.Cmd.Help.AliasesLabel, nil)))
+			sb.WriteString("\n")
+
+			for _, alias := range aliases {
+				sb.WriteString("• ")
+				sb.WriteString(tghtml.Code(alias))
+				sb.WriteString("\n")
+			}
+
+			sb.WriteString("\n")
+		}
 	}
 
 	if len(cmd.Examples) > 0 {

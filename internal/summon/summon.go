@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/i18n"
 	"fmt"
+	"strings"
 
 	"github.com/gotd/botapi"
 )
@@ -56,17 +57,17 @@ func (h *Handler) RequestSummonConfirmation(
 				botapi.InlineRow(
 					botapi.InlineButtonData(
 						loc.T(i18n.Cmd.Summon.Confirm.Yes, nil),
-						"summon:confirm",
+						callbackSummonConfirm,
 					),
 					botapi.InlineButtonData(
 						loc.T(i18n.Cmd.Summon.Confirm.No, nil),
-						"summon:cancel",
+						callbackSummonCancel,
 					),
 				),
 				botapi.InlineRow(
 					botapi.InlineButtonData(
 						loc.T(i18n.Cmd.Summon.Confirm.YesAndDisable, nil),
-						"summon:confirm_dont_ask",
+						callbackSummonConfirmDontAsk,
 					),
 				),
 			),
@@ -185,16 +186,23 @@ func (h *Handler) SummonStyle(c *botapi.Context) error {
 	return err
 }
 
-func (h *Handler) ToggleMentionEmoji(c *botapi.Context) error {
-	return h.toggleMentionStyle(c, chat.MentionEmoji)
-}
+func (h *Handler) ToggleSummonStyle(c *botapi.Context) error {
+	style := strings.TrimPrefix(c.Update.CallbackQuery.Data, callbackSummonStyle)
 
-func (h *Handler) ToggleMentionName(c *botapi.Context) error {
-	return h.toggleMentionStyle(c, chat.MentionName)
-}
+	var flag chat.MentionTypes
 
-func (h *Handler) ToggleMentionRole(c *botapi.Context) error {
-	return h.toggleMentionStyle(c, chat.MentionRole)
+	switch style {
+	case "emoji":
+		flag = chat.MentionEmoji
+	case "name":
+		flag = chat.MentionName
+	case "role":
+		flag = chat.MentionRole
+	default:
+		return nil
+	}
+
+	return h.toggleMentionStyle(c, flag)
 }
 
 func (h *Handler) toggleMentionStyle(c *botapi.Context, flag chat.MentionTypes) error {

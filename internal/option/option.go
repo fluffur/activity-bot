@@ -3,14 +3,17 @@ package option
 import (
 	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/rule"
+
+	"github.com/gotd/botapi"
 )
 
 type Option func(*command.ActionDef)
 
 func WithRules(rules ...rule.Rule) Option {
 	return func(c *command.ActionDef) {
-		c.Rules = rules
+		c.Trigger.(*command.CommandTrigger).Rules = rules
 	}
 }
 
@@ -22,12 +25,36 @@ func WithExamples(ex ...i18n.MessageID) Option {
 
 func WithAliases(aliases ...string) Option {
 	return func(c *command.ActionDef) {
-		c.Aliases = aliases
+		c.Trigger.(*command.CommandTrigger).Aliases = aliases
 	}
 }
 
 func WithScope(scope command.Scope) Option {
 	return func(c *command.ActionDef) {
-		c.Scope = scope
+		c.Trigger.(*command.CommandTrigger).Scope = scope
+	}
+}
+
+func WithPredicates(predicates ...botapi.Predicate) Option {
+	return func(c *command.ActionDef) {
+		c.ExtraPredicates = predicates
+	}
+}
+
+func WithPermission(p permission.Status) Option {
+	return func(c *command.ActionDef) {
+		c.Permission = p
+	}
+}
+
+func IgnorePermissionCheck() Option {
+	return func(c *command.ActionDef) {
+		c.IgnorePermissionDenied = true
+	}
+}
+
+func Hidden() Option {
+	return func(c *command.ActionDef) {
+		c.ShowInHelp = false
 	}
 }

@@ -33,7 +33,7 @@ func (h *Handler) SetRole(c *botapi.Context) error {
 	}
 
 	loc := cctx.MustLocalizer(c)
-	if err := h.bot.SetChatMemberTag(c, botapi.ID(ch.ID), cm.ID(), newRole); err != nil {
+	if err := c.Bot.SetChatMemberTag(c, botapi.ID(ch.ID), cm.ID(), newRole); err != nil {
 		if tgErr, ok := errors.AsType[*tgerr.Error](err); ok && tgErr.Type == "CHAT_CREATOR_REQUIRED" {
 			if cm.IsOwner() {
 				_, err = c.Reply(loc.T(i18n.Cmd.Moderation.SetRole.ChatCreator, nil))
@@ -85,7 +85,7 @@ func (h *Handler) SetRoleAdmin(c *botapi.Context) error {
 	}
 
 	loc := cctx.MustLocalizer(c)
-	if err := h.bot.SetChatMemberTag(c, botapi.ID(ch.ID), cm.ID(), newRole); err != nil {
+	if err := c.Bot.SetChatMemberTag(c, botapi.ID(ch.ID), cm.ID(), newRole); err != nil {
 		if tgErr, ok := errors.AsType[*tgerr.Error](err); ok && tgErr.Type == "CHAT_CREATOR_REQUIRED" {
 			if cm.IsOwner() {
 				_, err = c.Reply(loc.T(i18n.Cmd.Moderation.SetRoleAdmin.ChatCreator, nil))
@@ -105,7 +105,7 @@ func (h *Handler) SetRoleAdmin(c *botapi.Context) error {
 		return fmt.Errorf("set role admin set tag: %w", err)
 	}
 
-	if err := h.bot.PromoteChatMember(c, botapi.ID(ch.ID), cm.ID(), botapi.ChatAdminRights{
+	if err := c.Bot.PromoteChatMember(c, botapi.ID(ch.ID), cm.ID(), botapi.ChatAdminRights{
 		CanManageChat: true,
 		CustomTitle:   newRole,
 	}); err != nil {

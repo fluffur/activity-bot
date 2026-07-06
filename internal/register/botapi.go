@@ -1,0 +1,117 @@
+package register
+
+import (
+	"activity-bot/internal/command"
+	"activity-bot/internal/predicate"
+
+	"github.com/gotd/botapi"
+)
+
+func Attach(
+	bot *botapi.Bot,
+	registry *command.Registry,
+	permissions *predicate.PermissionChecker,
+	rules *predicate.RuleChecker,
+) {
+	for _, action := range registry.All() {
+		registerAction(bot, action, permissions, rules)
+	}
+}
+
+func registerAction(
+	bot *botapi.Bot,
+	action *command.ActionDef,
+	permissions *predicate.PermissionChecker,
+	rules *predicate.RuleChecker,
+) {
+	switch t := action.Trigger.(type) {
+	case *command.CommandTrigger:
+		bot.OnMessage(
+			action.Handler,
+			buildCommandPredicates(action, t, permissions, rules)...,
+		)
+
+	case *command.CallbackTrigger:
+		bot.OnCallbackQuery(
+			action.Handler,
+			buildCallbackPredicates(action, t, permissions)...,
+		)
+	}
+}
+
+func buildCommandPredicates(
+	action *command.ActionDef,
+	trigger *command.CommandTrigger,
+	permissions *predicate.PermissionChecker,
+	rules *predicate.RuleChecker,
+) []botapi.Predicate {
+	var predicates []botapi.Predicate
+
+	switch trigger.Scope {
+	case command.ScopeGroup:
+		predicates = append(predicates, predicate.Chat())
+
+	case command.ScopePrivate:
+		predicates = append(predicates, predicate.Private())
+
+	case command.ScopeAny:
+	}
+
+	predicates = append(predicates,
+		predicate.Command(action.Key, trigger.Aliases...),
+	)
+
+	if len(trigger.Rules) != 0 {
+		predicates = append(predicates,
+			rules.With(trigger.Rules...),
+		)
+	} else {
+		predicates = append(predicates, predicate.NoArgs())
+	}
+
+	if action.IgnorePermissionDenied {
+		predicates = append(predicates,
+			permissions.Pass(action.Key, action.Permission),
+		)
+	} else {
+		predicates = append(predicates,
+			permissions.Require(action.Key, action.Permission),
+		)
+	}
+
+	predicates = append(predicates, action.ExtraPredicates...)
+
+	return predicates
+}
+
+func buildCallbackPredicates(
+	action *command.ActionDef,
+	trigger *command.CallbackTrigger,
+	permissions *predicate.PermissionChecker,
+) []botapi.Predicate {
+	var predicates []botapi.Predicate
+
+	if trigger.Prefix {
+		predicates = append(predicates,
+			botapi.CallbackPrefix(trigger.Data),
+		)
+	} else {
+		predicates = append(predicates,
+			botapi.CallbackData(trigger.Data),
+		)
+	}
+
+	if action.IgnorePermissionDenied {
+		predicates = append(predicates,
+			permissions.Pass(action.Key, action.Permission),
+		)
+	} else {
+		predicates = append(predicates,
+			permissions.Require(action.Key, action.Permission),
+		)
+	}
+
+	predicates = append(predicates, action.ExtraPredicates...)
+
+	return predicates
+}

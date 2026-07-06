@@ -25,6 +25,6 @@ func NewHandler(
 	}
 }
 
-func (h *Handler) Register() {
+func (h *Handler) Attach() {
 	h.bot.Dispatcher().OnChannelParticipant(h.ParticipantUpdate)
 }

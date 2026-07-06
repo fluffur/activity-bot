@@ -4,13 +4,8 @@ import (
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/permission"
 	"activity-bot/internal/rule"
-)
 
-type TriggerType string
-
-const (
-	TriggerCommand  TriggerType = "command"
-	TriggerCallback TriggerType = "callback"
+	"github.com/gotd/botapi"
 )
 
 type Category string
@@ -23,21 +18,58 @@ const (
 	ScopeGroup   Scope = 2
 )
 
+type Trigger interface {
+	isTrigger()
+	IndexKeys() []string
+}
+
+type CommandTrigger struct {
+	Aliases  []string
+	Scope    Scope
+	Rules    []rule.Rule
+	Prefixes []string
+}
+
+func (c *CommandTrigger) isTrigger() {}
+
+func (c *CommandTrigger) IndexKeys() []string {
+	return c.Aliases
+}
+
+type CallbackTrigger struct {
+	Data   string
+	Prefix bool
+}
+
+func (*CallbackTrigger) isTrigger() {}
+
+func (*CallbackTrigger) IndexKeys() []string {
+	return nil
+}
+
 type ActionDef struct {
-	Key string
+	Key     string
+	Handler botapi.Handler
 
-	Aliases []string
+	Trigger Trigger
 
-	Trigger TriggerType
+	Permission             permission.Status
+	IgnorePermissionDenied bool
 
-	Parent *ActionDef
-
-	MinStatus   permission.Status
 	Category    Category
 	Description i18n.MessageID
 	Examples    []i18n.MessageID
-	Scope       Scope
 
 	ShowInHelp bool
-	Rules      []rule.Rule
+
+	ExtraPredicates []botapi.Predicate
+}
+
+func (a *ActionDef) CallbackData() (string, bool) {
+	t, ok := a.Trigger.(*CallbackTrigger)
+	if !ok {
+		return "", false
+	}
+
+	return t.Data, true
 }

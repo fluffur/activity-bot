@@ -8,15 +8,20 @@ import (
 	"activity-bot/internal/db/postgres"
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/events"
+	"activity-bot/internal/handler"
 	"activity-bot/internal/help"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/message"
 	"activity-bot/internal/middleware"
 	"activity-bot/internal/moderation"
 	"activity-bot/internal/norm"
+	"activity-bot/internal/pmsession"
 	"activity-bot/internal/predicate"
+	"activity-bot/internal/register"
 	"activity-bot/internal/rest"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/summon"
+	"activity-bot/internal/user"
 	"context"
 	"os"
 	"os/signal"
@@ -51,18 +56,6 @@ func main() {
 
 	defer func() { _ = store.Close() }()
 
-	bot, err := botapi.New(cfg.BotToken, botapi.Options{
-		AppID:                      cfg.AppID,
-		AppHash:                    cfg.AppHash,
-		Logger:                     logzap.New(log),
-		Storage:                    store,
-		FloodWait:                  true,
-		DisableCommandRegistration: true,
-	})
-	if err != nil {
-		log.Fatal("Create bot", zap.Error(err))
-	}
-
 	pool, err := pgxpool.New(ctx, cfg.DBDSN)
 	if err != nil {
 		log.Fatal("Connect to database", zap.Error(err))
@@ -79,10 +72,6 @@ func main() {
 	if err != nil {
 		log.Fatal("Create translator", zap.Error(err))
 	}
-
-	loc := translator.Default()
-
-	_ = loc
 
 	chatRepository := postgres.NewChatRepository(queries)
 	userRepository := postgres.NewUserRepository(queries)
@@ -104,8 +93,70 @@ func main() {
 	restService := rest.NewService(restRepository)
 	moderationService := moderation.NewService(moderationRepository, chatMemberRepository, cfg.DeveloperID)
 
+	summonFSM := fsm.New(
+		fsm.NewRedisJSONStore[summon.State, summon.StateData](client, "fsm:summon:", 5*time.Hour),
+		summon.StateIdle,
+		fsm.WithKeyFunc[summon.State, summon.StateData](fsm.ChatSenderKey),
+		fsm.WithUpdateKeyFunc[summon.State, summon.StateData](fsm.ChatSenderUpdateKey),
+	)
+
 	registry := command.NewRegistry()
 
+	handlers := []handler.Handler{
+		help.NewHandler(registry, cfg.CommandsURL, cfg.DeveloperUsername),
+		summon.NewHandler(chatService, chatMemberService, summonFSM),
+		norm.NewHandler(normRepository),
+		stats.NewHandler(statsService),
+		rest.NewHandler(restService, chatMemberService),
+		moderation.NewHandler(moderationService, chatMemberService),
+	}
+
+	for _, h := range handlers {
+		registry.Add(h.Actions())
+	}
+
+	bot, err := botapi.New(cfg.BotToken, botapi.Options{
+		AppID:                      cfg.AppID,
+		AppHash:                    cfg.AppHash,
+		Logger:                     logzap.New(log),
+		Storage:                    store,
+		FloodWait:                  true,
+		DisableCommandRegistration: true,
+	})
+	if err != nil {
+		log.Fatal("Create bot", zap.Error(err))
+	}
+
+	// for every bot
+	registerMiddlewares(
+		bot,
+		translator,
+		chatRepository,
+		pmSessionRepository,
+		userRepository,
+		chatMemberRepository,
+		messageRepository,
+	)
+
+	register.Attach(bot, registry, permissions, rules)
+	events.NewHandler(bot, translator, chatMemberService).Attach()
+
+	log.Info("Starting bot")
+
+	if err := bot.Run(ctx); err != nil {
+		log.Fatal("Run", zap.Error(err))
+	}
+}
+
+func registerMiddlewares(
+	bot *botapi.Bot,
+	translator *i18n.Translator,
+	chatRepository chat.Repository,
+	pmSessionRepository pmsession.Repository,
+	userRepository user.Repository,
+	chatMemberRepository chatmember.Repository,
+	messageRepository message.Repository,
+) {
 	bot.UseOuter(
 		middleware.ChatMiddleware(chatRepository, pmSessionRepository),
 		middleware.LocalizationMiddleware(translator),
@@ -122,26 +173,4 @@ func main() {
 		botapi.Timeout(time.Minute),
 		botapi.Logging(),
 	)
-
-	summonStore := fsm.NewRedisJSONStore[summon.State, summon.StateData](client, "fsm:summon:", 5*time.Hour)
-	summonFSM := fsm.New(
-		summonStore,
-		summon.StateIdle,
-		fsm.WithKeyFunc[summon.State, summon.StateData](fsm.ChatSenderKey),
-		fsm.WithUpdateKeyFunc[summon.State, summon.StateData](fsm.ChatSenderUpdateKey),
-	)
-
-	help.NewHandler(bot, rules, permissions, registry, cfg.CommandsURL, cfg.DeveloperUsername).Register(registry)
-	summon.NewHandler(bot, permissions, chatService, chatMemberService, summonFSM).Register(registry)
-	norm.NewHandler(bot, permissions, rules, normRepository).Register(registry)
-	stats.NewHandler(bot, permissions, rules, statsService).Register(registry)
-	rest.NewHandler(bot, permissions, rules, restService, chatMemberService).Register(registry)
-	moderation.NewHandler(bot, rules, permissions, moderationService, chatMemberService).Register(registry)
-	events.NewHandler(bot, translator, chatMemberService).Register()
-
-	log.Info("Starting bot")
-
-	if err := bot.Run(ctx); err != nil {
-		log.Fatal("Run", zap.Error(err))
-	}
 }
