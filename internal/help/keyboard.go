@@ -3,30 +3,29 @@ package help
 import (
 	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
-	"activity-bot/internal/utils/tghtml"
 	"fmt"
+
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/gotd/botapi"
 )
 
-func (h *Handler) categoriesKeyboard(
-	botUsername string,
-	loc *i18n.Localizer,
-) *botapi.InlineKeyboardMarkup {
-	var rows [][]botapi.InlineKeyboardButton
+func (h *Handler) categoriesKeyboard(loc *i18n.Localizer) *botapi.InlineKeyboardMarkup {
+	var (
+		rows [][]botapi.InlineKeyboardButton
+		row  []botapi.InlineKeyboardButton
+	)
 
 	for _, category := range h.registry.Categories() {
 		cmds := h.registry.ByCategory(category)
 
 		hasCommands := false
-
 		for _, cmd := range cmds {
 			if cmd.ShowInHelp {
 				hasCommands = true
 				break
 			}
 		}
-
 		if !hasCommands {
 			continue
 		}
@@ -36,24 +35,29 @@ func (h *Handler) categoriesKeyboard(
 			nil,
 		)
 
-		rows = append(rows,
-			botapi.InlineRow(
-				botapi.InlineButtonData(
-					title,
-					fmt.Sprintf("%s:%s", callbackHelpCategory, category),
+		row = append(row,
+			botapi.InlineButtonData(
+				title,
+				fmt.Sprintf(
+					"%s:%s:%d",
+					callbackHelpCategory,
+					category,
+					0,
 				),
 			),
 		)
+
+		// две кнопки в строке
+		if len(row) == 2 {
+			rows = append(rows, row)
+			row = nil
+		}
 	}
 
-	rows = append(rows,
-		botapi.InlineRow(
-			botapi.InlineButtonURL(
-				loc.T(i18n.System.AddBotButton, nil),
-				tghtml.StartGroupLink(botUsername),
-			),
-		),
-	)
+	// если осталась одна кнопка
+	if len(row) > 0 {
+		rows = append(rows, row)
+	}
 
 	return &botapi.InlineKeyboardMarkup{
 		InlineKeyboard: rows,
@@ -100,6 +104,10 @@ func (h *Handler) commandKeyboard(
 		)
 	}
 
+	if len(nav) > 0 {
+		rows = append(rows, nav)
+	}
+
 	rows = append(rows,
 		botapi.InlineRow(
 			botapi.InlineButtonData(
@@ -109,10 +117,6 @@ func (h *Handler) commandKeyboard(
 		),
 	)
 
-	if len(nav) > 0 {
-		rows = append(rows, nav)
-	}
-
 	return &botapi.InlineKeyboardMarkup{
 		InlineKeyboard: rows,
 	}
@@ -121,14 +125,39 @@ func (h *Handler) commandKeyboard(
 func (h *Handler) commandsKeyboard(
 	loc *i18n.Localizer,
 	category command.Category,
+	page int,
 ) *botapi.InlineKeyboardMarkup {
 	var rows [][]botapi.InlineKeyboardButton
 
-	for _, cmd := range h.registry.ByCategory(category) {
-		if !cmd.ShowInHelp {
-			continue
-		}
+	cmds := make([]*command.ActionDef, 0)
 
+	for _, cmd := range h.registry.ByCategory(category) {
+		if cmd.ShowInHelp {
+			cmds = append(cmds, cmd)
+		}
+	}
+	spew.Dump(category, cmds)
+	if len(cmds) == 0 {
+		return &botapi.InlineKeyboardMarkup{}
+	}
+
+	totalPages := (len(cmds) + commandsPerPage - 1) / commandsPerPage
+
+	if page < 0 {
+		page = 0
+	}
+	if page >= totalPages {
+		page = totalPages - 1
+	}
+
+	start := page * commandsPerPage
+	end := start + commandsPerPage
+
+	if end > len(cmds) {
+		end = len(cmds)
+	}
+
+	for _, cmd := range cmds[start:end] {
 		rows = append(rows,
 			botapi.InlineRow(
 				botapi.InlineButtonData(
@@ -142,6 +171,47 @@ func (h *Handler) commandsKeyboard(
 				),
 			),
 		)
+	}
+
+	if totalPages > 1 {
+		var nav []botapi.InlineKeyboardButton
+
+		if page > 0 {
+			nav = append(nav,
+				botapi.InlineButtonData(
+					"◀️",
+					fmt.Sprintf(
+						"%s:%s:%d",
+						callbackHelpCategory,
+						category,
+						page-1,
+					),
+				),
+			)
+		}
+
+		nav = append(nav,
+			botapi.InlineButtonData(
+				fmt.Sprintf("%d/%d", page+1, totalPages),
+				"ignore",
+			),
+		)
+
+		if page+1 < totalPages {
+			nav = append(nav,
+				botapi.InlineButtonData(
+					"▶️",
+					fmt.Sprintf(
+						"%s:%s:%d",
+						callbackHelpCategory,
+						category,
+						page+1,
+					),
+				),
+			)
+		}
+
+		rows = append(rows, nav)
 	}
 
 	rows = append(rows,

@@ -70,6 +70,7 @@ var (
 			ChooseCategory MessageID
 			Desc           MessageID
 			Examples       MessageID
+			Page           MessageID
 			Syntax         MessageID
 		}
 		HelpCommand struct {
@@ -355,6 +356,7 @@ var (
 			ChooseCategory MessageID
 			Desc           MessageID
 			Examples       MessageID
+			Page           MessageID
 			Syntax         MessageID
 		}{
 			AliasesLabel:   "cmd.help.aliases_label",
@@ -364,6 +366,7 @@ var (
 			ChooseCategory: "cmd.help.choose_category",
 			Desc:           "cmd.help.desc",
 			Examples:       "cmd.help.examples",
+			Page:           "cmd.help.page",
 			Syntax:         "cmd.help.syntax",
 		},
 		HelpCommand: struct {
@@ -1028,9 +1031,124 @@ var (
 	}
 )
 
-type CmdListNormsItemData struct {
+type SystemNoPermissionData struct {
+	Status any
+}
+
+type SystemUsernameChangedMaleData struct {
+	User        any
+	OldUsername any
+	NewUsername any
+}
+
+type SystemUsernameChangedFemaleData struct {
+	User        any
+	OldUsername any
+	NewUsername any
+}
+
+type SystemUsernameChangedUnknownData struct {
+	User        any
+	OldUsername any
+	NewUsername any
+}
+
+type UserLeftFemaleData struct {
+	User any
+}
+
+type UserLeftUnknownData struct {
+	User any
+}
+
+type UserLeftMaleData struct {
+	User any
+}
+
+type UserJoinedFemaleData struct {
+	User any
+}
+
+type UserJoinedUnknownData struct {
+	User any
+}
+
+type UserJoinedMaleData struct {
+	User any
+}
+
+type UserReturnedMaleData struct {
+	User any
+}
+
+type UserReturnedFemaleData struct {
+	User any
+}
+
+type UserReturnedUnknownData struct {
+	User any
+}
+
+type CmdEndRestEndedData struct {
+	User any
+}
+
+type CmdEndRestNotInRestData struct {
+	User any
+}
+
+type CmdAssignNormAssignedData struct {
+	Name any
+}
+
+type CmdAddNormErrInvalidValueData struct {
+	Value any
+	Min   any
+	Max   any
+}
+
+type CmdAddNormAddedData struct {
 	Name  any
 	Value any
+}
+
+type CmdRestRequestItemData struct {
+	Index any
+	From  any
+	To    any
+}
+
+type CmdRestRequestEmptyData struct {
+	User any
+}
+
+type CmdRestRequestTitleData struct {
+	User any
+}
+
+type CmdRestRequestTextReasonData struct {
+	User   any
+	Date   any
+	Reason any
+}
+
+type CmdRestRequestApprovedData struct {
+	User any
+	Date any
+}
+
+type CmdRestRequestTextData struct {
+	User any
+	Date any
+}
+
+type CmdHelpPageData struct {
+	Page  any
+	Pages any
+}
+
+type CmdUnassignNormUnassignedData struct {
+	Name any
 }
 
 type CmdShowNormBodyData struct {
@@ -1042,220 +1160,6 @@ type CmdShowNormNotFoundData struct {
 	Name    any
 	Code    any
 	CodeEnd any
-}
-
-type CmdProfileTitleData struct {
-	User any
-}
-
-type CmdProfileMemberSinceData struct {
-	Date any
-	Days any
-}
-
-type CmdProfileRestUntilData struct {
-	Date any
-}
-
-type CmdProfileNormFailedData struct {
-	Name     any
-	Current  any
-	Required any
-}
-
-type CmdProfileMemberPeriodData struct {
-	From any
-	To   any
-	Days any
-}
-
-type CmdProfileNormPassedData struct {
-	Name     any
-	Required any
-}
-
-type CmdProfileActivityData struct {
-	Day          any
-	Week         any
-	Month        any
-	DayRolling   any
-	WeekRolling  any
-	MonthRolling any
-	Total        any
-}
-
-type CmdProfileTotalMessagesData struct {
-	Total any
-}
-
-type CmdRestRequestEmptyData struct {
-	User any
-}
-
-type CmdRestRequestItemData struct {
-	Index any
-	From  any
-	To    any
-}
-
-type CmdRestRequestApprovedData struct {
-	User any
-	Date any
-}
-
-type CmdRestRequestTextReasonData struct {
-	User   any
-	Date   any
-	Reason any
-}
-
-type CmdRestRequestTitleData struct {
-	User any
-}
-
-type CmdRestRequestTextData struct {
-	User any
-	Date any
-}
-
-type CmdRestSetData struct {
-	User any
-	Date any
-}
-
-type CmdRestSetReasonData struct {
-	User   any
-	Date   any
-	Reason any
-}
-
-type CmdRestInfoData struct {
-	User any
-	Date any
-}
-
-type CmdRestInfoReasonData struct {
-	User   any
-	Date   any
-	Reason any
-}
-
-type CmdRestNoRestData struct {
-	User any
-}
-
-type CmdModerationSetMaxWarnsSetData struct {
-	Max any
-}
-
-type CmdModerationClearWarnsSuccessData struct {
-	User any
-}
-
-type CmdModerationSetRoleSetData struct {
-	User any
-}
-
-type CmdModerationSetRoleAdminSetData struct {
-	User any
-}
-
-type CmdModerationWarnListHeaderData struct {
-	Count    any
-	MaxWarns any
-}
-
-type CmdModerationWarnListItemData struct {
-	Index     any
-	User      any
-	Created   any
-	Moderator any
-}
-
-type CmdModerationWarnListExpiresData struct {
-	Until any
-}
-
-type CmdModerationWarnListReasonData struct {
-	Reason any
-}
-
-type CmdModerationUnbanUnbannedData struct {
-	User any
-}
-
-type CmdModerationMaxWarnsShowData struct {
-	Max any
-}
-
-type CmdModerationShowWarnsHeaderData struct {
-	User    any
-	Current any
-	Max     any
-}
-
-type CmdModerationShowWarnsEmptyData struct {
-	User any
-}
-
-type CmdModerationShowWarnsItemData struct {
-	Index     any
-	Created   any
-	Moderator any
-}
-
-type CmdModerationShowWarnsExpiresData struct {
-	Until any
-}
-
-type CmdModerationShowWarnsReasonData struct {
-	Reason any
-}
-
-type CmdModerationTemplatesActionData struct {
-	User   any
-	Action any
-	Until  any
-}
-
-type CmdModerationTemplatesReasonData struct {
-	Reason any
-}
-
-type CmdModerationTemplatesModeratorData struct {
-	Moderator any
-}
-
-type CmdModerationTemplatesWarnsData struct {
-	Current any
-	Max     any
-}
-
-type CmdModerationTemplatesUntilData struct {
-	Until any
-}
-
-type CmdModerationUnwarnSuccessData struct {
-	User  any
-	Left  any
-	Total any
-}
-
-type CmdModerationRemoveAdminSuccessData struct {
-	User any
-}
-
-type CmdModerationSetStatusSuccessData struct {
-	User   any
-	Status any
-}
-
-type CmdAssignNormAssignedData struct {
-	Name any
-}
-
-type CmdUnassignNormUnassignedData struct {
-	Name any
 }
 
 type CmdRestsHistoryTitleData struct {
@@ -1285,13 +1189,25 @@ type CmdRestsHistoryEmptyData struct {
 	User any
 }
 
-type CmdStatsTotalMessagesData struct {
-	Total any
+type CmdStatsUserFailedData struct {
+	List     any
+	User     any
+	Messages any
+	Required any
+}
+
+type CmdStatsTitleData struct {
+	From any
+	To   any
 }
 
 type CmdStatsNormTitleData struct {
 	Name     any
 	Required any
+}
+
+type CmdStatsTotalMessagesData struct {
+	Total any
 }
 
 type CmdStatsUserPassedData struct {
@@ -1300,35 +1216,110 @@ type CmdStatsUserPassedData struct {
 	Messages any
 }
 
-type CmdStatsTitleData struct {
-	From any
-	To   any
-}
-
-type CmdStatsUserFailedData struct {
-	List     any
-	User     any
-	Messages any
-	Required any
-}
-
-type CmdEndRestEndedData struct {
+type CmdModerationSetRoleSetData struct {
 	User any
 }
 
-type CmdEndRestNotInRestData struct {
+type CmdModerationSetMaxWarnsSetData struct {
+	Max any
+}
+
+type CmdModerationRemoveAdminSuccessData struct {
 	User any
 }
 
-type CmdAddNormErrInvalidValueData struct {
-	Value any
-	Min   any
-	Max   any
+type CmdModerationShowWarnsHeaderData struct {
+	User    any
+	Current any
+	Max     any
 }
 
-type CmdAddNormAddedData struct {
-	Name  any
-	Value any
+type CmdModerationShowWarnsEmptyData struct {
+	User any
+}
+
+type CmdModerationShowWarnsItemData struct {
+	Index     any
+	Created   any
+	Moderator any
+}
+
+type CmdModerationShowWarnsExpiresData struct {
+	Until any
+}
+
+type CmdModerationShowWarnsReasonData struct {
+	Reason any
+}
+
+type CmdModerationMaxWarnsShowData struct {
+	Max any
+}
+
+type CmdModerationUnwarnSuccessData struct {
+	User  any
+	Left  any
+	Total any
+}
+
+type CmdModerationSetRoleAdminSetData struct {
+	User any
+}
+
+type CmdModerationTemplatesActionData struct {
+	User   any
+	Action any
+	Until  any
+}
+
+type CmdModerationTemplatesReasonData struct {
+	Reason any
+}
+
+type CmdModerationTemplatesModeratorData struct {
+	Moderator any
+}
+
+type CmdModerationTemplatesWarnsData struct {
+	Current any
+	Max     any
+}
+
+type CmdModerationTemplatesUntilData struct {
+	Until any
+}
+
+type CmdModerationUnbanUnbannedData struct {
+	User any
+}
+
+type CmdModerationSetStatusSuccessData struct {
+	User   any
+	Status any
+}
+
+type CmdModerationClearWarnsSuccessData struct {
+	User any
+}
+
+type CmdModerationWarnListItemData struct {
+	Index     any
+	User      any
+	Created   any
+	Moderator any
+}
+
+type CmdModerationWarnListExpiresData struct {
+	Until any
+}
+
+type CmdModerationWarnListReasonData struct {
+	Reason any
+}
+
+type CmdModerationWarnListHeaderData struct {
+	Count    any
+	MaxWarns any
 }
 
 type CmdDeleteNormDeletedData struct {
@@ -1339,60 +1330,77 @@ type CmdDeleteNormErrNothingToDeleteData struct {
 	Name any
 }
 
-type SystemNoPermissionData struct {
-	Status any
+type CmdListNormsItemData struct {
+	Name  any
+	Value any
 }
 
-type SystemUsernameChangedMaleData struct {
-	User        any
-	OldUsername any
-	NewUsername any
+type CmdProfileNormFailedData struct {
+	Name     any
+	Current  any
+	Required any
 }
 
-type SystemUsernameChangedFemaleData struct {
-	User        any
-	OldUsername any
-	NewUsername any
+type CmdProfileRestUntilData struct {
+	Date any
 }
 
-type SystemUsernameChangedUnknownData struct {
-	User        any
-	OldUsername any
-	NewUsername any
+type CmdProfileNormPassedData struct {
+	Name     any
+	Required any
 }
 
-type UserJoinedMaleData struct {
+type CmdProfileActivityData struct {
+	Day          any
+	Week         any
+	Month        any
+	DayRolling   any
+	WeekRolling  any
+	MonthRolling any
+	Total        any
+}
+
+type CmdProfileTitleData struct {
 	User any
 }
 
-type UserJoinedFemaleData struct {
-	User any
+type CmdProfileMemberPeriodData struct {
+	From any
+	To   any
+	Days any
 }
 
-type UserJoinedUnknownData struct {
-	User any
+type CmdProfileTotalMessagesData struct {
+	Total any
 }
 
-type UserReturnedMaleData struct {
-	User any
+type CmdProfileMemberSinceData struct {
+	Date any
+	Days any
 }
 
-type UserReturnedFemaleData struct {
+type CmdRestSetData struct {
 	User any
+	Date any
 }
 
-type UserReturnedUnknownData struct {
-	User any
+type CmdRestSetReasonData struct {
+	User   any
+	Date   any
+	Reason any
 }
 
-type UserLeftMaleData struct {
+type CmdRestInfoData struct {
 	User any
+	Date any
 }
 
-type UserLeftFemaleData struct {
-	User any
+type CmdRestInfoReasonData struct {
+	User   any
+	Date   any
+	Reason any
 }
 
-type UserLeftUnknownData struct {
+type CmdRestNoRestData struct {
 	User any
 }

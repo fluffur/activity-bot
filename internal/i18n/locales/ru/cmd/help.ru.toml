@@ -1,14 +1,15 @@
 [cmd.help]
-
 desc = { other = "Помощь по командам бота" }
 
-body = { other = "Можно узнать информацию о любой команде: <code>помощь название команды</code> или воспользоваться клавиатурой ниже" }
-choose_category = { other = "Выберите категорию команд." }
+body = { other = "Можно узнать информацию о любой команде: <code>помощь <команда></code> или воспользоваться клавиатурой ниже" }
+choose_category = { other = "Выберите категорию команд:" }
 
 syntax = { other = "Синтаксис:" }
 examples = { other = "Примеры:" }
 
 aliases_label = { other = "Синонимы:" }
+
+page = { other = "Страница {{.Page}} из {{.Pages}}" }
 
 button_commands = { other = "⬅️ Команды" }
 button_back = { other = "⬅️ Назад" }

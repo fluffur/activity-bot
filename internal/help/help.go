@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/cctx"
 	"activity-bot/internal/command"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
@@ -18,7 +19,7 @@ func (h *Handler) Help(c *botapi.Context) error {
 		h.renderCategories(loc),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.WithReplyMarkup(
-			h.categoriesKeyboard(c.Bot.Self().Username, loc),
+			h.categoriesKeyboard(loc),
 		),
 	)
 
@@ -28,14 +29,25 @@ func (h *Handler) Help(c *botapi.Context) error {
 func (h *Handler) ShowCategory(c *botapi.Context) error {
 	loc := cctx.MustLocalizer(c)
 
-	data := c.Update.CallbackQuery.Data
-
-	category := command.Category(
-		strings.TrimPrefix(
-			data,
-			callbackHelpCategory+":",
-		),
+	parts := strings.Split(
+		c.Update.CallbackQuery.Data,
+		":",
 	)
+
+	spew.Dump(parts)
+	if len(parts) < 2 {
+		return c.AnswerCallback()
+	}
+
+	category := command.Category(parts[2])
+
+	page := 0
+	if len(parts) >= 4 {
+		p, err := strconv.Atoi(parts[3])
+		if err == nil {
+			page = p
+		}
+	}
 
 	chatID, _ := c.Chat()
 
@@ -43,12 +55,13 @@ func (h *Handler) ShowCategory(c *botapi.Context) error {
 		c,
 		chatID,
 		c.Update.CallbackQuery.Message.MessageID,
-		h.renderCategory(loc, category),
+		h.renderCategory(loc, category, page),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.WithReplyMarkup(
-			h.commandsKeyboard(loc, category),
+			h.commandsKeyboard(loc, category, page),
 		),
 	)
+
 	if err != nil {
 		return fmt.Errorf("edit help category: %w", err)
 	}
@@ -68,7 +81,7 @@ func (h *Handler) ShowCategories(c *botapi.Context) error {
 		h.renderCategories(loc),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.WithReplyMarkup(
-			h.categoriesKeyboard(c.Bot.Self().Username, loc),
+			h.categoriesKeyboard(loc),
 		),
 	)
 	if err != nil {

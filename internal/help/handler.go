@@ -6,6 +6,8 @@ import (
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/option"
 	"activity-bot/internal/rule"
+
+	"github.com/gotd/botapi"
 )
 
 const CategoryHelp command.Category = "help"
@@ -15,6 +17,8 @@ const (
 	callbackHelpCategory   = "help:category"
 	callbackHelpCommand    = "help:command"
 )
+
+const commandsPerPage = 5
 
 type Handler struct {
 	registry *command.Registry
@@ -74,6 +78,14 @@ func (h *Handler) Actions() []*command.ActionDef {
 			"help_command_callback",
 			callbackHelpCommand,
 			h.ShowCommand,
+			CategoryHelp,
+		),
+		action.NewCallback(
+			"ignore",
+			"ignore",
+			func(c *botapi.Context) error {
+				return c.AnswerCallback()
+			},
 			CategoryHelp,
 		),
 	}

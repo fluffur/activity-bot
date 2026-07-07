@@ -24,20 +24,59 @@ func (h *Handler) renderCategories(loc *i18n.Localizer) string {
 func (h *Handler) renderCategory(
 	loc *i18n.Localizer,
 	category command.Category,
+	page int,
 ) string {
 	var sb strings.Builder
 
-	title := loc.T(i18n.MessageID("category."+string(category)), nil)
+	title := loc.T(
+		i18n.MessageID("category."+string(category)),
+		nil,
+	)
+
+	cmds := make([]*command.ActionDef, 0)
+
+	for _, cmd := range h.registry.ByCategory(category) {
+		if cmd.ShowInHelp {
+			cmds = append(cmds, cmd)
+		}
+	}
+
+	if len(cmds) == 0 {
+		return ""
+	}
+
+	totalPages := (len(cmds) + commandsPerPage - 1) / commandsPerPage
+
+	if page < 0 {
+		page = 0
+	}
+	if page >= totalPages {
+		page = totalPages - 1
+	}
+
+	start := page * commandsPerPage
+	end := start + commandsPerPage
+
+	if end > len(cmds) {
+		end = len(cmds)
+	}
 
 	sb.WriteString("📂 ")
 	sb.WriteString(tghtml.Bold(title))
 	sb.WriteString("\n\n")
 
-	for _, cmd := range h.registry.ByCategory(category) {
-		if !cmd.ShowInHelp {
-			continue
-		}
+	sb.WriteString(
+		loc.T(
+			i18n.Cmd.Help.Page,
+			i18n.CmdHelpPageData{
+				Page:  page + 1,
+				Pages: totalPages,
+			},
+		),
+	)
+	sb.WriteString("\n\n")
 
+	for _, cmd := range cmds[start:end] {
 		sb.WriteString("• ")
 		sb.WriteString(tghtml.Code("/" + cmd.Key))
 		sb.WriteString(" — ")
