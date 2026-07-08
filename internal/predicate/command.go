@@ -11,9 +11,7 @@ import (
 	"github.com/gotd/botapi"
 )
 
-var defaultPrefixes = []string{"!", "/", ".", "фм"}
-
-func Command(name string, aliases ...string) botapi.Predicate {
+func Command(name string, prefixes []string, aliases []string) botapi.Predicate {
 	commands := make([]string, 0, len(aliases)+1)
 
 	commands = append(commands, normalize(name))
@@ -37,7 +35,6 @@ func Command(name string, aliases ...string) botapi.Predicate {
 
 		text, entities := m.TextAndEntities()
 
-		prefixes := append([]string{}, defaultPrefixes...)
 		if ch.CommandPrefix != "" {
 			prefixes = append(prefixes, ch.CommandPrefix)
 		}

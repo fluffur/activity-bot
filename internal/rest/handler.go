@@ -12,6 +12,11 @@ import (
 
 const CategoryRest command.Category = "rest"
 
+const (
+	callbackRestApprove = "rest:approve:"
+	callbackRestReject  = "rest:approve:"
+)
+
 type Handler struct {
 	chatMemberService *chatmember.Service
 	service           *Service
@@ -78,17 +83,17 @@ func (h *Handler) Actions() []*command.ActionDef {
 			),
 		),
 
-		action.NewCallback(
+		action.NewCallbackPrefix(
 			"approve_rest",
-			"approve:",
+			callbackRestApprove,
 			h.ApproveRestRequest,
 			CategoryRest,
 			option.WithPermission(permission.StatusModerator),
 		),
 
-		action.NewCallback(
+		action.NewCallbackPrefix(
 			"reject_rest",
-			"reject:",
+			callbackRestReject,
 			h.RejectRestRequest,
 			CategoryRest,
 			option.WithPermission(permission.StatusModerator),

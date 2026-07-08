@@ -485,13 +485,13 @@ func (h *Handler) RemoveRestRequest(c *botapi.Context) error {
 }
 
 func parseRequestCallbackData(data string) (int64, error) {
-	parts := strings.SplitN(data, ":", 2)
+	parts := strings.SplitN(data, ":", 3)
 
-	if len(parts) != 2 {
+	if len(parts) != 3 {
 		return 0, errors.New("invalid callback data")
 	}
 
-	return strconv.ParseInt(parts[1], 10, 64)
+	return strconv.ParseInt(parts[2], 10, 64)
 }
 
 func (h *Handler) createRestRequest(
@@ -535,11 +535,11 @@ func (h *Handler) createRestRequest(
 				botapi.InlineRow(
 					botapi.InlineButtonData(
 						loc.T(i18n.Cmd.RestRequest.ApproveButton, nil),
-						fmt.Sprintf("approve:%d", cm.User.ID),
+						fmt.Sprintf("%s%d", callbackRestApprove, cm.User.ID),
 					),
 					botapi.InlineButtonData(
 						loc.T(i18n.Cmd.RestRequest.RejectButton, nil),
-						fmt.Sprintf("reject:%d", cm.User.ID),
+						fmt.Sprintf("%s%d", callbackRestReject, cm.User.ID),
 					),
 				),
 			),

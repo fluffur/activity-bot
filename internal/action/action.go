@@ -9,7 +9,7 @@ import (
 	"github.com/gotd/botapi"
 )
 
-var defaultPrefixes = []string{"!", "/", ".", "фм"}
+var defaultPrefixes = []string{"!", "/", ".", "фм", "крис"}
 
 func NewCommand(
 	key string,

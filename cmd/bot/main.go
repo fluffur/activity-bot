@@ -106,7 +106,7 @@ func main() {
 	registry := command.NewRegistry()
 
 	handlers := []handler.Handler{
-		help.NewHandler(registry, cfg.CommandsURL, cfg.DeveloperUsername),
+		help.NewHandler(registry, permissionRepository),
 		summon.NewHandler(chatService, chatMemberService, summonFSM),
 		norm.NewHandler(normRepository),
 		stats.NewHandler(statsService),

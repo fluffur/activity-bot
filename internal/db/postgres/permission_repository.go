@@ -25,3 +25,18 @@ func (r *PermissionRepository) CommandPermission(ctx context.Context, chatID int
 
 	return permission.Status(p.RequiredStatus), nil
 }
+
+func (r *PermissionRepository) CommandPermissions(ctx context.Context, chatID int64) (map[string]permission.Status, error) {
+	rows, err := r.queries.GetCommandPermissions(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]permission.Status, len(rows))
+
+	for _, row := range rows {
+		result[row.CommandKey] = permission.Status(row.RequiredStatus)
+	}
+
+	return result, nil
+}

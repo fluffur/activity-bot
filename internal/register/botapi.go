@@ -60,7 +60,7 @@ func buildCommandPredicates(
 	}
 
 	predicates = append(predicates,
-		predicate.Command(action.Key, trigger.Aliases...),
+		predicate.Command(action.Key, trigger.Prefixes, trigger.Aliases),
 	)
 
 	if len(trigger.Rules) != 0 {

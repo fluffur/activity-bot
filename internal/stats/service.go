@@ -97,7 +97,7 @@ func (s *Service) GetChatStats(ctx context.Context, chatID int64, fromDate, toDa
 	}
 
 	if !res.HasNorms {
-		for _, member := range activeMembers {
+		for _, member := range chatMembers {
 			res.SimpleResults = append(res.SimpleResults, UserResult{
 				Member:   member,
 				Messages: statsByUserID[member.User.ID],

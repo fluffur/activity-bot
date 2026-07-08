@@ -21,21 +21,17 @@ const (
 const commandsPerPage = 5
 
 type Handler struct {
-	registry *command.Registry
-
-	commandsURL       string
-	developerUsername string
+	registry       *command.Registry
+	permissionRepo PermissionRepository
 }
 
 func NewHandler(
 	r *command.Registry,
-	commandsURL,
-	developerUsername string,
+	permissionRepo PermissionRepository,
 ) *Handler {
 	return &Handler{
-		registry:          r,
-		commandsURL:       commandsURL,
-		developerUsername: developerUsername,
+		registry:       r,
+		permissionRepo: permissionRepo,
 	}
 }
 func (h *Handler) Actions() []*command.ActionDef {
@@ -45,6 +41,7 @@ func (h *Handler) Actions() []*command.ActionDef {
 			h.Help,
 			i18n.Cmd.Help.Desc,
 			CategoryHelp,
+			option.WithScope(command.ScopeAny),
 			option.WithAliases("помощь"),
 		),
 		action.NewCommand(

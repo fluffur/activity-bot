@@ -17,7 +17,6 @@ type Config struct {
 	StoragePath       string `env:"STORAGE_PATH" envDefault:"session.bbolt"`
 	DeepseekAPIKey    string `env:"DEEPSEEK_API_KEY"`
 	RedisADDR         string `env:"REDIS_ADDR" envDefault:"redis:6379"`
-	UniquePrefix      string `env:"UNIQUE_PREFIX" envDefault:"фм"`
 }
 
 func Load() (Config, error) {

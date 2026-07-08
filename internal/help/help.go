@@ -50,12 +50,17 @@ func (h *Handler) ShowCategory(c *botapi.Context) error {
 	}
 
 	chatID, _ := c.Chat()
+	ch := cctx.MustChat(c)
 
-	_, err := c.Bot.EditMessageText(
+	permissions, err := h.permissionRepo.CommandPermissions(c, ch.ID)
+	if err != nil {
+		return err
+	}
+	_, err = c.Bot.EditMessageText(
 		c,
 		chatID,
 		c.Update.CallbackQuery.Message.MessageID,
-		h.renderCategory(loc, category, page),
+		h.renderCategory(loc, category, page, permissions),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.WithReplyMarkup(
 			h.commandsKeyboard(loc, category, page),
@@ -99,8 +104,6 @@ func (h *Handler) ShowCommand(c *botapi.Context) error {
 		":",
 	)
 
-	spew.Dump(data)
-
 	if len(data) != 4 {
 		return c.AnswerCallback()
 	}
@@ -115,13 +118,17 @@ func (h *Handler) ShowCommand(c *botapi.Context) error {
 
 	chatID, _ := c.Chat()
 
-	spew.Dump(h.renderCommand(loc, cmd))
+	ch := cctx.MustChat(c)
 
-	_, err := c.Bot.EditMessageText(
+	permissions, err := h.permissionRepo.CommandPermissions(c, ch.ID)
+	if err != nil {
+		return err
+	}
+	_, err = c.Bot.EditMessageText(
 		c,
 		chatID,
 		c.Update.CallbackQuery.Message.MessageID,
-		h.renderCommand(loc, cmd),
+		h.renderCommand(loc, cmd, permissions),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.WithReplyMarkup(
 			h.commandKeyboard(loc, category, key),
@@ -153,8 +160,15 @@ func (h *Handler) ShowCommandHelp(
 		return nil
 	}
 
-	_, err := c.Reply(
-		h.renderCommand(loc, cmd),
+	ch := cctx.MustChat(c)
+
+	permissions, err := h.permissionRepo.CommandPermissions(c, ch.ID)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.Reply(
+		h.renderCommand(loc, cmd, permissions),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.WithReplyMarkup(
 			h.commandKeyboard(loc, cmd.Category, cmd.Key),

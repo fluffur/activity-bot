@@ -47,6 +47,18 @@ func (p *PermissionChecker) Require(
 	defaultStatus permission.Status,
 ) botapi.Predicate {
 	return func(c *botapi.Context) bool {
+		ch, err := cctx.Chat(c)
+		if err != nil {
+			glog.For(c.Bot.Logger()).Error(
+				c,
+				"status no chat",
+				glog.Error(err),
+			)
+		}
+		if ch.ID == 0 {
+			return true
+		}
+
 		status, ok := p.status(c, name, defaultStatus)
 		if !ok {
 			return false

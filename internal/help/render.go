@@ -3,6 +3,7 @@ package help
 import (
 	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/rule"
 	"activity-bot/internal/utils/tghtml"
 	"strings"
@@ -25,6 +26,7 @@ func (h *Handler) renderCategory(
 	loc *i18n.Localizer,
 	category command.Category,
 	page int,
+	permissions map[string]permission.Status,
 ) string {
 	var sb strings.Builder
 
@@ -77,8 +79,18 @@ func (h *Handler) renderCategory(
 	sb.WriteString("\n\n")
 
 	for _, cmd := range cmds[start:end] {
+		status := cmd.Permission
+
+		if s, ok := permissions[cmd.Key]; ok {
+			status = s
+		}
+
 		sb.WriteString("• ")
 		sb.WriteString(tghtml.Code("/" + cmd.Key))
+		if status > permission.StatusMember {
+			sb.WriteString(" ")
+			sb.WriteString(status.Emoji())
+		}
 		sb.WriteString(" — ")
 		sb.WriteString(
 			tghtml.Escape(
@@ -94,6 +106,7 @@ func (h *Handler) renderCategory(
 func (h *Handler) renderCommand(
 	loc *i18n.Localizer,
 	cmd *command.ActionDef,
+	permissions map[string]permission.Status,
 ) string {
 	var sb strings.Builder
 
@@ -105,6 +118,27 @@ func (h *Handler) renderCommand(
 			loc.T(cmd.Description, nil),
 		),
 	)
+
+	status := cmd.Permission
+	if s, ok := permissions[cmd.Key]; ok {
+		status = s
+	}
+
+	if status > permission.StatusMember {
+		sb.WriteString("\n\n")
+		sb.WriteString(
+			tghtml.Bold(loc.T(i18n.Cmd.Help.Access, nil)),
+		)
+		sb.WriteString("\n")
+
+		sb.WriteString(status.Emoji())
+		sb.WriteString(" ")
+		sb.WriteString(
+			tghtml.Escape(
+				loc.T(status.TranslationKey(), nil),
+			),
+		)
+	}
 
 	sb.WriteString("\n\n")
 
