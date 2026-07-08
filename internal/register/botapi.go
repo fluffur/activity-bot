@@ -120,6 +120,10 @@ func buildCallbackPredicates(
 
 func BotCommands(registry *command.Registry, loc *i18n.Localizer, scope command.Scope, forAdmins bool) (botCommands []botapi.BotCommand) {
 	for _, action := range registry.All() {
+		if trigger, ok := action.Trigger.(*command.CommandTrigger); ok && len(trigger.Rules) > 0 {
+			continue
+		}
+
 		if !forAdmins && action.Permission != permission.StatusMember {
 			continue
 		}

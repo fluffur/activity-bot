@@ -41,6 +41,11 @@ func (h *Handler) Summon(
 	ch chat.Chat,
 	cms []chatmember.ChatMember,
 ) error {
+	chatID, ok := c.Chat()
+	if !ok {
+		return nil
+	}
+
 	if _, loaded := h.activeSummons.LoadOrStore(ch.ID, struct{}{}); loaded {
 		loc := cctx.MustLocalizer(c)
 
@@ -67,7 +72,7 @@ func (h *Handler) Summon(
 		if err := SendMessages(
 			c,
 			cctx.MustLocalizer(c),
-			ch.ID,
+			chatID,
 			msgID,
 			msgs,
 		); err != nil {
@@ -100,7 +105,6 @@ func BuildMentionMessages(
 		}
 
 		msg += strings.Join(g, sep)
-
 		result = append(result, msg)
 	}
 
@@ -110,11 +114,11 @@ func BuildMentionMessages(
 func SendMessages(
 	c *botapi.Context,
 	loc *i18n.Localizer,
-	chatID int64,
+	chatID botapi.ChatID,
 	msgID int,
 	messages []string,
 ) error {
-	msg, err := c.Bot.GetMessage(c.Background(), botapi.ID(chatID), msgID)
+	msg, err := c.Bot.GetMessage(c.Background(), chatID, msgID)
 	if err != nil {
 		return err
 	}
@@ -135,7 +139,7 @@ func SendMessages(
 		if photoID != "" {
 			_, err = c.Bot.SendPhoto(
 				c.Background(),
-				botapi.ID(chatID),
+				chatID,
 				botapi.FileID(photoID),
 				text,
 				botapi.WithParseMode(botapi.ParseModeHTML),
@@ -144,7 +148,7 @@ func SendMessages(
 		} else {
 			_, err = c.Bot.SendMessage(
 				c.Background(),
-				botapi.ID(chatID),
+				chatID,
 				text,
 				botapi.WithParseMode(botapi.ParseModeHTML),
 				botapi.DisableWebPagePreview(),
@@ -163,7 +167,7 @@ func SendMessages(
 
 	_, err = c.Bot.SendMessage(
 		c.Background(),
-		botapi.ID(chatID),
+		chatID,
 		loc.T(i18n.Cmd.Summon.Completed, nil),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
@@ -177,30 +181,42 @@ func RenderMention(cm chatmember.ChatMember, mentionTypes chat.MentionTypes) str
 	hasRole := mentionTypes.Has(chat.MentionRole)
 	hasName := mentionTypes.Has(chat.MentionName)
 
-	result := ""
+	var result strings.Builder
 
-	if hasEmoji && cm.AnyEmoji() != "" {
-		result += cm.AnyEmoji() + " "
+	if hasEmoji {
+		if emoji := cm.AnyEmoji(); emoji != "" {
+			result.WriteString(emoji)
+			result.WriteByte(' ')
+		}
+	}
+
+	role := cm.Role()
+	if role == "" {
+		role = cm.User.FullName()
 	}
 
 	switch {
-	case hasRole && hasName && cm.Tag != "":
-		result += fmt.Sprintf("%s (%s)", cm.Tag, cm.User.FullName())
-	case hasRole && cm.Tag != "":
-		result += cm.Tag
+	case hasRole && hasName:
+		if role == cm.User.FullName() {
+			result.WriteString(role)
+		} else {
+			result.WriteString(fmt.Sprintf("%s (%s)", role, cm.User.FullName()))
+		}
+
+	case hasRole:
+		result.WriteString(role)
+
 	case hasName:
-		result += cm.User.FullName()
+		result.WriteString(cm.User.FullName())
 	}
 
-	if hasEmoji && !hasRole && !hasName {
-		result += "​"
+	text := strings.TrimSpace(result.String())
+
+	if text == "" {
+		text = "​"
 	}
 
-	if strings.TrimSpace(result) == "" {
-		result = "​"
-	}
-
-	return tghtml.UserMention(cm.User.ID, result)
+	return tghtml.UserMention(cm.ID(), text)
 }
 
 func ReplaceMentions(text string, entities []botapi.MessageEntity) string {

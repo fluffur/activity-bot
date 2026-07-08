@@ -215,13 +215,18 @@ func (h *Handler) toggleMentionStyle(c *botapi.Context, flag chat.MentionTypes) 
 		ch.MentionTypes.Add(flag)
 	}
 
+	chatID, ok := c.Chat()
+	if !ok {
+		return nil
+	}
+
 	if err := h.chatService.SetMentionTypes(c, ch.ID, ch.MentionTypes); err != nil {
 		return err
 	}
 
 	_, _ = c.Bot.EditMessageReplyMarkup(
 		c,
-		botapi.ID(ch.ID),
+		chatID,
 		c.Update.CallbackQuery.Message.MessageID,
 		mentionTypesKeyboard(loc, ch.MentionTypes),
 	)

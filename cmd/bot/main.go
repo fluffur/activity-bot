@@ -111,7 +111,7 @@ func main() {
 		norm.NewHandler(normRepository),
 		stats.NewHandler(statsService),
 		rest.NewHandler(restService, chatMemberService),
-		moderation.NewHandler(moderationService, chatMemberService),
+		moderation.NewHandler(moderationService, chatService, chatMemberService, pmSessionRepository),
 	}
 
 	for _, h := range handlers {

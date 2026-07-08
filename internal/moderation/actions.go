@@ -367,7 +367,7 @@ func (h *Handler) SetStatus(c *botapi.Context) error {
 
 	statusValue, ok := args.Number()
 	if !ok {
-		return nil
+		statusValue = int64(permission.StatusAdmin)
 	}
 
 	if !permission.IsValidStatus(statusValue) {
@@ -395,6 +395,74 @@ func (h *Handler) SetStatus(c *botapi.Context) error {
 		i18n.CmdModerationSetStatusSuccessData{
 			User:   tghtml.MemberMention(loc, ch, target),
 			Status: tghtml.Bold(tghtml.Status(loc, status)),
+		},
+	)
+
+	_, err := c.Reply(text, botapi.WithParseMode(botapi.ParseModeHTML))
+
+	return err
+}
+
+func (h *Handler) Promote(c *botapi.Context) error {
+	return h.ChangeStatus(c, +1)
+}
+
+func (h *Handler) Demote(c *botapi.Context) error {
+	return h.ChangeStatus(c, -1)
+}
+
+func (h *Handler) ChangeStatus(c *botapi.Context, delta int) error {
+	moderator := cctx.MustChatMember(c)
+	args := cctx.MustArgs(c)
+	loc := cctx.MustLocalizer(c)
+	ch := cctx.MustChat(c)
+
+	target, ok := args.User()
+	if !ok || moderator.ID() == target.ID() {
+		return nil
+	}
+
+	currentStatus := target.Status
+
+	var newStatus permission.Status
+
+	if value, ok := args.Number(); ok {
+		if !permission.IsValidStatus(value) {
+			return nil
+		}
+
+		newStatus = permission.Status(value)
+	} else {
+		newStatus = currentStatus + permission.Status(delta)
+
+		if newStatus < permission.StatusMin {
+			newStatus = permission.StatusMin
+		}
+
+		if newStatus > permission.StatusMax {
+			newStatus = permission.StatusMax
+		}
+	}
+
+	if err := h.service.SetStatus(c, ch.ID, moderator, target, newStatus); err != nil {
+		switch {
+		case errors.Is(err, ErrUserCantBeModerated):
+			_, _ = c.Reply(loc.T(i18n.Cmd.Moderation.SetStatus.CantModerate, nil))
+			return nil
+
+		case errors.Is(err, ErrUserStatusInvalid):
+			_, _ = c.Reply(loc.T(i18n.Cmd.Moderation.SetStatus.InvalidStatus, nil))
+			return nil
+
+		default:
+			return fmt.Errorf("change status: %w", err)
+		}
+	}
+
+	text := loc.T(i18n.Cmd.Moderation.SetStatus.Success,
+		i18n.CmdModerationSetStatusSuccessData{
+			User:   tghtml.MemberMention(loc, ch, target),
+			Status: tghtml.Bold(tghtml.Status(loc, newStatus)),
 		},
 	)
 

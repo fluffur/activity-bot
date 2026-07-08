@@ -102,3 +102,11 @@ func (c ChatMember) CanModerate(m ChatMember) bool {
 func (c ChatMember) Gender() user.Gender {
 	return c.User.Gender
 }
+
+func (c ChatMember) Role() string {
+	if c.Tag != "" {
+		return c.Tag
+	}
+
+	return c.User.FullName()
+}

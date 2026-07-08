@@ -13,8 +13,13 @@ const (
 	StatusOwner
 )
 
+const (
+	StatusMin = StatusMember
+	StatusMax = StatusOwner
+)
+
 func IsValidStatus(s int64) bool {
-	return s >= 0 && s <= 5
+	return s >= int64(StatusMember) && s <= int64(StatusOwner)
 }
 
 func (s Status) TranslationKey() i18n.MessageID {

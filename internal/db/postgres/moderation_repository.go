@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/moderation"
@@ -146,4 +147,25 @@ func (r *ModerationRepository) GetActiveWarnsByChat(ctx context.Context, chatID 
 	}
 
 	return results, nil
+}
+
+func (r *ModerationRepository) GetUserManagedChats(ctx context.Context, userID int64, search string) ([]chat.Chat, error) {
+	chats, err := r.queries.GetUserManagedChats(ctx, db.GetUserManagedChatsParams{
+		UserID: userID,
+		Title:  search,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return mapList(chats, mapChat), nil
+}
+
+func (r *ModerationRepository) GetAllChats(ctx context.Context, search string) ([]chat.Chat, error) {
+	chats, err := r.queries.GetAllChats(ctx, search)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapList(chats, mapChat), nil
 }

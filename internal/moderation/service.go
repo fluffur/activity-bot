@@ -12,7 +12,6 @@ import (
 var (
 	ErrUserStatusInvalid   = errors.New("user status invalid")
 	ErrUserCantBeModerated = errors.New("user is protected")
-	ErrInvalidRange        = errors.New("invalid range")
 )
 
 type Service struct {
@@ -99,15 +98,6 @@ func (s *Service) Mute(ctx context.Context, chatID int64, taget, moderator chatm
 		return ErrUserCantBeModerated
 	}
 
-	if !until.IsZero() {
-		now := time.Now()
-		duration := until.Sub(now)
-
-		if duration < 30*time.Second || duration > 366*24*time.Hour {
-			return ErrInvalidRange
-		}
-	}
-
 	return s.repo.CreateModerationAction(ctx, "mute", chatID, taget.ID(), moderator.ID(), reason, until)
 }
 
@@ -184,4 +174,11 @@ func (s *Service) GetWarns(ctx context.Context, chatID, userID int64) ([]Warn, e
 
 func (s *Service) GetWarnsByChat(ctx context.Context, chatID int64) ([]Warn, error) {
 	return s.repo.GetActiveWarnsByChat(ctx, chatID)
+}
+
+func (s *Service) GetUserManagedChats(ctx context.Context, userID int64, search string) ([]chat.Chat, error) {
+	if userID == s.ownerID {
+		return s.repo.GetAllChats(ctx, search)
+	}
+	return s.repo.GetUserManagedChats(ctx, userID, search)
 }

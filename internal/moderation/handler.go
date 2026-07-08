@@ -2,11 +2,13 @@ package moderation
 
 import (
 	"activity-bot/internal/action"
+	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/option"
 	"activity-bot/internal/permission"
+	"activity-bot/internal/pmsession"
 	"activity-bot/internal/predicate"
 	"activity-bot/internal/rule"
 )
@@ -15,16 +17,22 @@ const CategoryModeration command.Category = "moderation"
 
 type Handler struct {
 	service           *Service
+	chatService       *chat.Service
 	chatMemberService *chatmember.Service
+	sessionRepository pmsession.Repository
 }
 
 func NewHandler(
 	service *Service,
+	cs *chat.Service,
 	cms *chatmember.Service,
+	sr pmsession.Repository,
 ) *Handler {
 	return &Handler{
 		service:           service,
+		chatService:       cs,
 		chatMemberService: cms,
+		sessionRepository: sr,
 	}
 }
 
@@ -184,6 +192,51 @@ func (h *Handler) Actions() []*command.ActionDef {
 			CategoryModeration,
 			option.WithPermission(permission.StatusModerator),
 			option.WithAliases("варнлист"),
+		),
+		action.NewCommand(
+			"set_status",
+			h.SetStatus,
+			i18n.Cmd.Moderation.SetStatus.Desc,
+			CategoryModeration,
+			option.WithPermission(permission.StatusCoOwner),
+			option.WithAliases("статус", "админ", "+админ"),
+			option.WithRules(rule.User(), rule.Number().Optional()),
+			option.WithPredicates(predicate.SensitiveCommand()),
+		),
+		action.NewCommand(
+			"promote",
+			h.Promote,
+			i18n.Cmd.Moderation.Promote.Desc,
+			CategoryModeration,
+			option.WithPermission(permission.StatusCoOwner),
+			option.WithAliases("повысить"),
+			option.WithRules(rule.User(), rule.Number().Optional()),
+		),
+		action.NewCommand(
+			"demote",
+			h.Promote,
+			i18n.Cmd.Moderation.Demote.Desc,
+			CategoryModeration,
+			option.WithPermission(permission.StatusCoOwner),
+			option.WithAliases("понизить"),
+			option.WithRules(rule.User(), rule.Number().Optional()),
+		),
+
+		action.NewCommand(
+			"manage",
+			h.Manage,
+			"s",
+			CategoryModeration,
+			option.WithAliases("управление"),
+			option.WithRules(rule.Text().Optional()),
+			option.WithScope(command.ScopePrivate),
+		),
+
+		action.NewCallbackPrefix(
+			"manage_callback",
+			"manage:",
+			h.CallbackManage,
+			CategoryModeration,
 		),
 	}
 }

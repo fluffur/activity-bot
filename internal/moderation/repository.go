@@ -1,6 +1,7 @@
 package moderation
 
 import (
+	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
 	"context"
 	"time"
@@ -26,4 +27,6 @@ type Repository interface {
 	RemoveLatestWarn(ctx context.Context, chatID, userID int64) error
 	GetActiveWarns(ctx context.Context, chatID, userID int64) ([]Warn, error)
 	GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]Warn, error)
+	GetUserManagedChats(ctx context.Context, userID int64, search string) ([]chat.Chat, error)
+	GetAllChats(ctx context.Context, search string) ([]chat.Chat, error)
 }

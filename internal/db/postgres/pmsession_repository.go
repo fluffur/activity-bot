@@ -23,3 +23,10 @@ func (r *PMSessionRepository) GetChat(ctx context.Context, userID int64) (chat.C
 
 	return mapChat(s.Chat), nil
 }
+
+func (r *PMSessionRepository) SetSession(ctx context.Context, userID int64, chatID int64) error {
+	return r.queries.UpsertPMSession(ctx, db.UpsertPMSessionParams{
+		UserID:       userID,
+		TargetChatID: chatID,
+	})
+}

@@ -65,7 +65,14 @@ unbanned = { other = "Ограничения для {{.User}} успешно с�
 desc = { other = "Установить статус участнику" }
 cant_moderate = { other = "Невозможно изменить статус этого участника" }
 invalid_status = { other = "Указан недопустимый статус" }
-success = { other = "Статус для {{.User}} изменён на {{.Status}}" }
+success = { other = "Статус {{.User}} изменён на {{.Status}}" }
+
+[cmd.moderation.promote]
+desc = { other = "Повысить участника" }
+
+[cmd.moderation.demote]
+desc = { other = "Понизить участника" }
+
 
 [cmd.moderation.remove_admin]
 desc = { other = "Обнулить статус участника" }

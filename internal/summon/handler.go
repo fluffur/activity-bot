@@ -8,6 +8,7 @@ import (
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/option"
 	"activity-bot/internal/permission"
+	"activity-bot/internal/rule"
 	"sync"
 
 	fsm "github.com/fluffur/botapi-fsm"
@@ -49,6 +50,7 @@ func (h *Handler) Actions() []*command.ActionDef {
 			i18n.Cmd.Summon.Desc,
 			CategorySummon,
 			option.WithPermission(permission.StatusAdmin),
+			option.WithRules(rule.Text().Optional()),
 			option.WithAliases("call", "калл", "колл", "каллалл"),
 		),
 

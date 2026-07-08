@@ -352,9 +352,15 @@ func (h *Handler) ApproveRestRequest(c *botapi.Context) error {
 		},
 	)
 
+	chatID, ok := c.Chat()
+	if !ok {
+		_ = c.AnswerCallback()
+		return fmt.Errorf("approve no chat")
+	}
+
 	_, err = c.Bot.EditMessageText(
 		c,
-		botapi.ID(ch.ID),
+		chatID,
 		cq.Message.MessageID,
 		text,
 		botapi.WithParseMode(botapi.ParseModeHTML),
@@ -413,9 +419,15 @@ func (h *Handler) RejectRestRequest(c *botapi.Context) error {
 
 	text := loc.T(i18n.Cmd.RestRequest.Rejected, nil)
 
+	chatID, ok := c.Chat()
+	if !ok {
+		_ = c.AnswerCallback()
+		return nil
+	}
+
 	_, err = c.Bot.EditMessageText(
 		c,
-		botapi.ID(ch.ID),
+		chatID,
 		cq.Message.MessageID,
 		text,
 		botapi.WithParseMode(botapi.ParseModeHTML),
