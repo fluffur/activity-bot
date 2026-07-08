@@ -60,7 +60,6 @@ func manageKeyboard(chats []chat.Chat) *botapi.InlineKeyboardMarkup {
 }
 
 func (h *Handler) CallbackManage(c *botapi.Context) error {
-
 	cq := c.Update.CallbackQuery
 	if cq == nil {
 		return fmt.Errorf("callback query is nil")
