@@ -371,14 +371,28 @@ func (r *RuleChecker) resolveUserTag(
 
 		query := normalizeTag(b.String())
 
+		var leftMember *chatmember.ChatMember
+
 		for _, member := range members {
 			if member.Tag == "" {
 				continue
 			}
 
-			if tagContains(normalizeTag(member.Tag), query) {
+			if !tagContains(normalizeTag(member.Tag), query) {
+				continue
+			}
+
+			if member.LeftAt.IsZero() {
 				return member, words, true
 			}
+
+			if leftMember == nil {
+				leftMember = new(member)
+			}
+		}
+
+		if leftMember != nil {
+			return *leftMember, words, true
 		}
 	}
 
