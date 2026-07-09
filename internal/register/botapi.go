@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/permission"
 	"activity-bot/internal/predicate"
+	"activity-bot/internal/rule"
 
 	"github.com/gotd/botapi"
 )
@@ -117,10 +118,19 @@ func buildCallbackPredicates(
 
 	return predicates
 }
+func allRulesAreOptional(rules []rule.Rule) bool {
+	for _, r := range rules {
+		if !r.IsOptional {
+			return false
+		}
+	}
+
+	return true
+}
 
 func BotCommands(registry *command.Registry, loc *i18n.Localizer, scope command.Scope, forAdmins bool) (botCommands []botapi.BotCommand) {
 	for _, action := range registry.All() {
-		if trigger, ok := action.Trigger.(*command.CommandTrigger); ok && len(trigger.Rules) > 0 {
+		if trigger, ok := action.Trigger.(*command.CommandTrigger); ok && (len(trigger.Rules) > 0 && !allRulesAreOptional(trigger.Rules)) {
 			continue
 		}
 

@@ -120,3 +120,18 @@ item = { other = "{{.Index}}. {{.User}}\nВыдан: {{.Created}}\nМодера�
 expires = { other = "Истекает: {{.Until}}" }
 
 reason = { other = "Причина: {{.Reason}}" }
+
+[cmd.manage]
+desc = { other = "Выбрать чат для управления" }
+
+no_chats = { other = "❌ У вас нет доступных чатов для управления." }
+
+select = { other = "Выберите чат для управления:" }
+
+untitled = { other = "Чат без названия" }
+
+not_found = { other = "Выбранный чат не найден" }
+
+selected = { other = "Чат выбран." }
+
+success = { other = "✅ Теперь вы управляете чатом:\n<b>{{.Chat}}</b>\n\nВсе команды настроек будут применяться к нему." }

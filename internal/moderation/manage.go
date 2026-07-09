@@ -3,6 +3,7 @@ package moderation
 import (
 	"activity-bot/internal/cctx"
 	"activity-bot/internal/chat"
+	"activity-bot/internal/i18n"
 	"activity-bot/internal/utils/tghtml"
 	"fmt"
 	"strconv"
@@ -16,6 +17,9 @@ func (h *Handler) Manage(c *botapi.Context) error {
 	if msg == nil {
 		return fmt.Errorf("manage: msg is nil")
 	}
+
+	loc := cctx.MustLocalizer(c)
+
 	senderID := msg.Chat.ID
 	search, _ := cctx.MustArgs(c).Text()
 
@@ -25,25 +29,25 @@ func (h *Handler) Manage(c *botapi.Context) error {
 	}
 
 	if len(chats) == 0 {
-		_, err := c.Reply("❌ У вас нет доступных чатов для управления.")
+		_, err := c.Reply(loc.T(i18n.Cmd.Manage.NoChats, nil))
 		return err
 	}
 
 	_, err = c.Reply(
-		"Выберите чат для управления:",
-		botapi.WithReplyMarkup(manageKeyboard(chats)),
+		loc.T(i18n.Cmd.Manage.Select, nil),
+		botapi.WithReplyMarkup(manageKeyboard(loc, chats)),
 	)
 
 	return err
 }
 
-func manageKeyboard(chats []chat.Chat) *botapi.InlineKeyboardMarkup {
+func manageKeyboard(loc *i18n.Localizer, chats []chat.Chat) *botapi.InlineKeyboardMarkup {
 	rows := make([][]botapi.InlineKeyboardButton, 0, len(chats))
 
 	for _, ch := range chats {
 		title := ch.Title
 		if title == "" {
-			title = "Чат без названия"
+			title = loc.T(i18n.Cmd.Manage.Untitled, nil)
 		}
 
 		rows = append(rows, []botapi.InlineKeyboardButton{
@@ -60,10 +64,13 @@ func manageKeyboard(chats []chat.Chat) *botapi.InlineKeyboardMarkup {
 }
 
 func (h *Handler) CallbackManage(c *botapi.Context) error {
+	loc := cctx.MustLocalizer(c)
+
 	cq := c.Update.CallbackQuery
 	if cq == nil {
 		return fmt.Errorf("callback query is nil")
 	}
+
 	data := cq.Data
 	senderID := cq.From.ID
 	chatIDStr := strings.TrimPrefix(data, "manage:")
@@ -76,10 +83,11 @@ func (h *Handler) CallbackManage(c *botapi.Context) error {
 	selected, err := h.chatService.Get(c, chatID)
 	if err != nil {
 		if err := c.AnswerCallback(
-			botapi.WithCallbackText("Выбранный чат не найден"),
+			botapi.WithCallbackText(loc.T(i18n.Cmd.Manage.NotFound, nil)),
 		); err != nil {
 			return err
 		}
+
 		return fmt.Errorf("callback manage: get chat %d: %w", chatID, err)
 	}
 
@@ -88,19 +96,23 @@ func (h *Handler) CallbackManage(c *botapi.Context) error {
 	}
 
 	if err := c.AnswerCallback(
-		botapi.WithCallbackText("Чат выбран."),
+		botapi.WithCallbackText(loc.T(i18n.Cmd.Manage.Selected, nil)),
 	); err != nil {
 		return err
 	}
+
+	text := loc.T(
+		i18n.Cmd.Manage.Success,
+		i18n.CmdManageSuccessData{
+			Chat: tghtml.Bold(tghtml.Escape(selected.Title)),
+		},
+	)
 
 	_, err = c.Bot.EditMessageText(
 		c,
 		botapi.ID(cq.Message.Chat.ID),
 		cq.Message.MessageID,
-		fmt.Sprintf(
-			"✅ Теперь вы управляете чатом:\n<b>%s</b>\n\nВсе команды настроек будут применяться к нему.",
-			tghtml.Escape(selected.Title),
-		),
+		text,
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
 

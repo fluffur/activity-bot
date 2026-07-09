@@ -225,7 +225,7 @@ func (h *Handler) Actions() []*command.ActionDef {
 		action.NewCommand(
 			"manage",
 			h.Manage,
-			"s",
+			i18n.Cmd.Manage.Desc,
 			CategoryModeration,
 			option.WithAliases("управление"),
 			option.WithRules(rule.Text().Optional()),

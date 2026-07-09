@@ -297,14 +297,20 @@ func getOrCreateChatMember(
 		return chatmember.ChatMember{}, fmt.Errorf("get chat member: %w", err)
 	}
 
+	var (
+		status permission.Status
+		tag    string
+	)
+
 	cm, err := bot.GetChatMember(ctx, botapi.ChatIDInt(chatID), userID)
 	if err != nil {
-		return chatmember.ChatMember{}, fmt.Errorf("get chat member info: %w", err)
-	}
-
-	status, tag, err := parseChatMember(cm)
-	if err != nil {
-		return chatmember.ChatMember{}, err
+		status = permission.StatusMember
+		tag = ""
+	} else {
+		status, tag, err = parseChatMember(cm)
+		if err != nil {
+			return chatmember.ChatMember{}, err
+		}
 	}
 
 	member = chatmember.New(
