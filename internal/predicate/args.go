@@ -5,10 +5,12 @@ import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/message"
 	"activity-bot/internal/rule"
+	"context"
 	"database/sql"
 	"errors"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/log"
@@ -141,16 +143,19 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 
 					for idx, tok := range toks {
 						if rul.Type == rule.RuleUser {
-							if id, err := strconv.ParseInt(tok.text, 10, 64); err == nil {
-								if cm, err := r.chatMemberRepository.Get(c, ch.ID, id); err == nil {
-									parsed.Users = append(parsed.Users, cm)
-									usedOffsets = append(usedOffsets, Offset{tok.start, tok.end})
-									parsedCount++
+							if cm, consumed, ok := r.resolveUserToken(c, ch.ID, toks[idx:]); ok {
+								parsed.Users = append(parsed.Users, cm)
 
-									matched = true
-
-									break
+								for k := 0; k < consumed; k++ {
+									usedOffsets = append(usedOffsets, Offset{
+										Start: toks[idx+k].start,
+										End:   toks[idx+k].end,
+									})
 								}
+
+								parsedCount++
+								matched = true
+								break
 							}
 						}
 
@@ -310,4 +315,124 @@ func (r *RuleChecker) resolveReplyUser(
 	}
 
 	return cm, true
+}
+
+func (r *RuleChecker) resolveUserToken(
+	ctx context.Context,
+	chatID int64,
+	tokens []token,
+) (chatmember.ChatMember, int, bool) {
+	if len(tokens) == 0 {
+		return chatmember.ChatMember{}, 0, false
+	}
+
+	if id, err := strconv.ParseInt(tokens[0].text, 10, 64); err == nil {
+		cm, err := r.chatMemberRepository.Get(ctx, chatID, id)
+		if err == nil {
+			return cm, 1, true
+		}
+	}
+
+	if cm, consumed, ok := r.resolveUserTag(ctx, chatID, tokens); ok {
+		return cm, consumed, true
+	}
+
+	return chatmember.ChatMember{}, 0, false
+}
+
+func (r *RuleChecker) resolveUserTag(
+	ctx context.Context,
+	chatID int64,
+	tokens []token,
+) (chatmember.ChatMember, int, bool) {
+	members, err := r.chatMemberRepository.List(ctx, chatmember.Filter{
+		ChatID: chatID,
+	})
+	if err != nil {
+		return chatmember.ChatMember{}, 0, false
+	}
+
+	const maxWords = 5
+
+	maxTokens := len(tokens)
+	if maxTokens > maxWords {
+		maxTokens = maxWords
+	}
+
+	for words := maxTokens; words >= 1; words-- {
+		var b strings.Builder
+
+		for i := 0; i < words; i++ {
+			if i > 0 {
+				b.WriteByte(' ')
+			}
+			b.WriteString(tokens[i].text)
+		}
+
+		query := normalizeTag(b.String())
+
+		for _, member := range members {
+			if member.Tag == "" {
+				continue
+			}
+
+			if tagContains(normalizeTag(member.Tag), query) {
+				return member, words, true
+			}
+		}
+	}
+
+	return chatmember.ChatMember{}, 0, false
+}
+
+func tagContains(tag, query string) bool {
+	tagWords := strings.Fields(tag)
+	queryWords := strings.Fields(query)
+
+	if len(queryWords) == 0 || len(queryWords) > len(tagWords) {
+		return false
+	}
+
+	for i := 0; i <= len(tagWords)-len(queryWords); i++ {
+		ok := true
+
+		for j := range queryWords {
+			if tagWords[i+j] != queryWords[j] {
+				ok = false
+				break
+			}
+		}
+
+		if ok {
+			return true
+		}
+	}
+
+	return false
+}
+
+func normalizeTag(s string) string {
+	if i := strings.IndexByte(s, '|'); i != -1 {
+		s = s[:i]
+	}
+
+	s = strings.ToLower(s)
+
+	var b strings.Builder
+	lastSpace := true
+
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			b.WriteRune(r)
+			lastSpace = false
+			continue
+		}
+
+		if !lastSpace {
+			b.WriteByte(' ')
+			lastSpace = true
+		}
+	}
+
+	return strings.TrimSpace(b.String())
 }
