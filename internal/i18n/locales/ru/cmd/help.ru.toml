@@ -1,22 +1,22 @@
 [cmd.help]
-desc = { other = "Помощь по командам бота" }
+desc = "Помощь по командам бота"
 
-body = { other = "\nМожно узнать информацию о любой команде:\n<code>помощь <команда></code>\n\nМожно изменить доступ команды:\n<code>дк <команда> <число></code>\n0-5 - статус участника\n6 - отключить команду" }
-choose_category = { other = "Выберите категорию команд:" }
+body = "\nМожно узнать информацию о любой команде:\n<code>помощь <команда></code>\n\nМожно изменить доступ команды:\n<code>дк <команда> <число></code>\n0-5 - статус участника\n6 - отключить команду"
+choose_category = "Выберите категорию команд:"
 
-syntax = { other = "Синтаксис:" }
-examples = { other = "Примеры:" }
+syntax = "Синтаксис:"
+examples = "Примеры:"
 
-aliases_label = { other = "Синонимы:" }
+aliases_label = "Синонимы:"
 
-page = { other = "Страница {{.Page}} из {{.Pages}}" }
+page = "Страница {{.Page}} из {{.Pages}}"
 
-button_commands = { other = "⬅️ Команды" }
-button_back = { other = "⬅️ Назад" }
+button_commands = "⬅️ Команды"
+button_back = "⬅️ Назад"
 
-access = { other = "Доступ" }
+access = "Доступ"
 
 [cmd.help_command]
 
-desc = { other = "Информация о команде" }
+desc = "Информация о команде"
 

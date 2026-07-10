@@ -2,16 +2,23 @@ package moderation
 
 import (
 	"activity-bot/internal/cctx"
+	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/utils/tghtml"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/gotd/td/tgerr"
 
 	"github.com/gotd/botapi"
 )
+
+func isValidRoleString(text string) bool {
+	return utf8.RuneCountInString(text) <= 16
+}
 
 func (h *Handler) SetRole(c *botapi.Context) error {
 	cm := cctx.MustChatMember(c)
@@ -124,6 +131,54 @@ func (h *Handler) SetRoleAdmin(c *botapi.Context) error {
 	return nil
 }
 
-func isValidRoleString(text string) bool {
-	return utf8.RuneCountInString(text) <= 16
+func (h *Handler) ListRoles(c *botapi.Context) error {
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
+
+	members, err := h.chatMemberService.ListHumanPresentChatMembers(c, ch.ID)
+	if err != nil {
+		return fmt.Errorf("list roles members: %w", err)
+	}
+
+	var withRoles []chatmember.ChatMember
+	for _, member := range members {
+		if member.Tag != "" {
+			withRoles = append(withRoles, member)
+		}
+	}
+
+	if len(withRoles) == 0 {
+		_, err := c.Reply(loc.T(i18n.Cmd.Moderation.ListRoles.Empty, nil))
+		return err
+	}
+
+	slices.SortFunc(withRoles, func(a, b chatmember.ChatMember) int {
+		return strings.Compare(a.Tag, b.Tag)
+	})
+
+	var text strings.Builder
+
+	text.WriteString(loc.T(i18n.Cmd.Moderation.ListRoles.Header, nil))
+	text.WriteString("\n\n")
+	text.WriteString("<blockquote>")
+
+	for i, member := range withRoles {
+		if i > 0 {
+			text.WriteByte('\n')
+		}
+
+		text.WriteString(fmt.Sprintf("%d. ", i+1))
+		text.WriteString(tghtml.MemberMention(loc, ch, member))
+		if member.User.Username != "" {
+			text.WriteString(fmt.Sprintf(" <code>@%s</code>", member.User.Username))
+		}
+	}
+	text.WriteString("</blockquote>")
+
+	_, err = c.Reply(
+		text.String(),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+	)
+
+	return err
 }

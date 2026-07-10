@@ -56,24 +56,10 @@ func (s *Service) SetDevStatus(ctx context.Context, chatID int64, moderator, tar
 	return s.repo.SetStatus(ctx, chatID, target.ID(), int16(status))
 }
 
-func (s *Service) GetAdminsEnsured(
+func (s *Service) GetAdmins(
 	ctx context.Context,
 	chatID int64,
-	sync func(ctx context.Context, chatID int64) (int, error),
 ) ([]chatmember.ChatMember, error) {
-	admins, err := s.chatMemberRepo.ListAdmins(ctx, chatID, permission.StatusModerator)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(admins) > 0 {
-		return admins, nil
-	}
-
-	if _, err := sync(ctx, chatID); err != nil {
-		return nil, err
-	}
-
 	return s.chatMemberRepo.ListAdmins(ctx, chatID, permission.StatusModerator)
 }
 

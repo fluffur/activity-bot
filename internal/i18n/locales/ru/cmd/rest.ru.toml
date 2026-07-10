@@ -1,60 +1,60 @@
 [cmd.rest]
 
-desc = { other = "Информация о ресте участника" }
+desc = "Информация о ресте участника"
 
-info = { other = "{{.User}} находится в ресте до {{.Date}}" }
-info_reason = { other = "{{.User}} находится в ресте до {{.Date}}\nПричина: {{.Reason}}" }
-no_rest = { other = "{{.User}} в данный момент не находится в ресте" }
+info = "{{.User}} находится в ресте до {{.Date}}"
+info_reason = "{{.User}} находится в ресте до {{.Date}}\nПричина: {{.Reason}}"
+no_rest = "{{.User}} в данный момент не находится в ресте"
 
-set = { other = "Для {{.User}} установлен рест до {{.Date}}" }
-set_reason = { other = "Для {{.User}} установлен рест до {{.Date}}\nПричина: {{.Reason}}" }
+set = "Для {{.User}} установлен рест до {{.Date}}"
+set_reason = "Для {{.User}} установлен рест до {{.Date}}\nПричина: {{.Reason}}"
 
 [cmd.end_rest]
 
-desc = { other = "Завершить рест" }
+desc = "Завершить рест"
 
-ended = { other = "Рест {{.User}} завершён" }
-ended_self = { other = "Ваш рест завершён" }
+ended = "Рест {{.User}} завершён"
+ended_self = "Ваш рест завершён"
 
-not_in_rest = { other = "{{.User}} не находится в ресте" }
-not_in_rest_self = { other = "Вы не находитесь в ресте" }
+not_in_rest = "{{.User}} не находится в ресте"
+not_in_rest_self = "Вы не находитесь в ресте"
 
 [cmd.rests]
 
-desc = { other = "История рестов участника" }
+desc = "История рестов участника"
 
-history_title = { other = "📋 История рестов {{.User}}" }
+history_title = "📋 История рестов {{.User}}"
 
-history_item = { other = "{{.Index}}. 💤 {{.From}} → {{.To}} ({{.Duration}})" }
+history_item = "{{.Index}}. 💤 {{.From}} → {{.To}} ({{.Duration}})"
 
-history_item_reason = { other = "{{.Index}}. 💤 {{.From}} → {{.To}} ({{.Duration}})\n   💬 {{.Reason}}" }
+history_item_reason = "{{.Index}}. 💤 {{.From}} → {{.To}} ({{.Duration}})\n   💬 {{.Reason}}"
 
-history_total = { other = "\n\nВсего рестов: {{.Count}}" }
-history_empty = { other = "У участника {{.User}} нет рестов" }
+history_total = "\n\nВсего рестов: {{.Count}}"
+history_empty = "У участника {{.User}} нет рестов"
 
 [cmd.rests.delete]
-desc = { other = "Удалить запрос на рест из истории рестов" }
-deleted = { other = "Запрос на рест успешно удален" }
-deleted_active = { other = "Действительный запрос на рест удален" }
+desc = "Удалить запрос на рест из истории рестов"
+deleted = "Запрос на рест успешно удален"
+deleted_active = "Действительный запрос на рест удален"
 
 [cmd.rest_request]
 
-created = { other = "Заявка на рест отправлена на рассмотрение" }
+created = "Заявка на рест отправлена на рассмотрение"
 
-approved = { other = "✅ Заявка на рест одобрена\n\nУчастник {{.User}} находится в ресте до {{.Date}}" }
-approved_short = { other = "Запрос одобрен" }
+approved = "✅ Заявка на рест одобрена\n\nУчастник {{.User}} находится в ресте до {{.Date}}"
+approved_short = "Запрос одобрен"
 
-rejected = { other = "❌ Заявка на рест отклонена" }
+rejected = "❌ Заявка на рест отклонена"
 
-title = { other = "История рестов {{.User}}" }
-empty = { other = "У {{.User}} отсутствуют ресты" }
-item = { other = "{{.Index}}. {{.From}} — {{.To}}" }
+title = "История рестов {{.User}}"
+empty = "У {{.User}} отсутствуют ресты"
+item = "{{.Index}}. {{.From}} — {{.To}}"
 
-no_request = { other = "Не найден запрос на рест" }
+no_request = "Не найден запрос на рест"
 
-approve_button = { other = "✅ Принять" }
-reject_button = { other = "❌ Отклонить" }
+approve_button = "✅ Принять"
+reject_button = "❌ Отклонить"
 
-text = { other = "Для {{.User}} запрошен рест до {{.Date}}" }
-text_reason = { other = "Для {{.User}} запрошен рест до {{.Date}}\nПричина: {{.Reason}}" }
+text = "Для {{.User}} запрошен рест до {{.Date}}"
+text_reason = "Для {{.User}} запрошен рест до {{.Date}}\nПричина: {{.Reason}}"
 

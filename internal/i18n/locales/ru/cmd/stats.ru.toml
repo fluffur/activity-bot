@@ -1,11 +1,11 @@
 [cmd.stats]
-desc = { other = "Статистика чата по нормам" }
-title = { other = "📊 {{.From}} — {{.To}}" }
-norm_title = { other = "{{.Name}} {{.Required}}" }
-passed = { other = "🏆 Выполнили норму" }
-failed = { other = "⚠️ Требуется активность" }
-user_passed = { other = "{{.List}}. {{.User}} — {{.Messages}}" }
-user_failed = { other = "{{.List}}. {{.User}} — {{.Messages}}/{{.Required}}" }
-total_messages = { other = "📨 Всего сообщений: {{.Total}}" }
-example_duration = { other = "отчет неделя" }
-example_date = { other = "отчет 1 июня 25 июля" }
+desc = "Статистика чата по нормам"
+title = "📊 {{.From}} — {{.To}}"
+norm_title = "{{.Name}} {{.Required}}"
+passed = "🏆 Выполнили норму"
+failed = "⚠️ Требуется активность"
+user_passed = "{{.List}}. {{.User}} — {{.Messages}}"
+user_failed = "{{.List}}. {{.User}} — {{.Messages}}/{{.Required}}"
+total_messages = "📨 Всего сообщений: {{.Total}}"
+example_duration = "отчет неделя"
+example_date = "отчет 1 июня 25 июля"

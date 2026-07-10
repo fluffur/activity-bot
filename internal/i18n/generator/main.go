@@ -198,26 +198,49 @@ func buildTreeFromMap(current *Node, raw map[string]any, prefix string) {
 			fullPath = prefix + "." + key
 		}
 
-		if subMap, ok := val.(map[string]any); ok {
-			if otherVal, hasOther := subMap["other"].(string); hasOther {
+		if subStr, ok := val.(string); ok {
+			node, exists := current.Children[key]
+			if !exists {
+				node = &Node{Name: key, FullPath: fullPath, IsLeaf: true}
+				current.Children[key] = node
+			}
+			node.Params = mergeParams(node.Params, extractParams(subStr))
+		} else if subMap, ok := val.(map[string]any); ok {
+			if isPluralMap(subMap) || isGenderMap(subMap) {
 				node, exists := current.Children[key]
 				if !exists {
 					node = &Node{Name: key, FullPath: fullPath, IsLeaf: true}
 					current.Children[key] = node
 				}
-
-				node.Params = mergeParams(node.Params, extractParams(otherVal))
+				for _, subVal := range subMap {
+					if str, ok := subVal.(string); ok {
+						node.Params = mergeParams(node.Params, extractParams(str))
+					} else if innerMap, ok := subVal.(map[string]any); ok {
+						for _, innerVal := range innerMap {
+							if str2, ok := innerVal.(string); ok {
+								node.Params = mergeParams(node.Params, extractParams(str2))
+							}
+						}
+					}
+				}
 			} else {
 				node, exists := current.Children[key]
 				if !exists {
 					node = &Node{Name: key, FullPath: fullPath, IsLeaf: false, Children: make(map[string]*Node)}
 					current.Children[key] = node
 				}
-
 				buildTreeFromMap(node, subMap, fullPath)
 			}
 		}
 	}
+}
+
+func isPluralMap(m map[string]any) bool {
+	return m["other"] != nil
+}
+
+func isGenderMap(m map[string]any) bool {
+	return m["male"] != nil && m["female"] != nil
 }
 
 func extractParams(text string) []string {

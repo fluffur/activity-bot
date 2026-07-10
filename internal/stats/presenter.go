@@ -2,11 +2,10 @@ package stats
 
 import (
 	"activity-bot/internal/norm"
+	"activity-bot/internal/utils"
 	"fmt"
 	"strings"
 	"time"
-	"unicode"
-	"unicode/utf8"
 
 	"activity-bot/internal/chat"
 	"activity-bot/internal/i18n"
@@ -48,7 +47,7 @@ func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats) string
 			b.WriteString(loc.T(
 				i18n.Cmd.Stats.NormTitle,
 				i18n.CmdStatsNormTitleData{
-					Name:     tghtml.Bold(UcFirst(norm.LocalisedNormName(loc, r.NormName))),
+					Name:     tghtml.Bold(utils.UcFirst(norm.LocalisedNormName(loc, r.NormName))),
 					Required: tghtml.Code(fmt.Sprintf("%d", r.Required)),
 				},
 			))
@@ -107,24 +106,6 @@ func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats) string
 			Total: data.TotalMessages,
 		},
 	))
-
-	return b.String()
-}
-
-func UcFirst(s string) string {
-	if s == "" {
-		return ""
-	}
-
-	r, size := utf8.DecodeRuneInString(s)
-
-	rUpper := unicode.ToUpper(r)
-
-	var b strings.Builder
-
-	b.Grow(len(s))
-	b.WriteRune(rUpper)
-	b.WriteString(s[size:])
 
 	return b.String()
 }
@@ -210,7 +191,7 @@ func RenderProfile(
 		b.WriteString("\n\n")
 
 		for _, n := range profile.Norms {
-			normName := UcFirst(norm.LocalisedNormName(loc, n.Name))
+			normName := utils.UcFirst(norm.LocalisedNormName(loc, n.Name))
 
 			if n.Passed {
 				b.WriteString(loc.T(

@@ -1,2 +1,2 @@
 [common]
-close = { other = "Закрыть" }
+close = "Закрыть"

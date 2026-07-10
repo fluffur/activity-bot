@@ -124,6 +124,9 @@ func (h *Handler) ShowNorm(c *botapi.Context) error {
 			name = text
 		}
 	}
+	if name == loc.T(i18n.Cmd.AddNorm.NormGeneral, nil) {
+		name = GeneralNormName
+	}
 
 	n, err := h.repository.Get(c, ch.ID, name)
 	if err != nil {
@@ -173,11 +176,10 @@ func (h *Handler) DeleteNorm(c *botapi.Context) error {
 	loc := cctx.MustLocalizer(c)
 	args := cctx.MustArgs(c)
 
-	if len(args.Texts) == 0 {
-		return fmt.Errorf("delete norm: no name")
+	name, ok := args.Text()
+	if !ok {
+		name = GeneralNormName
 	}
-
-	name := strings.TrimSpace(args.Texts[0])
 
 	if name == loc.T(i18n.Cmd.AddNorm.NormGeneral, nil) {
 		name = GeneralNormName

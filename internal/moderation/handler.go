@@ -63,7 +63,13 @@ func (h *Handler) Actions() []*command.ActionDef {
 				rule.Text().Validate(isValidRoleString),
 			),
 		),
-
+		action.NewCommand(
+			"roles",
+			h.ListRoles,
+			i18n.Cmd.Moderation.ListRoles.Desc,
+			CategoryModeration,
+			option.WithAliases("роли"),
+		),
 		action.NewCommand(
 			"ban",
 			h.Ban,
@@ -214,12 +220,19 @@ func (h *Handler) Actions() []*command.ActionDef {
 		),
 		action.NewCommand(
 			"demote",
-			h.Promote,
+			h.Demote,
 			i18n.Cmd.Moderation.Demote.Desc,
 			CategoryModeration,
 			option.WithPermission(permission.StatusCoOwner),
 			option.WithAliases("понизить"),
 			option.WithRules(rule.User(), rule.Number().Optional()),
+		),
+		action.NewCommand(
+			"admins",
+			h.ListAdmins,
+			i18n.Cmd.Moderation.ListAdmins.Desc,
+			CategoryModeration,
+			option.WithAliases("админы", "кто здесь власть"),
 		),
 
 		action.NewCommand(

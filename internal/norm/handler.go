@@ -76,7 +76,7 @@ func (h *Handler) Actions() []*command.ActionDef {
 			option.WithPermission(permission.StatusSeniorAdmin),
 			option.WithAliases("-норма", "удалить норму"),
 			option.WithRules(
-				rule.Text().Validate(isValidNormName),
+				rule.Text().Optional().Validate(isValidNormName),
 			),
 		),
 

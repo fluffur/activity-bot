@@ -1,18 +1,18 @@
 [user]
-unknown = { other = "участник" }
+unknown = "участник"
 
 [user.joined]
-male = { other = "{{.User}} присоединился к чату" }
-female = { other = "{{.User}} присоединилась к чату" }
-unknown = { other = "{{.User}} присоединился к чату" }
+male = "{{.User}} присоединился к чату"
+female = "{{.User}} присоединилась к чату"
+unknown = "{{.User}} присоединился к чату"
 
 [user.returned]
-male = { other = "{{.User}} вернулся в чат" }
-female = { other = "{{.User}} вернулась в чат" }
-unknown = { other = "{{.User}} вернулся в чат" }
+male = "{{.User}} вернулся в чат"
+female = "{{.User}} вернулась в чат"
+unknown = "{{.User}} вернулся в чат"
 
 
 [user.left]
-male = { other = "{{.User}} вышел из чата" }
-female = { other = "{{.User}} вышла из чата" }
-unknown = { other = "{{.User}} вышел из чата" }
+male = "{{.User}} вышел из чата"
+female = "{{.User}} вышла из чата"
+unknown = "{{.User}} вышел из чата"

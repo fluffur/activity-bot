@@ -1,24 +1,24 @@
 [cmd.profile]
 
-desc = { other = "Статистика участника" }
+desc = "Статистика участника"
 
-example_duration = { other = "профиль неделя" }
-example_date = { other = "профиль 1 июня 25 июля" }
+example_duration = "профиль неделя"
+example_date = "профиль 1 июня 25 июля"
 
-title = { other = "👤 {{.User}}" }
+title = "👤 {{.User}}"
 
-member_since = { other = "В чате с {{.Date}} ({{.Days}})" }
-member_period = { other = "{{.From}} — {{.To}} ({{.Days}})" }
+member_since = "В чате с {{.Date}} ({{.Days}})"
+member_period = "{{.From}} — {{.To}} ({{.Days}})"
 
-rest_until = { other = "💤 Рест до {{.Date}}" }
-rest_exempt = { other = "🕊 Освобождён от выполнения нормы" }
+rest_until = "💤 Рест до {{.Date}}"
+rest_exempt = "🕊 Освобождён от выполнения нормы"
 
-norm_passed = { other = "✅ {{.Name}} — {{.Required}}" }
-norm_failed = { other = "⚠️ {{.Name}} — {{.Current}}/{{.Required}}" }
+norm_passed = "✅ {{.Name}} — {{.Required}}"
+norm_failed = "⚠️ {{.Name}} — {{.Current}}/{{.Required}}"
 
-total_messages = { other = "📨 Всего сообщений: {{.Total}}" }
+total_messages = "📨 Всего сообщений: {{.Total}}"
 
-activity = { other = """📅 Календарная активность
+activity = """📅 Календарная активность
 • Сегодня — {{.Day}}
 • Неделя — {{.Week}}
 • Месяц — {{.Month}}
@@ -29,6 +29,6 @@ activity = { other = """📅 Календарная активность
 • Последние 30 дней — {{.MonthRolling}}
 
 📨 Всего сообщений: {{.Total}}
-""" }
+"""
 
 

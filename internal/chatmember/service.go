@@ -145,6 +145,20 @@ func (s *Service) ListSummonChatMembers(ctx context.Context, chatID int64) ([]Ch
 	})
 }
 
+func (s *Service) ListHumanPresentChatMembers(ctx context.Context, chatID int64) ([]ChatMember, error) {
+	return s.chatMemberRepo.List(ctx, Filter{
+		ChatID: chatID,
+		IsBot: OptionalBool{
+			Bool:  false,
+			Valid: true,
+		},
+		Left: OptionalBool{
+			Bool:  false,
+			Valid: true,
+		},
+	})
+}
+
 func (s *Service) SetExcludeFromSummon(ctx context.Context, chatID, userID int64, excluded bool) error {
 	return s.chatMemberRepo.SetExcludeFromSummon(ctx, chatID, userID, excluded)
 }

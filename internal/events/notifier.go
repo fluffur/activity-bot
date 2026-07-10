@@ -27,13 +27,17 @@ func (n *UsernameChangedNotifier) NotifyUsernameChanged(c *botapi.Context, oldUs
 	ch := cctx.MustChat(c)
 	cm := cctx.MustChatMember(c)
 	loc := cctx.MustLocalizer(c)
-	args := i18n.SystemUsernameChangedMaleData{
+	args := i18n.SystemUsernameChangedData{
 		User:        tghtml.MemberMention(loc, ch, cm),
 		OldUsername: tghtml.Code("@" + oldUsername),
 		NewUsername: tghtml.Code("@" + newUsername),
 	}
 
-	text := loc.TGender(cm.User.Gender, i18n.System.UsernameChanged, args)
+	text := loc.T(
+		i18n.System.UsernameChanged,
+		args,
+		i18n.WithGender(cm.User.Gender),
+	)
 
 	admins, err := n.chatMemberRepository.ListAdmins(c, ch.ID, permission.StatusModerator)
 	if err != nil {

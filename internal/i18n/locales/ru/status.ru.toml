@@ -1,7 +1,35 @@
-[status]
-member = { other = "участник" }
-moderator = { other = "модератор" }
-junior_admin = { other = "младший администратор" }
-senior_admin = { other = "старший администратор" }
-coowner = { other = "совладелец" }
-owner = { other = "владелец" }
+[status.member]
+one = "участник"
+few = "участники"
+many = "участники"
+other = "участники"
+
+[status.moderator]
+one = "модератор"
+few = "модераторы"
+many = "модераторы"
+other = "модераторы"
+
+[status.junior_admin]
+one = "младший администратор"
+few = "младшие администраторы"
+many = "младшие администраторы"
+other = "младшие администраторы"
+
+[status.senior_admin]
+one = "старший администратор"
+few = "старшие администраторы"
+many =  "старшие администраторы"
+other = "старшие администраторы"
+
+[status.coowner]
+one =  "совладелец"
+few = "совладельцы"
+many = "совладельцы"
+other = "совладельцы"
+
+[status.owner]
+one = "владелец"
+few = "владельцы"
+many = "владельцы"
+other = "владельцы"

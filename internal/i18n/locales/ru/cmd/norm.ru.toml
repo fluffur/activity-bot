@@ -1,41 +1,41 @@
 [cmd.add_norm]
-desc = { other = "Добавить новую норму" }
-example_simple = { other = "+норма 50" }
-example_named = { other = "+норма 70 варн" }
-example_users = { other = """+норма 10 особенные
-@user1 @user2""" }
-err_invalid_value = { other = "Неверное значение нормы {{.Value}}.\nДопустимый диапазон: от {{.Min}} до {{.Max}}." }
-added = { other = "Норма {{.Name}} {{.Value}} успешно установлена" }
-norm_general = { other = "общая" }
+desc = "Добавить новую норму"
+example_simple = "+норма 50"
+example_named = "+норма 70 варн"
+example_users = """+норма 10 особенные
+@user1 @user2"""
+err_invalid_value = "Неверное значение нормы {{.Value}}.\nДопустимый диапазон: от {{.Min}} до {{.Max}}."
+added = "Норма {{.Name}} {{.Value}} успешно установлена"
+norm_general = "общая"
 
 [cmd.list_norms]
-desc = { other = "Список всех норм" }
-title = { other = "Нормы:" }
-empty = { other = "Нормы отсутствуют" }
-item = { other = "• {{.Name}} — {{.Value}}" }
+desc = "Список всех норм"
+title = "Нормы:"
+empty = "Нормы отсутствуют"
+item = "• {{.Name}} — {{.Value}}"
 
 [cmd.show_norm]
-desc = { other = "Просмотр нормы" }
-example = { other = "норма варн" }
-body = { other = "Норма \"{{.Name}}\": {{.Value}}" }
-not_found = { other = "Норма с названием {{.Name}} ещё не установлена\n\nПопробуйте ввести: {{.Code}}+норма {{.Name}} 100{{.CodeEnd}}" }
-members = { other = "👥 Участники:" }
-all_members = { other = "👥 Применяется ко всем участникам чата" }
+desc = "Просмотр нормы"
+example = "норма варн"
+body = "Норма \"{{.Name}}\": {{.Value}}"
+not_found = "Норма с названием {{.Name}} ещё не установлена\n\nПопробуйте ввести: {{.Code}}+норма {{.Name}} 100{{.CodeEnd}}"
+members = "👥 Участники:"
+all_members = "👥 Применяется ко всем участникам чата"
 
 [cmd.assign_norm]
-desc = { other = "Назначить норму участникам" }
-example = { other = "назначить норму админы @user1 @user2" }
-assigned = { other = "Норма {{.Name}} успешно назначена указанным участникам" }
-no_users = { other = "Не удалось назначить норму на указанных участников" }
+desc = "Назначить норму участникам"
+example = "назначить норму админы @user1 @user2"
+assigned = "Норма {{.Name}} успешно назначена указанным участникам"
+no_users = "Не удалось назначить норму на указанных участников"
 
 [cmd.unassign_norm]
-desc = { other = "Снять норму участникам" }
-example = { other = "снять норму админы @user" }
-unassigned = { other = "Норма {{.Name}} успешно снята у указанных участников" }
-no_users = { other = "Не удалось снять норму у указанных участников" }
+desc = "Снять норму участникам"
+example = "снять норму админы @user"
+unassigned = "Норма {{.Name}} успешно снята у указанных участников"
+no_users = "Не удалось снять норму у указанных участников"
 
 [cmd.delete_norm]
-desc = { other = "Удалить норму" }
-example = { other = "-норма варн" }
-deleted = { other = "Норма \"{{.Name}}\" удалена" }
-err_nothing_to_delete = { other = "Норма с именем \"{{.Name}}\" не найдена для удаления" }
+desc = "Удалить норму"
+example = "-норма варн"
+deleted = "Норма \"{{.Name}}\" удалена"
+err_nothing_to_delete = "Норма с именем \"{{.Name}}\" не найдена для удаления"

@@ -96,19 +96,25 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 
 	mention := tghtml.MemberMention(loc, cm.Chat, cm)
 
-	key := i18n.User.Returned
-	data := i18n.UserReturnedMaleData{
-		User: mention,
-	}
+	var key i18n.MessageID
+	var data any
 
 	if res.IsNew {
 		key = i18n.User.Joined
+		data = i18n.UserJoinedData{
+			User: mention,
+		}
+	} else {
+		key = i18n.User.Returned
+		data = i18n.UserReturnedData{
+			User: mention,
+		}
 	}
 
-	text := loc.TGender(
-		cm.User.Gender,
+	text := loc.T(
 		key,
 		data,
+		i18n.WithGender(cm.User.Gender),
 	)
 
 	_, err = h.bot.SendMessage(
@@ -131,12 +137,12 @@ func (h *Handler) processLeft(ctx context.Context, u *tg.UpdateChannelParticipan
 
 	mention := tghtml.MemberMention(loc, cm.Chat, cm)
 
-	text := loc.TGender(
-		cm.User.Gender,
+	text := loc.T(
 		i18n.User.Left,
-		i18n.UserLeftMaleData{
+		i18n.UserLeftData{
 			User: mention,
 		},
+		i18n.WithGender(cm.User.Gender),
 	)
 
 	_, err = h.bot.SendMessage(

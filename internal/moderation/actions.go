@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/permission"
+	"activity-bot/internal/utils"
 	"activity-bot/internal/utils/tghtml"
 	"errors"
 	"fmt"
@@ -19,7 +20,7 @@ func moderationMessage(
 	loc *i18n.Localizer,
 	ch chat.Chat,
 	target, moderator chatmember.ChatMember,
-	action i18n.GenderMessage,
+	action i18n.MessageID,
 	until time.Time,
 	reason string,
 	extra ...string,
@@ -39,10 +40,10 @@ func moderationMessage(
 			i18n.Cmd.Moderation.Templates.Action,
 			i18n.CmdModerationTemplatesActionData{
 				User: tghtml.MemberMention(loc, ch, target),
-				Action: loc.TGender(
-					target.Gender(),
+				Action: loc.T(
 					action,
 					nil,
+					i18n.WithGender(target.Gender()),
 				),
 				Until: untilText,
 			},
@@ -349,6 +350,63 @@ func (h *Handler) Unwarn(c *botapi.Context) error {
 	_, err = c.Reply(
 		text,
 		botapi.WithParseMode(botapi.ParseModeHTML),
+	)
+
+	return err
+}
+
+func (h *Handler) ListAdmins(c *botapi.Context) error {
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
+
+	admins, err := h.service.GetAdmins(c, ch.ID)
+	if err != nil {
+		return fmt.Errorf("list admins: %w", err)
+	}
+
+	if len(admins) == 0 {
+		_, err = c.Reply(loc.T(i18n.Cmd.Moderation.ListAdmins.Empty, nil))
+		return err
+	}
+
+	categories := map[permission.Status][]chatmember.ChatMember{}
+	for _, admin := range admins {
+		categories[admin.Status] = append(categories[admin.Status], admin)
+	}
+
+	order := []permission.Status{
+		permission.StatusOwner,
+		permission.StatusCoOwner,
+		permission.StatusSeniorAdmin,
+		permission.StatusAdmin,
+		permission.StatusModerator,
+	}
+
+	var text strings.Builder
+
+	text.WriteString(loc.T(i18n.Cmd.Moderation.ListAdmins.Header, nil))
+
+	for _, status := range order {
+		members := categories[status]
+		if len(members) == 0 {
+			continue
+		}
+
+		text.WriteString("\n\n")
+		text.WriteString(
+			status.Emoji() + " " + utils.UcFirst(loc.T(status.TranslationKey(), nil, i18n.WithPluralCount(len(members)))),
+		)
+
+		for i, member := range members {
+			text.WriteString(fmt.Sprintf("\n%d. ", i+1))
+			text.WriteString(tghtml.MemberLink(loc, ch, member))
+		}
+	}
+
+	_, err = c.Reply(
+		text.String(),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview(),
 	)
 
 	return err
