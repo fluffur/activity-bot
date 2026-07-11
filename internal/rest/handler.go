@@ -14,7 +14,7 @@ const CategoryRest command.Category = "rest"
 
 const (
 	callbackRestApprove = "rest:approve:"
-	callbackRestReject  = "rest:approve:"
+	callbackRestReject  = "rest:reject:"
 )
 
 type Handler struct {
@@ -31,8 +31,8 @@ func NewHandler(
 		chatMemberService: cms,
 	}
 }
-func (h *Handler) Actions() []*command.ActionDef {
-	return []*command.ActionDef{
+func (h *Handler) Actions() []*command.Action {
+	return []*command.Action{
 		action.NewCommand(
 			"rest",
 			h.ShowRest,

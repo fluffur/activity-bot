@@ -16,6 +16,9 @@ button_back = "⬅️ Назад"
 
 access = "Доступ"
 
+disable_info= "Чтобы отключить комадну можно ввести <code>дк {{.Command}} 6</code>"
+enable_info= "Чтобы включить комадну можно ввести <code>дк {{.Command}} {{.Status}}</code>"
+
 [cmd.help_command]
 
 desc = "Информация о команде"

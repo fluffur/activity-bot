@@ -23,7 +23,7 @@ func Attach(
 
 func registerAction(
 	bot *botapi.Bot,
-	action *command.ActionDef,
+	action *command.Action,
 	permissions *predicate.PermissionChecker,
 	rules *predicate.RuleChecker,
 ) {
@@ -43,7 +43,7 @@ func registerAction(
 }
 
 func buildCommandPredicates(
-	action *command.ActionDef,
+	action *command.Action,
 	trigger *command.CommandTrigger,
 	permissions *predicate.PermissionChecker,
 	rules *predicate.RuleChecker,
@@ -88,7 +88,7 @@ func buildCommandPredicates(
 }
 
 func buildCallbackPredicates(
-	action *command.ActionDef,
+	action *command.Action,
 	trigger *command.CallbackTrigger,
 	permissions *predicate.PermissionChecker,
 ) []botapi.Predicate {
@@ -109,6 +109,9 @@ func buildCallbackPredicates(
 			permissions.Pass(action.Key, action.Permission),
 		)
 	} else {
+		if action.AllowDev {
+			predicates = append(predicates, permissions.PassDev())
+		}
 		predicates = append(predicates,
 			permissions.Require(action.Key, action.Permission),
 		)

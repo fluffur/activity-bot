@@ -35,7 +35,7 @@ func (h *Handler) renderCategory(
 		nil,
 	)
 
-	cmds := make([]*command.ActionDef, 0)
+	cmds := make([]*command.Action, 0)
 
 	for _, cmd := range h.registry.ByCategory(category) {
 		if cmd.ShowInHelp {
@@ -105,7 +105,7 @@ func (h *Handler) renderCategory(
 
 func (h *Handler) renderCommand(
 	loc *i18n.Localizer,
-	cmd *command.ActionDef,
+	cmd *command.Action,
 	permissions map[string]permission.Status,
 ) string {
 	var sb strings.Builder

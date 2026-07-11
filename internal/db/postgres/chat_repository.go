@@ -60,3 +60,24 @@ func (r *ChatRepository) SetSkipSummonConfirmation(ctx context.Context, chatID i
 		ChatID:               chatID,
 	})
 }
+
+func (r *ChatRepository) GetUserManagedChats(ctx context.Context, userID int64, search string) ([]chat.Chat, error) {
+	chats, err := r.queries.GetUserManagedChats(ctx, db.GetUserManagedChatsParams{
+		UserID: userID,
+		Title:  search,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return mapList(chats, mapChat), nil
+}
+
+func (r *ChatRepository) GetAllChats(ctx context.Context, search string) ([]chat.Chat, error) {
+	chats, err := r.queries.GetAllChats(ctx, search)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapList(chats, mapChat), nil
+}

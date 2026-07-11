@@ -1,0 +1,15 @@
+[cmd.permission.show]
+desc = "Посмотреть доступ команды"
+
+success = "Доступ команды {{.Cmd}}:\n\n{{.Status}}"
+
+[cmd.permission.set]
+desc = "Установить доступ команды"
+
+cannot_disable = "Эту команду нельзя отключить"
+
+cannot_allow_members = "Эта команда не может быть доступна всем участникам"
+
+unknown_command = "Неизвестная команда"
+
+success = "Права для команды {{.Cmd}} изменены на {{.Status}}"

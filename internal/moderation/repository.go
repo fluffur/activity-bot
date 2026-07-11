@@ -1,7 +1,6 @@
 package moderation
 
 import (
-	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
 	"context"
 	"time"
@@ -19,14 +18,12 @@ type Warn struct {
 type Repository interface {
 	SetStatus(ctx context.Context, chatID int64, userID int64, status int16) error
 	CreateModerationAction(ctx context.Context, actionType string, chatID, userID, modID int64, reason string, until time.Time) error
-	GetWarnsCount(ctx context.Context, chatID, userID int64) (int64, error)
-	ClearWarns(ctx context.Context, chatID, userID int64) error
-	GetChatMaxWarns(ctx context.Context, chatID int64) (int, error)
-	UpdateChatMaxWarns(ctx context.Context, chatID int64, maxWarns int) error
 	RemoveModerationActions(ctx context.Context, chatID, userID int64) error
 	RemoveLatestWarn(ctx context.Context, chatID, userID int64) error
 	GetActiveWarns(ctx context.Context, chatID, userID int64) ([]Warn, error)
 	GetActiveWarnsByChat(ctx context.Context, chatID int64) ([]Warn, error)
-	GetUserManagedChats(ctx context.Context, userID int64, search string) ([]chat.Chat, error)
-	GetAllChats(ctx context.Context, search string) ([]chat.Chat, error)
+	GetWarnsCount(ctx context.Context, chatID, userID int64) (int64, error)
+	ClearWarns(ctx context.Context, chatID, userID int64) error
+	GetChatMaxWarns(ctx context.Context, chatID int64) (int, error)
+	UpdateChatMaxWarns(ctx context.Context, chatID int64, maxWarns int) error
 }

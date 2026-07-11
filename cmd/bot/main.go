@@ -11,10 +11,12 @@ import (
 	"activity-bot/internal/handler"
 	"activity-bot/internal/help"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/manage"
 	"activity-bot/internal/message"
 	"activity-bot/internal/middleware"
 	"activity-bot/internal/moderation"
 	"activity-bot/internal/norm"
+	permissionHandler "activity-bot/internal/permission/handler"
 	"activity-bot/internal/pmsession"
 	"activity-bot/internal/predicate"
 	"activity-bot/internal/register"
@@ -81,7 +83,7 @@ func main() {
 	restRepository := postgres.NewRestRepository(queries, pool)
 	moderationRepository := postgres.NewModerationRepository(queries)
 
-	chatService := chat.NewService(chatRepository)
+	chatService := chat.NewService(chatRepository, cfg.DeveloperID)
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
 	statsService := stats.NewService(chatMemberRepository, normRepository, statsRepository)
 	restService := rest.NewService(restRepository)
@@ -93,7 +95,7 @@ func main() {
 	}
 	loc := translator.Default()
 
-	permissions := predicate.NewPermissionsChecker(permissionRepository)
+	permissions := predicate.NewPermissionsChecker(permissionRepository, cfg.DeveloperID)
 	rules := predicate.NewRuleChecker(chatMemberRepository, messageRepository)
 
 	summonFSM := fsm.New(
@@ -111,7 +113,9 @@ func main() {
 		norm.NewHandler(normRepository),
 		stats.NewHandler(statsService),
 		rest.NewHandler(restService, chatMemberService),
-		moderation.NewHandler(moderationService, chatService, chatMemberService, pmSessionRepository),
+		moderation.NewHandler(moderationService, chatMemberService),
+		permissionHandler.NewHandler(registry, permissionRepository),
+		manage.NewHandler(chatService, pmSessionRepository),
 	}
 
 	for _, h := range handlers {

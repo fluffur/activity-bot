@@ -4,11 +4,13 @@ import "context"
 
 type Service struct {
 	repository Repository
+	ownerID    int64
 }
 
-func NewService(r Repository) *Service {
+func NewService(r Repository, ownerID int64) *Service {
 	return &Service{
 		repository: r,
+		ownerID:    ownerID,
 	}
 }
 
@@ -26,4 +28,11 @@ func (s *Service) SetMentionTypes(ctx context.Context, chatID int64, mentionType
 
 func (s *Service) SetSkipSummonConfirmation(ctx context.Context, chatID int64, skipSummonConfirmation bool) error {
 	return s.repository.SetSkipSummonConfirmation(ctx, chatID, skipSummonConfirmation)
+}
+
+func (s *Service) GetUserManagedChats(ctx context.Context, userID int64, search string) ([]Chat, error) {
+	if userID == s.ownerID {
+		return s.repository.GetAllChats(ctx, search)
+	}
+	return s.repository.GetUserManagedChats(ctx, userID, search)
 }

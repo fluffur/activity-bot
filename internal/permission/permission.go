@@ -11,6 +11,7 @@ const (
 	StatusSeniorAdmin
 	StatusCoOwner
 	StatusOwner
+	StatusDisabled
 )
 
 const (
@@ -18,8 +19,8 @@ const (
 	StatusMax = StatusOwner
 )
 
-func IsValidStatus(s int64) bool {
-	return s >= int64(StatusMember) && s <= int64(StatusOwner)
+func (s Status) IsValid() bool {
+	return s >= StatusMember && s <= StatusOwner
 }
 
 func (s Status) TranslationKey() i18n.MessageID {
@@ -36,6 +37,8 @@ func (s Status) TranslationKey() i18n.MessageID {
 		return i18n.Status.Coowner
 	case StatusOwner:
 		return i18n.Status.Owner
+	case StatusDisabled:
+		return i18n.Status.Disabled
 	default:
 		return i18n.Status.Member
 	}
@@ -55,7 +58,17 @@ func (s Status) Emoji() string {
 		return "4️⃣"
 	case StatusOwner:
 		return "5️⃣"
+	case StatusDisabled:
+		return "❌"
 	default:
 		return "?"
 	}
+}
+
+func (s Status) IsDisabled() bool {
+	return s == StatusDisabled
+}
+
+func (s Status) IsMember() bool {
+	return s == StatusMember
 }

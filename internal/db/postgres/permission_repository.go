@@ -14,10 +14,18 @@ func NewPermissionRepository(queries *db.Queries) *PermissionRepository {
 	return &PermissionRepository{queries: queries}
 }
 
-func (r *PermissionRepository) CommandPermission(ctx context.Context, chatID int64, name string) (permission.Status, error) {
+func (r *PermissionRepository) SetCommandPermission(ctx context.Context, chatID int64, key string, status permission.Status) error {
+	return r.queries.SetCommandPermission(ctx, db.SetCommandPermissionParams{
+		ChatID:         chatID,
+		CommandKey:     key,
+		RequiredStatus: int16(status),
+	})
+}
+
+func (r *PermissionRepository) CommandPermission(ctx context.Context, chatID int64, key string) (permission.Status, error) {
 	p, err := r.queries.GetCommandPermission(ctx, db.GetCommandPermissionParams{
 		ChatID:     chatID,
-		CommandKey: name,
+		CommandKey: key,
 	})
 	if err != nil {
 		return 0, err

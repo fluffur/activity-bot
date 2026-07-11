@@ -14,16 +14,19 @@ import (
 	"github.com/gotd/botapi"
 )
 
-type PermissionRepository interface {
-	CommandPermission(ctx context.Context, chatID int64, name string) (permission.Status, error)
-}
-
 type PermissionChecker struct {
-	repo PermissionRepository
+	repo  permission.Repository
+	devID int64
 }
 
-func NewPermissionsChecker(repo PermissionRepository) *PermissionChecker {
-	return &PermissionChecker{repo}
+func NewPermissionsChecker(
+	repo permission.Repository,
+	devID int64,
+) *PermissionChecker {
+	return &PermissionChecker{
+		repo:  repo,
+		devID: devID,
+	}
 }
 
 func (p *PermissionChecker) Pass(
@@ -79,6 +82,10 @@ func (p *PermissionChecker) Require(
 
 		loc := cctx.MustLocalizer(c)
 
+		if cctx.DevPassed(c) {
+			return true
+		}
+
 		if cm.Permitted(status) {
 			return true
 		}
@@ -99,6 +106,10 @@ func (p *PermissionChecker) Require(
 		}
 
 		if c.Update.Message != nil {
+			if status.IsDisabled() {
+				return false
+			}
+
 			_, _ = c.Reply(
 				loc.T(
 					i18n.System.NoPermission,
@@ -123,7 +134,7 @@ func getStatus(
 	chatID int64,
 	name string,
 	defaultStatus permission.Status,
-	repo PermissionRepository,
+	repo permission.Repository,
 ) (permission.Status, error) {
 	status, err := repo.CommandPermission(ctx, chatID, name)
 	if err == nil {
@@ -165,4 +176,19 @@ func (p *PermissionChecker) status(
 	}
 
 	return status, true
+}
+
+func (p *PermissionChecker) PassDev() botapi.Predicate {
+	return func(c *botapi.Context) bool {
+		sender := c.Sender()
+		if sender == nil {
+			return true
+		}
+
+		if p.devID == sender.ID {
+			c.Context = cctx.PassDev(c.Context)
+		}
+
+		return true
+	}
 }

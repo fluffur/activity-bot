@@ -22,8 +22,8 @@ func NewHandler(
 	}
 }
 
-func (h *Handler) Actions() []*command.ActionDef {
-	return []*command.ActionDef{
+func (h *Handler) Actions() []*command.Action {
+	return []*command.Action{
 		action.NewCommand(
 			"stats",
 			h.Chat,

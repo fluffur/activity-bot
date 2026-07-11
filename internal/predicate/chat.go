@@ -29,7 +29,6 @@ func Private() botapi.Predicate {
 
 			return false
 		}
-
 		if chatID, ok := c.Chat(); ok {
 			if id, ok := ChatIDInt64(chatID); ok {
 				return ch.ID == 0 || id != ch.ID

@@ -129,7 +129,7 @@ func (h *Handler) commandsKeyboard(
 ) *botapi.InlineKeyboardMarkup {
 	var rows [][]botapi.InlineKeyboardButton
 
-	cmds := make([]*command.ActionDef, 0)
+	cmds := make([]*command.Action, 0)
 
 	for _, cmd := range h.registry.ByCategory(category) {
 		if cmd.ShowInHelp {

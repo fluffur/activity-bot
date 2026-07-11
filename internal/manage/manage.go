@@ -1,4 +1,4 @@
-package moderation
+package manage
 
 import (
 	"activity-bot/internal/cctx"
@@ -23,7 +23,7 @@ func (h *Handler) Manage(c *botapi.Context) error {
 	senderID := msg.Chat.ID
 	search, _ := cctx.MustArgs(c).Text()
 
-	chats, err := h.service.GetUserManagedChats(c, senderID, search)
+	chats, err := h.chatService.GetUserManagedChats(c, senderID, search)
 	if err != nil {
 		return fmt.Errorf("get managed chats: %w", err)
 	}

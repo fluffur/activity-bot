@@ -42,8 +42,8 @@ func NewHandler(
 		summonFSM:         summonFSM,
 	}
 }
-func (h *Handler) Actions() []*command.ActionDef {
-	return []*command.ActionDef{
+func (h *Handler) Actions() []*command.Action {
+	return []*command.Action{
 		action.NewCommand(
 			"summon",
 			h.SummonAll,

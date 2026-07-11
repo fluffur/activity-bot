@@ -17,8 +17,8 @@ func NewCommand(
 	description i18n.MessageID,
 	category command.Category,
 	opts ...option.Option,
-) *command.ActionDef {
-	cmd := &command.ActionDef{
+) *command.Action {
+	cmd := &command.Action{
 		Key:     key,
 		Handler: handler,
 		Trigger: &command.CommandTrigger{
@@ -44,8 +44,8 @@ func NewCallback(
 	handler botapi.Handler,
 	category command.Category,
 	opts ...option.Option,
-) *command.ActionDef {
-	cmd := &command.ActionDef{
+) *command.Action {
+	cmd := &command.Action{
 		Key:     key,
 		Handler: handler,
 		Trigger: &command.CallbackTrigger{
@@ -69,8 +69,8 @@ func NewCallbackPrefix(
 	handler botapi.Handler,
 	category command.Category,
 	opts ...option.Option,
-) *command.ActionDef {
-	cmd := &command.ActionDef{
+) *command.Action {
+	cmd := &command.Action{
 		Key:     key,
 		Handler: handler,
 		Trigger: &command.CallbackTrigger{

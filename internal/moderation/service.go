@@ -87,43 +87,6 @@ func (s *Service) Mute(ctx context.Context, chatID int64, taget, moderator chatm
 	return s.repo.CreateModerationAction(ctx, "mute", chatID, taget.ID(), moderator.ID(), reason, until)
 }
 
-func (s *Service) Warn(
-	ctx context.Context,
-	ch chat.Chat,
-	target,
-	moderator chatmember.ChatMember,
-	reason string,
-	until time.Time,
-) (warnsCount int32, err error) {
-	chatID := ch.ID
-
-	if !moderator.CanModerate(target) {
-		return 0, ErrUserCantBeModerated
-	}
-
-	if err := s.repo.CreateModerationAction(ctx, "warn", chatID, target.ID(), moderator.ID(), reason, until); err != nil {
-		return 0, err
-	}
-
-	count, err := s.repo.GetWarnsCount(ctx, chatID, target.ID())
-	if err != nil {
-		return 0, err
-	}
-
-	warnsCount = int32(count)
-
-	maxWarns := ch.MaxWarns
-
-	if warnsCount >= maxWarns {
-		_ = s.repo.CreateModerationAction(ctx, "ban", chatID, target.ID(), moderator.ID(), reason, time.Time{})
-		_ = s.repo.ClearWarns(ctx, chatID, target.ID())
-
-		return warnsCount, nil
-	}
-
-	return warnsCount, nil
-}
-
 func (s *Service) Unban(ctx context.Context, chatID, userID int64) error {
 	return s.repo.RemoveModerationActions(ctx, chatID, userID)
 }
@@ -162,9 +125,39 @@ func (s *Service) GetWarnsByChat(ctx context.Context, chatID int64) ([]Warn, err
 	return s.repo.GetActiveWarnsByChat(ctx, chatID)
 }
 
-func (s *Service) GetUserManagedChats(ctx context.Context, userID int64, search string) ([]chat.Chat, error) {
-	if userID == s.ownerID {
-		return s.repo.GetAllChats(ctx, search)
+func (s *Service) Warn(
+	ctx context.Context,
+	ch chat.Chat,
+	target,
+	moderator chatmember.ChatMember,
+	reason string,
+	until time.Time,
+) (warnsCount int32, err error) {
+	chatID := ch.ID
+
+	if !moderator.CanModerate(target) {
+		return 0, ErrUserCantBeModerated
 	}
-	return s.repo.GetUserManagedChats(ctx, userID, search)
+
+	if err := s.repo.CreateModerationAction(ctx, "warn", chatID, target.ID(), moderator.ID(), reason, until); err != nil {
+		return 0, err
+	}
+
+	count, err := s.repo.GetWarnsCount(ctx, chatID, target.ID())
+	if err != nil {
+		return 0, err
+	}
+
+	warnsCount = int32(count)
+
+	maxWarns := ch.MaxWarns
+
+	if warnsCount >= maxWarns {
+		_ = s.repo.CreateModerationAction(ctx, "ban", chatID, target.ID(), moderator.ID(), reason, time.Time{})
+		_ = s.repo.ClearWarns(ctx, chatID, target.ID())
+
+		return warnsCount, nil
+	}
+
+	return warnsCount, nil
 }

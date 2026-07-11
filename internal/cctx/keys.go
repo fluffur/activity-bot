@@ -17,6 +17,8 @@ type (
 	argsKey              struct{}
 	parsedArgsKey        struct{}
 	commandPermissionKey struct{}
+	devPassed            struct{}
+	devPassedVal         struct{}
 	localizerKey         struct{}
 	commandPrefixKey     struct{}
 )
@@ -99,6 +101,15 @@ func Permission(ctx context.Context) (permission.Status, error) {
 	}
 
 	return status, nil
+}
+
+func PassDev(ctx context.Context) context.Context {
+	return context.WithValue(ctx, devPassed{}, devPassedVal{})
+}
+
+func DevPassed(ctx context.Context) bool {
+	_, ok := ctx.Value(devPassed{}).(devPassedVal)
+	return ok
 }
 
 func WithLocalizer(ctx context.Context, loc *i18n.Localizer) context.Context {

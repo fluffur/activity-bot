@@ -51,7 +51,7 @@ func (*CallbackTrigger) IndexKeys() []string {
 	return nil
 }
 
-type ActionDef struct {
+type Action struct {
 	Key     string
 	Handler botapi.Handler
 
@@ -65,11 +65,12 @@ type ActionDef struct {
 	Examples    []i18n.MessageID
 
 	ShowInHelp bool
+	AllowDev   bool
 
 	ExtraPredicates []botapi.Predicate
 }
 
-func (a *ActionDef) CallbackData() (string, bool) {
+func (a *Action) CallbackData() (string, bool) {
 	t, ok := a.Trigger.(*CallbackTrigger)
 	if !ok {
 		return "", false
