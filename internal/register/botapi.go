@@ -77,6 +77,9 @@ func buildCommandPredicates(
 			permissions.Pass(action.Key, action.Permission),
 		)
 	} else {
+		if action.AllowDev {
+			predicates = append(predicates, permissions.PassDev())
+		}
 		predicates = append(predicates,
 			permissions.Require(action.Key, action.Permission),
 		)

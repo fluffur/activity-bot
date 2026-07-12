@@ -31,6 +31,7 @@ func (h *Handler) Actions() []*command.Action {
 			i18n.Cmd.Permission.Set.Desc,
 			CategoryPermission,
 			option.WithAliases("дк", "+дк"),
+			option.WithPermission(permission.StatusCoOwner),
 			option.WithRules(rule.Number(), rule.Text()),
 		),
 		action.NewCommand(

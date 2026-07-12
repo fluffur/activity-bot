@@ -30,4 +30,5 @@ type Repository interface {
 	List(ctx context.Context, filter Filter) ([]ChatMember, error)
 	ListAdmins(ctx context.Context, chatID int64, minStatus permission.Status) ([]ChatMember, error)
 	SetExcludeFromSummon(ctx context.Context, chatID, userID int64, excluded bool) error
+	SetEmoji(c context.Context, chatID, userID int64, emojisString string) error
 }

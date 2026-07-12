@@ -31,6 +31,28 @@ func New(u user.User, c chat.Chat, tag string, status permission.Status, now tim
 	}
 }
 
+func (c ChatMember) Name(unknown string) string {
+	name := strings.TrimSpace(c.User.FirstName + " " + c.User.LastName)
+
+	if c.Tag != "" {
+		name = c.Tag
+	}
+
+	if name == "" {
+		return unknown
+	}
+
+	return name
+}
+
+func (c ChatMember) Emoji() string {
+	if c.Emojis != "" {
+		return c.Emojis
+	}
+
+	return c.User.Emojis
+}
+
 func (c ChatMember) Display(unknown string, emojis bool) string {
 	name := strings.TrimSpace(c.User.FirstName + " " + c.User.LastName)
 

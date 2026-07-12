@@ -300,7 +300,7 @@ func (h *Handler) SetStatus(c *botapi.Context) error {
 	ch := cctx.MustChat(c)
 
 	target, ok := args.User()
-	if !ok || moderator.ID() == target.ID() {
+	if !ok {
 		return nil
 	}
 
@@ -317,12 +317,12 @@ func (h *Handler) SetStatus(c *botapi.Context) error {
 	if err := h.service.SetStatus(c, ch.ID, moderator, target, status); err != nil {
 		switch {
 		case errors.Is(err, ErrUserCantBeModerated):
-			_, _ = c.Reply(loc.T(i18n.Cmd.Moderation.SetStatus.CantModerate, nil))
-			return nil
+			_, err = c.Reply(loc.T(i18n.Cmd.Moderation.SetStatus.CantModerate, nil))
+			return err
 
 		case errors.Is(err, ErrUserStatusInvalid):
-			_, _ = c.Reply(loc.T(i18n.Cmd.Moderation.SetStatus.InvalidStatus, nil))
-			return nil
+			_, err = c.Reply(loc.T(i18n.Cmd.Moderation.SetStatus.InvalidStatus, nil))
+			return err
 
 		default:
 			return fmt.Errorf("set status: %w", err)

@@ -181,14 +181,7 @@ func RenderMention(cm chatmember.ChatMember, mentionTypes chat.MentionTypes) str
 	hasRole := mentionTypes.Has(chat.MentionRole)
 	hasName := mentionTypes.Has(chat.MentionName)
 
-	var result strings.Builder
-
-	if hasEmoji {
-		if emoji := cm.AnyEmoji(); emoji != "" {
-			result.WriteString(emoji)
-			result.WriteByte(' ')
-		}
-	}
+	var text strings.Builder
 
 	role := cm.Role()
 	if role == "" {
@@ -198,25 +191,39 @@ func RenderMention(cm chatmember.ChatMember, mentionTypes chat.MentionTypes) str
 	switch {
 	case hasRole && hasName:
 		if role == cm.User.FullName() {
-			result.WriteString(role)
+			text.WriteString(role)
 		} else {
-			result.WriteString(fmt.Sprintf("%s (%s)", role, cm.User.FullName()))
+			text.WriteString(fmt.Sprintf("%s (%s)", role, cm.User.FullName()))
 		}
 
 	case hasRole:
-		result.WriteString(role)
+		text.WriteString(role)
 
 	case hasName:
-		result.WriteString(cm.User.FullName())
+		text.WriteString(cm.User.FullName())
 	}
 
-	text := strings.TrimSpace(result.String())
+	mentionText := strings.TrimSpace(text.String())
 
-	if text == "" {
-		text = "​"
+	if mentionText == "" {
+		if hasEmoji {
+			if emoji := cm.AnyEmoji(); emoji != "" && !strings.Contains(emoji, "<tg-emoji") {
+				return tghtml.UserMention(cm.ID(), emoji)
+			}
+		}
+
+		mentionText = "\u200B"
 	}
 
-	return tghtml.UserMention(cm.ID(), text)
+	mention := tghtml.UserMention(cm.ID(), mentionText)
+
+	if hasEmoji {
+		if emoji := cm.AnyEmoji(); emoji != "" {
+			return emoji + " " + mention
+		}
+	}
+
+	return mention
 }
 
 func ReplaceMentions(text string, entities []botapi.MessageEntity) string {

@@ -3,6 +3,7 @@ package main
 import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
+	chatMemberHandler "activity-bot/internal/chatmember/handler"
 	"activity-bot/internal/command"
 	"activity-bot/internal/config"
 	"activity-bot/internal/db/postgres"
@@ -24,6 +25,8 @@ import (
 	"activity-bot/internal/stats"
 	"activity-bot/internal/summon"
 	"activity-bot/internal/user"
+	userHandler "activity-bot/internal/user/handler"
+
 	"context"
 	"os"
 	"os/signal"
@@ -116,6 +119,8 @@ func main() {
 		moderation.NewHandler(moderationService, chatMemberService),
 		permissionHandler.NewHandler(registry, permissionRepository),
 		manage.NewHandler(chatService, pmSessionRepository),
+		userHandler.NewHandler(userRepository),
+		chatMemberHandler.NewHandler(chatMemberRepository),
 	}
 
 	for _, h := range handlers {

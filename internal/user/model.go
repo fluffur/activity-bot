@@ -1,6 +1,7 @@
 package user
 
 import (
+	"activity-bot/internal/emoji"
 	"fmt"
 	"strings"
 	"time"
@@ -33,6 +34,7 @@ func New(id int64, firstName, lastName, username string, gender Gender, isBot bo
 		Username:  username,
 		Gender:    gender,
 		IsBot:     isBot,
+		Emojis:    emoji.Random(),
 		CreatedAt: now,
 	}
 }

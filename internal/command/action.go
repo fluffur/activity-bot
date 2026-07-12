@@ -19,7 +19,7 @@ const (
 )
 
 func (s Scope) BelongsTo(scope Scope) bool {
-	return scope == s || scope == ScopeAny
+	return s == scope || s == ScopeAny
 }
 
 type Trigger interface {

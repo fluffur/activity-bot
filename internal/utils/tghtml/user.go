@@ -16,7 +16,7 @@ func Escape(text string) string {
 }
 
 func UserMention(userID int64, text string) string {
-	return Link(fmt.Sprintf("tg://user?id=%d", userID), Escape(text))
+	return Link(fmt.Sprintf("tg://user?id=%d", userID), text)
 }
 
 func MemberLink(
@@ -24,27 +24,52 @@ func MemberLink(
 	ch chat.Chat,
 	member chatmember.ChatMember,
 ) string {
-	return UserLink(
-		member.User.Username,
-		member.Display(
-			loc.T(i18n.User.Unknown, nil),
-			ch.EmojisEnabled,
-		),
-		member.ID(),
-	)
+	name := member.Name(loc.T(i18n.User.Unknown, nil))
+
+	mention := UserLink(member.User.Username, name, member.ID())
+
+	if !ch.EmojisEnabled {
+		return mention
+	}
+
+	if emoji := member.Emoji(); emoji != "" {
+		return emoji + " " + mention
+	}
+
+	return mention
 }
 
 func MemberMention(
 	loc *i18n.Localizer,
 	ch chat.Chat,
-	member chatmember.ChatMember,
+	cm chatmember.ChatMember,
 ) string {
-	return UserMention(member.User.ID, member.Display(loc.T(i18n.User.Unknown, nil), ch.EmojisEnabled))
+	return MemberMentionCustom(loc, cm, ch.EmojisEnabled)
+}
+
+func MemberMentionCustom(
+	loc *i18n.Localizer,
+	member chatmember.ChatMember,
+	emojisEnabled bool,
+) string {
+	name := member.Name(loc.T(i18n.User.Unknown, nil))
+
+	mention := UserMention(member.User.ID, name)
+
+	if !emojisEnabled {
+		return mention
+	}
+
+	if emoji := member.Emoji(); emoji != "" {
+		return emoji + " " + mention
+	}
+
+	return mention
 }
 
 func UserLink(username, text string, userID int64) string {
 	if username == "" {
-		return Link(fmt.Sprintf("tg://openmessage?user_id=%d", userID), Escape(text))
+		return Link(fmt.Sprintf("tg://openmessage?user_id=%d", userID), text)
 	}
 
 	return Link(fmt.Sprintf("https://t.me/%s", username), text)

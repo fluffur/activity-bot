@@ -36,16 +36,22 @@ func (s *Service) IsOwner(cm chatmember.ChatMember) bool {
 	return cm.ID() == s.ownerID
 }
 
-func (s *Service) SetStatus(ctx context.Context, chatID int64, sender, m chatmember.ChatMember, status permission.Status) error {
-	if !sender.CanModerate(m) {
-		return ErrUserCantBeModerated
+func (s *Service) SetStatus(ctx context.Context, chatID int64, moderator, target chatmember.ChatMember, status permission.Status) error {
+	if !s.IsOwner(moderator) {
+		if !moderator.CanModerate(target) {
+			return ErrUserCantBeModerated
+		}
+
+		if moderator.ID() == target.ID() {
+			return ErrUserCantBeModerated
+		}
+
+		if status >= moderator.Status {
+			return ErrUserStatusInvalid
+		}
 	}
 
-	if status >= sender.Status {
-		return ErrUserStatusInvalid
-	}
-
-	return s.repo.SetStatus(ctx, chatID, m.ID(), int16(status))
+	return s.repo.SetStatus(ctx, chatID, target.ID(), int16(status))
 }
 
 func (s *Service) SetDevStatus(ctx context.Context, chatID int64, moderator, target chatmember.ChatMember, status permission.Status) error {

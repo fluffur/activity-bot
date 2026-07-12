@@ -14,6 +14,7 @@ require (
 	github.com/gotd/log/logzap v0.1.1
 	github.com/gotd/td v0.159.0
 	github.com/jackc/pgx/v5 v5.10.0
+	github.com/makeworld-the-better-one/go-isemoji v1.3.0
 	github.com/nicksnyder/go-i18n/v2 v2.6.1
 	github.com/pressly/goose/v3 v3.27.1
 	github.com/redis/go-redis/v9 v9.21.0

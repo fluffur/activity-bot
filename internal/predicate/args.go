@@ -352,7 +352,7 @@ func (r *RuleChecker) resolveUserTag(
 		return chatmember.ChatMember{}, 0, false
 	}
 
-	const maxWords = 5
+	const maxWords = 3
 
 	maxTokens := len(tokens)
 	if maxTokens > maxWords {
@@ -360,16 +360,30 @@ func (r *RuleChecker) resolveUserTag(
 	}
 
 	for words := maxTokens; words >= 1; words-- {
-		var b strings.Builder
+		var (
+			b        strings.Builder
+			consumed int
+		)
 
 		for i := 0; i < words; i++ {
-			if i > 0 {
+			part := normalizeTag(tokens[i].text)
+			if part == "" {
+				continue
+			}
+
+			if consumed > 0 {
 				b.WriteByte(' ')
 			}
-			b.WriteString(tokens[i].text)
+
+			b.WriteString(part)
+			consumed++
 		}
 
-		query := normalizeTag(b.String())
+		if consumed == 0 {
+			continue
+		}
+
+		query := b.String()
 
 		var leftMember *chatmember.ChatMember
 
@@ -383,16 +397,17 @@ func (r *RuleChecker) resolveUserTag(
 			}
 
 			if member.LeftAt.IsZero() {
-				return member, words, true
+				return member, consumed, true
 			}
 
 			if leftMember == nil {
-				leftMember = new(member)
+				leftMember = new(chatmember.ChatMember)
+				*leftMember = member
 			}
 		}
 
 		if leftMember != nil {
-			return *leftMember, words, true
+			return *leftMember, consumed, true
 		}
 	}
 
@@ -426,25 +441,34 @@ func tagContains(tag, query string) bool {
 }
 
 func normalizeTag(s string) string {
-	if i := strings.IndexByte(s, '|'); i != -1 {
-		s = s[:i]
-	}
-
 	s = strings.ToLower(s)
 
 	var b strings.Builder
 	lastSpace := true
+	started := false
 
 	for _, r := range s {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+		switch {
+		case unicode.IsLetter(r), unicode.IsDigit(r):
 			b.WriteRune(r)
 			lastSpace = false
-			continue
-		}
+			started = true
 
-		if !lastSpace {
-			b.WriteByte(' ')
-			lastSpace = true
+		case started && (r == '.' || r == '-'):
+			b.WriteRune(r)
+			lastSpace = false
+
+		case started && unicode.IsSpace(r):
+			if !lastSpace {
+				b.WriteByte(' ')
+				lastSpace = true
+			}
+
+		case started:
+			return strings.TrimSpace(b.String())
+
+		default:
+			continue
 		}
 	}
 

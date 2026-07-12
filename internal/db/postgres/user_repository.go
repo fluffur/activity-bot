@@ -43,3 +43,10 @@ func (r *UserRepository) Update(ctx context.Context, u user.User) error {
 		LastName:  text(u.LastName),
 	})
 }
+
+func (r *UserRepository) SetEmoji(ctx context.Context, id int64, emoji string) error {
+	return r.queries.SetUserEmoji(ctx, db.SetUserEmojiParams{
+		ID:    id,
+		Emoji: text(emoji),
+	})
+}

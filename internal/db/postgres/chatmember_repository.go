@@ -15,7 +15,7 @@ type ChatMemberRepository struct {
 	queries *db.Queries
 }
 
-func NewChatMemberRepository(queries *db.Queries) chatmember.Repository {
+func NewChatMemberRepository(queries *db.Queries) *ChatMemberRepository {
 	return &ChatMemberRepository{queries: queries}
 }
 
@@ -174,4 +174,12 @@ func (r *ChatMemberRepository) ListAdmins(ctx context.Context, chatID int64, min
 	return mapList(cms, func(r db.ListChatAdminsRow) chatmember.ChatMember {
 		return mapChatMemberFull(r.ChatMember, db.Chat{}, r.User)
 	}), nil
+}
+
+func (r *ChatMemberRepository) SetEmoji(ctx context.Context, chatID, userID int64, emojiString string) error {
+	return r.queries.SetChatMemberEmoji(ctx, db.SetChatMemberEmojiParams{
+		ChatID: chatID,
+		UserID: userID,
+		Emoji:  text(emojiString),
+	})
 }
