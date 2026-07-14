@@ -39,6 +39,7 @@ type Chat struct {
 	CallOnJoin           bool
 	SkipCallConfirmation bool
 	WeekStartDay         int16
+	WeekStartTime        int64
 	CommandPrefix        string
 	AllowPrefixless      bool
 	MentionsPerMessage   int32

@@ -33,7 +33,8 @@ func (h *Handler) Chat(c *botapi.Context) error {
 }
 
 func ParseTimeRange(ch chat.Chat, args cctx.ParsedArgs) (from, to time.Time) {
-	now := time.Now()
+	loc, _ := time.LoadLocation("Europe/Moscow")
+	now := time.Now().In(loc)
 
 	switch {
 	case len(args.Durations) == 1:
@@ -43,18 +44,17 @@ func ParseTimeRange(ch chat.Chat, args cctx.ParsedArgs) (from, to time.Time) {
 		return args.DateTimes[0], args.DateTimes[1]
 
 	default:
-		from, to = currentChatWeekRange(ch.WeekStartDay, ch.WeekStartTimeMicros)
+		from, to = currentChatWeekRange(now, ch.WeekStartDay, ch.WeekStartTimeMicros)
 
 		return from, to
 	}
 }
 
 func currentChatWeekRange(
+	now time.Time,
 	weekStartDay int16,
 	weekStartTimeMicros int64,
 ) (from, to time.Time) {
-	now := time.Now()
-
 	startTime := time.Duration(weekStartTimeMicros) * time.Microsecond
 
 	hours := int(startTime / time.Hour)

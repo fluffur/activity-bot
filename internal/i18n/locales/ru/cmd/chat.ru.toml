@@ -1,0 +1,98 @@
+[cmd.chat.show_newbie_threshold]
+desc = "Посмотреть срок, в течение которого участники считаются новичками"
+
+[cmd.chat.show_newbie_threshold.success]
+one = "Новичками считаются участники первый {{.Days}} день"
+few = "Новичками считаются участники первые {{.Days}} дня"
+many = "Новичками считаются участники первые {{.Days}} дней"
+other = "Новичками считаются участники первые {{.Days}} дней"
+
+[cmd.chat.set_newbie_threshold]
+desc = "Установить срок, в течение которого участники считаются новичками"
+
+[cmd.chat.set_newbie_threshold.error]
+invalid_number = "Число дней не может быть отрицательным"
+
+[cmd.chat.set_newbie_threshold.success]
+one = "Теперь новичками считаются участники первый {{.Days}} день"
+few = "Теперь новичками считаются участники первые {{.Days}} дня"
+many = "Теперь новичками считаются участники первые {{.Days}} дней"
+other = "Теперь новичками считаются участники первые {{.Days}} дней"
+
+[cmd.chat.set_prompt]
+desc = "Установить системный промпт для ИИ"
+
+success = "Промпт успешно установлен"
+
+[cmd.chat.show_prompt]
+desc = "Показать системный промпт ИИ"
+
+success = "Промпт: {{.Prompt}}"
+
+[common.weekday]
+monday = "понедельник"
+tuesday = "вторник"
+wednesday = "среда"
+thursday = "четверг"
+friday = "пятница"
+saturday = "суббота"
+sunday = "воскресенье"
+
+[cmd.chat.show_week_start]
+desc = "Показать день и время начала недели"
+
+success = "Начало недели: {{.Weekday}} в {{.Time}}"
+
+[cmd.chat.set_week_start]
+desc = "Установить день и время начала недели"
+
+success = "Новое начало недели установлено: {{.Weekday}} в {{.Time}}"
+
+[cmd.chat.show_prefix]
+desc = "Показать текущий префикс команд"
+
+[cmd.chat.show_prefix.success]
+default = "Префикс команд не установлен"
+custom = "Префикс команд: <code>{{.Prefix}}</code>"
+
+[cmd.chat.set_prefix]
+desc = "Установить префикс команд"
+
+[cmd.chat.set_prefix.error]
+empty = "Укажите новый префикс"
+
+[cmd.chat.set_prefix.success]
+default = "Префикс команд сброшен"
+custom = "Префикс команд изменён на <code>{{.Prefix}}</code>"
+
+[cmd.chat.enable_prefixless]
+desc = "Разрешить выполнение команд без префикса"
+
+success = "Команды без префикса теперь разрешены"
+
+[cmd.chat.disable_prefixless]
+desc = "Запретить выполнение команд без префикса"
+
+success = "Команды без префикса теперь запрещены"
+
+[cmd.chat.show_prefixless]
+desc = "Показать статус выполнения команд без префикса"
+
+enabled = "Команды без префикса: включены"
+disabled = "Команды без префикса: выключены"
+
+[cmd.chat.enable_emojis]
+desc = "Включить отображение эмодзи участников"
+
+success = "Эмодзи в чате включены"
+
+[cmd.chat.disable_emojis]
+desc = "Выключить отображение эмодзи участников"
+
+success = "Эмодзи в чате выключены"
+
+[cmd.chat.show_emojis]
+desc = "Показать статус отображения эмодзи"
+
+enabled = "Эмодзи в чате: включены"
+disabled = "Эмодзи в чате: выключены"

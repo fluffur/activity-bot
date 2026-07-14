@@ -42,6 +42,7 @@ func buildProfileStatsRange(
 	now := time.Now().In(loc)
 
 	weekStart, _ := currentChatWeekRange(
+		now,
 		weekStartDay,
 		weekStartTimeMicros,
 	)

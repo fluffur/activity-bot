@@ -2,6 +2,7 @@ package main
 
 import (
 	"activity-bot/internal/chat"
+	chatHandler "activity-bot/internal/chat/handler"
 	"activity-bot/internal/chatmember"
 	chatMemberHandler "activity-bot/internal/chatmember/handler"
 	"activity-bot/internal/command"
@@ -125,6 +126,7 @@ func main() {
 		userHandler.NewHandler(userRepository),
 		chatMemberHandler.NewHandler(chatMemberRepository, chatMemberService),
 		marriage.NewHandler(marriageService, chatMemberService),
+		chatHandler.NewHandler(chatService),
 	}
 
 	for _, h := range handlers {
