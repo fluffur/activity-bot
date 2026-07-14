@@ -5,8 +5,6 @@ import (
 	"activity-bot/internal/i18n"
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/gotd/botapi"
 )
 
@@ -136,7 +134,6 @@ func (h *Handler) commandsKeyboard(
 			cmds = append(cmds, cmd)
 		}
 	}
-	spew.Dump(category, cmds)
 	if len(cmds) == 0 {
 		return &botapi.InlineKeyboardMarkup{}
 	}

@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/gotd/botapi"
 )
 
@@ -34,7 +32,6 @@ func (h *Handler) ShowCategory(c *botapi.Context) error {
 		":",
 	)
 
-	spew.Dump(parts)
 	if len(parts) < 2 {
 		return c.AnswerCallback()
 	}

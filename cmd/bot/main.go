@@ -13,6 +13,7 @@ import (
 	"activity-bot/internal/help"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/manage"
+	"activity-bot/internal/marriage"
 	"activity-bot/internal/message"
 	"activity-bot/internal/middleware"
 	"activity-bot/internal/moderation"
@@ -85,13 +86,15 @@ func main() {
 	statsRepository := postgres.NewStatsRepository(queries)
 	restRepository := postgres.NewRestRepository(queries, pool)
 	moderationRepository := postgres.NewModerationRepository(queries)
+	marriageRepository := postgres.NewMarriageRepository(queries)
 
 	chatService := chat.NewService(chatRepository, cfg.DeveloperID)
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
 	statsService := stats.NewService(chatMemberRepository, normRepository, statsRepository)
 	restService := rest.NewService(restRepository)
-	moderationService := moderation.NewService(moderationRepository, chatMemberRepository, cfg.DeveloperID)
+	marriageService := marriage.NewService(marriageRepository)
 
+	moderationService := moderation.NewService(moderationRepository, chatMemberRepository, cfg.DeveloperID)
 	translator, err := i18n.New()
 	if err != nil {
 		log.Fatal("Create translator", zap.Error(err))
@@ -120,7 +123,8 @@ func main() {
 		permissionHandler.NewHandler(registry, permissionRepository),
 		manage.NewHandler(chatService, pmSessionRepository),
 		userHandler.NewHandler(userRepository),
-		chatMemberHandler.NewHandler(chatMemberRepository),
+		chatMemberHandler.NewHandler(chatMemberRepository, chatMemberService),
+		marriage.NewHandler(marriageService, chatMemberService),
 	}
 
 	for _, h := range handlers {

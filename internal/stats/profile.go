@@ -2,7 +2,6 @@ package stats
 
 import (
 	"activity-bot/internal/cctx"
-	"activity-bot/internal/chatmember"
 	"fmt"
 	"time"
 
@@ -10,27 +9,10 @@ import (
 )
 
 func (h *Handler) Profile(c *botapi.Context) error {
-	args, err := cctx.Args(c)
-	if err != nil {
-		return fmt.Errorf("profile: %w", err)
-	}
-
-	ch, err := cctx.Chat(c)
-	if err != nil {
-		return fmt.Errorf("profile chat: %w", err)
-	}
-
-	var cm chatmember.ChatMember
-
-	if len(args.Users) != 0 {
-		cm = args.Users[0]
-	} else {
-		us, err := cctx.ChatMember(c)
-		if err != nil {
-			return fmt.Errorf("profile chat member: %w", err)
-		}
-
-		cm = us
+	ch := cctx.MustChat(c)
+	cm := cctx.MustChatMember(c)
+	if u, ok := cctx.MustArgs(c).User(); ok {
+		cm = u
 	}
 
 	statsRange := buildProfileStatsRange(ch.WeekStartDay, ch.WeekStartTimeMicros)

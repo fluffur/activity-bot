@@ -10,6 +10,7 @@ import (
 )
 
 func GetChatMembers(bot *botapi.Bot, ctx context.Context, e tg.Entities, channelID int64) ([]botapi.ChatMember, error) {
+	channelID = BotAPIChatIDToChannelID(channelID)
 	res, err := bot.Raw().ChannelsGetParticipants(ctx, &tg.ChannelsGetParticipantsRequest{
 		Channel: e.Channels[channelID].AsInput(),
 		Filter:  &tg.ChannelParticipantsRecent{},
@@ -144,4 +145,12 @@ func peerUserID(p tg.PeerClass) int64 {
 	}
 
 	return 0
+}
+
+func BotAPIChatIDToChannelID(chatID int64) int64 {
+	if chatID >= 0 {
+		return chatID
+	}
+
+	return -(chatID + 1000000000000)
 }

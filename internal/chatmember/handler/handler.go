@@ -10,11 +10,11 @@ import (
 	"activity-bot/internal/option"
 	"activity-bot/internal/permission"
 	"activity-bot/internal/rule"
+	"activity-bot/internal/utils/chatmembers"
+	"activity-bot/internal/utils/participant"
 	"activity-bot/internal/utils/tghtml"
 	"fmt"
 	"strings"
-
-	"github.com/davecgh/go-spew/spew"
 
 	"github.com/gotd/botapi"
 )
@@ -22,11 +22,12 @@ import (
 const CategoryChatMember command.Category = "chat_member"
 
 type Handler struct {
-	repo chatmember.Repository
+	repo    chatmember.Repository
+	service *chatmember.Service
 }
 
-func NewHandler(repo chatmember.Repository) *Handler {
-	return &Handler{repo: repo}
+func NewHandler(repo chatmember.Repository, service *chatmember.Service) *Handler {
+	return &Handler{repo: repo, service: service}
 }
 
 func (h *Handler) Actions() []*command.Action {
@@ -49,6 +50,13 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithAliases("значок", "чат эмоджи"),
 			option.WithRules(rule.User().Optional()),
 		),
+		action.NewCommand(
+			"update",
+			h.UpdateChatMembers,
+			i18n.Cmd.ChatMember.Update.Desc,
+			CategoryChatMember,
+			option.WithAliases("обновить чат", "чат обновить"),
+		),
 	}
 }
 
@@ -56,7 +64,6 @@ func (h *Handler) SetEmoji(c *botapi.Context) error {
 	msg := cctx.MustArgsMessage(c)
 
 	emojis := emoji.Extract(msg.OriginalTextHTML())
-	spew.Dump(emojis, msg.OriginalTextHTML())
 	if len(emojis) == 0 || len(emojis) > 3 {
 		return nil
 	}
@@ -65,7 +72,7 @@ func (h *Handler) SetEmoji(c *botapi.Context) error {
 
 	moderator := cctx.MustChatMember(c)
 	target, ok := cctx.MustArgs(c).User()
-	spew.Dump(target, moderator)
+
 	if !ok || !moderator.Permitted(cctx.MustPermission(c)) {
 		target = moderator
 	}
@@ -107,6 +114,28 @@ func (h *Handler) ShowEmoji(c *botapi.Context) error {
 		User:  tghtml.MemberMentionCustom(loc, cm, false),
 		Emoji: cm.Emojis,
 	}), botapi.WithParseMode(botapi.ParseModeHTML))
+
+	return err
+}
+
+func (h *Handler) UpdateChatMembers(c *botapi.Context) error {
+	ch := cctx.MustChat(c)
+	members, err := participant.GetChatMembers(c.Bot, c, c.Update.Entities, ch.ID)
+	if err != nil {
+		return fmt.Errorf("get chat members on update: %w", err)
+	}
+
+	if err = h.service.SyncChatMembers(
+		c,
+		ch.ID,
+		chatmembers.ExtractMembers(members),
+	); err != nil {
+		return fmt.Errorf("update chat members: %w", err)
+	}
+
+	loc := cctx.MustLocalizer(c)
+
+	_, err = c.Reply(loc.T(i18n.Cmd.ChatMember.Update.Success, nil), botapi.WithParseMode(botapi.ParseModeHTML))
 
 	return err
 }

@@ -18,6 +18,18 @@ func (a ParsedArgs) User() (chatmember.ChatMember, bool) {
 		return chatmember.ChatMember{}, false
 	}
 
+	if a.Users[0].User.IsBot {
+		return chatmember.ChatMember{}, false
+	}
+
+	return a.Users[0], true
+}
+
+func (a ParsedArgs) AnyUser() (chatmember.ChatMember, bool) {
+	if len(a.Users) == 0 {
+		return chatmember.ChatMember{}, false
+	}
+
 	return a.Users[0], true
 }
 

@@ -86,7 +86,6 @@ func (h *Handler) ShowEmoji(c *botapi.Context) error {
 		}), botapi.WithParseMode(botapi.ParseModeHTML))
 
 		return err
-
 	}
 
 	_, err := c.Reply(loc.T(i18n.Cmd.User.ShowEmoji.Success, i18n.CmdUserShowEmojiSuccessData{

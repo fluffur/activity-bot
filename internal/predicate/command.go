@@ -169,17 +169,8 @@ func matchCommandAndGetLen(trimmedText, command, botUsername string) (int, bool)
 		}
 	}
 
-	pos := len(cmdWords)
-
-	if len(words) > pos && strings.HasPrefix(words[pos], "@") {
-		if strings.ToLower(words[pos][1:]) == botUsername {
-			pos++
-		}
-	}
-
-	lastWordToFind := words[pos-1]
+	lastWordToFind := words[len(cmdWords)-1]
 	lastWordIdx := strings.Index(strings.ToLower(firstLine), strings.ToLower(lastWordToFind))
-
 	if lastWordIdx == -1 {
 		return 0, false
 	}
