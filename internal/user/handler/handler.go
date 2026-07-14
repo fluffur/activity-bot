@@ -29,7 +29,7 @@ func NewHandler(repo user.Repository) *Handler {
 func (h *Handler) Actions() []*command.Action {
 	return []*command.Action{
 		action.NewCommand(
-			"set_emoji",
+			"setemoji",
 			h.SetEmoji,
 			i18n.Cmd.User.SetEmoji.Desc,
 			CategoryUser,
@@ -38,7 +38,7 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithRules(rule.Text()),
 		),
 		action.NewCommand(
-			"show_emoji",
+			"emoji",
 			h.ShowEmoji,
 			i18n.Cmd.User.ShowEmoji.Desc,
 			CategoryUser,

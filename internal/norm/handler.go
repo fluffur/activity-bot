@@ -26,7 +26,7 @@ func NewHandler(
 func (h *Handler) Actions() []*command.Action {
 	return []*command.Action{
 		action.NewCommand(
-			"add_norm",
+			"addnorm",
 			h.AddNorm,
 			i18n.Cmd.AddNorm.Desc,
 			CategoryNorm,
@@ -45,7 +45,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"list_norms",
+			"norms",
 			h.ListNorms,
 			i18n.Cmd.ListNorms.Desc,
 			CategoryNorm,
@@ -69,7 +69,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"delete_norm",
+			"removenorm",
 			h.DeleteNorm,
 			i18n.Cmd.DeleteNorm.Desc,
 			CategoryNorm,
@@ -81,7 +81,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"assign_norm",
+			"assignnorm",
 			h.AssignNorm,
 			i18n.Cmd.AssignNorm.Desc,
 			CategoryNorm,
@@ -100,7 +100,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"unassign_norm",
+			"unassignnorm",
 			h.UnassignNorm,
 			i18n.Cmd.UnassignNorm.Desc,
 			CategoryNorm,

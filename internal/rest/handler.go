@@ -45,7 +45,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"set_rest",
+			"addrest",
 			h.SetRest,
 			i18n.Cmd.Rest.Desc,
 			CategoryRest,
@@ -60,7 +60,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"end_rest",
+			"endrest",
 			h.EndRest,
 			i18n.Cmd.EndRest.Desc,
 			CategoryRest,
@@ -84,7 +84,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCallbackPrefix(
-			"approve_rest",
+			"approverest",
 			callbackRestApprove,
 			h.ApproveRestRequest,
 			CategoryRest,
@@ -92,7 +92,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCallbackPrefix(
-			"reject_rest",
+			"rejectrest",
 			callbackRestReject,
 			h.RejectRestRequest,
 			CategoryRest,
@@ -100,7 +100,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"rests_delete",
+			"deleterest",
 			h.RemoveRestRequest,
 			i18n.Cmd.Rests.Delete.Desc,
 			CategoryRest,

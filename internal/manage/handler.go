@@ -39,7 +39,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCallbackPrefix(
-			"manage_callback",
+			"managecallback",
 			"manage:",
 			h.CallbackManage,
 			"",

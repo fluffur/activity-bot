@@ -26,7 +26,7 @@ func NewHandler(registry *command.Registry, repo permission.Repository) *Handler
 func (h *Handler) Actions() []*command.Action {
 	return []*command.Action{
 		action.NewCommand(
-			"set_permission",
+			"setpermission",
 			h.SetPermission,
 			i18n.Cmd.Permission.Set.Desc,
 			CategoryPermission,
@@ -35,7 +35,7 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithRules(rule.Number(), rule.Text()),
 		),
 		action.NewCommand(
-			"show_permission",
+			"permission",
 			h.ShowPermission,
 			i18n.Cmd.Permission.Show.Desc,
 			CategoryPermission,

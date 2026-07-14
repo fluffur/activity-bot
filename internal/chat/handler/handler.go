@@ -116,7 +116,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"disableprefixonly",
+			"prefixonly",
 			h.DisablePrefixOnly,
 			i18n.Cmd.Chat.EnablePrefixless.Desc,
 			CategoryChat,
@@ -124,7 +124,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"enableprefixonly",
+			"prefixfree",
 			h.EnablePrefixOnly,
 			i18n.Cmd.Chat.DisablePrefixless.Desc,
 			CategoryChat,
@@ -132,7 +132,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"enableemojis",
+			"emojis",
 			h.EnableEmojis,
 			i18n.Cmd.Chat.EnableEmojis.Desc,
 			CategoryChat,
@@ -140,7 +140,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"disableemojis",
+			"noemojis",
 			h.DisableEmojis,
 			i18n.Cmd.Chat.DisableEmojis.Desc,
 			CategoryChat,

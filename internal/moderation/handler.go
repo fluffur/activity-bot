@@ -31,7 +31,7 @@ func NewHandler(
 func (h *Handler) Actions() []*command.Action {
 	return []*command.Action{
 		action.NewCommand(
-			"set_role",
+			"setrole",
 			h.SetRole,
 			i18n.Cmd.Moderation.SetRole.Desc,
 			CategoryModeration,
@@ -44,7 +44,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"set_role_admin",
+			"setroleadmin",
 			h.SetRoleAdmin,
 			i18n.Cmd.Moderation.SetRoleAdmin.Desc,
 			CategoryModeration,
@@ -135,7 +135,7 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithRules(rule.User(), rule.Number().Optional()),
 		),
 		action.NewCommand(
-			"set_status",
+			"setstatus",
 			h.SetStatus,
 			i18n.Cmd.Moderation.SetStatus.Desc,
 			CategoryModeration,
@@ -178,7 +178,7 @@ func (h *Handler) Actions() []*command.Action {
 			),
 		),
 		action.NewCommand(
-			"clear_warns",
+			"clearwarns",
 			h.ClearWarns,
 			i18n.Cmd.Moderation.ClearWarns.Desc,
 			CategoryModeration,
@@ -189,7 +189,7 @@ func (h *Handler) Actions() []*command.Action {
 			),
 		),
 		action.NewCommand(
-			"show_warns",
+			"warns",
 			h.ShowWarns,
 			i18n.Cmd.Moderation.ShowWarns.Desc,
 			CategoryModeration,
@@ -200,7 +200,7 @@ func (h *Handler) Actions() []*command.Action {
 			),
 		),
 		action.NewCommand(
-			"max_warns",
+			"maxwarns",
 			h.ShowMaxWarns,
 			i18n.Cmd.Moderation.MaxWarns.Desc,
 			CategoryModeration,
@@ -208,7 +208,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"set_max_warns",
+			"setmaxwarns",
 			h.SetMaxWarns,
 			i18n.Cmd.Moderation.SetMaxWarns.Desc,
 			CategoryModeration,

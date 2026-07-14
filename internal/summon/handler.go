@@ -71,7 +71,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"summon_style",
+			"summonstyle",
 			h.SummonStyle,
 			i18n.Cmd.Summon.Style.Desc,
 			CategorySummon,

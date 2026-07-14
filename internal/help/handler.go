@@ -52,7 +52,7 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithScope(command.ScopePrivate),
 		),
 		action.NewCommand(
-			"help_command",
+			"showhelp",
 			h.ShowCommandHelp,
 			i18n.Cmd.HelpCommand.Desc,
 			CategoryHelp,
@@ -60,19 +60,19 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithRules(rule.Text()),
 		),
 		action.NewCallback(
-			"help_categories",
+			"helpcategories",
 			callbackHelpCategories,
 			h.ShowCategories,
 			CategoryHelp,
 		),
 		action.NewCallbackPrefix(
-			"help_category",
+			"helpcategory",
 			callbackHelpCategory,
 			h.ShowCategory,
 			CategoryHelp,
 		),
 		action.NewCallbackPrefix(
-			"help_command_callback",
+			"helpcommand",
 			callbackHelpCommand,
 			h.ShowCommand,
 			CategoryHelp,

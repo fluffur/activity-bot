@@ -79,14 +79,14 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithAliases("браки"),
 		),
 		action.NewCallbackPrefix(
-			"marriage_accept",
+			"marriageaccept",
 			callbackAccept,
 			h.AcceptMarriageRequest,
 			CategoryMarriage,
 		),
 
 		action.NewCallbackPrefix(
-			"marriage_reject",
+			"marriagereject",
 			callbackReject,
 			h.RejectMarriageRequest,
 			CategoryMarriage,

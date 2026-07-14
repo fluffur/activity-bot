@@ -33,7 +33,7 @@ func NewHandler(repo chatmember.Repository, service *chatmember.Service) *Handle
 func (h *Handler) Actions() []*command.Action {
 	return []*command.Action{
 		action.NewCommand(
-			"set_emoji_chat",
+			"setchatemoji",
 			h.SetEmoji,
 			i18n.Cmd.ChatMember.SetEmoji.Desc,
 			CategoryChatMember,
@@ -43,7 +43,7 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithPermission(permission.StatusModerator),
 		),
 		action.NewCommand(
-			"show_emoji_chat",
+			"chatemoji",
 			h.ShowEmoji,
 			i18n.Cmd.ChatMember.ShowEmoji.Desc,
 			CategoryChatMember,

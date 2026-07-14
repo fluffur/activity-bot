@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/gotd/botapi"
 )
@@ -66,13 +67,15 @@ func (h *Handler) SetPermission(c *botapi.Context) error {
 		status = permission.StatusDisabled
 	}
 
-	cmd, ok := h.registry.FindByKeyOrAlias(text)
+	textNoPrefix := strings.TrimPrefix(text, "/")
+
+	cmd, ok := h.registry.FindByKeyOrAlias(textNoPrefix)
 	if !ok {
 		return fmt.Errorf("no such permission")
 	}
 	loc := cctx.MustLocalizer(c)
 
-	if cmd.Key == "set_permission" {
+	if cmd.Key == "setpermission" {
 		switch status {
 		case permission.StatusMember:
 			_, err := c.Reply(loc.T(i18n.Cmd.Permission.Set.CannotAllowMembers, nil))
