@@ -23,10 +23,14 @@ func NewHandler(registry *command.Registry, repo permission.Repository) *Handler
 	}
 }
 
+const (
+	setPermissionKey = "setpermission"
+)
+
 func (h *Handler) Actions() []*command.Action {
 	return []*command.Action{
 		action.NewCommand(
-			"setpermission",
+			setPermissionKey,
 			h.SetPermission,
 			i18n.Cmd.Permission.Set.Desc,
 			CategoryPermission,

@@ -75,7 +75,7 @@ func (h *Handler) SetPermission(c *botapi.Context) error {
 	}
 	loc := cctx.MustLocalizer(c)
 
-	if cmd.Key == "setpermission" {
+	if cmd.Key == setPermissionKey {
 		switch status {
 		case permission.StatusMember:
 			_, err := c.Reply(loc.T(i18n.Cmd.Permission.Set.CannotAllowMembers, nil))
