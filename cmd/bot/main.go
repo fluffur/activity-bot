@@ -1,6 +1,7 @@
 package main
 
 import (
+	"activity-bot/internal/ai"
 	"activity-bot/internal/chat"
 	chatHandler "activity-bot/internal/chat/handler"
 	"activity-bot/internal/chatmember"
@@ -28,11 +29,12 @@ import (
 	"activity-bot/internal/summon"
 	"activity-bot/internal/user"
 	userHandler "activity-bot/internal/user/handler"
-
 	"context"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/cohesion-org/deepseek-go"
 
 	glog "github.com/gotd/log"
 
@@ -77,6 +79,8 @@ func main() {
 	})
 	defer func() { _ = client.Close() }()
 
+	deepseekClient := deepseek.NewClient(cfg.DeepseekAPIKey)
+
 	chatRepository := postgres.NewChatRepository(queries)
 	userRepository := postgres.NewUserRepository(queries)
 	chatMemberRepository := postgres.NewChatMemberRepository(queries)
@@ -88,14 +92,13 @@ func main() {
 	restRepository := postgres.NewRestRepository(queries, pool)
 	moderationRepository := postgres.NewModerationRepository(queries)
 	marriageRepository := postgres.NewMarriageRepository(queries)
-
 	chatService := chat.NewService(chatRepository, cfg.DeveloperID)
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
 	statsService := stats.NewService(chatMemberRepository, normRepository, statsRepository)
 	restService := rest.NewService(restRepository)
 	marriageService := marriage.NewService(marriageRepository)
-
 	moderationService := moderation.NewService(moderationRepository, chatMemberRepository, cfg.DeveloperID)
+
 	translator, err := i18n.New()
 	if err != nil {
 		log.Fatal("Create translator", zap.Error(err))
@@ -127,6 +130,7 @@ func main() {
 		chatMemberHandler.NewHandler(chatMemberRepository, chatMemberService),
 		marriage.NewHandler(marriageService, chatMemberService),
 		chatHandler.NewHandler(chatService),
+		ai.NewHandler(deepseekClient),
 	}
 
 	for _, h := range handlers {
