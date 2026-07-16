@@ -32,4 +32,4 @@ CREATE TABLE chat_member_norms
         ON DELETE CASCADE
 );
 
--- +goose StatementEndN
+-- +goose StatementEnd
