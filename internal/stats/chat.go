@@ -21,7 +21,30 @@ func (h *Handler) Chat(c *botapi.Context) error {
 	}
 
 	loc := cctx.MustLocalizer(c)
-	htmlMessage := RenderStats(loc, ch, calculatedData)
+	htmlMessage := RenderStats(loc, ch, calculatedData, false)
+
+	_, err = c.Reply(
+		htmlMessage,
+		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview(),
+	)
+
+	return err
+}
+
+func (h *Handler) Top(c *botapi.Context) error {
+	args := cctx.MustArgs(c)
+	ch := cctx.MustChat(c)
+
+	fromDate, toDate := ParseTimeRange(ch, args)
+
+	calculatedData, err := h.service.GetChatStats(c, ch.ID, fromDate, toDate, ch.NewbieThresholdDays)
+	if err != nil {
+		return fmt.Errorf("failed to calculate stats: %w", err)
+	}
+
+	loc := cctx.MustLocalizer(c)
+	htmlMessage := RenderStats(loc, ch, calculatedData, true)
 
 	_, err = c.Reply(
 		htmlMessage,

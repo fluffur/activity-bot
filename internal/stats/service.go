@@ -31,6 +31,8 @@ type CalculatedStats struct {
 	HasNorms      bool
 	SimpleResults []UserResult
 	NormResults   []CalculatedNormResult
+	RestMembers   []chatmember.ChatMember
+	NewbieMembers []chatmember.ChatMember
 }
 
 type Service struct {
@@ -86,28 +88,38 @@ func (s *Service) GetChatStats(ctx context.Context, chatID int64, fromDate, toDa
 		HasNorms:      len(norms) > 0,
 	}
 
-	var activeMembers []chatmember.ChatMember
+	var (
+		activeMembers []chatmember.ChatMember
+		restMembers   []chatmember.ChatMember
+		newbieMembers []chatmember.ChatMember
+	)
 
 	for _, m := range chatMembers {
-		if m.IsResting(now) || m.IsNewbie(now, newbieDays) {
-			continue
+		switch {
+		case m.IsResting(now):
+			restMembers = append(restMembers, m)
+		case m.IsNewbie(now, newbieDays):
+			newbieMembers = append(newbieMembers, m)
+		default:
+			activeMembers = append(activeMembers, m)
 		}
-
-		activeMembers = append(activeMembers, m)
 	}
 
-	if !res.HasNorms {
-		for _, member := range chatMembers {
-			res.SimpleResults = append(res.SimpleResults, UserResult{
-				Member:   member,
-				Messages: statsByUserID[member.User.ID],
-			})
-		}
+	res.RestMembers = restMembers
+	res.NewbieMembers = newbieMembers
 
-		slices.SortFunc(res.SimpleResults, func(a, b UserResult) int {
-			return cmp.Compare(b.Messages, a.Messages)
+	for _, member := range chatMembers {
+		res.SimpleResults = append(res.SimpleResults, UserResult{
+			Member:   member,
+			Messages: statsByUserID[member.User.ID],
 		})
+	}
 
+	slices.SortFunc(res.SimpleResults, func(a, b UserResult) int {
+		return cmp.Compare(b.Messages, a.Messages)
+	})
+
+	if !res.HasNorms {
 		return res, nil
 	}
 

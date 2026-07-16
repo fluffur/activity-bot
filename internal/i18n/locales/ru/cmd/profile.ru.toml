@@ -1,34 +1,31 @@
 [cmd.profile]
-
 desc = "Статистика участника"
 
 example_duration = "профиль неделя"
 example_date = "профиль 1 июня 25 июля"
 
-title = "👤 {{.User}}"
+title = "{{.ProfileEmoji}} {{.User}}"
 
 member_since = "В чате с {{.Date}} ({{.Days}})"
 member_period = "{{.From}} — {{.To}} ({{.Days}})"
 
-rest_until = "💤 Рест до {{.Date}}"
-rest_exempt = "🕊 Освобождён от выполнения нормы"
+rest_until = "{{.RestEmoji}} Рест до {{.Date}}"
+rest_exempt = "{{.NewbieEmoji}} Освобождён от выполнения нормы"
 
-norm_passed = "✅ {{.Name}} — {{.Required}}"
-norm_failed = "⚠️ {{.Name}} — {{.Current}}/{{.Required}}"
+norm_passed = "{{.SuccessEmoji}} {{.Name}} — {{.Required}}"
+norm_failed = "{{.DangerEmoji}} {{.Name}} — {{.Current}}/{{.Required}}"
 
-total_messages = "📨 Всего сообщений: {{.Total}}"
+total_messages = "{{.TotalEmoji}} Всего сообщений: {{.Total}}"
 
-activity = """📅 Календарная активность
+activity = """{{.CalendarEmoji}} Календарная активность
 • Сегодня — {{.Day}}
 • Неделя — {{.Week}}
 • Месяц — {{.Month}}
 
-📈 Скользящая активность
+{{.ChartEmoji}} Скользящая активность
 • Последние 24 часа — {{.DayRolling}}
 • Последние 7 дней — {{.WeekRolling}}
 • Последние 30 дней — {{.MonthRolling}}
 
-📨 Всего сообщений: {{.Total}}
+{{.TotalEmoji}} Всего сообщений: {{.Total}}
 """
-
-

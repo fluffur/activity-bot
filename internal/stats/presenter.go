@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"activity-bot/internal/chatmember"
 	"activity-bot/internal/norm"
 	"activity-bot/internal/utils"
 	"fmt"
@@ -10,21 +11,45 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/utils/tghtml"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
-func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats) string {
-	var b strings.Builder
+func appendUserList(
+	b *strings.Builder,
+	loc *i18n.Localizer,
+	ch chat.Chat,
+	users []chatmember.ChatMember,
+) {
+	var list strings.Builder
 
+	for i, m := range users {
+		list.WriteString(fmt.Sprintf(
+			"%d. %s",
+			i+1,
+			tghtml.MemberLink(loc, ch, m),
+		))
+		list.WriteByte('\n')
+	}
+
+	b.WriteString(tghtml.ExpandableBlockquote(list.String()))
+	b.WriteByte('\n')
+}
+
+func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats, forceSimple bool) string {
+	var b strings.Builder
+	spew.Dump(data.NormResults)
 	b.WriteString(loc.T(
 		i18n.Cmd.Stats.Title,
 		i18n.CmdStatsTitleData{
-			From: tghtml.DefaultDateTime(data.FromDate),
-			To:   tghtml.DefaultDateTime(data.ToDate),
+			StatsEmoji: tghtml.StatsEmoji(),
+			From:       tghtml.DefaultDateTime(data.FromDate),
+			To:         tghtml.DefaultDateTime(data.ToDate),
 		},
 	))
 	b.WriteString("\n\n")
 
-	if !data.HasNorms {
+	if !data.HasNorms || forceSimple {
 		b.WriteString("<blockquote expandable>")
 
 		for i, u := range data.SimpleResults {
@@ -51,6 +76,11 @@ func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats) string
 					Required: tghtml.Code(fmt.Sprintf("%d", r.Required)),
 				},
 			))
+			if len(r.Passed) == 0 && len(r.Failed) == 0 {
+				b.WriteString(tghtml.Blockquote(loc.T(i18n.Cmd.Stats.EmptyList, nil)))
+				b.WriteString("\n\n")
+				continue
+			}
 			b.WriteString("\n\n")
 
 			if len(r.Failed) > 0 {
@@ -69,7 +99,12 @@ func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats) string
 					failed.WriteByte('\n')
 				}
 
-				b.WriteString(loc.T(i18n.Cmd.Stats.Failed, nil))
+				b.WriteString(loc.T(
+					i18n.Cmd.Stats.Failed,
+					i18n.CmdStatsFailedData{
+						DangerEmoji: tghtml.DangerEmoji(),
+					},
+				))
 				b.WriteByte('\n')
 				b.WriteString(tghtml.ExpandableBlockquote(failed.String()))
 				b.WriteByte('\n')
@@ -90,7 +125,12 @@ func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats) string
 					passed.WriteByte('\n')
 				}
 
-				b.WriteString(loc.T(i18n.Cmd.Stats.Passed, nil))
+				b.WriteString(loc.T(
+					i18n.Cmd.Stats.Passed,
+					i18n.CmdStatsPassedData{
+						SuccessEmoji: tghtml.SuccessEmoji(),
+					},
+				))
 				b.WriteByte('\n')
 				b.WriteString(tghtml.ExpandableBlockquote(passed.String()))
 				b.WriteByte('\n')
@@ -100,10 +140,40 @@ func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats) string
 		}
 	}
 
+	if !forceSimple && data.HasNorms {
+		if len(data.RestMembers) > 0 {
+			b.WriteString(loc.T(
+				i18n.Cmd.Stats.Resting,
+				i18n.CmdStatsRestingData{
+					RestEmoji: tghtml.RestEmoji(),
+				},
+			))
+			b.WriteByte('\n')
+
+			appendUserList(&b, loc, ch, data.RestMembers)
+			b.WriteByte('\n')
+		}
+
+		if len(data.NewbieMembers) > 0 {
+			b.WriteString(loc.T(
+				i18n.Cmd.Stats.Newbies,
+				i18n.CmdStatsNewbiesData{
+					NewbieEmoji: tghtml.NewbieEmoji(),
+				},
+			))
+			b.WriteByte('\n')
+
+			appendUserList(&b, loc, ch, data.NewbieMembers)
+			b.WriteByte('\n')
+		}
+
+	}
+
 	b.WriteString(loc.T(
 		i18n.Cmd.Stats.TotalMessages,
 		i18n.CmdStatsTotalMessagesData{
-			Total: data.TotalMessages,
+			TotalEmoji: tghtml.TotalEmoji(),
+			Total:      data.TotalMessages,
 		},
 	))
 
@@ -123,12 +193,15 @@ func RenderProfile(
 	b.WriteString(loc.T(
 		i18n.Cmd.Profile.Title,
 		i18n.CmdProfileTitleData{
-			User: tghtml.MemberLink(loc, ch, profile.ChatMember),
+			ProfileEmoji: tghtml.ProfileEmoji(),
+			User:         tghtml.MemberLink(loc, ch, profile.ChatMember),
 		},
 	))
 
 	b.WriteString(" · ")
-	b.WriteString(fmt.Sprintf("%s %s", status.Emoji(), loc.T(status.TranslationKey(), nil)))
+	b.WriteString(tghtml.StatusEmoji(status))
+	b.WriteByte(' ')
+	b.WriteString(loc.T(status.TranslationKey(), nil))
 	b.WriteString("\n\n")
 
 	if profile.ChatMember.LeftAt.IsZero() {
@@ -160,12 +233,18 @@ func RenderProfile(
 		b.WriteString(loc.T(
 			i18n.Cmd.Profile.RestUntil,
 			i18n.CmdProfileRestUntilData{
-				Date: tghtml.DefaultDateTime(profile.ChatMember.RestUntil),
+				RestEmoji: tghtml.RestEmoji(),
+				Date:      tghtml.DefaultDateTime(profile.ChatMember.RestUntil),
 			},
 		))
 		b.WriteString("\n")
 
-		b.WriteString(loc.T(i18n.Cmd.Profile.RestExempt, nil))
+		b.WriteString(loc.T(
+			i18n.Cmd.Profile.RestExempt,
+			i18n.CmdProfileRestExemptData{
+				NewbieEmoji: tghtml.NewbieEmoji(),
+			},
+		))
 		b.WriteString("\n")
 	}
 
@@ -175,6 +254,10 @@ func RenderProfile(
 			loc.T(
 				i18n.Cmd.Profile.Activity,
 				i18n.CmdProfileActivityData{
+					CalendarEmoji: tghtml.CalendarEmoji(),
+					ChartEmoji:    tghtml.ChartEmoji(),
+					TotalEmoji:    tghtml.TotalEmoji(),
+
 					Day:          tghtml.Number(profile.DayCount),
 					Week:         tghtml.Number(profile.WeekCount),
 					Month:        tghtml.Number(profile.MonthCount),
@@ -197,22 +280,24 @@ func RenderProfile(
 				b.WriteString(loc.T(
 					i18n.Cmd.Profile.NormPassed,
 					i18n.CmdProfileNormPassedData{
-						Name:     normName,
-						Required: n.Required,
+						SuccessEmoji: tghtml.SuccessEmoji(),
+						Name:         normName,
+						Required:     n.Required,
 					},
 				))
 			} else {
 				b.WriteString(loc.T(
 					i18n.Cmd.Profile.NormFailed,
 					i18n.CmdProfileNormFailedData{
-						Name:     normName,
-						Current:  n.Current,
-						Required: n.Required,
+						DangerEmoji: tghtml.DangerEmoji(),
+						Name:        normName,
+						Current:     n.Current,
+						Required:    n.Required,
 					},
 				))
 			}
 
-			b.WriteString("\n")
+			b.WriteByte('\n')
 		}
 	}
 

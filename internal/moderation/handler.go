@@ -95,7 +95,7 @@ func (h *Handler) Actions() []*command.Action {
 			h.Unban,
 			i18n.Cmd.Moderation.Unban.Desc,
 			CategoryModeration,
-			option.WithPermission(permission.StatusAdmin),
+			option.WithPermission(permission.StatusSeniorAdmin),
 			option.WithAliases("разбан", "размут", "снять мут", "говори"),
 			option.WithRules(
 				rule.User(),

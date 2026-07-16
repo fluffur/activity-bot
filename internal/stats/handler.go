@@ -38,6 +38,16 @@ func (h *Handler) Actions() []*command.Action {
 				rule.DateTimeOrDuration().Optional(),
 			),
 		),
+		action.NewCommand(
+			"top",
+			h.Top,
+			i18n.Cmd.Top.Desc,
+			CategoryStats,
+			option.WithAliases("топ", "стата"),
+			option.WithRules(
+				rule.DateTimeOrDuration().Optional(),
+			),
+		),
 
 		action.NewCommand(
 			"you",
