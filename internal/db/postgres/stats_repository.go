@@ -62,6 +62,6 @@ func (r *StatsRepository) ListInactiveMembers(ctx context.Context, chatID int64)
 func mapInactiveMember(member db.InactiveChatMembersRow) stats.InactiveMember {
 	return stats.InactiveMember{
 		ChatMember:   mapChatMemberFull(member.ChatMember, db.Chat{}, member.User),
-		LastActivity: time.Time{},
+		LastActivity: member.LmLastMessageAt.Time,
 	}
 }

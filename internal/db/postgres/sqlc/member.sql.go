@@ -587,7 +587,7 @@ const inactiveChatMembers = `-- name: InactiveChatMembers :many
 SELECT
     u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot,
     cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call,
-    lm.last_message_at
+    lm.last_message_at::timestamptz
 FROM chat_members cm
          JOIN users u
               ON u.id = cm.user_id
@@ -609,9 +609,9 @@ ORDER BY lm.last_message_at NULLS FIRST
 `
 
 type InactiveChatMembersRow struct {
-	User          User        `db:"user" json:"user"`
-	ChatMember    ChatMember  `db:"chat_member" json:"chatMember"`
-	LastMessageAt interface{} `db:"last_message_at" json:"lastMessageAt"`
+	User            User               `db:"user" json:"user"`
+	ChatMember      ChatMember         `db:"chat_member" json:"chatMember"`
+	LmLastMessageAt pgtype.Timestamptz `db:"lm_last_message_at" json:"lmLastMessageAt"`
 }
 
 func (q *Queries) InactiveChatMembers(ctx context.Context, chatID int64) ([]InactiveChatMembersRow, error) {
@@ -645,7 +645,7 @@ func (q *Queries) InactiveChatMembers(ctx context.Context, chatID int64) ([]Inac
 			&i.ChatMember.Status,
 			&i.ChatMember.EmojiJson,
 			&i.ChatMember.ExcludeFromCall,
-			&i.LastMessageAt,
+			&i.LmLastMessageAt,
 		); err != nil {
 			return nil, err
 		}

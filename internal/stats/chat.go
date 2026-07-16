@@ -335,7 +335,7 @@ func (h *Handler) ListInactive(c *botapi.Context) error {
 		for i, member := range members {
 			lastActivity := loc.T(i18n.Cmd.Inactive.Never, nil)
 			if !member.LastActivity.IsZero() {
-				lastActivity = member.LastActivity.In(time.Local).Format("02.01.2006 15:04")
+				lastActivity = tghtml.DefaultDateTime(member.LastActivity)
 			}
 
 			b.WriteString(loc.T(i18n.Cmd.Inactive.User, i18n.CmdInactiveUserData{

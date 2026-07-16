@@ -204,7 +204,7 @@ WHERE ma.type = 'mute'
 SELECT
     sqlc.embed(u),
     sqlc.embed(cm),
-    lm.last_message_at
+    lm.last_message_at::timestamptz
 FROM chat_members cm
          JOIN users u
               ON u.id = cm.user_id
