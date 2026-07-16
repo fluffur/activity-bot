@@ -168,7 +168,7 @@ func (h *Handler) ListRoles(c *botapi.Context) error {
 		}
 
 		text.WriteString(fmt.Sprintf("%d. ", i+1))
-		text.WriteString(tghtml.MemberMention(loc, ch, member))
+		text.WriteString(tghtml.MemberLink(loc, ch, member))
 		if member.User.Username != "" {
 			text.WriteString(fmt.Sprintf(" <code>@%s</code>", member.User.Username))
 		}
