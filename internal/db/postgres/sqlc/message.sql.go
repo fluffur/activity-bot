@@ -254,9 +254,6 @@ func (q *Queries) ChatMessageActivityDaily(ctx context.Context, arg ChatMessageA
 const createMessage = `-- name: CreateMessage :exec
 INSERT INTO messages(chat_id, user_id, created_at, message_id)
 VALUES ($1, $2, $3, $4)
-ON CONFLICT (chat_id, message_id)
-WHERE message_id IS NOT NULL
-  AND message_id <> 0 DO NOTHING
 `
 
 type CreateMessageParams struct {
