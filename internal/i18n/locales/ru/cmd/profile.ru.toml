@@ -10,12 +10,14 @@ member_since = "В чате с {{.Date}} ({{.Days}})"
 member_period = "{{.From}} — {{.To}} ({{.Days}})"
 
 rest_until = "{{.RestEmoji}} Рест до {{.Date}}"
-rest_exempt = "{{.NewbieEmoji}} Освобождён от выполнения нормы"
 
 norm_passed = "{{.SuccessEmoji}} {{.Name}} — {{.Required}}"
 norm_failed = "{{.DangerEmoji}} {{.Name}} — {{.Current}}/{{.Required}}"
 
 total_messages = "{{.TotalEmoji}} Всего сообщений: {{.Total}}"
+
+rest_exempt = "{{.RestEmoji}} Освобождён от выполнения нормы"
+newbie_exempt = "{{.NewbieEmoji}} Освобождён от выполнения нормы"
 
 activity = """{{.CalendarEmoji}} Календарная активность
 • Сегодня — {{.Day}}

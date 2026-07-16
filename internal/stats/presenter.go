@@ -166,7 +166,6 @@ func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats, forceS
 			appendUserList(&b, loc, ch, data.NewbieMembers)
 			b.WriteByte('\n')
 		}
-
 	}
 
 	b.WriteString(loc.T(
@@ -227,7 +226,8 @@ func RenderProfile(
 		b.WriteString("\n")
 	}
 
-	restActive := profile.ChatMember.RestUntil.After(now)
+	restActive := profile.ChatMember.IsResting(now)
+	newbie := profile.ChatMember.IsNewbie(now, ch.NewbieThresholdDays)
 
 	if restActive {
 		b.WriteString(loc.T(
@@ -237,15 +237,25 @@ func RenderProfile(
 				Date:      tghtml.DefaultDateTime(profile.ChatMember.RestUntil),
 			},
 		))
-		b.WriteString("\n")
+		b.WriteByte('\n')
 
 		b.WriteString(loc.T(
 			i18n.Cmd.Profile.RestExempt,
 			i18n.CmdProfileRestExemptData{
+				RestEmoji: tghtml.RestEmoji2(),
+			},
+		))
+		b.WriteByte('\n')
+	}
+
+	if newbie && !restActive {
+		b.WriteString(loc.T(
+			i18n.Cmd.Profile.NewbieExempt,
+			i18n.CmdProfileNewbieExemptData{
 				NewbieEmoji: tghtml.NewbieEmoji(),
 			},
 		))
-		b.WriteString("\n")
+		b.WriteByte('\n')
 	}
 
 	b.WriteString("\n")
@@ -270,7 +280,7 @@ func RenderProfile(
 		),
 	)
 
-	if !restActive && len(profile.Norms) > 0 {
+	if !restActive && !newbie && len(profile.Norms) > 0 {
 		b.WriteString("\n\n")
 
 		for _, n := range profile.Norms {

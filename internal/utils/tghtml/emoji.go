@@ -21,6 +21,10 @@ func RestEmoji() string {
 	return Emoji(emoji.RestID, emoji.RestFallback)
 }
 
+func RestEmoji2() string {
+	return Emoji(emoji.Rest2ID, emoji.Rest2Fallback)
+}
+
 func SuccessEmoji() string {
 	return Emoji(emoji.SuccessID, emoji.SuccessFallback)
 }

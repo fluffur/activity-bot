@@ -151,14 +151,31 @@ func (s *Service) GetChatStats(ctx context.Context, chatID int64, fromDate, toDa
 		userID := member.User.ID
 		messages := statsByUserID[userID]
 
-		mNorms := userNorms[userID]
-		if len(mNorms) == 0 {
-			mNorms = commonNorms
+		uRes := UserResult{
+			Member:   member,
+			Messages: messages,
 		}
 
-		for _, n := range mNorms {
+		processed := make(map[int64]struct{})
+
+		for _, n := range commonNorms {
 			r := normMap[n.ID]
-			uRes := UserResult{Member: member, Messages: messages}
+
+			if messages >= int64(n.Value) {
+				r.Passed = append(r.Passed, uRes)
+			} else {
+				r.Failed = append(r.Failed, uRes)
+			}
+
+			processed[n.ID] = struct{}{}
+		}
+
+		for _, n := range userNorms[userID] {
+			if _, ok := processed[n.ID]; ok {
+				continue
+			}
+
+			r := normMap[n.ID]
 
 			if messages >= int64(n.Value) {
 				r.Passed = append(r.Passed, uRes)

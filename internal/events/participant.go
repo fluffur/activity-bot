@@ -77,9 +77,13 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 		var text string
 
 		if participant.IsAdmin(u.NewParticipant) {
-			text = loc.T(i18n.System.BotAddedAdmin, nil)
+			text = loc.T(i18n.System.BotAddedAdmin, i18n.SystemBotAddedData{
+				Emoji: tghtml.PatPatEmoji(),
+			})
 		} else {
-			text = loc.T(i18n.System.BotAdded, nil)
+			text = loc.T(i18n.System.BotAdded, i18n.SystemBotAddedAdminData{
+				Emoji: tghtml.PatPatEmoji(),
+			})
 		}
 
 		_, err = h.bot.SendMessage(

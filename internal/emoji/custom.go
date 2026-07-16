@@ -13,6 +13,9 @@ const (
 	RestID       = 5235961361736956044
 	RestFallback = "💤"
 
+	Rest2ID       = 5454076053184082697
+	Rest2Fallback = "💤"
+
 	SuccessID       = 5411197345968701560
 	SuccessFallback = "✅"
 
