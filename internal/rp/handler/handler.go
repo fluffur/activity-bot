@@ -117,10 +117,26 @@ func (h *Handler) AddRPCommand(c *botapi.Context) error {
 	return err
 }
 
+var parenthesisRegex = regexp.MustCompile(`([а-яА-ЯёЁ\w]+)\(([^)]+)\)`)
+
 var genderRegex = regexp.MustCompile(`([^\s|]+)\|([^\s|]+)`)
 
 func Genderize(s string, gender user.Gender) string {
-	return genderRegex.ReplaceAllStringFunc(s, func(match string) string {
+	s = parenthesisRegex.ReplaceAllStringFunc(s, func(match string) string {
+		submatches := parenthesisRegex.FindStringSubmatch(match)
+		if len(submatches) < 3 {
+			return match
+		}
+		stem := submatches[1]
+		ending := submatches[2]
+
+		if gender == user.GenderFemale {
+			return stem + ending
+		}
+		return stem
+	})
+
+	s = genderRegex.ReplaceAllStringFunc(s, func(match string) string {
 		parts := strings.SplitN(match, "|", 2)
 		if len(parts) != 2 {
 			return match
@@ -131,8 +147,9 @@ func Genderize(s string, gender user.Gender) string {
 		}
 		return parts[0]
 	})
-}
 
+	return s
+}
 func (h *Handler) HandleRPCommand(c *botapi.Context) error {
 	rpCmd := cctx.MustRPCommand(c)
 	parsed := cctx.MustArgs(c)
