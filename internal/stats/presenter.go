@@ -183,6 +183,7 @@ func RenderProfile(
 	loc *i18n.Localizer,
 	ch chat.Chat,
 	profile ProfileStats,
+	weekStart time.Time,
 ) string {
 	var b strings.Builder
 
@@ -227,7 +228,14 @@ func RenderProfile(
 	}
 
 	restActive := profile.ChatMember.IsResting(now)
+
+	restEndedThisWeek := !restActive &&
+		!profile.ChatMember.RestUntil.IsZero() &&
+		profile.ChatMember.RestUntil.After(weekStart)
+
 	newbie := profile.ChatMember.IsNewbie(now, ch.NewbieThresholdDays)
+
+	isExemptByRest := restActive || restEndedThisWeek
 
 	if restActive {
 		b.WriteString(loc.T(
@@ -238,7 +246,9 @@ func RenderProfile(
 			},
 		))
 		b.WriteByte('\n')
+	}
 
+	if isExemptByRest {
 		b.WriteString(loc.T(
 			i18n.Cmd.Profile.RestExempt,
 			i18n.CmdProfileRestExemptData{
@@ -248,7 +258,7 @@ func RenderProfile(
 		b.WriteByte('\n')
 	}
 
-	if newbie && !restActive {
+	if newbie && !isExemptByRest {
 		b.WriteString(loc.T(
 			i18n.Cmd.Profile.NewbieExempt,
 			i18n.CmdProfileNewbieExemptData{
@@ -280,7 +290,7 @@ func RenderProfile(
 		),
 	)
 
-	if !restActive && !newbie && len(profile.Norms) > 0 {
+	if !isExemptByRest && !newbie && len(profile.Norms) > 0 {
 		b.WriteString("\n\n")
 
 		for _, n := range profile.Norms {

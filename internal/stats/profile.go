@@ -23,7 +23,7 @@ func (h *Handler) Profile(c *botapi.Context) error {
 	}
 
 	loc := cctx.MustLocalizer(c)
-	htmlMessage := RenderProfile(loc, ch, profile)
+	htmlMessage := RenderProfile(loc, ch, profile, statsRange.WeekStart)
 
 	_, err = c.Reply(
 		htmlMessage,
