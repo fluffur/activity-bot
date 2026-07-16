@@ -37,8 +37,6 @@ func mapChat(c db.Chat) chat.Chat {
 	return chat.Chat{
 		ID:                   c.ID,
 		Title:                c.Title,
-		NormWarn:             c.NormWarn.Int32,
-		NormBan:              c.NormBan.Int32,
 		NewbieThresholdDays:  c.NewbieThresholdDays,
 		AISystemPrompt:       c.AiSystemPrompt.String,
 		MaxLadder:            c.MaxLadder,

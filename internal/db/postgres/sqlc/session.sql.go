@@ -20,7 +20,7 @@ func (q *Queries) DeletePMSession(ctx context.Context, userID int64) error {
 }
 
 const getChatPMSession = `-- name: GetChatPMSession :one
-SELECT c.id, c.norm_warn, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.norm_ban, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at, c.emojis_enabled, c.skip_call_confirmation
+SELECT c.id, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at, c.emojis_enabled, c.skip_call_confirmation
 FROM user_pm_sessions
 JOIN chats c ON c.id = target_chat_id
 WHERE user_id = $1 LIMIT 1
@@ -35,7 +35,6 @@ func (q *Queries) GetChatPMSession(ctx context.Context, userID int64) (GetChatPM
 	var i GetChatPMSessionRow
 	err := row.Scan(
 		&i.Chat.ID,
-		&i.Chat.NormWarn,
 		&i.Chat.NewbieThresholdDays,
 		&i.Chat.AiSystemPrompt,
 		&i.Chat.MaxLadder,
@@ -43,7 +42,6 @@ func (q *Queries) GetChatPMSession(ctx context.Context, userID int64) (GetChatPM
 		&i.Chat.WelcomeCallMessage,
 		&i.Chat.WeekStartDay,
 		&i.Chat.MaxWarns,
-		&i.Chat.NormBan,
 		&i.Chat.CommandPrefix,
 		&i.Chat.AllowPrefixless,
 		&i.Chat.MentionsPerMessage,

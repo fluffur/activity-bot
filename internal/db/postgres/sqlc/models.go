@@ -151,7 +151,6 @@ type BotDeveloper struct {
 
 type Chat struct {
 	ID                   int64              `db:"id" json:"id"`
-	NormWarn             pgtype.Int4        `db:"norm_warn" json:"normWarn"`
 	NewbieThresholdDays  int32              `db:"newbie_threshold_days" json:"newbieThresholdDays"`
 	AiSystemPrompt       pgtype.Text        `db:"ai_system_prompt" json:"aiSystemPrompt"`
 	MaxLadder            int32              `db:"max_ladder" json:"maxLadder"`
@@ -159,7 +158,6 @@ type Chat struct {
 	WelcomeCallMessage   pgtype.Text        `db:"welcome_call_message" json:"welcomeCallMessage"`
 	WeekStartDay         int16              `db:"week_start_day" json:"weekStartDay"`
 	MaxWarns             int32              `db:"max_warns" json:"maxWarns"`
-	NormBan              pgtype.Int4        `db:"norm_ban" json:"normBan"`
 	CommandPrefix        pgtype.Text        `db:"command_prefix" json:"commandPrefix"`
 	AllowPrefixless      bool               `db:"allow_prefixless" json:"allowPrefixless"`
 	MentionsPerMessage   int32              `db:"mentions_per_message" json:"mentionsPerMessage"`

@@ -1,6 +1,15 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
+
 	"activity-bot/internal/ai"
 	"activity-bot/internal/chat"
 	chatHandler "activity-bot/internal/chat/handler"
@@ -30,16 +39,10 @@ import (
 	"activity-bot/internal/summon"
 	"activity-bot/internal/user"
 	userHandler "activity-bot/internal/user/handler"
-	"context"
-	"os"
-	"os/signal"
-	"time"
 
 	"github.com/cohesion-org/deepseek-go"
-
-	glog "github.com/gotd/log"
-
 	fsm "github.com/fluffur/botapi-fsm"
+	glog "github.com/gotd/log"
 	"github.com/gotd/log/logzap"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -61,26 +64,71 @@ func main() {
 		log.Fatal("Load config", zap.Error(err))
 	}
 
-	store, err := storage.Open(cfg.StoragePath)
-	if err != nil {
-		log.Fatal("Open storage", zap.Error(err))
-	}
-
-	defer func() { _ = store.Close() }()
-
 	pool, err := pgxpool.New(ctx, cfg.DBDSN)
 	if err != nil {
 		log.Fatal("Connect to database", zap.Error(err))
 	}
+	defer pool.Close()
 
-	queries := db.New(pool)
-
-	client := redis.NewClient(&redis.Options{
+	redisClient := redis.NewClient(&redis.Options{
 		Addr: cfg.RedisADDR,
 	})
-	defer func() { _ = client.Close() }()
+	defer func() { _ = redisClient.Close() }()
 
 	deepseekClient := deepseek.NewClient(cfg.DeepseekAPIKey)
+
+	translator, err := i18n.New()
+	if err != nil {
+		log.Fatal("Create translator", zap.Error(err))
+	}
+
+	var wg sync.WaitGroup
+
+	for _, token := range cfg.BotTokens {
+		wg.Add(1)
+		go func(tkn string) {
+			defer wg.Done()
+
+			if err := runBotInstance(ctx, log, cfg, pool, redisClient, deepseekClient, translator, tkn); err != nil {
+				log.Error("Bot instance execution failed",
+					zap.String("bot_prefix", tkn[:8]),
+					zap.Error(err),
+				)
+			}
+		}(token)
+	}
+
+	log.Info("All bot instances successfully initialized and running")
+	wg.Wait()
+	log.Info("All bot instances gracefully stopped")
+}
+
+func runBotInstance(
+	ctx context.Context,
+	log *zap.Logger,
+	cfg config.Config,
+	pool *pgxpool.Pool,
+	redisClient *redis.Client,
+	deepseekClient *deepseek.Client,
+	translator *i18n.Translator,
+	token string,
+) error {
+	botKey := token[:8]
+	botLog := log.With(zap.String("bot_key", botKey))
+
+	sessionsDir := filepath.Join(cfg.StoragePath, "sessions")
+	if err := os.MkdirAll(sessionsDir, 0750); err != nil {
+		return fmt.Errorf("failed to create sessions directory for %s: %w", botKey, err)
+	}
+
+	instanceStoragePath := filepath.Join(sessionsDir, fmt.Sprintf("session_%s.bbolt", botKey))
+	store, err := storage.Open(instanceStoragePath)
+	if err != nil {
+		return fmt.Errorf("open storage for %s: %w", botKey, err)
+	}
+	defer func() { _ = store.Close() }()
+
+	queries := db.New(pool)
 
 	chatRepository := postgres.NewChatRepository(queries)
 	userRepository := postgres.NewUserRepository(queries)
@@ -102,17 +150,23 @@ func main() {
 	marriageService := marriage.NewService(marriageRepository)
 	moderationService := moderation.NewService(moderationRepository, chatMemberRepository, cfg.DeveloperID)
 
-	translator, err := i18n.New()
-	if err != nil {
-		log.Fatal("Create translator", zap.Error(err))
-	}
 	loc := translator.Default()
 
 	permissions := predicate.NewPermissionsChecker(permissionRepository, cfg.DeveloperID)
 	rules := predicate.NewRuleChecker(chatMemberRepository, messageRepository)
 
-	summonFSM := fsm.NewRedisFSM[summon.State, summon.StateData](client, "fsm:summon:", 5*time.Hour, summon.StateIdle)
-	statsFSM := fsm.NewRedisFSM[stats.State, stats.StateData](client, "fsm:stats:", 10*time.Hour, stats.StateIdle)
+	summonFSM := fsm.NewRedisFSM[summon.State, summon.StateData](
+		redisClient,
+		fmt.Sprintf("fsm:%s:summon:", botKey),
+		5*time.Hour,
+		summon.StateIdle,
+	)
+	statsFSM := fsm.NewRedisFSM[stats.State, stats.StateData](
+		redisClient,
+		fmt.Sprintf("fsm:%s:stats:", botKey),
+		10*time.Hour,
+		stats.StateIdle,
+	)
 
 	registry := command.NewRegistry()
 	summonH := summon.NewHandler(chatService, chatMemberService, summonFSM)
@@ -138,19 +192,20 @@ func main() {
 	}
 
 	var bot *botapi.Bot
-	bot, err = botapi.New(cfg.BotToken, botapi.Options{
+	bot, err = botapi.New(token, botapi.Options{
 		AppID:   cfg.AppID,
 		AppHash: cfg.AppHash,
-		Logger:  logzap.New(log),
+		Logger:  logzap.New(botLog),
 		Storage: store,
 		OnStart: func(ctx context.Context) {
 			registerBotCommands(ctx, bot, registry, loc)
+			registerDefaultAdminRights(ctx, bot)
 		},
 		FloodWait:                  true,
 		DisableCommandRegistration: true,
 	})
 	if err != nil {
-		log.Fatal("Create bot", zap.Error(err))
+		return fmt.Errorf("create bot for %s: %w", botKey, err)
 	}
 
 	registerMiddlewares(
@@ -166,10 +221,34 @@ func main() {
 	register.Attach(bot, registry, permissions, rules, rpRepository)
 	events.NewHandler(bot, translator, chatMemberService).Attach()
 
-	log.Info("Starting bot")
+	botLog.Info("Starting bot instance listener...")
+	return bot.Run(ctx)
+}
 
-	if err := bot.Run(ctx); err != nil {
-		log.Fatal("Run", zap.Error(err))
+func registerDefaultAdminRights(ctx context.Context, bot *botapi.Bot) {
+	err := bot.SetMyDefaultAdministratorRights(ctx, botapi.ChatAdminRights{
+		IsAnonymous:         false,
+		CanManageChat:       true,
+		CanDeleteMessages:   true,
+		CanManageVideoChats: true,
+		CanRestrictMembers:  true,
+		CanPromoteMembers:   true,
+		CanChangeInfo:       true,
+		CanInviteUsers:      true,
+		CanPostMessages:     true,
+		CanEditMessages:     true,
+		CanPinMessages:      true,
+		CanManageTopics:     true,
+	}, false)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "RIGHTS_NOT_MODIFIED") {
+			glog.For(bot.Logger()).Info(ctx, "Default admin rights are already up to date")
+			return
+		}
+
+		glog.For(bot.Logger()).Error(ctx, "failed to register default admin rights", glog.Error(err))
+		return
 	}
 }
 
