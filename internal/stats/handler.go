@@ -93,6 +93,13 @@ func (h *Handler) Actions() []*command.Action {
 				rule.DateTimeOrDuration().Optional(),
 			),
 		),
+		action.NewCommand(
+			"inactive",
+			h.ListInactive,
+			i18n.Cmd.Inactive.Desc,
+			CategoryStats,
+			option.WithAliases("неактив", "инактив", "кто неактив"),
+		),
 		action.NewCallbackPrefix(
 			"summon_no_norm",
 			"summon_no_norm",

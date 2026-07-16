@@ -49,3 +49,19 @@ func (r *StatsRepository) ProfileStats(
 
 	return mapProfileStats(s), nil
 }
+
+func (r *StatsRepository) ListInactiveMembers(ctx context.Context, chatID int64) ([]stats.InactiveMember, error) {
+	members, err := r.queries.InactiveChatMembers(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapList(members, mapInactiveMember), nil
+}
+
+func mapInactiveMember(member db.InactiveChatMembersRow) stats.InactiveMember {
+	return stats.InactiveMember{
+		ChatMember:   mapChatMemberFull(member.ChatMember, db.Chat{}, member.User),
+		LastActivity: time.Time{},
+	}
+}

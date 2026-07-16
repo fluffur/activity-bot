@@ -584,31 +584,34 @@ func (q *Queries) GetNoNormMembers(ctx context.Context, arg GetNoNormMembersPara
 }
 
 const inactiveChatMembers = `-- name: InactiveChatMembers :many
-SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot,
-       cm.tag,
-       cm.status,
-       cm.rest_until,
-       MAX(m.created_at)::timestamptz AS last_message_at
+SELECT
+    u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot,
+    cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call,
+    lm.last_message_at
 FROM chat_members cm
-         JOIN users u ON cm.user_id = u.id
-         LEFT JOIN messages m
-                   ON m.user_id = cm.user_id AND m.chat_id = cm.chat_id
-WHERE cm.left_at IS NULL
-  AND cm.chat_id = $1
+         JOIN users u
+              ON u.id = cm.user_id
+         LEFT JOIN LATERAL (
+    SELECT MAX(created_at) AS last_message_at
+    FROM messages
+    WHERE chat_id = cm.chat_id
+      AND user_id = cm.user_id
+    ) lm ON TRUE
+WHERE cm.chat_id = $1
+  AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
   AND u.is_bot = FALSE
-GROUP BY cm.user_id, u.id, cm.tag, cm.status, cm.rest_until
-HAVING MAX(m.created_at) IS NULL
-    OR MAX(m.created_at) < NOW() - INTERVAL '1 days'
-ORDER BY MAX(m.created_at) NULLS FIRST
+  AND (
+    lm.last_message_at IS NULL OR
+    lm.last_message_at < now() - interval '1 day'
+    )
+ORDER BY lm.last_message_at NULLS FIRST
 `
 
 type InactiveChatMembersRow struct {
-	User          User               `db:"user" json:"user"`
-	Tag           pgtype.Text        `db:"tag" json:"tag"`
-	Status        int16              `db:"status" json:"status"`
-	RestUntil     pgtype.Timestamptz `db:"rest_until" json:"restUntil"`
-	LastMessageAt pgtype.Timestamptz `db:"last_message_at" json:"lastMessageAt"`
+	User          User        `db:"user" json:"user"`
+	ChatMember    ChatMember  `db:"chat_member" json:"chatMember"`
+	LastMessageAt interface{} `db:"last_message_at" json:"lastMessageAt"`
 }
 
 func (q *Queries) InactiveChatMembers(ctx context.Context, chatID int64) ([]InactiveChatMembersRow, error) {
@@ -631,9 +634,17 @@ func (q *Queries) InactiveChatMembers(ctx context.Context, chatID int64) ([]Inac
 			&i.User.CustomEmojiID,
 			&i.User.EmojiJson,
 			&i.User.IsBot,
-			&i.Tag,
-			&i.Status,
-			&i.RestUntil,
+			&i.ChatMember.ChatID,
+			&i.ChatMember.UserID,
+			&i.ChatMember.JoinedAt,
+			&i.ChatMember.RestUntil,
+			&i.ChatMember.Tag,
+			&i.ChatMember.LeftAt,
+			&i.ChatMember.RestReason,
+			&i.ChatMember.Emoji,
+			&i.ChatMember.Status,
+			&i.ChatMember.EmojiJson,
+			&i.ChatMember.ExcludeFromCall,
 			&i.LastMessageAt,
 		); err != nil {
 			return nil, err

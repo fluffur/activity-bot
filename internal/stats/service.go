@@ -228,3 +228,7 @@ func (s *Service) GetProfileStats(
 
 	return st, nil
 }
+
+func (s *Service) ListInactiveMembers(ctx context.Context, chatID int64) ([]InactiveMember, error) {
+	return s.statsRepo.ListInactiveMembers(ctx, chatID)
+}

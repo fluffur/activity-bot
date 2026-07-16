@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/norm"
+	"activity-bot/internal/utils/tghtml"
 	"fmt"
 	"strconv"
 	"strings"
@@ -310,5 +311,48 @@ func (h *Handler) Cancel(c *botapi.Context) error {
 		loc.T(i18n.System.Canceled, nil),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
+	return err
+}
+func (h *Handler) ListInactive(c *botapi.Context) error {
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
+
+	members, err := h.service.ListInactiveMembers(c, ch.ID)
+	if err != nil {
+		return fmt.Errorf("list inactive members: %w", err)
+	}
+
+	var b strings.Builder
+
+	b.WriteString(loc.T(i18n.Cmd.Inactive.Title, i18n.CmdInactiveTitleData{
+		InactiveEmoji: "💤",
+	}))
+	b.WriteString("\n\n")
+	b.WriteString("<blockquote expandable>")
+	if len(members) == 0 {
+		b.WriteString(loc.T(i18n.Cmd.Inactive.EmptyList, nil))
+	} else {
+		for i, member := range members {
+			lastActivity := loc.T(i18n.Cmd.Inactive.Never, nil)
+			if !member.LastActivity.IsZero() {
+				lastActivity = member.LastActivity.In(time.Local).Format("02.01.2006 15:04")
+			}
+
+			b.WriteString(loc.T(i18n.Cmd.Inactive.User, i18n.CmdInactiveUserData{
+				List:         i + 1,
+				User:         tghtml.MemberLink(loc, ch, member.ChatMember),
+				LastActivity: lastActivity,
+			}))
+			b.WriteByte('\n')
+		}
+	}
+	b.WriteString("</blockquote>")
+
+	_, err = c.Reply(
+		b.String(),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview(),
+	)
+
 	return err
 }

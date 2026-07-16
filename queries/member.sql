@@ -201,21 +201,25 @@ WHERE ma.type = 'mute'
 
 
 -- name: InactiveChatMembers :many
-SELECT sqlc.embed(u),
-       cm.tag,
-       cm.status,
-       cm.rest_until,
-       MAX(m.created_at)::timestamptz AS last_message_at
+SELECT
+    sqlc.embed(u),
+    sqlc.embed(cm),
+    lm.last_message_at
 FROM chat_members cm
-         JOIN users u ON cm.user_id = u.id
-         LEFT JOIN messages m
-                   ON m.user_id = cm.user_id AND m.chat_id = cm.chat_id
-WHERE cm.left_at IS NULL
-  AND cm.chat_id = $1
+         JOIN users u
+              ON u.id = cm.user_id
+         LEFT JOIN LATERAL (
+    SELECT MAX(created_at) AS last_message_at
+    FROM messages
+    WHERE chat_id = cm.chat_id
+      AND user_id = cm.user_id
+    ) lm ON TRUE
+WHERE cm.chat_id = $1
+  AND cm.left_at IS NULL
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
   AND u.is_bot = FALSE
-GROUP BY cm.user_id, u.id, cm.tag, cm.status, cm.rest_until
-HAVING MAX(m.created_at) IS NULL
-    OR MAX(m.created_at) < NOW() - INTERVAL '1 days'
-ORDER BY MAX(m.created_at) NULLS FIRST;
-
+  AND (
+    lm.last_message_at IS NULL OR
+    lm.last_message_at < now() - interval '1 day'
+    )
+ORDER BY lm.last_message_at NULLS FIRST;

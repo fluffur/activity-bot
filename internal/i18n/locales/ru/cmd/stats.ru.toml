@@ -20,3 +20,10 @@ ask_for_norm_name = "Введите название нормы\n\n/cancel чт�
 ask_for_summon_text = "Введите текст для призыва участников без нормы {{.Norm}}\n\n/cancel чтобы отменить действие"
 norm_not_found = "Норма с названием {{.Name}} не найдена"
 nobody_to_summon = "Все участники выполнили норму {{.Name}}"
+
+[cmd.inactive]
+desc = "Неактивные участники"
+title = "{{.InactiveEmoji}} Неактивные участники"
+user = "{{.List}}. {{.User}} — {{.LastActivity}}"
+never = "никогда"
+empty_list = "Неактивных участников нет"
