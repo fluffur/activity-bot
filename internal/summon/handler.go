@@ -57,7 +57,7 @@ func (h *Handler) Actions() []*command.Action {
 		action.NewCommand(
 			"unreg",
 			h.Unreg,
-			i18n.Cmd.Summon.Reg.Desc,
+			i18n.Cmd.Summon.Unreg.Desc,
 			CategorySummon,
 			option.WithAliases("анрег"),
 		),
