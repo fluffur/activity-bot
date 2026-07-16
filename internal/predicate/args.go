@@ -12,7 +12,6 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/log"
 
 	"github.com/gotd/botapi"
@@ -55,8 +54,6 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 
 		text, entities := argsMessage.TextAndEntities()
 		if strings.TrimSpace(text) == "" && !allRulesAreOptionalOrUser(rules...) && len(rules) != 0 {
-			spew.Dump("FAIL", "rule user 1")
-
 			return false
 		}
 
@@ -98,17 +95,12 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 						continue
 					}
 
-					spew.Dump("FAIL", "rule user 2")
-
 					return false
 				}
 
 				var joinedText string
 
-				// Проверяем, есть ли в оставшемся тексте перенос строки
-				// (это признак RP-команд вроде "погладить @user \n текст")
 				if strings.Contains(text, "\n") {
-					// 1. Поведение для RP-команд: жадный захват всего хвоста с '\n'
 					firstTokStart := toks[0].start
 					startIdx := 0
 					for _, offset := range usedOffsets {
@@ -132,8 +124,6 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 				}
 
 				if rul.TextValidate != nil && !rul.TextValidate(joinedText) {
-					spew.Dump("FAIL", "rule user 3")
-
 					return false
 				}
 
@@ -254,16 +244,12 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 			}
 
 			if parsedCount == 0 && !rul.IsOptional {
-				spew.Dump("FAIL", "rule user 4", parsedCount, rul.IsOptional)
-
 				return false
 			}
 		}
 
 		remaining := getFreeTokens(text, usedOffsets)
 		if len(remaining) > 0 {
-			spew.Dump("FAIL", "rule user 5", text, usedOffsets)
-
 			return false
 		}
 

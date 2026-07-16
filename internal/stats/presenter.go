@@ -11,8 +11,6 @@ import (
 	"activity-bot/internal/chat"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/utils/tghtml"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 func appendUserList(
@@ -38,7 +36,7 @@ func appendUserList(
 
 func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats, forceSimple bool) string {
 	var b strings.Builder
-	spew.Dump(data.NormResults)
+
 	b.WriteString(loc.T(
 		i18n.Cmd.Stats.Title,
 		i18n.CmdStatsTitleData{
