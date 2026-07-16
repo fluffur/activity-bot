@@ -17,8 +17,6 @@ import (
 	regexp "regexp"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/gotd/botapi"
 )
 
@@ -41,6 +39,7 @@ func (h *Handler) Actions() []*command.Action {
 			CategoryRP,
 			option.WithAliases("рп", "+рп"),
 			option.WithRules(rule.Text()),
+			option.WithExamples(i18n.Cmd.AddRp.Example1, i18n.Cmd.AddRp.Example2),
 		),
 		action.NewRPCommand(
 			"rp",
@@ -51,15 +50,17 @@ func (h *Handler) Actions() []*command.Action {
 		action.NewCommand(
 			"listrp",
 			h.ListRPCommand,
-			"Показать список РП команд",
+			i18n.Cmd.ListRp.Desc,
 			CategoryRP,
+			option.WithAliases("рп"),
 		),
 		action.NewCommand(
 			"delrp",
 			h.DeleteRPCommand,
-			"Удалить РП команду",
+			i18n.Cmd.DelRp.Desc,
 			CategoryRP,
-			option.WithRules(rule.Text()), // Триггер для удаления
+			option.WithRules(rule.Text()),
+			option.WithAliases("-рп"),
 		),
 	}
 }
@@ -155,8 +156,6 @@ func (h *Handler) HandleRPCommand(c *botapi.Context) error {
 	}
 
 	act := Genderize(rpCmd.Action, sender.Gender())
-	spew.Dump(cctx.MustArgs(c).Texts)
-	spew.Dump(cctx.MustArgsMessage(c).Text)
 	ch := cctx.MustChat(c)
 	loc := cctx.MustLocalizer(c)
 
@@ -178,9 +177,10 @@ func (h *Handler) HandleRPCommand(c *botapi.Context) error {
 	}
 
 	if speech != "" {
-		b.WriteString("\n💬 Сказав: <i>\"")
-		b.WriteString(html.EscapeString(speech))
-		b.WriteString("\"</i>")
+		b.WriteByte('\n')
+		b.WriteString(loc.T(i18n.Cmd.Rp.Speech, i18n.CmdRpSpeechData{
+			Text: html.EscapeString(speech),
+		}))
 	}
 
 	_, err := c.Reply(
@@ -193,18 +193,20 @@ func (h *Handler) HandleRPCommand(c *botapi.Context) error {
 
 func (h *Handler) ListRPCommand(c *botapi.Context) error {
 	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
 	list, err := h.repo.List(c, ch.ID)
 	if err != nil {
 		return fmt.Errorf("list rp: %w", err)
 	}
 
 	if len(list) == 0 {
-		_, err := c.Reply("В этом чате пока нет добавленных РП команд")
+		_, err := c.Reply(loc.T(i18n.Cmd.ListRp.Empty, nil))
 		return err
 	}
 
 	var b strings.Builder
-	b.WriteString("Список РП команд:\n\n")
+	b.WriteString(loc.T(i18n.Cmd.ListRp.Title, nil))
+	b.WriteString("\n\n")
 	for _, item := range list {
 		b.WriteString(fmt.Sprintf("• <code>%s</code>\n", item.Trigger))
 	}
@@ -225,7 +227,9 @@ func (h *Handler) DeleteRPCommand(c *botapi.Context) error {
 	if err := h.repo.Delete(c, ch.ID, trigger); err != nil {
 		return fmt.Errorf("delete rp: %w", err)
 	}
-
-	_, err := c.Reply(fmt.Sprintf("Команда <code>%s</code> успешно удалена.", trigger), botapi.WithParseMode(botapi.ParseModeHTML))
+	loc := cctx.MustLocalizer(c)
+	_, err := c.Reply(loc.T(i18n.Cmd.DelRp.Success, i18n.CmdDelRpSuccessData{
+		Trigger: trigger,
+	}), botapi.WithParseMode(botapi.ParseModeHTML))
 	return err
 }

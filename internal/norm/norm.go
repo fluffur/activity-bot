@@ -227,9 +227,7 @@ func (h *Handler) AssignNorm(c *botapi.Context) error {
 
 		_, err = c.Reply(
 			loc.T(i18n.Cmd.ShowNorm.NotFound, i18n.CmdShowNormNotFoundData{
-				Name:    tghtml.Bold(LocalisedNormName(loc, name)),
-				Code:    "<code>",
-				CodeEnd: "</code>",
+				Name: tghtml.Bold(LocalisedNormName(loc, name)),
 			}),
 			botapi.WithParseMode(botapi.ParseModeHTML),
 		)
@@ -285,9 +283,7 @@ func (h *Handler) UnassignNorm(c *botapi.Context) error {
 
 		_, err = c.Reply(
 			loc.T(i18n.Cmd.ShowNorm.NotFound, i18n.CmdShowNormNotFoundData{
-				Name:    tghtml.Bold(LocalisedNormName(loc, name)),
-				Code:    "<code>",
-				CodeEnd: "</code>",
+				Name: tghtml.Bold(LocalisedNormName(loc, name)),
 			}),
 			botapi.WithParseMode(botapi.ParseModeHTML),
 		)
