@@ -178,6 +178,7 @@ func (h *Handler) ListRoles(c *botapi.Context) error {
 	_, err = c.Reply(
 		text.String(),
 		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview(),
 	)
 
 	return err
