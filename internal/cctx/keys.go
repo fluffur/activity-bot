@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/permission"
+	"activity-bot/internal/rp"
 	"context"
 	"fmt"
 
@@ -12,15 +13,16 @@ import (
 )
 
 type (
-	chatKey              struct{}
-	chatMemberKey        struct{}
-	argsKey              struct{}
-	parsedArgsKey        struct{}
-	commandPermissionKey struct{}
-	devPassed            struct{}
-	devPassedVal         struct{}
-	localizerKey         struct{}
-	commandPrefixKey     struct{}
+	chatKey                struct{}
+	chatMemberKey          struct{}
+	argsKey                struct{}
+	parsedArgsKey          struct{}
+	commandPermissionKey   struct{}
+	devPassed              struct{}
+	devPassedVal           struct{}
+	localizerKey           struct{}
+	commandPrefixKey       struct{}
+	rpCommandDefinitionKey struct{}
 )
 
 func WithChat(ctx context.Context, ch chat.Chat) context.Context {
@@ -190,4 +192,17 @@ func MustCommandPrefix(ctx context.Context) string {
 	}
 
 	return prefix
+}
+
+func WithRPCommand(ctx context.Context, command rp.Definition) context.Context {
+	return context.WithValue(ctx, rpCommandDefinitionKey{}, command)
+}
+
+func MustRPCommand(ctx context.Context) rp.Definition {
+	def, ok := ctx.Value(rpCommandDefinitionKey{}).(rp.Definition)
+	if !ok {
+		panic("rpDefinition not found in context")
+	}
+
+	return def
 }

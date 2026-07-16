@@ -69,7 +69,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"removenorm",
+			"delnorm",
 			h.DeleteNorm,
 			i18n.Cmd.DeleteNorm.Desc,
 			CategoryNorm,

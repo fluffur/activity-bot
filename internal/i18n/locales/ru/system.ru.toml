@@ -12,3 +12,8 @@ no_permission = "Для выполнения этой команды требу�
 male = "{{.User}} сменил юзернейм {{.OldUsername}} ➜ {{.NewUsername}}"
 female = "{{.User}} сменила юзернейм {{.OldUsername}} ➜ {{.NewUsername}}"
 unknown = "{{.User}} сменил юзернейм {{.OldUsername}} ➜ {{.NewUsername}}"
+
+[system.gender]
+male = "мужской"
+female = "женский"
+unknown = "неизвестен"

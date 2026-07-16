@@ -50,3 +50,10 @@ func (r *UserRepository) SetEmoji(ctx context.Context, id int64, emoji string) e
 		Emoji: text(emoji),
 	})
 }
+
+func (r *UserRepository) SetGender(ctx context.Context, id int64, gender user.Gender) error {
+	return r.queries.SetUserGender(ctx, db.SetUserGenderParams{
+		ID:     id,
+		Gender: string(gender),
+	})
+}

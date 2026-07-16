@@ -7,48 +7,46 @@ package db
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const deleteRPCommand = `-- name: DeleteRPCommand :exec
 DELETE
 FROM chat_rp_commands
 WHERE chat_id = $1
-  AND trigger_normalized = $2
+  AND trigger = $2
 `
 
 type DeleteRPCommandParams struct {
-	ChatID            int64  `db:"chat_id" json:"chatId"`
-	TriggerNormalized string `db:"trigger_normalized" json:"triggerNormalized"`
+	ChatID  int64  `db:"chat_id" json:"chatId"`
+	Trigger string `db:"trigger" json:"trigger"`
 }
 
 func (q *Queries) DeleteRPCommand(ctx context.Context, arg DeleteRPCommandParams) error {
-	_, err := q.db.Exec(ctx, deleteRPCommand, arg.ChatID, arg.TriggerNormalized)
+	_, err := q.db.Exec(ctx, deleteRPCommand, arg.ChatID, arg.Trigger)
 	return err
 }
 
 const getRPCommandByTrigger = `-- name: GetRPCommandByTrigger :one
-SELECT chat_id, trigger, trigger_normalized, template, emoji_json, created_by, created_at, updated_at
+SELECT id, chat_id, trigger, action, emojis, created_by, created_at, updated_at
 FROM chat_rp_commands
 WHERE chat_id = $1
-  AND trigger_normalized = $2
+  AND trigger = $2
 `
 
 type GetRPCommandByTriggerParams struct {
-	ChatID            int64  `db:"chat_id" json:"chatId"`
-	TriggerNormalized string `db:"trigger_normalized" json:"triggerNormalized"`
+	ChatID  int64  `db:"chat_id" json:"chatId"`
+	Trigger string `db:"trigger" json:"trigger"`
 }
 
 func (q *Queries) GetRPCommandByTrigger(ctx context.Context, arg GetRPCommandByTriggerParams) (ChatRpCommand, error) {
-	row := q.db.QueryRow(ctx, getRPCommandByTrigger, arg.ChatID, arg.TriggerNormalized)
+	row := q.db.QueryRow(ctx, getRPCommandByTrigger, arg.ChatID, arg.Trigger)
 	var i ChatRpCommand
 	err := row.Scan(
+		&i.ID,
 		&i.ChatID,
 		&i.Trigger,
-		&i.TriggerNormalized,
-		&i.Template,
-		&i.EmojiJson,
+		&i.Action,
+		&i.Emojis,
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -57,7 +55,7 @@ func (q *Queries) GetRPCommandByTrigger(ctx context.Context, arg GetRPCommandByT
 }
 
 const listRPCommandsByChat = `-- name: ListRPCommandsByChat :many
-SELECT chat_id, trigger, trigger_normalized, template, emoji_json, created_by, created_at, updated_at
+SELECT id, chat_id, trigger, action, emojis, created_by, created_at, updated_at
 FROM chat_rp_commands
 WHERE chat_id = $1
 ORDER BY trigger
@@ -73,11 +71,11 @@ func (q *Queries) ListRPCommandsByChat(ctx context.Context, chatID int64) ([]Cha
 	for rows.Next() {
 		var i ChatRpCommand
 		if err := rows.Scan(
+			&i.ID,
 			&i.ChatID,
 			&i.Trigger,
-			&i.TriggerNormalized,
-			&i.Template,
-			&i.EmojiJson,
+			&i.Action,
+			&i.Emojis,
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -93,31 +91,28 @@ func (q *Queries) ListRPCommandsByChat(ctx context.Context, chatID int64) ([]Cha
 }
 
 const upsertRPCommand = `-- name: UpsertRPCommand :exec
-INSERT INTO chat_rp_commands (chat_id, trigger, trigger_normalized, template, emoji_json, created_by)
-VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (chat_id, trigger_normalized) DO UPDATE
-    SET trigger    = EXCLUDED.trigger,
-        template   = EXCLUDED.template,
-        emoji_json = EXCLUDED.emoji_json,
+INSERT INTO chat_rp_commands (chat_id, trigger, action, emojis, created_by)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (chat_id, trigger) DO UPDATE
+    SET action     = EXCLUDED.action,
+        emojis     = EXCLUDED.emojis,
         updated_at = now()
 `
 
 type UpsertRPCommandParams struct {
-	ChatID            int64       `db:"chat_id" json:"chatId"`
-	Trigger           string      `db:"trigger" json:"trigger"`
-	TriggerNormalized string      `db:"trigger_normalized" json:"triggerNormalized"`
-	Template          pgtype.Text `db:"template" json:"template"`
-	EmojiJson         []byte      `db:"emoji_json" json:"emojiJson"`
-	CreatedBy         int64       `db:"created_by" json:"createdBy"`
+	ChatID    int64  `db:"chat_id" json:"chatId"`
+	Trigger   string `db:"trigger" json:"trigger"`
+	Action    string `db:"action" json:"action"`
+	Emojis    string `db:"emojis" json:"emojis"`
+	CreatedBy int64  `db:"created_by" json:"createdBy"`
 }
 
 func (q *Queries) UpsertRPCommand(ctx context.Context, arg UpsertRPCommandParams) error {
 	_, err := q.db.Exec(ctx, upsertRPCommand,
 		arg.ChatID,
 		arg.Trigger,
-		arg.TriggerNormalized,
-		arg.Template,
-		arg.EmojiJson,
+		arg.Action,
+		arg.Emojis,
 		arg.CreatedBy,
 	)
 	return err

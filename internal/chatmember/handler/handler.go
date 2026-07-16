@@ -37,7 +37,7 @@ func (h *Handler) Actions() []*command.Action {
 			h.SetEmoji,
 			i18n.Cmd.ChatMember.SetEmoji.Desc,
 			CategoryChatMember,
-			option.WithAliases("значок", "чат эмоджи"),
+			option.WithAliases("значок", "чат эмодзи"),
 			option.IgnorePermissionCheck(),
 			option.WithRules(rule.User().Optional(), rule.Text()),
 			option.WithPermission(permission.StatusModerator),
@@ -47,8 +47,18 @@ func (h *Handler) Actions() []*command.Action {
 			h.ShowEmoji,
 			i18n.Cmd.ChatMember.ShowEmoji.Desc,
 			CategoryChatMember,
-			option.WithAliases("значок", "чат эмоджи"),
+			option.WithAliases("значок", "чат эмодзи"),
 			option.WithRules(rule.User().Optional()),
+		),
+		action.NewCommand(
+			"delchatemoji",
+			h.RemoveEmoji,
+			i18n.Cmd.ChatMember.RemoveEmoji.Desc,
+			CategoryChatMember,
+			option.WithAliases("значок", "чат эмодзи"),
+			option.WithRules(rule.User().Optional()),
+			option.WithPermission(permission.StatusModerator),
+			option.IgnorePermissionCheck(),
 		),
 		action.NewCommand(
 			"update",
@@ -136,6 +146,27 @@ func (h *Handler) UpdateChatMembers(c *botapi.Context) error {
 	loc := cctx.MustLocalizer(c)
 
 	_, err = c.Reply(loc.T(i18n.Cmd.ChatMember.Update.Success, nil), botapi.WithParseMode(botapi.ParseModeHTML))
+
+	return err
+}
+
+func (h *Handler) RemoveEmoji(c *botapi.Context) error {
+	moderator := cctx.MustChatMember(c)
+	target, ok := cctx.MustArgs(c).User()
+
+	if !ok || !moderator.Permitted(cctx.MustPermission(c)) {
+		target = moderator
+	}
+	ch := cctx.MustChat(c)
+	if err := h.repo.SetEmoji(c, ch.ID, target.ID(), ""); err != nil {
+		return fmt.Errorf("remove chat emoji: %w", err)
+	}
+
+	loc := cctx.MustLocalizer(c)
+
+	_, err := c.Reply(loc.T(i18n.Cmd.ChatMember.RemoveEmoji.Success, i18n.CmdChatMemberRemoveEmojiSuccessData{
+		User: tghtml.MemberMentionCustom(loc, target, false),
+	}), botapi.WithParseMode(botapi.ParseModeHTML))
 
 	return err
 }

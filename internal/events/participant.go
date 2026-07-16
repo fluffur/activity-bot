@@ -114,7 +114,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	text := loc.T(
 		key,
 		data,
-		i18n.WithGender(cm.User.Gender),
+		i18n.WithGender(cm.Gender()),
 	)
 
 	_, err = h.bot.SendMessage(
@@ -142,7 +142,7 @@ func (h *Handler) processLeft(ctx context.Context, u *tg.UpdateChannelParticipan
 		i18n.UserLeftData{
 			User: mention,
 		},
-		i18n.WithGender(cm.User.Gender),
+		i18n.WithGender(cm.Gender()),
 	)
 
 	_, err = h.bot.SendMessage(

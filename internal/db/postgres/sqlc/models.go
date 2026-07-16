@@ -200,14 +200,14 @@ type ChatNorm struct {
 }
 
 type ChatRpCommand struct {
-	ChatID            int64              `db:"chat_id" json:"chatId"`
-	Trigger           string             `db:"trigger" json:"trigger"`
-	TriggerNormalized string             `db:"trigger_normalized" json:"triggerNormalized"`
-	Template          pgtype.Text        `db:"template" json:"template"`
-	EmojiJson         []byte             `db:"emoji_json" json:"emojiJson"`
-	CreatedBy         int64              `db:"created_by" json:"createdBy"`
-	CreatedAt         pgtype.Timestamptz `db:"created_at" json:"createdAt"`
-	UpdatedAt         pgtype.Timestamptz `db:"updated_at" json:"updatedAt"`
+	ID        int64              `db:"id" json:"id"`
+	ChatID    int64              `db:"chat_id" json:"chatId"`
+	Trigger   string             `db:"trigger" json:"trigger"`
+	Action    string             `db:"action" json:"action"`
+	Emojis    string             `db:"emojis" json:"emojis"`
+	CreatedBy int64              `db:"created_by" json:"createdBy"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updatedAt"`
 }
 
 type CommandPermission struct {

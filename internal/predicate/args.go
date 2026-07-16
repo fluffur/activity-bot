@@ -103,24 +103,33 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 					return false
 				}
 
-				var textParts []string
+				var joinedText string
 
-				if rul.OnNextRow {
-					newLineIdx := strings.Index(text, "\n")
-					for _, tok := range toks {
-						if newLineIdx != -1 && tok.start > newLineIdx {
-							textParts = append(textParts, tok.text)
-							usedOffsets = append(usedOffsets, Offset{tok.start, tok.end})
+				// Проверяем, есть ли в оставшемся тексте перенос строки
+				// (это признак RP-команд вроде "погладить @user \n текст")
+				if strings.Contains(text, "\n") {
+					// 1. Поведение для RP-команд: жадный захват всего хвоста с '\n'
+					firstTokStart := toks[0].start
+					startIdx := 0
+					for _, offset := range usedOffsets {
+						if offset.End > startIdx && offset.End <= firstTokStart {
+							startIdx = offset.End
 						}
 					}
+
+					joinedText = text[startIdx:]
+					usedOffsets = append(usedOffsets, Offset{startIdx, len(text)})
+					joinedText = strings.Trim(joinedText, " \t\r")
 				} else {
+					// 2. Стандартное поведение для обычных команд (без '\n'):
+					// Собираем текст строго из свободных токенов, игнорируя уже занятые числа/юзеров
+					var parts []string
 					for _, tok := range toks {
-						textParts = append(textParts, tok.text)
+						parts = append(parts, tok.text)
 						usedOffsets = append(usedOffsets, Offset{tok.start, tok.end})
 					}
+					joinedText = strings.Join(parts, " ")
 				}
-
-				joinedText := strings.Join(textParts, " ")
 
 				if rul.TextValidate != nil && !rul.TextValidate(joinedText) {
 					spew.Dump("FAIL", "rule user 3")

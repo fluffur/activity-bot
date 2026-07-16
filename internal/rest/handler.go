@@ -100,7 +100,7 @@ func (h *Handler) Actions() []*command.Action {
 		),
 
 		action.NewCommand(
-			"deleterest",
+			"delrest",
 			h.RemoveRestRequest,
 			i18n.Cmd.Rests.Delete.Desc,
 			CategoryRest,

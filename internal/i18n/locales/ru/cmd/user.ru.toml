@@ -1,10 +1,23 @@
 [cmd.user.set_emoji]
-desc = "Установить себе эмоджи (на все чаты)"
+desc = "Установить себе эмодзи (на все чаты)"
 
-success = "Эмоджи {{.Emoji}} для {{.User}} установлено"
+success = "Эмодзи {{.Emoji}} для {{.User}} установлено"
 
 [cmd.user.show_emoji]
-desc = "Посмотреть эмоджи пользователя (на все чаты)"
+desc = "Посмотреть эмодзи пользователя"
 
-no_emoji = "Эмоджи у {{.User}} еще не установлено"
-success = "Эмоджи {{.User}}: {{.Emoji}}"
+no_emoji = "Эмодзи у {{.User}} еще не установлено"
+success = "Эмодзи {{.User}}: {{.Emoji}}"
+
+[cmd.user.remove_emoji]
+desc = "Удалить эмодзи пользователя"
+
+success = "Эмодзи {{.Emoji}} для {{.User}} успешно удален"
+
+[cmd.user.set_gender]
+desc = "Указать свой пол"
+success = "Пол изменён на {{.Gender}}"
+
+[cmd.user.show_gender]
+desc = "Посмотреть пол участника"
+success = "Пол {{.User}}: {{.Gender}}"

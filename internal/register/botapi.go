@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/permission"
 	"activity-bot/internal/predicate"
+	"activity-bot/internal/rp"
 	"activity-bot/internal/rule"
 
 	"github.com/gotd/botapi"
@@ -15,9 +16,10 @@ func Attach(
 	registry *command.Registry,
 	permissions *predicate.PermissionChecker,
 	rules *predicate.RuleChecker,
+	rpRepo rp.Repository,
 ) {
 	for _, action := range registry.All() {
-		registerAction(bot, action, permissions, rules)
+		registerAction(bot, action, permissions, rules, rpRepo)
 	}
 }
 
@@ -26,12 +28,18 @@ func registerAction(
 	action *command.Action,
 	permissions *predicate.PermissionChecker,
 	rules *predicate.RuleChecker,
+	rpRepo rp.Repository,
 ) {
 	switch t := action.Trigger.(type) {
 	case *command.CommandTrigger:
 		bot.OnMessage(
 			action.Handler,
 			buildCommandPredicates(action, t, permissions, rules)...,
+		)
+	case *command.RPTrigger:
+		bot.OnMessage(
+			action.Handler,
+			buildRPPredicates(action, t, permissions, rules, rpRepo)...,
 		)
 
 	case *command.CallbackTrigger:
@@ -158,4 +166,56 @@ func BotCommands(registry *command.Registry, loc *i18n.Localizer, scope command.
 	}
 
 	return
+}
+
+func buildRPPredicates(
+	action *command.Action,
+	trigger *command.RPTrigger,
+	permissions *predicate.PermissionChecker,
+	rules *predicate.RuleChecker,
+	rpRepo rp.Repository,
+) []botapi.Predicate {
+	var predicates []botapi.Predicate
+
+	switch trigger.Scope {
+	case command.ScopeGroup:
+		predicates = append(predicates, predicate.Chat())
+
+	case command.ScopePrivate:
+		predicates = append(predicates, predicate.Private())
+
+	case command.ScopeAny:
+	}
+
+	predicates = append(predicates,
+		predicate.RPCommand(rpRepo, trigger.Prefixes),
+	)
+	if len(trigger.Rules) != 0 {
+		predicates = append(predicates,
+			rules.With(trigger.Rules...),
+		)
+	} else {
+		predicates = append(predicates,
+			predicate.NoArgs(),
+		)
+	}
+	if action.IgnorePermissionDenied {
+		predicates = append(predicates,
+			permissions.Pass(action.Key, action.Permission),
+		)
+	} else {
+		if action.AllowDev {
+			predicates = append(predicates,
+				permissions.PassDev(),
+			)
+		}
+
+		predicates = append(predicates,
+			permissions.Require(action.Key, action.Permission),
+		)
+	}
+
+	predicates = append(predicates, action.ExtraPredicates...)
+
+	return predicates
 }

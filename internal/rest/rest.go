@@ -83,10 +83,9 @@ func (h *Handler) SetRest(c *botapi.Context) error {
 		return nil
 	}
 
-	var reason string
-
-	if len(args.Texts) != 0 {
-		reason = args.Texts[0]
+	reason, ok := args.Text()
+	if ok {
+		reason = strings.TrimSpace(reason)
 	}
 
 	if !self.Permitted(p) {

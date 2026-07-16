@@ -13,7 +13,16 @@ type Option func(*command.Action)
 
 func WithRules(rules ...rule.Rule) Option {
 	return func(c *command.Action) {
-		c.Trigger.(*command.CommandTrigger).Rules = rules
+		switch t := c.Trigger.(type) {
+		case *command.CommandTrigger:
+			t.Rules = rules
+
+		case *command.RPTrigger:
+			t.Rules = rules
+
+		default:
+			panic("trigger does not support rules")
+		}
 	}
 }
 

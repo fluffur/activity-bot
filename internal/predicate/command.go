@@ -3,10 +3,6 @@ package predicate
 import (
 	"activity-bot/internal/cctx"
 	"strings"
-	"unicode"
-	"unicode/utf16"
-
-	"github.com/gotd/log"
 
 	"github.com/gotd/botapi"
 )
@@ -21,44 +17,8 @@ func Command(name string, prefixes []string, aliases []string) botapi.Predicate 
 	}
 
 	return func(c *botapi.Context) bool {
-		m := c.Message()
-		if m == nil {
-			return false
-		}
-
-		ch, err := cctx.Chat(c)
-		if err != nil {
-			log.For(c.Bot.Logger()).Error(c, "command ctx chat", log.Error(err))
-
-			return false
-		}
-
-		text, entities := m.TextAndEntities()
-
-		if ch.CommandPrefix != "" {
-			prefixes = append(prefixes, ch.CommandPrefix)
-		}
-
-		prefix := findPrefix(text, prefixes)
-		if !ch.AllowPrefixless && prefix == "" {
-			return false
-		}
-
-		c.Context = cctx.WithCommandPrefix(c.Context, prefix)
-
-		rawTextAfterPrefix := text[len(prefix):]
-		rawTextAfterPrefixRunes := []rune(rawTextAfterPrefix)
-
-		leadingSpacesRunes := 0
-		for leadingSpacesRunes < len(rawTextAfterPrefixRunes) && unicode.IsSpace(rawTextAfterPrefixRunes[leadingSpacesRunes]) {
-			leadingSpacesRunes++
-		}
-
-		trimmedText := string(rawTextAfterPrefixRunes[leadingSpacesRunes:])
-
-		trimmedText = strings.TrimRightFunc(trimmedText, unicode.IsSpace)
-
-		if trimmedText == "" {
+		parsed, ok := ParseMessage(c, prefixes)
+		if !ok {
 			return false
 		}
 
@@ -70,57 +30,22 @@ func Command(name string, prefixes []string, aliases []string) botapi.Predicate 
 		botUsername := strings.ToLower(self.Username)
 
 		for _, cmd := range commands {
-			cmdLenBytes, ok := matchCommandAndGetLen(trimmedText, cmd, botUsername)
+			cmdLenBytes, ok := matchCommandAndGetLen(parsed.TrimmedText, cmd, botUsername)
 			if !ok {
 				continue
 			}
 
-			cmdEndRuneIdxInTrimmed := len([]rune(trimmedText[:cmdLenBytes]))
+			args := BuildArgsMessage(
+				c.Message(),
+				parsed.Text,
+				parsed.Entities,
+				parsed.Prefix,
+				parsed.LeadingSpacesRunes,
+				cmdLenBytes,
+			)
 
-			prefixRunes := []rune(prefix)
-			absRuneIdx := len(prefixRunes) + leadingSpacesRunes + cmdEndRuneIdxInTrimmed
-
-			runes := []rune(text)
-			if absRuneIdx > len(runes) {
-				absRuneIdx = len(runes)
-			}
-
-			utf16Offset := len(utf16.Encode(runes[:absRuneIdx]))
-
-			var argsEntities []botapi.MessageEntity
-
-			for _, ent := range entities {
-				if ent.Offset >= utf16Offset {
-					shiftedEnt := ent
-
-					shiftedEnt.Offset = ent.Offset - utf16Offset
-					argsEntities = append(argsEntities, shiftedEnt)
-				}
-			}
-
-			argsMessage := botapi.Message{
-				MessageID:       m.MessageID,
-				MessageThreadID: m.MessageThreadID,
-				From:            m.From,
-				SenderChat:      m.SenderChat,
-				Date:            m.Date,
-				Chat:            m.Chat,
-				ForwardOrigin:   m.ForwardOrigin,
-				ReplyToMessage:  m.ReplyToMessage,
-				ViaBot:          m.ViaBot,
-				EditDate:        m.EditDate,
-			}
-
-			argsText := string(runes[absRuneIdx:])
-			if m.Text != "" {
-				argsMessage.Text = argsText
-				argsMessage.Entities = argsEntities
-			} else {
-				argsMessage.Caption = argsText
-				argsMessage.CaptionEntities = argsEntities
-			}
-
-			c.Context = cctx.WithArgsMessage(c.Context, argsMessage)
+			c.Context = cctx.WithCommandPrefix(c.Context, parsed.Prefix)
+			c.Context = cctx.WithArgsMessage(c.Context, args)
 
 			return true
 		}

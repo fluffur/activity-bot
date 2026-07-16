@@ -144,7 +144,7 @@ func (h *Handler) RequestMarriage(c *botapi.Context) error {
 			i18n.CmdMarrySelfData{
 				User: senderMention,
 			},
-			i18n.WithGender(sender.User.Gender),
+			i18n.WithGender(sender.Gender()),
 		)
 
 	case OutcomeDirect:
@@ -164,7 +164,7 @@ func (h *Handler) RequestMarriage(c *botapi.Context) error {
 					Sender: senderMention,
 					Target: targetMention,
 				},
-				i18n.WithGender(sender.User.Gender),
+				i18n.WithGender(sender.Gender()),
 			)
 
 		default:
@@ -174,7 +174,7 @@ func (h *Handler) RequestMarriage(c *botapi.Context) error {
 					Sender: senderMention,
 					Target: targetMention,
 				},
-				i18n.WithGender(sender.User.Gender),
+				i18n.WithGender(sender.Gender()),
 			)
 		}
 
@@ -194,7 +194,7 @@ func (h *Handler) RequestMarriage(c *botapi.Context) error {
 				Sender: senderMention,
 				Target: targetMention,
 			},
-			i18n.WithGender(sender.User.Gender),
+			i18n.WithGender(sender.Gender()),
 		)
 
 		keyboard = botapi.InlineKeyboard(
@@ -253,7 +253,7 @@ func (h *Handler) ShowMarriage(c *botapi.Context) error {
 				i18n.CmdMarriageSelfData{
 					User: userMention,
 				},
-				i18n.WithGender(cm.User.Gender),
+				i18n.WithGender(cm.Gender()),
 			),
 			botapi.WithParseMode(botapi.ParseModeHTML),
 		)

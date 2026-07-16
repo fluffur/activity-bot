@@ -88,3 +88,28 @@ func NewCallbackPrefix(
 
 	return cmd
 }
+
+func NewRPCommand(
+	key string,
+	handler botapi.Handler,
+	category command.Category,
+	opts ...option.Option,
+) *command.Action {
+	cmd := &command.Action{
+		Key:     key,
+		Handler: handler,
+		Trigger: &command.RPTrigger{
+			Scope:    command.ScopeGroup,
+			Prefixes: defaultPrefixes,
+		},
+		Permission: permission.StatusMember,
+		Category:   category,
+		ShowInHelp: false,
+	}
+
+	for _, opt := range opts {
+		opt(cmd)
+	}
+
+	return cmd
+}

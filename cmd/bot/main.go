@@ -25,6 +25,7 @@ import (
 	"activity-bot/internal/predicate"
 	"activity-bot/internal/register"
 	"activity-bot/internal/rest"
+	rpHandler "activity-bot/internal/rp/handler"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/summon"
 	"activity-bot/internal/user"
@@ -92,6 +93,8 @@ func main() {
 	restRepository := postgres.NewRestRepository(queries, pool)
 	moderationRepository := postgres.NewModerationRepository(queries)
 	marriageRepository := postgres.NewMarriageRepository(queries)
+	rpRepository := postgres.NewRPRepository(queries)
+
 	chatService := chat.NewService(chatRepository, cfg.DeveloperID)
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
 	statsService := stats.NewService(chatMemberRepository, normRepository, statsRepository)
@@ -131,6 +134,7 @@ func main() {
 		marriage.NewHandler(marriageService, chatMemberService),
 		chatHandler.NewHandler(chatService),
 		ai.NewHandler(deepseekClient),
+		rpHandler.NewHandler(rpRepository),
 	}
 
 	for _, h := range handlers {
@@ -163,7 +167,7 @@ func main() {
 		messageRepository,
 	)
 
-	register.Attach(bot, registry, permissions, rules)
+	register.Attach(bot, registry, permissions, rules, rpRepository)
 	events.NewHandler(bot, translator, chatMemberService).Attach()
 
 	log.Info("Starting bot")

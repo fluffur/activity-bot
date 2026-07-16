@@ -40,6 +40,18 @@ func (c *CommandTrigger) IndexKeys() []string {
 	return c.Aliases
 }
 
+type RPTrigger struct {
+	Scope    Scope
+	Prefixes []string
+	Rules    []rule.Rule
+}
+
+func (*RPTrigger) isTrigger() {}
+
+func (*RPTrigger) IndexKeys() []string {
+	return nil
+}
+
 type CallbackTrigger struct {
 	Data   string
 	Prefix bool

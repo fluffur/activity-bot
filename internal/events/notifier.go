@@ -36,7 +36,7 @@ func (n *UsernameChangedNotifier) NotifyUsernameChanged(c *botapi.Context, oldUs
 	text := loc.T(
 		i18n.System.UsernameChanged,
 		args,
-		i18n.WithGender(cm.User.Gender),
+		i18n.WithGender(cm.Gender()),
 	)
 
 	admins, err := n.chatMemberRepository.ListAdmins(c, ch.ID, permission.StatusModerator)
