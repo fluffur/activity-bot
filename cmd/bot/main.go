@@ -111,12 +111,7 @@ func main() {
 	permissions := predicate.NewPermissionsChecker(permissionRepository, cfg.DeveloperID)
 	rules := predicate.NewRuleChecker(chatMemberRepository, messageRepository)
 
-	summonFSM := fsm.New(
-		fsm.NewRedisJSONStore[summon.State, summon.StateData](client, "fsm:summon:", 5*time.Hour),
-		summon.StateIdle,
-		fsm.WithKeyFunc[summon.State, summon.StateData](fsm.ChatSenderKey),
-		fsm.WithUpdateKeyFunc[summon.State, summon.StateData](fsm.ChatSenderUpdateKey),
-	)
+	summonFSM := fsm.NewRedisFSM[summon.State, summon.StateData](client, "fsm:summon:", 5*time.Hour, summon.StateIdle)
 
 	registry := command.NewRegistry()
 

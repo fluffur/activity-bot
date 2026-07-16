@@ -340,7 +340,7 @@ func (h *Handler) summonSession(
 		return nil, chat.Chat{}, err
 	}
 
-	if !ok || session.State != StateAwaitConfirmation {
+	if !ok {
 		return nil, chat.Chat{}, nil
 	}
 

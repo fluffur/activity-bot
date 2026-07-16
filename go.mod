@@ -10,7 +10,7 @@ require (
 	github.com/cohesion-org/deepseek-go v1.4.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/dustin/go-humanize v1.0.1
-	github.com/fluffur/botapi-fsm v0.0.0-20260629064858-4285051a22d8
+	github.com/fluffur/botapi-fsm v0.0.0-20260716103401-0dda90c058b1
 	github.com/gotd/botapi v0.2.1-0.20260622211259-fbef619ad792
 	github.com/gotd/log v0.1.0
 	github.com/gotd/log/logzap v0.1.1

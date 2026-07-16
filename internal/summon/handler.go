@@ -96,6 +96,7 @@ func (h *Handler) Actions() []*command.Action {
 			callbackSummonConfirm,
 			h.ConfirmSummon,
 			CategorySummon,
+			option.WithPredicates(h.summonFSM.State(StateAwaitConfirmation)),
 			option.WithPermission(permission.StatusAdmin),
 		),
 
@@ -104,6 +105,7 @@ func (h *Handler) Actions() []*command.Action {
 			callbackSummonCancel,
 			h.CancelSummon,
 			CategorySummon,
+			option.WithPredicates(h.summonFSM.State(StateAwaitConfirmation)),
 			option.WithPermission(permission.StatusAdmin),
 		),
 
@@ -112,6 +114,7 @@ func (h *Handler) Actions() []*command.Action {
 			callbackSummonConfirmDontAsk,
 			h.ConfirmSummonDontAsk,
 			CategorySummon,
+			option.WithPredicates(h.summonFSM.State(StateAwaitConfirmation)),
 			option.WithPermission(permission.StatusAdmin),
 		),
 	}
