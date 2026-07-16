@@ -343,7 +343,9 @@ func (h *Handler) ListInactive(c *botapi.Context) error {
 				User:         tghtml.MemberLink(loc, ch, member.ChatMember),
 				LastActivity: lastActivity,
 			}))
-			b.WriteByte('\n')
+			if i != len(members)-1 {
+				b.WriteByte('\n')
+			}
 		}
 	}
 	b.WriteString("</blockquote>")
