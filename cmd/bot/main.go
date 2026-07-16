@@ -112,14 +112,15 @@ func main() {
 	rules := predicate.NewRuleChecker(chatMemberRepository, messageRepository)
 
 	summonFSM := fsm.NewRedisFSM[summon.State, summon.StateData](client, "fsm:summon:", 5*time.Hour, summon.StateIdle)
+	statsFSM := fsm.NewRedisFSM[stats.State, stats.StateData](client, "fsm:stats:", 10*time.Hour, stats.StateIdle)
 
 	registry := command.NewRegistry()
-
+	summonH := summon.NewHandler(chatService, chatMemberService, summonFSM)
 	handlers := []handler.Handler{
 		help.NewHandler(registry, permissionRepository),
-		summon.NewHandler(chatService, chatMemberService, summonFSM),
+		summonH,
 		norm.NewHandler(normRepository),
-		stats.NewHandler(statsService),
+		stats.NewHandler(statsService, normRepository, summonH, statsFSM),
 		rest.NewHandler(restService, chatMemberService),
 		moderation.NewHandler(moderationService, chatMemberService),
 		permissionHandler.NewHandler(registry, permissionRepository),

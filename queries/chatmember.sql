@@ -34,25 +34,32 @@ WITH upserted_users AS (
                        username,
                        first_name,
                        last_name,
-                       is_bot
+                       is_bot,
+                       emoji
         )
         SELECT u.id,
                u.username,
                u.first_name,
                u.last_name,
-               COALESCE(u.is_bot, false)
+               COALESCE(u.is_bot, false),
+               emoji
         FROM ROWS FROM (
                  UNNEST(@user_ids::BIGINT[]),
                  UNNEST(@usernames::TEXT[]),
                  UNNEST(@first_names::TEXT[]),
                  UNNEST(@last_names::TEXT[]),
-                 UNNEST(@is_bots::BOOLEAN[])
-                 ) AS u(id, username, first_name, last_name, is_bot)
+                 UNNEST(@is_bots::BOOLEAN[]),
+                 UNNEST(@emojis::TEXT[])
+                 ) AS u(id, username, first_name, last_name, is_bot, emoji)
         ON CONFLICT (id) DO UPDATE SET
             username = EXCLUDED.username,
             first_name = EXCLUDED.first_name,
             last_name = EXCLUDED.last_name,
-            is_bot = EXCLUDED.is_bot
+            is_bot = EXCLUDED.is_bot,
+            emoji = CASE
+                         WHEN EXCLUDED.emoji <> '' THEN EXCLUDED.emoji
+                         ELSE users.emoji
+                END
         RETURNING id)
 INSERT
 INTO chat_members (chat_id, user_id, tag, status)

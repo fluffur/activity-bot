@@ -4,21 +4,35 @@ import (
 	"activity-bot/internal/action"
 	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/norm"
 	"activity-bot/internal/option"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/rule"
+	"activity-bot/internal/summon"
+
+	fsm "github.com/fluffur/botapi-fsm"
 )
 
 const CategoryStats command.Category = "stats"
 
 type Handler struct {
-	service *Service
+	service  *Service
+	normRepo norm.Repository
+	summonH  *summon.Handler
+	statsFSM *fsm.Machine[State, StateData]
 }
 
 func NewHandler(
 	s *Service,
+	normRepo norm.Repository,
+	summonH *summon.Handler,
+	statsFSM *fsm.Machine[State, StateData],
 ) *Handler {
 	return &Handler{
-		service: s,
+		service:  s,
+		normRepo: normRepo,
+		summonH:  summonH,
+		statsFSM: statsFSM,
 	}
 }
 
@@ -78,6 +92,32 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithRules(
 				rule.DateTimeOrDuration().Optional(),
 			),
+		),
+		action.NewCallbackPrefix(
+			"summon_no_norm",
+			"summon_no_norm",
+			h.AskForNormName,
+			CategoryStats,
+			option.WithPermission(permission.StatusAdmin),
+		),
+		action.NewCommand(
+			"cancel",
+			h.Cancel,
+			"",
+			CategoryStats,
+			option.WithAliases("отмена", "отменить"),
+			option.WithPredicates(h.statsFSM.InState(StateAwaitNorm, StateAwaitSummonText)),
+			option.Hidden(),
+		),
+		action.NewMessage(
+			h.ProcessNormName,
+			CategoryStats,
+			option.WithPredicates(h.statsFSM.State(StateAwaitNorm)),
+		),
+		action.NewMessage(
+			h.ProcessSummonText,
+			CategoryStats,
+			option.WithPredicates(h.statsFSM.State(StateAwaitSummonText)),
 		),
 	}
 }

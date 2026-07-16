@@ -63,6 +63,15 @@ func (*CallbackTrigger) IndexKeys() []string {
 	return nil
 }
 
+type MessageTrigger struct {
+}
+
+func (*MessageTrigger) isTrigger() {}
+
+func (*MessageTrigger) IndexKeys() []string {
+	return nil
+}
+
 type Action struct {
 	Key     string
 	Handler botapi.Handler

@@ -2,6 +2,7 @@ package chatmembers
 
 import (
 	"activity-bot/internal/chatmember"
+	"activity-bot/internal/emoji"
 	"activity-bot/internal/permission"
 	"activity-bot/internal/user"
 
@@ -39,6 +40,7 @@ func ExtractMembers(members []botapi.ChatMember) []chatmember.ChatMember {
 			cm.User = fillUser(m.User)
 		}
 
+		cm.User.Emojis = emoji.Random()
 		result = append(result, cm)
 	}
 

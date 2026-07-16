@@ -7,7 +7,7 @@ import (
 	"unicode/utf8"
 )
 
-func isValidNormName(name string) bool {
+func IsValidNormName(name string) bool {
 	name = strings.TrimSpace(name)
 
 	if name == "" {

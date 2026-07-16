@@ -41,13 +41,38 @@ func registerAction(
 			action.Handler,
 			buildRPPredicates(action, t, permissions, rules, rpRepo)...,
 		)
-
+	case *command.MessageTrigger:
+		bot.OnMessage(
+			action.Handler,
+			buildMessagePredicates(action, permissions)...,
+		)
 	case *command.CallbackTrigger:
 		bot.OnCallbackQuery(
 			action.Handler,
 			buildCallbackPredicates(action, t, permissions)...,
 		)
 	}
+}
+
+func buildMessagePredicates(action *command.Action, permissions *predicate.PermissionChecker) []botapi.Predicate {
+	var predicates []botapi.Predicate
+
+	if action.IgnorePermissionDenied {
+		predicates = append(predicates,
+			permissions.Pass(action.Key, action.Permission),
+		)
+	} else {
+		if action.AllowDev {
+			predicates = append(predicates, permissions.PassDev())
+		}
+		predicates = append(predicates,
+			permissions.Require(action.Key, action.Permission),
+		)
+	}
+
+	predicates = append(predicates, action.ExtraPredicates...)
+
+	return predicates
 }
 
 func buildCommandPredicates(
@@ -132,6 +157,7 @@ func buildCallbackPredicates(
 
 	return predicates
 }
+
 func allRulesAreOptional(rules []rule.Rule) bool {
 	for _, r := range rules {
 		if !r.IsOptional {
@@ -148,7 +174,7 @@ func BotCommands(registry *command.Registry, loc *i18n.Localizer, scope command.
 			continue
 		}
 
-		if !forAdmins && action.Permission != permission.StatusMember {
+		if !forAdmins && action.Permission != permission.StatusMember || !action.ShowInHelp {
 			continue
 		}
 

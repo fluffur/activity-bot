@@ -22,12 +22,13 @@ WHERE LOWER(username) = LOWER($1);
 
 
 -- name: UpsertUsers :exec
-INSERT INTO users(id, username, first_name, last_name, is_bot)
+INSERT INTO users(id, username, first_name, last_name, is_bot, emoji)
 SELECT unnest(@ids::bigint[]),
        unnest(@usernames::text[]),
        unnest(@first_names::text[]),
        unnest(@last_names::text[]),
-       unnest(@is_bots::boolean[])
+       unnest(@is_bots::boolean[]),
+       unnest(@emojis::text[])
 ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
                                first_name = EXCLUDED.first_name,
                                last_name  = EXCLUDED.last_name,

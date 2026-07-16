@@ -1,12 +1,12 @@
 [cmd.user.set_emoji]
 desc = "Установить себе эмодзи (на все чаты)"
 
-success = "Эмодзи {{.Emoji}} для {{.User}} установлено"
+success = "Эмодзи {{.Emoji}} для {{.User}} установлен"
 
 [cmd.user.show_emoji]
 desc = "Посмотреть эмодзи пользователя"
 
-no_emoji = "Эмодзи у {{.User}} еще не установлено"
+no_emoji = "Эмодзи у {{.User}} еще не установлен"
 success = "Эмодзи {{.User}}: {{.Emoji}}"
 
 [cmd.user.remove_emoji]

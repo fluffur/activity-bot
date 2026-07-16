@@ -181,12 +181,13 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
 }
 
 const upsertUsers = `-- name: UpsertUsers :exec
-INSERT INTO users(id, username, first_name, last_name, is_bot)
+INSERT INTO users(id, username, first_name, last_name, is_bot, emoji)
 SELECT unnest($1::bigint[]),
        unnest($2::text[]),
        unnest($3::text[]),
        unnest($4::text[]),
-       unnest($5::boolean[])
+       unnest($5::boolean[]),
+       unnest($6::text[])
 ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
                                first_name = EXCLUDED.first_name,
                                last_name  = EXCLUDED.last_name,
@@ -199,6 +200,7 @@ type UpsertUsersParams struct {
 	FirstNames []string `db:"first_names" json:"firstNames"`
 	LastNames  []string `db:"last_names" json:"lastNames"`
 	IsBots     []bool   `db:"is_bots" json:"isBots"`
+	Emojis     []string `db:"emojis" json:"emojis"`
 }
 
 func (q *Queries) UpsertUsers(ctx context.Context, arg UpsertUsersParams) error {
@@ -208,6 +210,7 @@ func (q *Queries) UpsertUsers(ctx context.Context, arg UpsertUsersParams) error 
 		arg.FirstNames,
 		arg.LastNames,
 		arg.IsBots,
+		arg.Emojis,
 	)
 	return err
 }

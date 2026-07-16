@@ -40,7 +40,7 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithRules(
 				rule.User().Optional().Variadic(),
 				rule.Number(),
-				rule.Text().Optional().Validate(isValidNormName),
+				rule.Text().Optional().Validate(IsValidNormName),
 			),
 		),
 
@@ -64,7 +64,7 @@ func (h *Handler) Actions() []*command.Action {
 				"норма",
 			),
 			option.WithRules(
-				rule.Text().Optional().Validate(isValidNormName),
+				rule.Text().Optional().Validate(IsValidNormName),
 			),
 		),
 
@@ -76,7 +76,7 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithPermission(permission.StatusSeniorAdmin),
 			option.WithAliases("-норма", "удалить норму"),
 			option.WithRules(
-				rule.Text().Optional().Validate(isValidNormName),
+				rule.Text().Optional().Validate(IsValidNormName),
 			),
 		),
 
@@ -95,7 +95,7 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithExamples(i18n.Cmd.AssignNorm.Example),
 			option.WithRules(
 				rule.User().Variadic(),
-				rule.Text().Validate(isValidNormName),
+				rule.Text().Validate(IsValidNormName),
 			),
 		),
 
@@ -113,7 +113,7 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithExamples(i18n.Cmd.UnassignNorm.Example),
 			option.WithRules(
 				rule.User().Variadic(),
-				rule.Text().Validate(isValidNormName),
+				rule.Text().Validate(IsValidNormName),
 			),
 		),
 	}

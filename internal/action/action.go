@@ -113,3 +113,24 @@ func NewRPCommand(
 
 	return cmd
 }
+
+func NewMessage(
+	handler botapi.Handler,
+	category command.Category,
+	opts ...option.Option,
+) *command.Action {
+	cmd := &command.Action{
+		Key:        "message",
+		Handler:    handler,
+		Trigger:    &command.MessageTrigger{},
+		Category:   category,
+		Permission: permission.StatusMember,
+		ShowInHelp: false,
+	}
+
+	for _, opt := range opts {
+		opt(cmd)
+	}
+
+	return cmd
+}

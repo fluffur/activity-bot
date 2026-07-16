@@ -376,25 +376,32 @@ WITH upserted_users AS (
                        username,
                        first_name,
                        last_name,
-                       is_bot
+                       is_bot,
+                       emoji
         )
         SELECT u.id,
                u.username,
                u.first_name,
                u.last_name,
-               COALESCE(u.is_bot, false)
+               COALESCE(u.is_bot, false),
+               emoji
         FROM ROWS FROM (
                  UNNEST($2::BIGINT[]),
                  UNNEST($5::TEXT[]),
                  UNNEST($6::TEXT[]),
                  UNNEST($7::TEXT[]),
-                 UNNEST($8::BOOLEAN[])
-                 ) AS u(id, username, first_name, last_name, is_bot)
+                 UNNEST($8::BOOLEAN[]),
+                 UNNEST($9::TEXT[])
+                 ) AS u(id, username, first_name, last_name, is_bot, emoji)
         ON CONFLICT (id) DO UPDATE SET
             username = EXCLUDED.username,
             first_name = EXCLUDED.first_name,
             last_name = EXCLUDED.last_name,
-            is_bot = EXCLUDED.is_bot
+            is_bot = EXCLUDED.is_bot,
+            emoji = CASE
+                         WHEN EXCLUDED.emoji <> '' THEN EXCLUDED.emoji
+                         ELSE users.emoji
+                END
         RETURNING id)
 INSERT
 INTO chat_members (chat_id, user_id, tag, status)
@@ -430,6 +437,7 @@ type UpsertChatMembersAndUsersParams struct {
 	FirstNames []string `db:"first_names" json:"firstNames"`
 	LastNames  []string `db:"last_names" json:"lastNames"`
 	IsBots     []bool   `db:"is_bots" json:"isBots"`
+	Emojis     []string `db:"emojis" json:"emojis"`
 }
 
 func (q *Queries) UpsertChatMembersAndUsers(ctx context.Context, arg UpsertChatMembersAndUsersParams) error {
@@ -442,6 +450,7 @@ func (q *Queries) UpsertChatMembersAndUsers(ctx context.Context, arg UpsertChatM
 		arg.FirstNames,
 		arg.LastNames,
 		arg.IsBots,
+		arg.Emojis,
 	)
 	return err
 }

@@ -84,7 +84,7 @@ func (r *ChatMemberRepository) UpsertChatMembers(ctx context.Context, chatID int
 	firstNames := make([]string, n)
 	lastNames := make([]string, n)
 	isBots := make([]bool, n)
-
+	emojis := make([]string, n)
 	for i, member := range chatMembers {
 		userIds[i] = member.User.ID
 		tags[i] = member.Tag
@@ -93,6 +93,7 @@ func (r *ChatMemberRepository) UpsertChatMembers(ctx context.Context, chatID int
 		firstNames[i] = member.User.FirstName
 		lastNames[i] = member.User.LastName
 		isBots[i] = member.User.IsBot
+		emojis[i] = member.User.Emojis
 	}
 
 	return r.queries.UpsertChatMembersAndUsers(ctx, db.UpsertChatMembersAndUsersParams{
@@ -104,6 +105,7 @@ func (r *ChatMemberRepository) UpsertChatMembers(ctx context.Context, chatID int
 		FirstNames: firstNames,
 		LastNames:  lastNames,
 		IsBots:     isBots,
+		Emojis:     emojis,
 	})
 }
 
