@@ -20,7 +20,7 @@ func (h *Handler) Manage(c *botapi.Context) error {
 
 	loc := cctx.MustLocalizer(c)
 
-	senderID := msg.Chat.ID
+	senderID := msg.From.ID
 	search, _ := cctx.MustArgs(c).Text()
 
 	chats, err := h.chatService.GetUserManagedChats(c, senderID, search)

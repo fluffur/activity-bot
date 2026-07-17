@@ -2,9 +2,9 @@ package chatmembers
 
 import (
 	"activity-bot/internal/chatmember"
-	"activity-bot/internal/emoji"
 	"activity-bot/internal/permission"
 	"activity-bot/internal/user"
+	"time"
 
 	"github.com/gotd/botapi"
 )
@@ -40,7 +40,6 @@ func ExtractMembers(members []botapi.ChatMember) []chatmember.ChatMember {
 			cm.User = fillUser(m.User)
 		}
 
-		cm.User.Emojis = emoji.Random()
 		result = append(result, cm)
 	}
 
@@ -48,11 +47,13 @@ func ExtractMembers(members []botapi.ChatMember) []chatmember.ChatMember {
 }
 
 func fillUser(u botapi.User) user.User {
-	return user.User{
-		ID:        u.ID,
-		FirstName: u.FirstName,
-		LastName:  u.LastName,
-		Username:  u.Username,
-		IsBot:     u.IsBot,
-	}
+	return user.New(
+		u.ID,
+		u.FirstName,
+		u.LastName,
+		u.Username,
+		user.GenderUnknown,
+		u.IsBot,
+		time.Now(),
+	)
 }
