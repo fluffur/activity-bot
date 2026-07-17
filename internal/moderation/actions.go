@@ -275,7 +275,7 @@ func (h *Handler) ListAdmins(c *botapi.Context) error {
 
 		text.WriteString("\n\n")
 		text.WriteString(
-			status.Emoji() + " " + utils.UcFirst(loc.T(status.TranslationKey(), nil, i18n.WithPluralCount(len(members)))),
+			tghtml.StatusEmoji(status) + " " + utils.UcFirst(loc.T(status.TranslationKey(), nil, i18n.WithPluralCount(len(members)))),
 		)
 
 		for i, member := range members {

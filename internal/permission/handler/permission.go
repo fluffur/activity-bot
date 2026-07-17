@@ -40,7 +40,7 @@ func (h *Handler) ShowPermission(c *botapi.Context) error {
 
 	_, err = c.Reply(loc.T(i18n.Cmd.Permission.Show.Success, i18n.CmdPermissionShowSuccessData{
 		Cmd:    tghtml.Bold(text + " " + "(" + cmd.Key + ")"),
-		Status: status.Emoji() + " " + tghtml.Bold(statusStr),
+		Status: tghtml.StatusEmoji(status) + " " + tghtml.Bold(statusStr),
 	}),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
@@ -95,7 +95,7 @@ func (h *Handler) SetPermission(c *botapi.Context) error {
 
 	_, err := c.Reply(loc.T(i18n.Cmd.Permission.Set.Success, i18n.CmdPermissionShowSuccessData{
 		Cmd:    tghtml.Bold(text + " " + "(" + cmd.Key + ")"),
-		Status: status.Emoji() + " " + tghtml.Bold(statusStr),
+		Status: tghtml.StatusEmoji(status) + " " + tghtml.Bold(statusStr),
 	}),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),

@@ -1,10 +1,6 @@
 package permission
 
-import (
-	"activity-bot/internal/emoji"
-	"activity-bot/internal/i18n"
-	"activity-bot/internal/utils/tghtml"
-)
+import "activity-bot/internal/i18n"
 
 type Status int16
 
@@ -45,25 +41,6 @@ func (s Status) TranslationKey() i18n.MessageID {
 		return i18n.Status.Disabled
 	default:
 		return i18n.Status.Member
-	}
-}
-
-func (s Status) Emoji() string {
-	switch s {
-	case StatusMember:
-		return tghtml.Emoji(emoji.StatusMemberID, emoji.StatusMemberFallback)
-	case StatusModerator:
-		return tghtml.Emoji(emoji.StatusModeratorID, emoji.StatusModeratorFallback)
-	case StatusAdmin:
-		return tghtml.Emoji(emoji.StatusAdminID, emoji.StatusAdminFallback)
-	case StatusSeniorAdmin:
-		return tghtml.Emoji(emoji.StatusSeniorAdminID, emoji.StatusSeniorAdminFallback)
-	case StatusCoOwner:
-		return tghtml.Emoji(emoji.StatusCoOwnerID, emoji.StatusCoOwnerFallback)
-	case StatusOwner:
-		return tghtml.Emoji(emoji.StatusOwnerID, emoji.StatusOwnerFallback)
-	default:
-		return ""
 	}
 }
 

@@ -89,7 +89,7 @@ func (h *Handler) renderCategory(
 		sb.WriteString(tghtml.Code("/" + cmd.Key))
 		if status > permission.StatusMember {
 			sb.WriteString(" ")
-			sb.WriteString(status.Emoji())
+			sb.WriteString(tghtml.StatusEmoji(status))
 		}
 		sb.WriteString(" — ")
 		sb.WriteString(
@@ -131,7 +131,7 @@ func (h *Handler) renderCommand(
 		)
 		sb.WriteString("\n")
 
-		sb.WriteString(status.Emoji())
+		sb.WriteString(tghtml.StatusEmoji(status))
 		sb.WriteString(" ")
 		sb.WriteString(
 			tghtml.Escape(
