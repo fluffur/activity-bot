@@ -197,7 +197,7 @@ func RenderProfile(
 	))
 
 	b.WriteString(" · ")
-	b.WriteString(tghtml.StatusEmoji(status))
+	b.WriteString(status.Emoji())
 	b.WriteByte(' ')
 	b.WriteString(loc.T(status.TranslationKey(), nil))
 	b.WriteString("\n\n")
