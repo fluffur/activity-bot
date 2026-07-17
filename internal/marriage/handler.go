@@ -16,8 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dustin/go-humanize"
-
 	"github.com/gotd/botapi"
 )
 
@@ -523,13 +521,14 @@ func (h *Handler) ListMarriages(c *botapi.Context) error {
 			}
 
 			if !m.MarriedAt.IsZero() {
-				b.WriteString(" — ")
+				b.WriteString(" (")
 				b.WriteString(loc.T(
 					i18n.Cmd.Marriages.Together,
 					i18n.CmdMarriagesTogetherData{
-						Duration: humanize.Time(m.MarriedAt),
+						Duration: tghtml.RelativeDateTime(m.MarriedAt, time.Now()),
 					},
 				))
+				b.WriteString(")")
 			}
 
 			b.WriteByte('\n')
