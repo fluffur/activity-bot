@@ -7,3 +7,4 @@ backups/
 data/
 flood_cm
 session.bbolt
+./sessions/
