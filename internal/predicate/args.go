@@ -13,6 +13,8 @@ import (
 	"unicode"
 
 	"github.com/gotd/log"
+	"github.com/gotd/td/constant"
+	"github.com/gotd/td/tg"
 
 	"github.com/gotd/botapi"
 )
@@ -286,25 +288,81 @@ func (r *RuleChecker) resolveReplyUser(
 	if err == nil {
 		return cm, true
 	}
-
 	if !errors.Is(err, sql.ErrNoRows) {
 		return chatmember.ChatMember{}, false
 	}
 
-	reply, err := c.Bot.GetMessage(
+	peer, err := c.Bot.Peers().ResolveTDLibID(
 		c,
-		botapi.ID(chatID),
-		m.ReplyToMessage.MessageID,
+		constant.TDLibPeerID(chatID),
 	)
-	if err != nil || reply == nil || reply.From == nil {
+	if err != nil {
 		return chatmember.ChatMember{}, false
 	}
 
-	cm, err = r.chatMemberRepository.Get(
+	channel, ok := peer.InputPeer().(*tg.InputPeerChannel)
+	if !ok {
+		return chatmember.ChatMember{}, false
+	}
+
+	msgs, err := c.Bot.Raw().ChannelsGetMessages(
 		c,
-		chatID,
-		reply.From.ID,
+		&tg.ChannelsGetMessagesRequest{
+			Channel: &tg.InputChannel{
+				ChannelID:  channel.ChannelID,
+				AccessHash: channel.AccessHash,
+			},
+			ID: []tg.InputMessageClass{
+				&tg.InputMessageID{
+					ID: m.ReplyToMessage.MessageID,
+				},
+			},
+		},
 	)
+	if err != nil {
+		return chatmember.ChatMember{}, false
+	}
+
+	messages, ok := msgs.(*tg.MessagesChannelMessages)
+	if !ok || len(messages.Messages) == 0 {
+		return chatmember.ChatMember{}, false
+	}
+
+	var userID int64
+
+	switch msg := messages.Messages[0].(type) {
+	case *tg.Message:
+		if from, ok := msg.FromID.(*tg.PeerUser); ok {
+			userID = from.UserID
+		}
+
+	case *tg.MessageService:
+		switch action := msg.Action.(type) {
+		case *tg.MessageActionChatAddUser:
+			if len(action.Users) > 0 {
+				userID = action.Users[0]
+			}
+
+		case *tg.MessageActionChatJoinedByLink:
+			if from, ok := msg.FromID.(*tg.PeerUser); ok {
+				userID = from.UserID
+			}
+
+		case *tg.MessageActionChatJoinedByRequest:
+			if from, ok := msg.FromID.(*tg.PeerUser); ok {
+				userID = from.UserID
+			}
+
+		case *tg.MessageActionChatDeleteUser:
+			userID = action.UserID
+		}
+	}
+
+	if userID == 0 {
+		return chatmember.ChatMember{}, false
+	}
+
+	cm, err = r.chatMemberRepository.Get(c, chatID, userID)
 	if err != nil {
 		return chatmember.ChatMember{}, false
 	}
