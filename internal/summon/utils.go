@@ -6,6 +6,9 @@ import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/utils/tghtml"
+
+	tdhtml "github.com/gotd/td/telegram/message/html"
+
 	"fmt"
 	"math/rand"
 	"regexp"
@@ -22,12 +25,16 @@ import (
 	"github.com/gotd/botapi"
 )
 
-func TextFromArgs(ch chat.Chat, args botapi.Message) string {
-	var text string
+func AppendHTML(eb *entity.Builder, html string) error {
+	return tdhtml.HTML(
+		strings.NewReader(html),
+		eb,
+		tdhtml.Options{},
+	)
+}
 
-	if args.OriginalTextHTML() != "" {
-		text = ReplaceMentions(args.OriginalTextHTML(), args.Entities)
-	}
+func TextFromArgs(ch chat.Chat, args botapi.Message) string {
+	text := args.OriginalTextHTML()
 
 	if strings.TrimSpace(text) == "" {
 		text = ch.WelcomeCallMessage
@@ -72,7 +79,7 @@ func (h *Handler) Summon(
 	go func() {
 		defer h.activeSummons.Delete(ch.ID)
 
-		if err := SendMessagesNew(
+		if err := SendMessages(
 			c,
 			cctx.MustLocalizer(c),
 			chatID,
@@ -110,7 +117,9 @@ func BuildMentionMessage(
 	mentionTypes chat.MentionTypes,
 ) {
 	if strings.TrimSpace(text) != "" && text != "ㅤ" {
-		eb.Plain(text)
+		if err := AppendHTML(eb, text); err != nil {
+			eb.Plain(text)
+		}
 
 		if mentionTypes != 0 {
 			eb.Plain("\n\n")
@@ -133,100 +142,7 @@ func BuildMentionMessage(
 	eb.Plain("ㅤ")
 }
 
-func BuildMentionMessages(
-	text string,
-	mentions []string,
-	perMsg int,
-	sep string,
-) []string {
-	if perMsg <= 0 {
-		perMsg = len(mentions)
-	}
-
-	groups := chunk(mentions, perMsg)
-
-	result := make([]string, 0, len(groups))
-
-	for _, g := range groups {
-		msg := text
-
-		if strings.TrimSpace(msg) != "" && msg != "ㅤ" {
-			msg += "\n\n"
-		}
-
-		msg += strings.Join(g, sep)
-		result = append(result, msg)
-	}
-
-	return result
-}
-
 func SendMessages(
-	c *botapi.Context,
-	loc *i18n.Localizer,
-	chatID botapi.ChatID,
-	msgID int,
-	messages []string,
-) error {
-	msg, err := c.Bot.GetMessage(c.Background(), chatID, msgID)
-	if err != nil {
-		return err
-	}
-
-	var photoID string
-
-	if msg.Photo != nil && len(msg.Photo) > 0 {
-		photoID = msg.Photo[len(msg.Photo)-1].FileID
-	}
-
-	chatLimiter := rate.NewLimiter(rate.Every(1500*time.Microsecond), 1)
-
-	for _, text := range messages {
-		if err := chatLimiter.Wait(c.Background()); err != nil {
-			return fmt.Errorf("send summon messages: %w", err)
-		}
-
-		if photoID != "" {
-			_, err = c.Bot.SendPhoto(
-				c.Background(),
-				chatID,
-				botapi.FileID(photoID),
-				text,
-				botapi.WithParseMode(botapi.ParseModeHTML),
-				botapi.ReplyTo(msgID),
-			)
-		} else {
-			_, err = c.Bot.SendMessage(
-				c.Background(),
-				chatID,
-				text,
-				botapi.WithParseMode(botapi.ParseModeHTML),
-				botapi.DisableWebPagePreview(),
-				botapi.ReplyTo(msgID),
-			)
-		}
-
-		if err != nil {
-			return err
-		}
-	}
-
-	if err := chatLimiter.Wait(c.Background()); err != nil {
-		return fmt.Errorf("send summon last msg: %w", err)
-	}
-
-	_, err = c.Bot.SendMessage(
-		c.Background(),
-		chatID,
-		loc.T(i18n.Cmd.Summon.Completed, nil),
-		botapi.WithParseMode(botapi.ParseModeHTML),
-		botapi.DisableWebPagePreview(),
-	)
-
-	return err
-}
-
-func SendMessagesNew(
 	c *botapi.Context,
 	loc *i18n.Localizer,
 	chatID botapi.ChatID,
@@ -235,17 +151,6 @@ func SendMessagesNew(
 	mentionTypes chat.MentionTypes,
 	groups [][]chatmember.ChatMember,
 ) error {
-	_, err := c.Bot.GetMessage(c.Background(), chatID, msgID)
-	if err != nil {
-		return err
-	}
-
-	//var photoID string
-	//
-	//if msg.Photo != nil && len(msg.Photo) > 0 {
-	//	photoID = msg.Photo[len(msg.Photo)-1].FileID
-	//}
-
 	limiter := rate.NewLimiter(rate.Every(1500*time.Microsecond), 1)
 	peer, err := c.Bot.Peers().ResolveTDLibID(
 		c.Background(),
@@ -255,10 +160,6 @@ func SendMessagesNew(
 		return err
 	}
 	inputPeer := peer.InputPeer()
-
-	if err != nil {
-		return err
-	}
 	for _, group := range groups {
 		if err := limiter.Wait(c.Background()); err != nil {
 			return err
@@ -433,47 +334,6 @@ func writeMention(eb *entity.Builder, id int64, text string) {
 		UserID: id,
 	})
 }
-
-func ReplaceMentions(text string, entities []botapi.MessageEntity) string {
-	result := text
-
-	for i := len(entities) - 1; i >= 0; i-- {
-		e := entities[i]
-
-		start := utf16ToRuneIndex(text, e.Offset)
-		end := utf16ToRuneIndex(text, e.Offset+e.Length)
-
-		switch e.Type {
-		case "mention":
-			username := text[start:end]
-			replacement := fmt.Sprintf(
-				`<a href="https://t.me/%s">%s</a>`,
-				username[1:],
-				username,
-			)
-
-			result = result[:start] + replacement + result[end:]
-
-		case "text_mention":
-			if e.User == nil {
-				continue
-			}
-
-			name := text[start:end]
-			replacement := fmt.Sprintf(
-				`<a href="tg://user?id=%d">%s</a>`,
-				e.User.ID,
-				name,
-			)
-
-			result = result[:start] + replacement + result[end:]
-		default:
-		}
-	}
-
-	return result
-}
-
 func BuildMentions(
 	cms []chatmember.ChatMember,
 	mentionTypes chat.MentionTypes,
@@ -501,24 +361,6 @@ func MentionSeparator(mt chat.MentionTypes) string {
 	}
 
 	return ", "
-}
-
-func utf16ToRuneIndex(s string, utf16Pos int) int {
-	count := 0
-
-	for i, r := range s {
-		if count >= utf16Pos {
-			return i
-		}
-
-		if r > 0xFFFF {
-			count += 2
-		} else {
-			count++
-		}
-	}
-
-	return len(s)
 }
 
 func chunk[T any](items []T, size int) [][]T {
