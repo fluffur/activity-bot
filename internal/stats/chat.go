@@ -354,6 +354,10 @@ func (h *Handler) ListInactive(c *botapi.Context) error {
 		b.String(),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
+		botapi.WithReplyMarkup(
+			botapi.InlineKeyboard(
+				botapi.InlineRow(botapi.InlineButtonData("", "summon_inactive"))),
+		),
 	)
 
 	return err

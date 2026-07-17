@@ -139,12 +139,12 @@ func (h *Handler) processLeft(ctx context.Context, u *tg.UpdateChannelParticipan
 
 	loc := h.translator.Localizer(cm.Chat.Lang)
 
-	mention := tghtml.MemberMention(loc, cm.Chat, cm)
+	memberLink := tghtml.MemberLink(loc, cm.Chat, cm)
 
 	text := loc.T(
 		i18n.User.Left,
 		i18n.UserLeftData{
-			User: mention,
+			User: memberLink,
 		},
 		i18n.WithGender(cm.Gender()),
 	)
@@ -154,6 +154,7 @@ func (h *Handler) processLeft(ctx context.Context, u *tg.UpdateChannelParticipan
 		botapi.ID(chatID),
 		text,
 		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview(),
 	)
 
 	return err
