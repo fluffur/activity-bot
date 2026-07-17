@@ -160,7 +160,7 @@ func (h *Handler) ListRoles(c *botapi.Context) error {
 
 	text.WriteString(loc.T(i18n.Cmd.Moderation.ListRoles.Header, nil))
 	text.WriteString("\n\n")
-	text.WriteString("<blockquote>")
+	text.WriteString("<blockquote expandable>")
 
 	for i, member := range withRoles {
 		if i > 0 {
