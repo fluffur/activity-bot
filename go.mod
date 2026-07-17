@@ -9,7 +9,6 @@ require (
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/cohesion-org/deepseek-go v1.4.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/dustin/go-humanize v1.0.1
 	github.com/fluffur/botapi-fsm v0.0.0-20260716103401-0dda90c058b1
 	github.com/gotd/botapi v0.2.1-0.20260622211259-fbef619ad792
 	github.com/gotd/log v0.1.0
@@ -56,6 +55,7 @@ require (
 	github.com/ogen-go/ogen v1.22.0 // indirect
 	github.com/ollama/ollama v0.24.0 // indirect
 	github.com/refraction-networking/utls v1.8.2 // indirect
+	github.com/samber/lo v1.53.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect

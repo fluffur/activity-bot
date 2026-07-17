@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/gotd/botapi"
 )
 
@@ -354,11 +356,105 @@ func (h *Handler) ListInactive(c *botapi.Context) error {
 		b.String(),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
-		//botapi.WithReplyMarkup(
-		//	botapi.InlineKeyboard(
-		//		botapi.InlineRow(botapi.InlineButtonData("", "summon_inactive"))),
-		//),
+		botapi.WithReplyMarkup(
+			botapi.InlineKeyboard(
+				botapi.InlineRow(botapi.InlineButtonData(loc.T(i18n.Cmd.Inactive.SummonButton, nil), "summon_inactive"))),
+		),
 	)
 
 	return err
+}
+
+func (h *Handler) AskInactiveSummonText(c *botapi.Context) error {
+	_ = c.AnswerCallback()
+
+	sender := c.Sender()
+	if sender == nil {
+		return nil
+	}
+
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
+
+	if err := h.statsFSM.Enter(c, StateAwaitInactiveSummonText, StateData{
+		UserID: sender.ID,
+		ChatID: ch.ID,
+	}); err != nil {
+		return err
+	}
+
+	chatID, _ := c.Chat()
+
+	if cq := c.Update.CallbackQuery; cq != nil {
+		_, _ = c.Bot.EditMessageReplyMarkup(
+			c,
+			chatID,
+			cq.Message.MessageID,
+			botapi.InlineKeyboard(),
+		)
+	}
+
+	_, err := c.Bot.SendMessage(
+		c,
+		chatID,
+		loc.T(i18n.Cmd.Summon.EnterText, nil),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+	)
+
+	return err
+}
+
+func (h *Handler) ProcessInactiveSummonText(c *botapi.Context) error {
+	msg := c.Message()
+	if msg == nil {
+		return nil
+	}
+
+	session, ok, err := h.statsFSM.Get(c)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return nil
+	}
+
+	sender := msg.From
+	if sender == nil || sender.ID != session.Data.UserID {
+		return nil
+	}
+
+	summonText := msg.OriginalTextHTML()
+	if summonText == "" {
+		return nil
+	}
+
+	_ = h.statsFSM.Clear(c)
+
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
+
+	members, err := h.service.ListInactiveMembers(c, session.Data.ChatID)
+	if err != nil {
+		return fmt.Errorf("list inactive members: %w", err)
+	}
+
+	if len(members) == 0 {
+		_, err := c.Reply(
+			loc.T(i18n.Cmd.Inactive.EmptyList, nil),
+			botapi.WithParseMode(botapi.ParseModeHTML),
+		)
+		return err
+	}
+
+	targetMembers := lo.Map(members, func(m InactiveMember, _ int) chatmember.ChatMember {
+		return m.ChatMember
+	})
+
+	return h.summonH.Summon(
+		c,
+		summonText,
+		msg.MessageID,
+		ch,
+		targetMembers,
+	)
 }

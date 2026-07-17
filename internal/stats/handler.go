@@ -113,7 +113,7 @@ func (h *Handler) Actions() []*command.Action {
 			"",
 			CategoryStats,
 			option.WithAliases("отмена", "отменить"),
-			option.WithPredicates(h.statsFSM.InState(StateAwaitNorm, StateAwaitSummonText)),
+			option.WithPredicates(h.statsFSM.InState(StateAwaitNorm, StateAwaitSummonText, StateAwaitInactiveSummonText)),
 			option.Hidden(),
 		),
 		action.NewMessage(
@@ -125,6 +125,18 @@ func (h *Handler) Actions() []*command.Action {
 			h.ProcessSummonText,
 			CategoryStats,
 			option.WithPredicates(h.statsFSM.State(StateAwaitSummonText)),
+		),
+		action.NewCallback(
+			"summon_inactive",
+			"summon_inactive",
+			h.AskInactiveSummonText,
+			CategoryStats,
+			option.WithPermission(permission.StatusAdmin),
+		),
+		action.NewMessage(
+			h.ProcessInactiveSummonText,
+			CategoryStats,
+			option.WithPredicates(h.statsFSM.State(StateAwaitInactiveSummonText)),
 		),
 	}
 }

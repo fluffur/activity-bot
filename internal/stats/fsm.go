@@ -7,9 +7,10 @@ import (
 type State string
 
 const (
-	StateIdle            State = ""
-	StateAwaitNorm       State = "await_norm"
-	StateAwaitSummonText State = "await_summon_text"
+	StateIdle                    State = ""
+	StateAwaitNorm               State = "await_norm"
+	StateAwaitSummonText         State = "await_summon_text"
+	StateAwaitInactiveSummonText State = "await_summon_inactive_text"
 )
 
 type StateData struct {
