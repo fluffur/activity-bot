@@ -18,7 +18,7 @@ const (
 	callbackHelpCommand    = "help:command"
 )
 
-const commandsPerPage = 5
+const commandsPerPage = 8
 
 type Handler struct {
 	registry       *command.Registry
@@ -56,7 +56,7 @@ func (h *Handler) Actions() []*command.Action {
 			h.ShowCommandHelp,
 			i18n.Cmd.HelpCommand.Desc,
 			CategoryHelp,
-			option.WithAliases("помощь"),
+			option.WithAliases("помощь", "help"),
 			option.WithRules(rule.Text()),
 		),
 		action.NewCallback(
