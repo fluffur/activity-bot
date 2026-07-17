@@ -67,7 +67,8 @@ WHERE c.id < 0
   AND (@title::text IS NULL OR c.title ILIKE '%' || @title::text || '%')
 ORDER BY (SELECT COUNT(*)
           FROM messages m
-          WHERE m.chat_id = c.id) DESC;
+          WHERE m.chat_id = c.id) DESC
+LIMIT 10;
 
 -- name: UpdateChatTitle :exec
 UPDATE chats
