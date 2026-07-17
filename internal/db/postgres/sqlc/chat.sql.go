@@ -147,6 +147,7 @@ WHERE c.id < 0
 ORDER BY (SELECT COUNT(*)
           FROM messages m
           WHERE m.chat_id = c.id) DESC
+LIMIT 10
 `
 
 func (q *Queries) GetAllChats(ctx context.Context, title string) ([]Chat, error) {

@@ -23,6 +23,7 @@ func (r *UserRepository) Create(ctx context.Context, u user.User) error {
 		CreatedAt: timestamptz(u.CreatedAt),
 		Gender:    string(u.Gender),
 		IsBot:     u.IsBot,
+		Emoji:     text(u.Emojis),
 	})
 }
 

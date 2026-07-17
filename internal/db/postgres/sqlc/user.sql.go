@@ -13,7 +13,7 @@ import (
 )
 
 const createUser = `-- name: CreateUser :exec
-INSERT INTO users(id, username, first_name, last_name, created_at, gender, emoji_json, is_bot)
+INSERT INTO users(id, username, first_name, last_name, created_at, gender, emoji, is_bot)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
@@ -24,7 +24,7 @@ type CreateUserParams struct {
 	LastName  pgtype.Text        `db:"last_name" json:"lastName"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
 	Gender    string             `db:"gender" json:"gender"`
-	EmojiJson emoji.Emojis       `db:"emoji_json" json:"emojiJson"`
+	Emoji     pgtype.Text        `db:"emoji" json:"emoji"`
 	IsBot     bool               `db:"is_bot" json:"isBot"`
 }
 
@@ -36,7 +36,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 		arg.LastName,
 		arg.CreatedAt,
 		arg.Gender,
-		arg.EmojiJson,
+		arg.Emoji,
 		arg.IsBot,
 	)
 	return err

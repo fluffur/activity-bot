@@ -1,5 +1,5 @@
 -- name: CreateUser :exec
-INSERT INTO users(id, username, first_name, last_name, created_at, gender, emoji_json, is_bot)
+INSERT INTO users(id, username, first_name, last_name, created_at, gender, emoji, is_bot)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 
 -- name: UpdateUser :exec
