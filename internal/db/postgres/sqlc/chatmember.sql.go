@@ -392,13 +392,15 @@ WITH upserted_users AS (
                  UNNEST($9::TEXT[])
                  ) AS u(id, username, first_name, last_name, is_bot, emoji)
         ON CONFLICT (id) DO UPDATE SET
-            username = EXCLUDED.username,
+            username   = EXCLUDED.username,
             first_name = EXCLUDED.first_name,
-            last_name = EXCLUDED.last_name,
-            is_bot = EXCLUDED.is_bot,
-            emoji = CASE
-                         WHEN EXCLUDED.emoji <> '' THEN EXCLUDED.emoji
-                         ELSE users.emoji
+            last_name  = EXCLUDED.last_name,
+            is_bot     = EXCLUDED.is_bot,
+            emoji      = CASE
+                             WHEN (users.emoji IS NULL OR users.emoji = '')
+                                 AND EXCLUDED.emoji <> ''
+                                 THEN EXCLUDED.emoji
+                             ELSE users.emoji
                 END
         RETURNING id)
 INSERT
