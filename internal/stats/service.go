@@ -156,25 +156,24 @@ func (s *Service) GetChatStats(ctx context.Context, chatID int64, fromDate, toDa
 			Messages: messages,
 		}
 
-		processed := make(map[int64]struct{})
+		assignedNorms := userNorms[userID]
 
-		for _, n := range commonNorms {
-			r := normMap[n.ID]
+		if len(assignedNorms) > 0 {
+			for _, n := range assignedNorms {
+				r := normMap[n.ID]
 
-			if messages >= int64(n.Value) {
-				r.Passed = append(r.Passed, uRes)
-			} else {
-				r.Failed = append(r.Failed, uRes)
+				if messages >= int64(n.Value) {
+					r.Passed = append(r.Passed, uRes)
+				} else {
+					r.Failed = append(r.Failed, uRes)
+				}
 			}
 
-			processed[n.ID] = struct{}{}
+			continue
 		}
 
-		for _, n := range userNorms[userID] {
-			if _, ok := processed[n.ID]; ok {
-				continue
-			}
-
+		// Иначе применяем все общие.
+		for _, n := range commonNorms {
 			r := normMap[n.ID]
 
 			if messages >= int64(n.Value) {
@@ -213,11 +212,28 @@ func (s *Service) GetProfileStats(
 		return ProfileStats{}, fmt.Errorf("list norms: %w", err)
 	}
 
+	var (
+		commonNorms   []norm.Norm
+		personalNorms []norm.Norm
+	)
+
 	for _, n := range norms {
-		if !n.BelongsToUser(userID) {
+		if len(n.UserIDs) == 0 {
+			commonNorms = append(commonNorms, n)
 			continue
 		}
 
+		if n.BelongsToUser(userID) {
+			personalNorms = append(personalNorms, n)
+		}
+	}
+
+	usedNorms := commonNorms
+	if len(personalNorms) > 0 {
+		usedNorms = personalNorms
+	}
+
+	for _, n := range usedNorms {
 		st.Norms = append(st.Norms, ProfileNorm{
 			Name:     n.Name,
 			Required: n.Value,
