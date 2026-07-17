@@ -7,7 +7,6 @@ import (
 type Config struct {
 	BotToken          string   `env:"BOT_TOKEN"`
 	BotTokens         []string `env:"BOT_TOKENS"`
-	BotCount          int      `env:"BOT_COUNT"`
 	DBDSN             string   `env:"DB_DSN"`
 	Debug             bool     `env:"DEBUG" envDefault:"false"`
 	DeveloperID       int64    `env:"DEVELOPER_ID"`
