@@ -27,7 +27,7 @@ func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.Up
 
 	chatID := int64(peerID)
 
-	if u.NewParticipant == nil || participant.IsBanned(u.NewParticipant) {
+	if (u.NewParticipant == nil || participant.IsBanned(u.NewParticipant)) && u.PrevParticipant != nil {
 		return h.processLeft(ctx, u, chatID)
 	}
 
