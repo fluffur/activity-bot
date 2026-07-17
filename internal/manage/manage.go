@@ -20,7 +20,12 @@ func (h *Handler) Manage(c *botapi.Context) error {
 
 	loc := cctx.MustLocalizer(c)
 
-	senderID := msg.From.ID
+	sender := c.Sender()
+	if sender == nil {
+		return fmt.Errorf("manage: sender is nil")
+	}
+
+	senderID := sender.ID
 	search, _ := cctx.MustArgs(c).Text()
 
 	chats, err := h.chatService.GetUserManagedChats(c, senderID, search)
