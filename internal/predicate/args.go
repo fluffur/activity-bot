@@ -71,11 +71,9 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 		parsed := cctx.ParsedArgs{}
 
 		usedOffsets = resolveUserEntities(c, r.chatMemberRepository, ch.ID, text, entities, &parsed, usedOffsets)
-		if len(parsed.Users) == 0 {
-			if cm, ok := r.resolveReplyUser(c, ch.ID); ok {
-				parsed.Users = append(parsed.Users, cm)
-			}
-		}
+
+		replyUser, hasReply := r.resolveReplyUser(c, ch.ID)
+		replyUsed := false
 
 		for _, rul := range rules {
 			count := rul.CountArgs
@@ -144,6 +142,14 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 
 					for idx, tok := range toks {
 						if rul.Type == rule.RuleUser {
+							if hasReply && !replyUsed {
+								parsed.Users = append(parsed.Users, replyUser)
+								replyUsed = true
+								parsedCount++
+								matched = true
+								break
+							}
+
 							if cm, consumed, ok := r.resolveUserToken(c, ch.ID, toks[idx:]); ok {
 								parsed.Users = append(parsed.Users, cm)
 
