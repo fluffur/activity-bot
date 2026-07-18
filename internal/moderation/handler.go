@@ -142,7 +142,7 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithPermission(permission.StatusCoOwner),
 			option.AllowDev(),
 			option.WithAliases("статус", "админ", "+админ", "права"),
-			option.WithRules(rule.User().Optional(), rule.Number().Optional()),
+			option.WithRules(rule.User().Optional(), rule.Number()),
 		),
 
 		action.NewCommand(
