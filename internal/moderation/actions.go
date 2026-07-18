@@ -301,7 +301,7 @@ func (h *Handler) SetStatus(c *botapi.Context) error {
 
 	target, ok := args.User()
 	if !ok {
-		return nil
+		target = moderator
 	}
 
 	statusValue, ok := args.Number()
