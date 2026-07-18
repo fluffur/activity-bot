@@ -6,7 +6,10 @@ import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/norm"
+	"activity-bot/internal/utils"
 	"activity-bot/internal/utils/tghtml"
+	"database/sql"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -168,19 +171,36 @@ func (h *Handler) AskForNormName(c *botapi.Context) error {
 		return fmt.Errorf("failed to set stats fsm state: %w", err)
 	}
 
+	norms, err := h.normRepo.List(c, ch.ID)
+	if err != nil {
+		return fmt.Errorf("ask norm list norms: %w", err)
+	}
+
 	chatID, _ := c.Chat()
-	_, _ = c.Bot.EditMessageReplyMarkup(c, chatID, cq.Message.MessageID, botapi.InlineKeyboard())
+	_, _ = c.Bot.EditMessageReplyMarkup(c, chatID, cq.Message.MessageID, nil)
 
 	_, err = c.Bot.SendMessage(c, chatID,
 		loc.T(i18n.Cmd.Stats.AskForNormName, nil),
 		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.WithReplyMarkup(normListKeyboard(loc, norms)),
 	)
 	return err
 }
 
-func (h *Handler) ProcessNormName(c *botapi.Context) error {
+func normListKeyboard(loc *i18n.Localizer, norms []norm.Norm) *botapi.InlineKeyboardMarkup {
+	var rows [][]botapi.InlineKeyboardButton
+	for _, n := range norms {
+		rows = append(rows, botapi.InlineRow(
+			botapi.InlineButtonData(
+				utils.UcFirst(norm.LocalisedNormName(loc, n.Name)), fmt.Sprintf("summon:norm:%d", n.ID),
+			),
+		))
+	}
+	return &botapi.InlineKeyboardMarkup{InlineKeyboard: rows}
+}
+
+func (h *Handler) ProcessNormNameCallback(c *botapi.Context) error {
 	loc := cctx.MustLocalizer(c)
-	ch := cctx.MustChat(c)
 
 	session, ok, err := h.statsFSM.Get(c)
 	if err != nil {
@@ -190,48 +210,33 @@ func (h *Handler) ProcessNormName(c *botapi.Context) error {
 		return nil
 	}
 
-	sender := c.Sender()
-	if sender == nil || sender.ID != session.Data.UserID {
-		return nil
-	}
-	msg := c.Message()
-	normName := strings.Join(strings.Fields(msg.OriginalHTML()), " ")
-	if normName == "" {
+	cq := c.Update.CallbackQuery
+	if cq == nil {
 		return nil
 	}
 
-	if normName == loc.T(i18n.Cmd.AddNorm.NormGeneral, nil) {
-		normName = norm.GeneralNormName
-	}
+	var normID int64
 
-	calculatedData, err := h.service.GetChatStats(c, ch.ID, session.Data.FromDate, session.Data.ToDate, ch.NewbieThresholdDays)
-	if err != nil {
-		_ = h.statsFSM.Clear(c)
-		return fmt.Errorf("failed to load stats during norm validation: %w", err)
-	}
-
-	var normExists bool
-	for _, n := range calculatedData.NormResults {
-		if n.NormName == normName {
-			normExists = true
-			break
-		}
+	if _, err = fmt.Sscanf(cq.Data, "summon:norm:%d", &normID); err != nil {
+		return fmt.Errorf("parse summon norm: %w", err)
 	}
 	chatID, _ := c.Chat()
-
-	if !normExists {
-		_, err = c.Bot.SendMessage(c, chatID,
-			loc.T(i18n.Cmd.Stats.NormNotFound, i18n.CmdStatsNormNotFoundData{Name: normName}),
-			botapi.WithParseMode(botapi.ParseModeHTML),
-		)
-		return err
+	_, err = c.Bot.EditMessageReplyMarkup(c, chatID, cq.Message.MessageID, nil)
+	n, err := h.normRepo.GetByID(c, normID)
+	if err != nil {
+		_ = h.statsFSM.Clear(c)
+		if !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("failed to load stats during norm validation: %w", err)
+		}
+		return c.AnswerCallback()
 	}
 
-	session.Data.NormName = normName
+	session.Data.NormName = n.Name
 	err = h.statsFSM.Enter(c, StateAwaitSummonText, session.Data)
 	if err != nil {
 		return fmt.Errorf("failed to update state to await summon text: %w", err)
 	}
+
 	_, err = c.Bot.SendMessage(c, chatID,
 		loc.T(i18n.Cmd.Stats.AskForSummonText, nil),
 		botapi.WithParseMode(botapi.ParseModeHTML),
@@ -282,7 +287,7 @@ func (h *Handler) ProcessSummonText(c *botapi.Context) error {
 
 	if targetNorm == nil || len(targetNorm.Failed) == 0 {
 		_, err := c.Reply(
-			loc.T(i18n.Cmd.Stats.NobodyToSummon, i18n.CmdStatsNobodyToSummonData{Name: session.Data.NormName}),
+			loc.T(i18n.Cmd.Stats.NobodyToSummon, i18n.CmdStatsNobodyToSummonData{Name: norm.LocalisedNormName(loc, session.Data.NormName)}),
 			botapi.WithParseMode(botapi.ParseModeHTML),
 		)
 		return err

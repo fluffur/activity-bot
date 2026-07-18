@@ -116,8 +116,10 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithPredicates(h.statsFSM.InState(StateAwaitNorm, StateAwaitSummonText, StateAwaitInactiveSummonText)),
 			option.Hidden(),
 		),
-		action.NewMessage(
-			h.ProcessNormName,
+		action.NewCallbackPrefix(
+			"summonnormselect",
+			"summon:norm:",
+			h.ProcessNormNameCallback,
 			CategoryStats,
 			option.WithPredicates(h.statsFSM.State(StateAwaitNorm)),
 		),

@@ -63,6 +63,25 @@ func (q *Queries) GetNorm(ctx context.Context, arg GetNormParams) (ChatNorm, err
 	return i, err
 }
 
+const getNormByID = `-- name: GetNormByID :one
+SELECT id, chat_id, name, value
+FROM chat_norms
+WHERE id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetNormByID(ctx context.Context, id int64) (ChatNorm, error) {
+	row := q.db.QueryRow(ctx, getNormByID, id)
+	var i ChatNorm
+	err := row.Scan(
+		&i.ID,
+		&i.ChatID,
+		&i.Name,
+		&i.Value,
+	)
+	return i, err
+}
+
 const getNormMembers = `-- name: GetNormMembers :many
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot
 FROM chat_norms cn

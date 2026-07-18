@@ -11,6 +11,13 @@ WHERE chat_id = $1
   AND name ILIKE '%' || @name::text || '%'
 LIMIT 1;
 
+-- name: GetNormByID :one
+SELECT *
+FROM chat_norms
+WHERE id = $1
+LIMIT 1;
+
+
 -- name: GetNormMembers :many
 SELECT sqlc.embed(cm), sqlc.embed(u)
 FROM chat_norms cn

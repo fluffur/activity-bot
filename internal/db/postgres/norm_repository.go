@@ -15,7 +15,7 @@ func NewNormRepository(queries *db.Queries) *NormRepository {
 	return &NormRepository{queries: queries}
 }
 
-func (r *NormRepository) Get(ctx context.Context, chatID int64, name string) (norm.Norm, error) {
+func (r *NormRepository) GetByName(ctx context.Context, chatID int64, name string) (norm.Norm, error) {
 	n, err := r.queries.GetNorm(ctx, db.GetNormParams{
 		ChatID: chatID,
 		Name:   name,
@@ -99,4 +99,13 @@ func (r *NormRepository) Unassign(ctx context.Context, normID int64, userIDs []i
 		NormID:  normID,
 		UserIds: userIDs,
 	})
+}
+
+func (r *NormRepository) GetByID(ctx context.Context, normID int64) (norm.Norm, error) {
+	n, err := r.queries.GetNormByID(ctx, normID)
+	if err != nil {
+		return norm.Norm{}, err
+	}
+
+	return mapNorm(n), nil
 }

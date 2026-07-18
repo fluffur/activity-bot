@@ -14,6 +14,10 @@ import (
 
 const GeneralNormName = "general"
 
+func NormalizeName(name string) string {
+	return strings.Join(strings.Fields(strings.ToLower(name)), " ")
+}
+
 func (h *Handler) AddNorm(c *botapi.Context) error {
 	ch := cctx.MustChat(c)
 	loc := cctx.MustLocalizer(c)
@@ -49,7 +53,7 @@ func (h *Handler) AddNorm(c *botapi.Context) error {
 			name = text
 		}
 	}
-
+	name = NormalizeName(name)
 	normID, err := h.repository.Set(c, ch.ID, name, value)
 	if err != nil {
 		return fmt.Errorf("add norm: %w", err)
@@ -128,7 +132,7 @@ func (h *Handler) ShowNorm(c *botapi.Context) error {
 		name = GeneralNormName
 	}
 
-	n, err := h.repository.Get(c, ch.ID, name)
+	n, err := h.repository.GetByName(c, ch.ID, name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
@@ -185,7 +189,7 @@ func (h *Handler) DeleteNorm(c *botapi.Context) error {
 		name = GeneralNormName
 	}
 
-	n, err := h.repository.Get(c, ch.ID, name)
+	n, err := h.repository.GetByName(c, ch.ID, name)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return err
@@ -219,7 +223,7 @@ func (h *Handler) AssignNorm(c *botapi.Context) error {
 
 	name := strings.TrimSpace(args.Texts[0])
 
-	n, err := h.repository.Get(c, ch.ID, name)
+	n, err := h.repository.GetByName(c, ch.ID, name)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("assign get norm: %w", err)
@@ -275,7 +279,7 @@ func (h *Handler) UnassignNorm(c *botapi.Context) error {
 
 	name := strings.TrimSpace(args.Texts[0])
 
-	n, err := h.repository.Get(c, ch.ID, name)
+	n, err := h.repository.GetByName(c, ch.ID, name)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("unassign get norm: %w", err)
