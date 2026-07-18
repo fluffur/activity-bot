@@ -67,7 +67,10 @@ func IsAdmin(p tg.ChannelParticipantClass) bool {
 	return ok
 }
 
-func IsBanned(p tg.ChannelParticipantClass) bool {
+func IsNotInChat(p tg.ChannelParticipantClass) bool {
+	if p == nil {
+		return true
+	}
 	b, ok := p.(*tg.ChannelParticipantBanned)
 	return ok && b.Left
 }

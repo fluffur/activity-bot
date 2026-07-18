@@ -27,11 +27,13 @@ func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.Up
 
 	chatID := int64(peerID)
 
-	if (u.NewParticipant == nil || participant.IsBanned(u.NewParticipant)) && u.PrevParticipant != nil {
+	if participant.IsNotInChat(u.NewParticipant) &&
+		!participant.IsNotInChat(u.PrevParticipant) {
 		return h.processLeft(ctx, u, chatID)
 	}
 
-	if u.PrevParticipant == nil || participant.IsBanned(u.PrevParticipant) {
+	if participant.IsNotInChat(u.PrevParticipant) &&
+		!participant.IsNotInChat(u.NewParticipant) {
 		return h.processJoin(ctx, e, u, chatID)
 	}
 
