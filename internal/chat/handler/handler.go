@@ -409,7 +409,7 @@ func (h *Handler) FakeLeave(c *botapi.Context) error {
 	_ = c.Bot.DeleteMessage(c, chatID, msg.MessageID)
 	text := loc.T(i18n.User.Left, i18n.UserLeftData{
 		User: tghtml.MemberMention(loc, ch, cm),
-	})
+	}, i18n.WithGender(cm.Gender()))
 
 	if _, err := c.Bot.SendMessage(c, chatID, text, botapi.DisableWebPagePreview(), botapi.WithParseMode(botapi.ParseModeHTML)); err != nil {
 		return err
