@@ -169,6 +169,7 @@ type Chat struct {
 	RemovedAt            pgtype.Timestamptz `db:"removed_at" json:"removedAt"`
 	EmojisEnabled        bool               `db:"emojis_enabled" json:"emojisEnabled"`
 	SkipCallConfirmation bool               `db:"skip_call_confirmation" json:"skipCallConfirmation"`
+	AllowPolygamy        bool               `db:"allow_polygamy" json:"allowPolygamy"`
 }
 
 type ChatMember struct {

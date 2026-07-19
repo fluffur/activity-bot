@@ -23,4 +23,5 @@ type Repository interface {
 	SetEmojisEnabled(ctx context.Context, chatID int64, enabled bool) error
 	SetAllowPrefixless(ctx context.Context, chatID int64, allow bool) error
 	SetCommandPrefix(ctx context.Context, chatID int64, prefix string) error
+	SetPolygamyEnabled(ctx context.Context, chatID int64, enabled bool) error
 }

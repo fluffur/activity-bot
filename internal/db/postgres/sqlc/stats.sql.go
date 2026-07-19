@@ -89,7 +89,7 @@ func (q *Queries) ChatStats(ctx context.Context, arg ChatStatsParams) ([]ChatSta
 const userStats = `-- name: UserStats :one
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call,
        u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot,
-       c.id, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at, c.emojis_enabled, c.skip_call_confirmation,
+       c.id, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at, c.emojis_enabled, c.skip_call_confirmation, c.allow_polygamy,
 
        COUNT(m.chat_id) FILTER (WHERE m.created_at >= $1)           AS day_count,
        COUNT(m.chat_id) FILTER (WHERE m.created_at >= $2)   AS day_rolling_count,
@@ -194,6 +194,7 @@ func (q *Queries) UserStats(ctx context.Context, arg UserStatsParams) (UserStats
 		&i.Chat.RemovedAt,
 		&i.Chat.EmojisEnabled,
 		&i.Chat.SkipCallConfirmation,
+		&i.Chat.AllowPolygamy,
 		&i.DayCount,
 		&i.DayRollingCount,
 		&i.WeekCount,

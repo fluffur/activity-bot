@@ -48,6 +48,7 @@ type Chat struct {
 	WeekStartTimeMicros  int64
 	MaxWarns             int32
 	EmojisEnabled        bool
+	AllowPolygamy        bool
 	RemovedAt            time.Time
 }
 

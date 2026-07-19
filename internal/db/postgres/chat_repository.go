@@ -185,3 +185,10 @@ func (r *ChatRepository) ListWithoutTitle(ctx context.Context) ([]chat.Chat, err
 	}
 	return mapList(chats, mapChat), nil
 }
+
+func (r *ChatRepository) SetPolygamyEnabled(ctx context.Context, chatID int64, enabled bool) error {
+	return r.queries.SetAllowPolygamy(ctx, db.SetAllowPolygamyParams{
+		AllowPolygamy: enabled,
+		ID:            chatID,
+	})
+}

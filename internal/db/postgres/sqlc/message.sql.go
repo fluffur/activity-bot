@@ -20,7 +20,7 @@ WITH filtered_messages AS (SELECT m.chat_id, m.user_id
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call,
        u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot,
        COUNT(fm.chat_id) AS messages_count,
-       c.id, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at, c.emojis_enabled, c.skip_call_confirmation
+       c.id, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at, c.emojis_enabled, c.skip_call_confirmation, c.allow_polygamy
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id
@@ -99,6 +99,7 @@ func (q *Queries) ChatMemberMessageStatsByChat(ctx context.Context, arg ChatMemb
 			&i.Chat.RemovedAt,
 			&i.Chat.EmojisEnabled,
 			&i.Chat.SkipCallConfirmation,
+			&i.Chat.AllowPolygamy,
 		); err != nil {
 			return nil, err
 		}
@@ -117,7 +118,7 @@ WITH user_messages AS (SELECT m.created_at
                          AND m.user_id = $3)
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call,
        u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot,
-       c.id, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at, c.emojis_enabled, c.skip_call_confirmation,
+       c.id, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at, c.emojis_enabled, c.skip_call_confirmation, c.allow_polygamy,
        COUNT(*) FILTER (WHERE m.created_at >= date_trunc('day', now()))   AS day_count,
        COUNT(*) FILTER (WHERE m.created_at >= now() - interval '1 day')   AS day_rolling_count,
        COUNT(*) FILTER (WHERE m.created_at >= $1)                 AS week_count,
@@ -198,6 +199,7 @@ func (q *Queries) ChatMemberMessageStatsByUser(ctx context.Context, arg ChatMemb
 		&i.Chat.RemovedAt,
 		&i.Chat.EmojisEnabled,
 		&i.Chat.SkipCallConfirmation,
+		&i.Chat.AllowPolygamy,
 		&i.DayCount,
 		&i.DayRollingCount,
 		&i.WeekCount,

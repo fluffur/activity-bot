@@ -88,6 +88,10 @@ func (s *Service) SetEmojisEnabled(ctx context.Context, chatID int64, enabled bo
 	return s.repo.SetEmojisEnabled(ctx, chatID, enabled)
 }
 
+func (s *Service) SetPolygamyEnabled(ctx context.Context, chatID int64, enabled bool) error {
+	return s.repo.SetPolygamyEnabled(ctx, chatID, enabled)
+}
+
 func (s *Service) GetChatsWithoutTitle(ctx context.Context) ([]Chat, error) {
 	return s.repo.ListWithoutTitle(ctx)
 }

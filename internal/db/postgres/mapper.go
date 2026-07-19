@@ -53,6 +53,7 @@ func mapChat(c db.Chat) chat.Chat {
 		WeekStartTimeMicros:  c.WeekStartTime.Microseconds,
 		MaxWarns:             c.MaxWarns,
 		EmojisEnabled:        c.EmojisEnabled,
+		AllowPolygamy:        c.AllowPolygamy,
 	}
 }
 

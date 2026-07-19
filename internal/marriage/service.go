@@ -37,31 +37,34 @@ func NewService(repo Repository) *Service {
 func (s *Service) HandleMarriageRequest(
 	ctx context.Context,
 	chatID, fromUserID, toUserID int64,
-	isBotTarget bool,
+	isBotTarget, allowPolygamy bool,
 ) (RequestMarriageOutcome, error) {
 	if fromUserID == toUserID {
-		if _, err := s.MarryDirect(ctx, chatID, fromUserID, toUserID); err != nil {
+		if _, err := s.MarryDirect(ctx, chatID, fromUserID, toUserID, allowPolygamy); err != nil {
 			return RequestMarriageOutcome{}, err
 		}
 		return RequestMarriageOutcome{Type: OutcomeSelf}, nil
 	}
 
 	if isBotTarget {
-		if _, err := s.MarryDirect(ctx, chatID, fromUserID, toUserID); err != nil {
+		if _, err := s.MarryDirect(ctx, chatID, fromUserID, toUserID, allowPolygamy); err != nil {
 			return RequestMarriageOutcome{}, err
 		}
 		return RequestMarriageOutcome{Type: OutcomeDirect}, nil
 	}
 
-	if m, err := s.repo.GetActiveMarriage(ctx, chatID, fromUserID); err != nil {
-		return RequestMarriageOutcome{}, err
-	} else if m != nil {
-		return RequestMarriageOutcome{}, ErrAlreadyMarried
-	}
-	if m, err := s.repo.GetActiveMarriage(ctx, chatID, toUserID); err != nil {
-		return RequestMarriageOutcome{}, err
-	} else if m != nil {
-		return RequestMarriageOutcome{}, ErrAlreadyMarried
+	if !allowPolygamy {
+		if m, err := s.repo.GetActiveMarriage(ctx, chatID, fromUserID); err != nil {
+			return RequestMarriageOutcome{}, err
+		} else if m != nil {
+			return RequestMarriageOutcome{}, ErrAlreadyMarried
+		}
+
+		if m, err := s.repo.GetActiveMarriage(ctx, chatID, toUserID); err != nil {
+			return RequestMarriageOutcome{}, err
+		} else if m != nil {
+			return RequestMarriageOutcome{}, ErrAlreadyMarried
+		}
 	}
 
 	if req, err := s.repo.GetActiveMarriageRequest(ctx, chatID, toUserID, fromUserID); err != nil {
@@ -93,19 +96,22 @@ func (s *Service) GetMarriage(ctx context.Context, chatID, userID int64) (*Marri
 	return s.repo.GetActiveMarriage(ctx, chatID, userID)
 }
 
-func (s *Service) MarryDirect(ctx context.Context, chatID, user1ID, user2ID int64) (*Marriage, error) {
-	if m, err := s.repo.GetActiveMarriage(ctx, chatID, user1ID); err != nil {
-		return nil, err
-	} else if m != nil {
-		return nil, ErrAlreadyMarried
-	}
-	if user1ID != user2ID {
-		if m, err := s.repo.GetActiveMarriage(ctx, chatID, user2ID); err != nil {
+func (s *Service) MarryDirect(ctx context.Context, chatID, user1ID, user2ID int64, allowPolygamy bool) (*Marriage, error) {
+	if !allowPolygamy {
+		if m, err := s.repo.GetActiveMarriage(ctx, chatID, user1ID); err != nil {
 			return nil, err
 		} else if m != nil {
 			return nil, ErrAlreadyMarried
 		}
+		if user1ID != user2ID {
+			if m, err := s.repo.GetActiveMarriage(ctx, chatID, user2ID); err != nil {
+				return nil, err
+			} else if m != nil {
+				return nil, ErrAlreadyMarried
+			}
+		}
 	}
+
 	m, err := s.repo.CreateMarriage(ctx, chatID, user1ID, user2ID)
 	if err != nil {
 		return nil, err
@@ -113,16 +119,18 @@ func (s *Service) MarryDirect(ctx context.Context, chatID, user1ID, user2ID int6
 	return &m, nil
 }
 
-func (s *Service) AcceptMarriageRequest(ctx context.Context, chatID, fromUserID, toUserID int64) error {
-	if m, err := s.repo.GetActiveMarriage(ctx, chatID, fromUserID); err != nil {
-		return err
-	} else if m != nil {
-		return ErrAlreadyMarried
-	}
-	if m, err := s.repo.GetActiveMarriage(ctx, chatID, toUserID); err != nil {
-		return err
-	} else if m != nil {
-		return ErrAlreadyMarried
+func (s *Service) AcceptMarriageRequest(ctx context.Context, chatID, fromUserID, toUserID int64, allowPolygamy bool) error {
+	if !allowPolygamy {
+		if m, err := s.repo.GetActiveMarriage(ctx, chatID, fromUserID); err != nil {
+			return err
+		} else if m != nil {
+			return ErrAlreadyMarried
+		}
+		if m, err := s.repo.GetActiveMarriage(ctx, chatID, toUserID); err != nil {
+			return err
+		} else if m != nil {
+			return ErrAlreadyMarried
+		}
 	}
 
 	req, err := s.repo.GetActiveMarriageRequest(ctx, chatID, fromUserID, toUserID)

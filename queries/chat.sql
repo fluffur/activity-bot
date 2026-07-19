@@ -123,7 +123,6 @@ SET mentions_per_message = $1
 WHERE id = @chat_id;
 
 
-
 -- name: UpdateChatWeekStartTime :exec
 UPDATE chats
 SET week_start_time = $1
@@ -166,4 +165,9 @@ WHERE id = $2;
 -- name: SetChatEmojisEnabled :exec
 UPDATE chats
 SET emojis_enabled = $1
+WHERE id = $2;
+
+-- name: SetAllowPolygamy :exec
+UPDATE chats
+SET allow_polygamy = $1
 WHERE id = $2;

@@ -3,10 +3,12 @@ package marriage
 import (
 	"activity-bot/internal/action"
 	"activity-bot/internal/cctx"
+	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/option"
+	"activity-bot/internal/permission"
 	"activity-bot/internal/rule"
 	"activity-bot/internal/utils/tghtml"
 	"errors"
@@ -28,15 +30,18 @@ const (
 
 type Handler struct {
 	service       *Service
+	chatService   *chat.Service
 	memberService *chatmember.Service
 }
 
 func NewHandler(
 	service *Service,
+	chatService *chat.Service,
 	memberService *chatmember.Service,
 ) *Handler {
 	return &Handler{
 		service:       service,
+		chatService:   chatService,
 		memberService: memberService,
 	}
 }
@@ -89,6 +94,24 @@ func (h *Handler) Actions() []*command.Action {
 			h.RejectMarriageRequest,
 			CategoryMarriage,
 		),
+
+		action.NewCommand(
+			"polygamy",
+			h.EnablePolygamy,
+			i18n.Cmd.EnablePolygamy.Desc,
+			CategoryMarriage,
+			option.WithPermission(permission.StatusAdmin),
+			option.WithAliases("+полигамия"),
+		),
+
+		action.NewCommand(
+			"nopolygamy",
+			h.DisablePolygamy,
+			i18n.Cmd.DisablePolygamy.Desc,
+			CategoryMarriage,
+			option.WithPermission(permission.StatusAdmin),
+			option.WithAliases("-полигамия"),
+		),
 	}
 }
 
@@ -111,6 +134,7 @@ func (h *Handler) RequestMarriage(c *botapi.Context) error {
 		sender.User.ID,
 		target.User.ID,
 		isBotTarget,
+		ch.AllowPolygamy,
 	)
 	if err != nil {
 		switch {
@@ -166,8 +190,13 @@ func (h *Handler) RequestMarriage(c *botapi.Context) error {
 			)
 
 		default:
+			msg := i18n.Cmd.Marry.Direct
+			if ch.AllowPolygamy {
+				msg = i18n.Cmd.Marry.DirectPolygamy
+			}
+
 			text = loc.T(
-				i18n.Cmd.Marry.Direct,
+				msg,
 				i18n.CmdMarryDirectData{
 					Sender: senderMention,
 					Target: targetMention,
@@ -177,8 +206,13 @@ func (h *Handler) RequestMarriage(c *botapi.Context) error {
 		}
 
 	case OutcomeAutoAccepted:
+		msg := i18n.Cmd.Marry.AutoAccepted
+		if ch.AllowPolygamy {
+			msg = i18n.Cmd.Marry.AutoAcceptedPolygamy
+		}
+
 		text = loc.T(
-			i18n.Cmd.Marry.AutoAccepted,
+			msg,
 			i18n.CmdMarryAutoAcceptedData{
 				Sender: senderMention,
 				Target: targetMention,
@@ -186,8 +220,13 @@ func (h *Handler) RequestMarriage(c *botapi.Context) error {
 		)
 
 	case OutcomeRequestCreated:
+		msg := i18n.Cmd.Marry.Request
+		if ch.AllowPolygamy {
+			msg = i18n.Cmd.Marry.RequestPolygamy
+		}
+
 		text = loc.T(
-			i18n.Cmd.Marry.Request,
+			msg,
 			i18n.CmdMarryRequestData{
 				Sender: senderMention,
 				Target: targetMention,
@@ -295,7 +334,7 @@ func (h *Handler) AcceptMarriageRequest(c *botapi.Context) error {
 
 	toUserID := cb.From.ID
 
-	if err := h.service.AcceptMarriageRequest(c, ch.ID, fromUserID, toUserID); err != nil {
+	if err := h.service.AcceptMarriageRequest(c, ch.ID, fromUserID, toUserID, ch.AllowPolygamy); err != nil {
 		return c.AnswerCallback(
 			botapi.WithCallbackText(loc.T(i18n.Cmd.Marry.Error.Accept, nil)),
 		)
@@ -329,13 +368,26 @@ func (h *Handler) AcceptMarriageRequest(c *botapi.Context) error {
 	_ = c.AnswerCallback(
 		botapi.WithCallbackText(loc.T(i18n.Cmd.Marry.Callback.Accepted, nil)),
 	)
-	var marriageAnnounces = []i18n.MessageID{
-		i18n.Cmd.Marry.Announce1,
-		i18n.Cmd.Marry.Announce2,
-		i18n.Cmd.Marry.Announce3,
-		i18n.Cmd.Marry.Announce4,
-		i18n.Cmd.Marry.Announce5,
-		i18n.Cmd.Marry.Announce6,
+	var marriageAnnounces []i18n.MessageID
+
+	if ch.AllowPolygamy {
+		marriageAnnounces = []i18n.MessageID{
+			i18n.Cmd.Marry.AnnouncePolygamy1,
+			i18n.Cmd.Marry.AnnouncePolygamy2,
+			i18n.Cmd.Marry.AnnouncePolygamy3,
+			i18n.Cmd.Marry.AnnouncePolygamy4,
+			i18n.Cmd.Marry.AnnouncePolygamy5,
+			i18n.Cmd.Marry.AnnouncePolygamy6,
+		}
+	} else {
+		marriageAnnounces = []i18n.MessageID{
+			i18n.Cmd.Marry.Announce1,
+			i18n.Cmd.Marry.Announce2,
+			i18n.Cmd.Marry.Announce3,
+			i18n.Cmd.Marry.Announce4,
+			i18n.Cmd.Marry.Announce5,
+			i18n.Cmd.Marry.Announce6,
+		}
 	}
 
 	announce := marriageAnnounces[rand.IntN(len(marriageAnnounces))]
@@ -445,9 +497,14 @@ func (h *Handler) Divorce(c *botapi.Context) error {
 
 	partnerMention := tghtml.MemberMention(loc, ch, partner)
 
+	msg := i18n.Cmd.Divorce.Announce
+	if ch.AllowPolygamy {
+		msg = i18n.Cmd.Divorce.AnnouncePolygamy
+	}
+
 	_, err = c.Reply(
 		loc.T(
-			i18n.Cmd.Divorce.Announce,
+			msg,
 			i18n.CmdDivorceAnnounceData{
 				Sender:  senderMention,
 				Partner: partnerMention,
@@ -551,6 +608,30 @@ func (h *Handler) ListMarriages(c *botapi.Context) error {
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
 
+	return err
+}
+
+func (h *Handler) EnablePolygamy(c *botapi.Context) error {
+	ch := cctx.MustChat(c)
+
+	if err := h.chatService.SetPolygamyEnabled(c, ch.ID, true); err != nil {
+		return fmt.Errorf("set polygamy enabled: %w", err)
+	}
+
+	loc := cctx.MustLocalizer(c)
+	_, err := c.Reply(loc.T(i18n.Cmd.EnablePolygamy.Success, nil))
+	return err
+}
+
+func (h *Handler) DisablePolygamy(c *botapi.Context) error {
+	ch := cctx.MustChat(c)
+
+	if err := h.chatService.SetPolygamyEnabled(c, ch.ID, false); err != nil {
+		return fmt.Errorf("disable polygamy: %w", err)
+	}
+
+	loc := cctx.MustLocalizer(c)
+	_, err := c.Reply(loc.T(i18n.Cmd.DisablePolygamy.Success, nil))
 	return err
 }
 
