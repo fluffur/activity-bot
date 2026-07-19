@@ -12,7 +12,6 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/log"
 	"github.com/gotd/td/constant"
 	"github.com/gotd/td/tg"
@@ -76,7 +75,6 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 		replyUser, hasReply := r.resolveReplyUser(c, ch.ID)
 		replyUsed := false
 		for _, rul := range rules {
-			spew.Dump("RUL", rul)
 			count := rul.CountArgs
 			if count == rule.RuleVariadic {
 				count = 50

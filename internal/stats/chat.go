@@ -142,6 +142,10 @@ func (h *Handler) AskForNormName(c *botapi.Context) error {
 	if cq == nil {
 		return nil
 	}
+
+	chatID, _ := c.Chat()
+	_, _ = c.Bot.EditMessageReplyMarkup(c, chatID, cq.Message.MessageID, nil)
+
 	sender := c.Sender()
 	if sender == nil {
 		return nil
@@ -161,23 +165,40 @@ func (h *Handler) AskForNormName(c *botapi.Context) error {
 	fromDate := time.Unix(fromUnix, 0)
 	toDate := time.Unix(toUnix, 0)
 
-	err := h.statsFSM.Enter(c, StateAwaitNorm, StateData{
+	norms, err := h.normRepo.List(c, ch.ID)
+	if err != nil {
+		return fmt.Errorf("list norms: %w", err)
+	}
+	if len(norms) == 0 {
+		return nil
+	}
+
+	if len(norms) == 1 {
+		err := h.statsFSM.Enter(c, StateAwaitSummonText, StateData{
+			ChatID:   ch.ID,
+			UserID:   sender.ID,
+			NormName: norms[0].Name,
+			FromDate: fromDate,
+			ToDate:   toDate,
+		})
+		if err != nil {
+			return fmt.Errorf("set stats fsm state: %w", err)
+		}
+		_, err = c.Bot.SendMessage(c, chatID,
+			loc.T(i18n.Cmd.Stats.AskForSummonText, nil),
+			botapi.WithParseMode(botapi.ParseModeHTML),
+		)
+		return err
+	}
+
+	if err := h.statsFSM.Enter(c, StateAwaitNorm, StateData{
 		UserID:   sender.ID,
 		ChatID:   ch.ID,
 		FromDate: fromDate,
 		ToDate:   toDate,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to set stats fsm state: %w", err)
+	}); err != nil {
+		return fmt.Errorf(" set stats fsm state: %w", err)
 	}
-
-	norms, err := h.normRepo.List(c, ch.ID)
-	if err != nil {
-		return fmt.Errorf("ask norm list norms: %w", err)
-	}
-
-	chatID, _ := c.Chat()
-	_, _ = c.Bot.EditMessageReplyMarkup(c, chatID, cq.Message.MessageID, nil)
 
 	_, err = c.Bot.SendMessage(c, chatID,
 		loc.T(i18n.Cmd.Stats.AskForNormName, nil),
@@ -221,7 +242,7 @@ func (h *Handler) ProcessNormNameCallback(c *botapi.Context) error {
 		return fmt.Errorf("parse summon norm: %w", err)
 	}
 	chatID, _ := c.Chat()
-	_, err = c.Bot.EditMessageReplyMarkup(c, chatID, cq.Message.MessageID, nil)
+	_, _ = c.Bot.EditMessageReplyMarkup(c, chatID, cq.Message.MessageID, nil)
 	n, err := h.normRepo.GetByID(c, normID)
 	if err != nil {
 		_ = h.statsFSM.Clear(c)
