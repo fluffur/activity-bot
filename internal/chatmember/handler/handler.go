@@ -200,8 +200,8 @@ func (h *Handler) Ship(c *botapi.Context) error {
 	first := members[0]
 	second := members[1]
 
-	firstMention := tghtml.MemberMention(loc, ch, first)
-	secondMention := tghtml.MemberMention(loc, ch, second)
+	firstMention := tghtml.MemberLink(loc, ch, first)
+	secondMention := tghtml.MemberLink(loc, ch, second)
 
 	var msg i18n.MessageID
 
@@ -264,6 +264,7 @@ func (h *Handler) Ship(c *botapi.Context) error {
 			},
 		),
 		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview(),
 	)
 
 	return err
