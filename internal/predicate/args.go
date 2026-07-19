@@ -12,6 +12,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/log"
 	"github.com/gotd/td/constant"
 	"github.com/gotd/td/tg"
@@ -74,8 +75,9 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 
 		replyUser, hasReply := r.resolveReplyUser(c, ch.ID)
 		replyUsed := false
-
+		spew.Dump(replyUser, hasReply)
 		for _, rul := range rules {
+			spew.Dump("RUL", rul)
 			count := rul.CountArgs
 			if count == rule.RuleVariadic {
 				count = 50
@@ -133,23 +135,22 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 				}
 			} else {
 				for i := 0; i < count; i++ {
+					matched := false
+
+					if rul.Type == rule.RuleUser && hasReply && !replyUsed {
+						parsed.Users = append(parsed.Users, replyUser)
+						replyUsed = true
+						parsedCount++
+						continue
+					}
+
 					toks := getFreeTokens(text, usedOffsets)
 					if len(toks) == 0 {
 						break
 					}
 
-					matched := false
-
 					for idx, tok := range toks {
 						if rul.Type == rule.RuleUser {
-							if hasReply && !replyUsed {
-								parsed.Users = append(parsed.Users, replyUser)
-								replyUsed = true
-								parsedCount++
-								matched = true
-								break
-							}
-
 							if cm, consumed, ok := r.resolveUserToken(c, ch.ID, toks[idx:]); ok {
 								parsed.Users = append(parsed.Users, cm)
 
@@ -185,7 +186,10 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 							if t, consumed, ok := tryParseAdvancedDateTime(toks[idx:]); ok {
 								parsed.DateTimes = append(parsed.DateTimes, t)
 								for k := 0; k < consumed; k++ {
-									usedOffsets = append(usedOffsets, Offset{toks[idx+k].start, toks[idx+k].end})
+									usedOffsets = append(usedOffsets, Offset{
+										Start: toks[idx+k].start,
+										End:   toks[idx+k].end,
+									})
 								}
 
 								parsedCount++
