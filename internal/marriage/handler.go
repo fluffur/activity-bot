@@ -606,6 +606,7 @@ func (h *Handler) ListMarriages(c *botapi.Context) error {
 	_, err = c.Reply(
 		b.String(),
 		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview(),
 	)
 
 	return err
