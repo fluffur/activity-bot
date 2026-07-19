@@ -196,6 +196,7 @@ func runBotInstance(
 		AppID:   cfg.AppID,
 		AppHash: cfg.AppHash,
 		Logger:  logzap.New(botLog),
+
 		Storage: store,
 		OnStart: func(ctx context.Context) {
 			registerBotCommands(ctx, bot, registry, loc)
