@@ -75,7 +75,6 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 
 		replyUser, hasReply := r.resolveReplyUser(c, ch.ID)
 		replyUsed := false
-		spew.Dump(replyUser, hasReply)
 		for _, rul := range rules {
 			spew.Dump("RUL", rul)
 			count := rul.CountArgs
@@ -115,8 +114,6 @@ func (r *RuleChecker) With(rules ...rule.Rule) botapi.Predicate {
 					usedOffsets = append(usedOffsets, Offset{startIdx, len(text)})
 					joinedText = strings.Trim(joinedText, " \t\r")
 				} else {
-					// 2. Стандартное поведение для обычных команд (без '\n'):
-					// Собираем текст строго из свободных токенов, игнорируя уже занятые числа/юзеров
 					var parts []string
 					for _, tok := range toks {
 						parts = append(parts, tok.text)
