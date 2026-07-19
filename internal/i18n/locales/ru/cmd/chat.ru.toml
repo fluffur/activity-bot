@@ -99,3 +99,6 @@ disabled = "Эмодзи в чате: выключены"
 
 [cmd.chat.ai]
 desc = "Задать вопрос боту"
+
+[cmd.chat.fake_leave]
+desc = "Имитировать выход из чата"
