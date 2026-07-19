@@ -37,7 +37,7 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithPermission(permission.StatusModerator),
 			option.WithAliases("+роль", "роль"),
 			option.WithRules(
-				rule.User().Optional(),
+				rule.User(),
 				rule.Text().Validate(isValidRoleString),
 			),
 		),
@@ -50,7 +50,7 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithPermission(permission.StatusCoOwner),
 			option.WithAliases("ароль", "адмроль"),
 			option.WithRules(
-				rule.User().Optional(),
+				rule.User(),
 				rule.Text().Validate(isValidRoleString),
 			),
 		),
