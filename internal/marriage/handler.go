@@ -568,13 +568,13 @@ func (h *Handler) ListMarriages(c *botapi.Context) error {
 			b.WriteString(strconv.Itoa(i + 1))
 			b.WriteString(". ")
 
-			b.WriteString(tghtml.MemberMention(loc, ch, m.User1))
+			b.WriteString(tghtml.MemberLink(loc, ch, m.User1))
 			b.WriteString(" + ")
 
 			if m.User1.User.ID == m.User2.User.ID {
 				b.WriteString(loc.T(i18n.Common.Self, nil))
 			} else {
-				b.WriteString(tghtml.MemberMention(loc, ch, m.User2))
+				b.WriteString(tghtml.MemberLink(loc, ch, m.User2))
 			}
 
 			if !m.MarriedAt.IsZero() {
