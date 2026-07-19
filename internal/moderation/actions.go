@@ -75,7 +75,7 @@ func (h *Handler) Ban(c *botapi.Context) error {
 	moderator := cctx.MustChatMember(c)
 	args := cctx.MustArgs(c)
 
-	target, ok := args.User()
+	target, ok := args.AnyUser()
 	if !ok || moderator.ID() == target.ID() {
 		return nil
 	}
@@ -122,7 +122,7 @@ func (h *Handler) Kick(c *botapi.Context) error {
 	moderator := cctx.MustChatMember(c)
 	args := cctx.MustArgs(c)
 
-	target, ok := args.User()
+	target, ok := args.AnyUser()
 	if !ok || moderator.ID() == target.ID() {
 		return nil
 	}
@@ -159,7 +159,7 @@ func (h *Handler) Mute(c *botapi.Context) error {
 	moderator := cctx.MustChatMember(c)
 	args := cctx.MustArgs(c)
 
-	target, ok := args.User()
+	target, ok := args.AnyUser()
 	if !ok || moderator.ID() == target.ID() {
 		return nil
 	}
