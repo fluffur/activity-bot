@@ -48,7 +48,7 @@ func (h *Handler) Actions() []*command.Action {
 			i18n.Cmd.Moderation.SetRoleAdmin.Desc,
 			CategoryModeration,
 			option.WithPermission(permission.StatusCoOwner),
-			option.WithAliases("+адмроль", "адмроль"),
+			option.WithAliases("ароль", "адмроль"),
 			option.WithRules(
 				rule.User().Optional(),
 				rule.Text().Validate(isValidRoleString),
