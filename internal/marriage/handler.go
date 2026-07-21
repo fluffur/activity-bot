@@ -112,6 +112,23 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithPermission(permission.StatusAdmin),
 			option.WithAliases("-полигамия"),
 		),
+		action.NewCommand(
+			"forcemarry",
+			h.ForceMarry,
+			i18n.Cmd.AdminMarry.Desc,
+			CategoryMarriage,
+			option.WithPermission(permission.StatusAdmin),
+			option.WithAliases("поженить", "поженить пару"),
+		),
+
+		action.NewCommand(
+			"forcedivorce",
+			h.ForceDivorce,
+			"Развести двух пользователей",
+			CategoryMarriage,
+			option.WithPermission(permission.StatusAdmin),
+			option.WithAliases("развести", "развести пару"),
+		),
 	}
 }
 
@@ -684,4 +701,125 @@ func parseMarriageCallbackUserID(data string) (int64, error) {
 		return 0, err
 	}
 	return userID, nil
+}
+
+func (h *Handler) ForceMarry(c *botapi.Context) error {
+	loc := cctx.MustLocalizer(c)
+	ch := cctx.MustChat(c)
+
+	users := cctx.MustArgs(c).Users
+	if len(users) < 2 {
+		_, err := c.Reply(
+			loc.T(i18n.Cmd.AdminMarry.InvalidTarget, nil),
+		)
+		return err
+	}
+
+	user1 := users[0]
+	user2 := users[1]
+
+	_, err := h.service.MarryDirect(
+		c,
+		ch.ID,
+		user1.User.ID,
+		user2.User.ID,
+		ch.AllowPolygamy,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrAlreadyMarried):
+			_, err = c.Reply(
+				loc.T(i18n.Cmd.AdminMarry.AlreadyMarried, nil),
+			)
+			return err
+
+		default:
+			_, err = c.Reply(
+				loc.T(i18n.Cmd.AdminMarry.Error, nil),
+			)
+			return err
+		}
+	}
+
+	user1Mention := tghtml.MemberMention(loc, ch, user1)
+	user2Mention := tghtml.MemberMention(loc, ch, user2)
+
+	_, err = c.Reply(
+		loc.T(
+			i18n.Cmd.AdminMarry.Success,
+			i18n.CmdAdminMarrySuccessData{
+				User1: user1Mention,
+				User2: user2Mention,
+			},
+		),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+	)
+
+	return err
+}
+
+func (h *Handler) ForceDivorce(c *botapi.Context) error {
+	loc := cctx.MustLocalizer(c)
+	ch := cctx.MustChat(c)
+
+	users := cctx.MustArgs(c).Users
+	if len(users) < 2 {
+		_, err := c.Reply(
+			loc.T(i18n.Cmd.AdminDivorce.InvalidTarget, nil),
+		)
+		return err
+	}
+
+	user1 := users[0]
+	user2 := users[1]
+
+	marriage, err := h.service.GetMarriage(
+		c,
+		ch.ID,
+		user1.User.ID,
+	)
+
+	if err != nil {
+		_, err := c.Reply(
+			loc.T(i18n.Cmd.AdminDivorce.Error, nil),
+		)
+		return err
+	}
+
+	if marriage == nil ||
+		(marriage.User1.User.ID != user2.User.ID &&
+			marriage.User2.User.ID != user2.User.ID) {
+		_, err := c.Reply(
+			loc.T(i18n.Cmd.AdminDivorce.NoMarriage, nil),
+		)
+		return err
+	}
+
+	if err := h.service.AdminDivorce(
+		c,
+		ch.ID,
+		marriage.ID,
+	); err != nil {
+		_, err := c.Reply(
+			loc.T(i18n.Cmd.AdminDivorce.Error, nil),
+		)
+		return err
+	}
+
+	user1Mention := tghtml.MemberMention(loc, ch, user1)
+	user2Mention := tghtml.MemberMention(loc, ch, user2)
+
+	_, err = c.Reply(
+		loc.T(
+			i18n.Cmd.AdminDivorce.Success,
+			i18n.CmdAdminDivorceSuccessData{
+				User1: user1Mention,
+				User2: user2Mention,
+			},
+		),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+	)
+
+	return err
 }

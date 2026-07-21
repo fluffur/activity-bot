@@ -187,32 +187,10 @@ func (s *Service) ListMarriages(ctx context.Context, chatID int64) ([]Marriage, 
 	return s.repo.ListActiveMarriages(ctx, chatID)
 }
 
-func (s *Service) ForceMarry(
+func (s *Service) AdminDivorce(
 	ctx context.Context,
-	chatID, user1ID, user2ID int64,
-	allowPolygamy bool,
-) (*Marriage, error) {
-
-	if !allowPolygamy {
-		if m, err := s.repo.GetActiveMarriage(ctx, chatID, user1ID); err != nil {
-			return nil, err
-		} else if m != nil {
-			return nil, ErrAlreadyMarried
-		}
-
-		if user1ID != user2ID {
-			if m, err := s.repo.GetActiveMarriage(ctx, chatID, user2ID); err != nil {
-				return nil, err
-			} else if m != nil {
-				return nil, ErrAlreadyMarried
-			}
-		}
-	}
-
-	m, err := s.repo.CreateMarriage(ctx, chatID, user1ID, user2ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &m, nil
+	chatID int64,
+	marriageID int64,
+) error {
+	return s.repo.DivorceMarriage(ctx, marriageID, chatID)
 }
