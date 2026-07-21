@@ -217,6 +217,7 @@ func runBotInstance(
 		userRepository,
 		chatMemberRepository,
 		messageRepository,
+		summonH,
 	)
 
 	register.Attach(bot, registry, permissions, rules, rpRepository)
@@ -261,6 +262,7 @@ func registerMiddlewares(
 	userRepository user.Repository,
 	chatMemberRepository chatmember.Repository,
 	messageRepository message.Repository,
+	summonH *summon.Handler,
 ) {
 	bot.UseOuter(
 		middleware.ChatMiddleware(chatRepository, pmSessionRepository),
@@ -268,7 +270,7 @@ func registerMiddlewares(
 		middleware.ChatMemberMiddleware(
 			userRepository,
 			chatMemberRepository,
-			events.NewUsernameChangedNotifier(chatMemberRepository),
+			events.NewUsernameChangedNotifier(chatMemberRepository, summonH),
 		),
 		middleware.SaveMessageMiddleware(messageRepository),
 	)

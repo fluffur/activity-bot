@@ -160,7 +160,7 @@ func SendMessages(
 		return err
 	}
 	inputPeer := peer.InputPeer()
-	for _, group := range groups {
+	for i, group := range groups {
 		if err := limiter.Wait(c.Background()); err != nil {
 			return err
 		}
@@ -173,7 +173,10 @@ func SendMessages(
 			group,
 			mentionTypes,
 		)
-
+		if i == len(groups)-1 {
+			eb.Plain("\n\n")
+			eb.Plain(loc.T(i18n.Cmd.Summon.Completed, nil))
+		}
 		finalText, entities := eb.Complete()
 
 		_, err = c.Bot.Raw().MessagesSendMessage(
@@ -193,16 +196,6 @@ func SendMessages(
 			return err
 		}
 	}
-
-	if err := limiter.Wait(c.Background()); err != nil {
-		return err
-	}
-
-	_, err = c.Bot.SendMessage(
-		c.Background(),
-		chatID,
-		loc.T(i18n.Cmd.Summon.Completed, nil),
-	)
 
 	return err
 }

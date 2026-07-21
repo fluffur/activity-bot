@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"activity-bot/internal/permission"
 	"context"
 	"time"
 )
@@ -90,6 +91,10 @@ func (s *Service) SetEmojisEnabled(ctx context.Context, chatID int64, enabled bo
 
 func (s *Service) SetPolygamyEnabled(ctx context.Context, chatID int64, enabled bool) error {
 	return s.repo.SetPolygamyEnabled(ctx, chatID, enabled)
+}
+
+func (s *Service) SetNotifyUsernameChangedStatus(ctx context.Context, chatID int64, status permission.Status) error {
+	return s.repo.SetNotifyUsernameChangedStatus(ctx, chatID, status)
 }
 
 func (s *Service) GetChatsWithoutTitle(ctx context.Context) ([]Chat, error) {

@@ -144,7 +144,28 @@ func (h *Handler) Actions() []*command.Action {
 			CategoryChat,
 			option.WithAliases("-эмодзи"),
 		),
-		action.NewCommand("fakeleave", h.FakeLeave, i18n.Cmd.Chat.FakeLeave.Desc, CategoryChat, option.WithAliases("фейклив")),
+		action.NewCommand(
+			"fakeleave",
+			h.FakeLeave,
+			i18n.Cmd.Chat.FakeLeave.Desc,
+			CategoryChat,
+			option.WithAliases("фейклив"),
+		),
+		action.NewCommand(
+			"usernamenotify",
+			h.SetNotifyUsernameChangedStatus,
+			i18n.Cmd.Chat.SetNotifyUsernameChangedStatus.Desc,
+			CategoryChat,
+			option.WithRules(rule.Number()),
+			option.WithAliases(
+				"уведомления смена имени",
+				"уведомление смены имени",
+				"уведомлять смену имени",
+				"смена имени",
+				"смена ника",
+				"ник",
+			),
+		),
 	}
 }
 
@@ -413,4 +434,25 @@ func (h *Handler) FakeLeave(c *botapi.Context) error {
 		return err
 	}
 	return nil
+}
+
+func (h *Handler) SetNotifyUsernameChangedStatus(c *botapi.Context) error {
+	n, ok := cctx.MustArgs(c).Number()
+	if !ok {
+		return nil
+	}
+	status := permission.Status(n)
+	if !status.IsDisabled() && !status.IsValid() {
+		return nil
+	}
+
+	ch := cctx.MustChat(c)
+
+	if err := h.service.SetNotifyUsernameChangedStatus(c, ch.ID, status); err != nil {
+		return fmt.Errorf("set username notify changed status: %w", err)
+	}
+
+	loc := cctx.MustLocalizer(c)
+	_, err := c.Reply(loc.T(i18n.Cmd.Chat.SetNotifyUsernameChangedStatus.Success, nil))
+	return err
 }

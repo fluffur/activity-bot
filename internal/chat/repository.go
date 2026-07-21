@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"activity-bot/internal/permission"
 	"context"
 )
 
@@ -24,4 +25,5 @@ type Repository interface {
 	SetAllowPrefixless(ctx context.Context, chatID int64, allow bool) error
 	SetCommandPrefix(ctx context.Context, chatID int64, prefix string) error
 	SetPolygamyEnabled(ctx context.Context, chatID int64, enabled bool) error
+	SetNotifyUsernameChangedStatus(ctx context.Context, chatID int64, status permission.Status) error
 }

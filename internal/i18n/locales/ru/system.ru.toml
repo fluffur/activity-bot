@@ -10,9 +10,20 @@ no_permission = "Для выполнения этой команды требу�
 canceled = "Действие отменено"
 
 [system.username_changed]
-male = "{{.User}} сменил юзернейм {{.OldUsername}} ➜ {{.NewUsername}}"
-female = "{{.User}} сменила юзернейм {{.OldUsername}} ➜ {{.NewUsername}}"
-unknown = "{{.User}} сменил юзернейм {{.OldUsername}} ➜ {{.NewUsername}}"
+male = "{{.User}} сменил имя пользователя {{.OldUsername}} ➜ {{.NewUsername}}"
+female = "{{.User}} сменила имя пользователя {{.OldUsername}} ➜ {{.NewUsername}}"
+unknown = "{{.User}} сменил имя пользователя {{.OldUsername}} ➜ {{.NewUsername}}"
+
+[system.username_added]
+male = "{{.User}} установил имя пользователя {{.NewUsername}}"
+female = "{{.User}} установила имя пользователя {{.NewUsername}}"
+unknown = "{{.User}} установил имя пользователя {{.NewUsername}}"
+
+[system.username_deleted]
+male = "{{.User}} удалил имя пользователя {{.OldUsername}} "
+female = "{{.User}} удалила имя пользователя {{.OldUsername}}"
+unknown = "{{.User}} удалил имя пользователя {{.OldUsername}}"
+
 
 [system.gender]
 male = "мужской"

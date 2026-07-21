@@ -150,26 +150,27 @@ type BotDeveloper struct {
 }
 
 type Chat struct {
-	ID                   int64              `db:"id" json:"id"`
-	NewbieThresholdDays  int32              `db:"newbie_threshold_days" json:"newbieThresholdDays"`
-	AiSystemPrompt       pgtype.Text        `db:"ai_system_prompt" json:"aiSystemPrompt"`
-	MaxLadder            int32              `db:"max_ladder" json:"maxLadder"`
-	CallOnJoin           bool               `db:"call_on_join" json:"callOnJoin"`
-	WelcomeCallMessage   pgtype.Text        `db:"welcome_call_message" json:"welcomeCallMessage"`
-	WeekStartDay         int16              `db:"week_start_day" json:"weekStartDay"`
-	MaxWarns             int32              `db:"max_warns" json:"maxWarns"`
-	CommandPrefix        pgtype.Text        `db:"command_prefix" json:"commandPrefix"`
-	AllowPrefixless      bool               `db:"allow_prefixless" json:"allowPrefixless"`
-	MentionsPerMessage   int32              `db:"mentions_per_message" json:"mentionsPerMessage"`
-	MentionTypes         int32              `db:"mention_types" json:"mentionTypes"`
-	Title                string             `db:"title" json:"title"`
-	TagsEnabled          bool               `db:"tags_enabled" json:"tagsEnabled"`
-	WeekStartTime        pgtype.Time        `db:"week_start_time" json:"weekStartTime"`
-	BroadcastEnabled     bool               `db:"broadcast_enabled" json:"broadcastEnabled"`
-	RemovedAt            pgtype.Timestamptz `db:"removed_at" json:"removedAt"`
-	EmojisEnabled        bool               `db:"emojis_enabled" json:"emojisEnabled"`
-	SkipCallConfirmation bool               `db:"skip_call_confirmation" json:"skipCallConfirmation"`
-	AllowPolygamy        bool               `db:"allow_polygamy" json:"allowPolygamy"`
+	ID                          int64              `db:"id" json:"id"`
+	NewbieThresholdDays         int32              `db:"newbie_threshold_days" json:"newbieThresholdDays"`
+	AiSystemPrompt              pgtype.Text        `db:"ai_system_prompt" json:"aiSystemPrompt"`
+	MaxLadder                   int32              `db:"max_ladder" json:"maxLadder"`
+	CallOnJoin                  bool               `db:"call_on_join" json:"callOnJoin"`
+	WelcomeCallMessage          pgtype.Text        `db:"welcome_call_message" json:"welcomeCallMessage"`
+	WeekStartDay                int16              `db:"week_start_day" json:"weekStartDay"`
+	MaxWarns                    int32              `db:"max_warns" json:"maxWarns"`
+	CommandPrefix               pgtype.Text        `db:"command_prefix" json:"commandPrefix"`
+	AllowPrefixless             bool               `db:"allow_prefixless" json:"allowPrefixless"`
+	MentionsPerMessage          int32              `db:"mentions_per_message" json:"mentionsPerMessage"`
+	MentionTypes                int32              `db:"mention_types" json:"mentionTypes"`
+	Title                       string             `db:"title" json:"title"`
+	TagsEnabled                 bool               `db:"tags_enabled" json:"tagsEnabled"`
+	WeekStartTime               pgtype.Time        `db:"week_start_time" json:"weekStartTime"`
+	BroadcastEnabled            bool               `db:"broadcast_enabled" json:"broadcastEnabled"`
+	RemovedAt                   pgtype.Timestamptz `db:"removed_at" json:"removedAt"`
+	EmojisEnabled               bool               `db:"emojis_enabled" json:"emojisEnabled"`
+	SkipCallConfirmation        bool               `db:"skip_call_confirmation" json:"skipCallConfirmation"`
+	AllowPolygamy               bool               `db:"allow_polygamy" json:"allowPolygamy"`
+	UsernameChangedNotifyStatus int16              `db:"username_changed_notify_status" json:"usernameChangedNotifyStatus"`
 }
 
 type ChatMember struct {

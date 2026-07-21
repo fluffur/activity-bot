@@ -171,3 +171,8 @@ WHERE id = $2;
 UPDATE chats
 SET allow_polygamy = $1
 WHERE id = $2;
+
+-- name: SetUsernameChangeNotifyStatus :exec
+UPDATE chats
+SET username_changed_notify_status = $1
+WHERE id = $2;

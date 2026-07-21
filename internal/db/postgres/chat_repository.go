@@ -3,6 +3,7 @@ package postgres
 import (
 	"activity-bot/internal/chat"
 	db "activity-bot/internal/db/postgres/sqlc"
+	"activity-bot/internal/permission"
 	"context"
 	"time"
 
@@ -190,5 +191,12 @@ func (r *ChatRepository) SetPolygamyEnabled(ctx context.Context, chatID int64, e
 	return r.queries.SetAllowPolygamy(ctx, db.SetAllowPolygamyParams{
 		AllowPolygamy: enabled,
 		ID:            chatID,
+	})
+}
+
+func (r *ChatRepository) SetNotifyUsernameChangedStatus(ctx context.Context, chatID int64, status permission.Status) error {
+	return r.queries.SetUsernameChangeNotifyStatus(ctx, db.SetUsernameChangeNotifyStatusParams{
+		UsernameChangedNotifyStatus: int16(status),
+		ID:                          chatID,
 	})
 }

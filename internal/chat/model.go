@@ -1,6 +1,9 @@
 package chat
 
-import "time"
+import (
+	"activity-bot/internal/permission"
+	"time"
+)
 
 type MentionTypes int32
 
@@ -27,29 +30,30 @@ func (t *MentionTypes) Remove(flag MentionTypes) {
 }
 
 type Chat struct {
-	ID                   int64
-	Title                string
-	Lang                 string
-	NormWarn             int32
-	NormBan              int32
-	NewbieThresholdDays  int32
-	AISystemPrompt       string
-	MaxLadder            int32
-	WelcomeCallMessage   string
-	CallOnJoin           bool
-	SkipCallConfirmation bool
-	WeekStartDay         int16
-	WeekStartTime        int64
-	CommandPrefix        string
-	AllowPrefixless      bool
-	MentionsPerMessage   int32
-	MentionTypes         MentionTypes
-	TagsEnabled          bool
-	WeekStartTimeMicros  int64
-	MaxWarns             int32
-	EmojisEnabled        bool
-	AllowPolygamy        bool
-	RemovedAt            time.Time
+	ID                          int64
+	Title                       string
+	Lang                        string
+	NormWarn                    int32
+	NormBan                     int32
+	NewbieThresholdDays         int32
+	AISystemPrompt              string
+	MaxLadder                   int32
+	WelcomeCallMessage          string
+	CallOnJoin                  bool
+	SkipCallConfirmation        bool
+	WeekStartDay                int16
+	WeekStartTime               int64
+	CommandPrefix               string
+	AllowPrefixless             bool
+	MentionsPerMessage          int32
+	MentionTypes                MentionTypes
+	TagsEnabled                 bool
+	WeekStartTimeMicros         int64
+	MaxWarns                    int32
+	EmojisEnabled               bool
+	AllowPolygamy               bool
+	UsernameChangedNotifyStatus permission.Status
+	RemovedAt                   time.Time
 }
 
 func New(id int64, title string) Chat {
