@@ -8,7 +8,6 @@ import (
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/option"
 	"activity-bot/internal/permission"
-	"activity-bot/internal/predicate"
 	"activity-bot/internal/rule"
 	"activity-bot/internal/utils/tghtml"
 	"fmt"
@@ -55,7 +54,6 @@ func (h *Handler) Actions() []*command.Action {
 			i18n.Cmd.Chat.ShowPrompt.Desc,
 			CategoryChat,
 			option.WithAliases("промпт"),
-			option.WithPredicates(predicate.SensitiveCommand()),
 		),
 
 		action.NewCommand(

@@ -42,6 +42,7 @@ func (h *Handler) Actions() []*command.Action {
 			h.RemoveEmoji,
 			i18n.Cmd.User.RemoveEmoji.Desc,
 			CategoryUser,
+			option.WithAliases("-эмодзи", "-эмоджи"),
 		),
 		action.NewCommand(
 			"emoji",

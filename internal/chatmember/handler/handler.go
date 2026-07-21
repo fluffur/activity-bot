@@ -56,7 +56,7 @@ func (h *Handler) Actions() []*command.Action {
 			h.RemoveEmoji,
 			i18n.Cmd.ChatMember.RemoveEmoji.Desc,
 			CategoryChatMember,
-			option.WithAliases("значок", "чат эмодзи"),
+			option.WithAliases("-значок", "-чат эмодзи"),
 			option.WithRules(rule.User().Optional()),
 			option.WithPermission(permission.StatusModerator),
 			option.IgnorePermissionCheck(),
