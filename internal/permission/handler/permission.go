@@ -71,7 +71,7 @@ func (h *Handler) SetPermission(c *botapi.Context) error {
 
 	cmd, ok := h.registry.FindByKeyOrAlias(textNoPrefix)
 	if !ok {
-		return fmt.Errorf("no such permission")
+		return nil
 	}
 	loc := cctx.MustLocalizer(c)
 

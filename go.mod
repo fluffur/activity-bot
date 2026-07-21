@@ -2,7 +2,7 @@ module activity-bot
 
 go 1.26.0
 
-replace github.com/gotd/botapi v0.2.1-0.20260622211259-fbef619ad792 => github.com/fluffur/botapi v0.0.0-20260629051251-932de80d62b8
+replace github.com/gotd/botapi v0.2.1-0.20260622211259-fbef619ad792 => github.com/fluffur/botapi v0.0.0-20260721070311-628d6a676af8
 
 require (
 	github.com/BurntSushi/toml v1.6.0
@@ -20,6 +20,7 @@ require (
 	github.com/pressly/goose/v3 v3.27.1
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/rivo/uniseg v0.4.7
+	github.com/samber/lo v1.53.0
 	go.uber.org/zap v1.28.0
 	golang.org/x/text v0.38.0
 	golang.org/x/time v0.15.0
@@ -55,7 +56,6 @@ require (
 	github.com/ogen-go/ogen v1.22.0 // indirect
 	github.com/ollama/ollama v0.24.0 // indirect
 	github.com/refraction-networking/utls v1.8.2 // indirect
-	github.com/samber/lo v1.53.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect

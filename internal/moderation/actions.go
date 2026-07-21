@@ -87,11 +87,6 @@ func (h *Handler) Ban(c *botapi.Context) error {
 
 	reason, _ := args.Text()
 	ch := cctx.MustChat(c)
-
-	if err := h.service.Ban(c, ch.ID, target, moderator, until, reason); err != nil {
-		return fmt.Errorf("service ban: %w", err)
-	}
-
 	if err := c.Bot.BanChatMember(
 		c,
 		botapi.ID(ch.ID),
@@ -99,6 +94,10 @@ func (h *Handler) Ban(c *botapi.Context) error {
 		botapi.WithBanUntil(int(until.Unix())),
 	); err != nil {
 		return fmt.Errorf("bot ban: %w", err)
+	}
+
+	if err := h.service.Ban(c, ch.ID, target, moderator, until, reason); err != nil {
+		return fmt.Errorf("service ban: %w", err)
 	}
 
 	loc := cctx.MustLocalizer(c)
