@@ -11,8 +11,14 @@ import (
 
 func GetChatMembers(bot *botapi.Bot, ctx context.Context, e tg.Entities, channelID int64) ([]botapi.ChatMember, error) {
 	channelID = BotAPIChatIDToChannelID(channelID)
+
+	channel, ok := e.Channels[channelID]
+	if !ok {
+		return nil, fmt.Errorf("channel %d not found in entities", channelID)
+	}
+
 	res, err := bot.Raw().ChannelsGetParticipants(ctx, &tg.ChannelsGetParticipantsRequest{
-		Channel: e.Channels[channelID].AsInput(),
+		Channel: channel.AsInput(),
 		Filter:  &tg.ChannelParticipantsRecent{},
 		Limit:   200,
 	})
@@ -25,7 +31,12 @@ func GetChatMembers(bot *botapi.Bot, ctx context.Context, e tg.Entities, channel
 		return nil, fmt.Errorf("sync participants as modified")
 	}
 
+	if err := bot.Peers().Apply(ctx, participants.Users, nil); err != nil {
+		return nil, fmt.Errorf("apply participant peers: %w", err)
+	}
+
 	users := usersByID(participants.Users)
+
 	out := make([]botapi.ChatMember, 0, len(participants.Participants))
 
 	for _, p := range participants.Participants {
