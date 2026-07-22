@@ -23,6 +23,9 @@ jobs:
       - name: Build Migrate binary
         run: CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o migrate cmd/migrate/main.go
 
+      - name: Build Seed binary
+        run: CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o seed cmd/seed/main.go
+
       - name: Copy binaries to VDS
         uses: appleboy/scp-action@v0.1.4
         with:
