@@ -47,7 +47,7 @@ jobs:
             cd /root/activity-bot
 
             # Make sure binaries are executable
-            chmod +x bot migrate || true
+            chmod +x bot migrate seed || true
 
             mkdir -p backups
             ls -1t backups/*.sql 2>/dev/null | tail -n +4 | xargs -r rm -f || true
