@@ -15,9 +15,10 @@ import (
 const CategoryCrocodile command.Category = "crocodile"
 
 const (
-	callbackNextWord = "crocodile_next"
-	callbackShowWord = "crocodile_show"
-	callbackFinish   = "crocodile_finish"
+	callbackNextWord   = "crocodile_next"
+	callbackShowWord   = "crocodile_show"
+	callbackFinish     = "crocodile_finish"
+	callbackBecomeHost = "crocodile_host"
 )
 
 type Handler struct {
@@ -70,6 +71,12 @@ func (h *Handler) Actions() []*command.Action {
 			h.HandleMessage,
 			CategoryCrocodile,
 			option.WithPredicates(IsCrocodileGameActive(h.service)),
+		),
+		action.NewCallback(
+			"crocodilehost",
+			callbackBecomeHost,
+			h.BecomeHost,
+			CategoryCrocodile,
 		),
 	}
 }
@@ -255,7 +262,7 @@ func (h *Handler) Finish(c *botapi.Context) error {
 		c,
 		chatID,
 		cb.Message.MessageID,
-		loc.T(i18n.Cmd.Crocodile.Finished, nil),
+		loc.T(i18n.Cmd.Crocodile.Callback.Finished, nil),
 	)
 
 	return c.AnswerCallback()
@@ -336,6 +343,15 @@ func (h *Handler) HandleMessage(c *botapi.Context) error {
 		sender,
 	)
 
+	keyboard := botapi.InlineKeyboard(
+		botapi.InlineRow(
+			botapi.InlineButtonData(
+				loc.T(i18n.Cmd.Crocodile.Button.BecomeHost, nil),
+				callbackBecomeHost,
+			),
+		),
+	)
+
 	_, err = c.Reply(
 		loc.T(
 			i18n.Cmd.Crocodile.Winner,
@@ -345,7 +361,114 @@ func (h *Handler) HandleMessage(c *botapi.Context) error {
 			},
 		),
 		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.WithReplyMarkup(keyboard),
+	)
+	return err
+}
+
+func (h *Handler) BecomeHost(c *botapi.Context) error {
+	cb := c.Update.CallbackQuery
+	if cb == nil {
+		return nil
+	}
+
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
+	cm := cctx.MustChatMember(c)
+
+	_, err := h.service.Start(
+		c,
+		ch.ID,
+		cb.From.ID,
 	)
 
-	return err
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrGameAlreadyExists):
+			return c.AnswerCallback(
+				botapi.WithCallbackText(
+					loc.T(
+						i18n.Cmd.Crocodile.Error.AlreadyStarted,
+						nil,
+					),
+				),
+			)
+
+		default:
+			return c.AnswerCallback(
+				botapi.WithCallbackText(
+					loc.T(
+						i18n.Cmd.Crocodile.Error.Start,
+						nil,
+					),
+				),
+			)
+		}
+	}
+
+	mention := tghtml.MemberMention(
+		loc,
+		ch,
+		cm,
+	)
+
+	chatID, _ := c.Chat()
+	_, err = c.Bot.EditMessageText(
+		c,
+		chatID,
+		cb.Message.MessageID,
+		cb.Message.Text+"\n\n"+loc.T(
+			i18n.Cmd.Crocodile.Continued,
+			i18n.CmdCrocodileContinuedData{
+				User: mention,
+			},
+		),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	keyboard := botapi.InlineKeyboard(
+		botapi.InlineRow(
+			botapi.InlineButtonData(
+				loc.T(i18n.Cmd.Crocodile.Button.ShowWord, nil),
+				callbackShowWord,
+			),
+			botapi.InlineButtonData(
+				loc.T(i18n.Cmd.Crocodile.Button.Next, nil),
+				callbackNextWord,
+			),
+		),
+		botapi.InlineRow(
+			botapi.InlineButtonData(
+				loc.T(i18n.Cmd.Crocodile.Button.Finish, nil),
+				callbackFinish,
+			),
+		),
+	)
+
+	_, err = c.Bot.SendMessage(
+		c,
+		chatID,
+		loc.T(
+			i18n.Cmd.Crocodile.Started,
+			i18n.CmdCrocodileStartedData{
+				Host: mention,
+			},
+		),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.WithReplyMarkup(keyboard),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return c.AnswerCallback(
+		botapi.WithCallbackText(
+			loc.T(i18n.Cmd.Crocodile.Callback.Host, nil),
+		),
+	)
 }
