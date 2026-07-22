@@ -1,0 +1,46 @@
+[cmd.crocodile]
+desc = "Начать игру в Крокодил"
+
+started = "🎭 Игра в Крокодил началась!\n\nВедущий: {{.Host}}\n\nНажми кнопку ниже, чтобы получить слово"
+stopped = "🛑 Игра в Крокодил завершена"
+
+word = "🎭 Твоё слово: <b>{{.Word}}</b>"
+
+already_started = "⚠️ В этом чате уже идёт игра"
+
+winner = "🎉 {{.User}} угадал слово <b>{{.Word}}</b>!"
+
+[cmd.crocodile.error]
+already_started = "⚠️ В этом чате уже идёт игра"
+not_started = "⚠️ Сейчас нет активной игры"
+not_host = "❌ Это действие может выполнить только ведущий"
+next_word = "❌ Не удалось получить новое слово"
+finish = "❌ Не удалось завершить игру"
+
+[cmd.crocodile.button]
+show_word = "🎭 Показать слово"
+next = "🔄 Другое слово"
+finish = "🏁 Завершить"
+
+[cmd.crocodile.callback]
+word = "Твоё слово: {{.Word}}"
+next = "Новое слово выбрано"
+finished = "Игра завершена"
+
+[cmd.stop_crocodile]
+desc = "Остановить игру в Крокодил"
+
+[cmd.crocodile.skip]
+success = "⏭️ Слово пропущено"
+
+[cmd.crocodile.timeout]
+message = "⌛ Время вышло! Загаданное слово было: <b>{{.Word}}</b>"
+
+[cmd.crocodile.host]
+left = "🛑 Ведущий покинул чат. Игра завершена"
+
+[cmd.crocodile.game]
+ended = "🏁 Игра окончена"
+
+[cmd.crocodile.stop]
+desc = "Остановить игру"

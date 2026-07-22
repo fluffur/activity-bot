@@ -1,6 +1,8 @@
 package main
 
 import (
+	"activity-bot/internal/crocodile"
+	redis2 "activity-bot/internal/db/redis"
 	"context"
 	"fmt"
 	"os"
@@ -142,6 +144,8 @@ func runBotInstance(
 	moderationRepository := postgres.NewModerationRepository(queries)
 	marriageRepository := postgres.NewMarriageRepository(queries)
 	rpRepository := postgres.NewRPRepository(queries)
+	crocodileRepository := redis2.NewCrocodileRepository(redisClient)
+	wordRepository := postgres.NewWordRepository(queries)
 
 	chatService := chat.NewService(chatRepository, cfg.DeveloperID)
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
@@ -149,6 +153,7 @@ func runBotInstance(
 	restService := rest.NewService(restRepository)
 	marriageService := marriage.NewService(marriageRepository)
 	moderationService := moderation.NewService(moderationRepository, chatMemberRepository, cfg.DeveloperID)
+	crocodileService := crocodile.NewService(crocodileRepository, wordRepository)
 
 	loc := translator.Default()
 
@@ -185,6 +190,7 @@ func runBotInstance(
 		chatHandler.NewHandler(chatService),
 		ai.NewHandler(deepseekClient),
 		rpHandler.NewHandler(rpRepository),
+		crocodile.NewHandler(crocodileService),
 	}
 
 	for _, h := range handlers {

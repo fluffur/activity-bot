@@ -216,6 +216,16 @@ type CommandPermission struct {
 	RequiredStatus int16  `db:"required_status" json:"requiredStatus"`
 }
 
+type CrocodileWord struct {
+	ID         int64            `db:"id" json:"id"`
+	Word       string           `db:"word" json:"word"`
+	Category   string           `db:"category" json:"category"`
+	Difficulty int16            `db:"difficulty" json:"difficulty"`
+	UsedCount  int32            `db:"used_count" json:"usedCount"`
+	CreatedAt  pgtype.Timestamp `db:"created_at" json:"createdAt"`
+	LastUsedAt pgtype.Timestamp `db:"last_used_at" json:"lastUsedAt"`
+}
+
 type Marriage struct {
 	ID         int64              `db:"id" json:"id"`
 	ChatID     int64              `db:"chat_id" json:"chatId"`
