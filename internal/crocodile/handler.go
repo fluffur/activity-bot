@@ -38,7 +38,7 @@ func (h *Handler) Actions() []*command.Action {
 			h.Start,
 			i18n.Cmd.Crocodile.Desc,
 			CategoryCrocodile,
-			option.WithAliases("крокодил"),
+			option.WithAliases("крокодил", "крискадил"),
 		),
 
 		action.NewCommand(
@@ -46,7 +46,7 @@ func (h *Handler) Actions() []*command.Action {
 			h.Stop,
 			i18n.Cmd.Crocodile.Stop.Desc,
 			CategoryCrocodile,
-			option.WithAliases("стопкрокодил"),
+			option.WithAliases("стоп крокодил"),
 		),
 		action.NewCallback(
 			"crocodilenext",
