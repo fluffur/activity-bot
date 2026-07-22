@@ -263,6 +263,7 @@ func (h *Handler) Finish(c *botapi.Context) error {
 		chatID,
 		cb.Message.MessageID,
 		loc.T(i18n.Cmd.Crocodile.Callback.Finished, nil),
+		botapi.WithReplyMarkup(becomeHostKeyboard(loc)),
 	)
 
 	return c.AnswerCallback()
@@ -343,15 +344,6 @@ func (h *Handler) HandleMessage(c *botapi.Context) error {
 		sender,
 	)
 
-	keyboard := botapi.InlineKeyboard(
-		botapi.InlineRow(
-			botapi.InlineButtonData(
-				loc.T(i18n.Cmd.Crocodile.Button.BecomeHost, nil),
-				callbackBecomeHost,
-			),
-		),
-	)
-
 	_, err = c.Reply(
 		loc.T(
 			i18n.Cmd.Crocodile.Winner,
@@ -361,9 +353,20 @@ func (h *Handler) HandleMessage(c *botapi.Context) error {
 			},
 		),
 		botapi.WithParseMode(botapi.ParseModeHTML),
-		botapi.WithReplyMarkup(keyboard),
+		botapi.WithReplyMarkup(becomeHostKeyboard(loc)),
 	)
 	return err
+}
+
+func becomeHostKeyboard(loc *i18n.Localizer) *botapi.InlineKeyboardMarkup {
+	return botapi.InlineKeyboard(
+		botapi.InlineRow(
+			botapi.InlineButtonData(
+				loc.T(i18n.Cmd.Crocodile.Button.BecomeHost, nil),
+				callbackBecomeHost,
+			),
+		),
+	)
 }
 
 func (h *Handler) BecomeHost(c *botapi.Context) error {
