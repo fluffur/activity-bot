@@ -172,7 +172,6 @@ func (s *Service) GetChatStats(ctx context.Context, chatID int64, fromDate, toDa
 			continue
 		}
 
-		// Иначе применяем все общие.
 		for _, n := range commonNorms {
 			r := normMap[n.ID]
 
@@ -184,11 +183,26 @@ func (s *Service) GetChatStats(ctx context.Context, chatID int64, fromDate, toDa
 		}
 	}
 
+	for _, r := range normMap {
+		sortResults(r.Passed)
+		sortResults(r.Failed)
+	}
+
 	for _, n := range norms {
 		res.NormResults = append(res.NormResults, *normMap[n.ID])
 	}
 
 	return res, nil
+}
+
+func sortResults(users []UserResult) {
+	slices.SortFunc(users, func(a, b UserResult) int {
+		if c := cmp.Compare(b.Messages, a.Messages); c != 0 {
+			return c
+		}
+
+		return cmp.Compare(a.Member.User.FirstName, b.Member.User.FirstName)
+	})
 }
 
 func (s *Service) GetProfileStats(
