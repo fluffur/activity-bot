@@ -464,10 +464,6 @@ func runApplicationBot(
 		"start",
 		"Запустить бота",
 		func(c *botapi.Context) error {
-			if c.Message().Chat.Type != botapi.ChatTypePrivate {
-				return nil
-			}
-
 			if err := appFSM.Enter(
 				c,
 				AppStateAwaitRole,
@@ -529,10 +525,9 @@ func runApplicationBot(
 				}
 			}
 
-			sender := c.Sender()
 			var senderID int64
 			var username, firstname, lastname string
-			if sender != nil {
+			if sender := c.Sender(); sender != nil {
 				username = sender.Username
 				firstname = sender.FirstName
 				lastname = sender.LastName
@@ -572,7 +567,7 @@ func runApplicationBot(
 			}
 
 			data := ApplicationStateData{
-				UserID:   sender.ID,
+				UserID:   senderID,
 				ChatID:   int64(chatID),
 				Role:     role,
 				Username: username,
@@ -587,7 +582,7 @@ func runApplicationBot(
 			}
 
 			appID := strconv.FormatInt(
-				sender.ID,
+				senderID,
 				10,
 			)
 
