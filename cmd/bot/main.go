@@ -460,189 +460,219 @@ func runApplicationBot(
 		return fmt.Errorf("create application bot: %w", err)
 	}
 
-	bot.OnMessage(func(c *botapi.Context) error {
-		msg := c.Message()
-		if msg == nil {
-			return nil
-		}
+	bot.OnCommand(
+		"start",
+		"Запустить бота",
+		func(c *botapi.Context) error {
+			if c.Message().Chat.Type != botapi.ChatTypePrivate {
+				return nil
+			}
 
-		if msg.Chat.Type != botapi.ChatTypePrivate {
-			return nil
-		}
-
-		if strings.HasPrefix(msg.Text, "/start") {
-			return func() error {
-				if err := appFSM.Enter(
-					c,
-					AppStateAwaitRole,
-					ApplicationStateData{},
-				); err != nil {
-					return err
-				}
-
-				_, err := c.Reply("Здравствуйте, укажите желаемую роль")
+			if err := appFSM.Enter(
+				c,
+				AppStateAwaitRole,
+				ApplicationStateData{},
+			); err != nil {
 				return err
-			}()
-		}
+			}
 
-		session, ok, err := appFSM.Get(c)
-		if err != nil {
-			return err
-		}
-
-		if !ok || session.State != AppStateAwaitRole {
-			return nil
-		}
-
-		role := strings.TrimSpace(msg.Text)
-
-		if role == "" {
-			_, err := c.Reply("Пожалуйста, укажите корректную роль.")
-			return err
-		}
-
-		members, err := chatMemberService.ListHumanPresentChatMembers(
-			c.Background(),
-			cfg.TargetChatID,
-		)
-
-		if err != nil {
-			log.Error("Failed to list chat members", zap.Error(err))
 			_, err := c.Reply(
-				"Произошла ошибка при проверке роли.",
+				"Здравствуйте, укажите желаемую роль",
 			)
-			return err
-		}
 
-		for _, m := range members {
-			if strings.EqualFold(m.Tag, role) {
+			return err
+		},
+		botapi.ChatTypeIs(botapi.ChatTypePrivate),
+	)
+
+	bot.OnMessage(
+		func(c *botapi.Context) error {
+			msg := c.Message()
+			if msg == nil {
+				return nil
+			}
+
+			role := strings.TrimSpace(msg.Text)
+
+			if role == "" {
 				_, err := c.Reply(
-					"Эта роль уже занята. Пожалуйста, выберите другую.",
+					"Пожалуйста, укажите корректную роль.",
 				)
 				return err
 			}
-		}
 
-		sender := c.Sender()
-		if sender == nil {
-			return errors.New("sender is nil")
-		}
-
-		username := sender.Username
-
-		var userRef string
-		if username != "" {
-			userRef = "@" + username
-		} else {
-			userRef = strings.TrimSpace(
-				sender.FirstName + " " + sender.LastName,
+			members, err := chatMemberService.ListHumanPresentChatMembers(
+				c.Background(),
+				cfg.TargetChatID,
 			)
 
-			if userRef == "" {
-				userRef = fmt.Sprintf("ID: %d", sender.ID)
+			if err != nil {
+				log.Error(
+					"Failed to list chat members",
+					zap.Error(err),
+				)
+
+				_, err := c.Reply(
+					"Произошла ошибка при проверке роли.",
+				)
+
+				return err
 			}
-		}
 
-		chatID, _ := c.Chat()
-		data := ApplicationStateData{
-			UserID:   sender.ID,
-			ChatID:   int64(chatID.(botapi.ChatIDInt)),
-			Role:     role,
-			Username: username,
-		}
+			for _, m := range members {
+				if strings.EqualFold(m.Tag, role) {
+					_, err := c.Reply(
+						"Эта роль уже занята. Пожалуйста, выберите другую.",
+					)
 
-		if err := appFSM.Enter(
-			c,
-			AppStatePending,
-			data,
-		); err != nil {
-			return err
-		}
+					return err
+				}
+			}
 
-		appID := fmt.Sprintf("%d", sender.ID)
+			sender := c.Sender()
+			var senderID int64
+			var username, firstname, lastname string
+			if sender != nil {
+				username = sender.Username
+				firstname = sender.FirstName
+				lastname = sender.LastName
+				senderID = sender.ID
+			} else {
+				username = msg.Chat.Username
+				firstname = msg.Chat.FirstName
+				lastname = msg.Chat.LastName
+				senderID = msg.Chat.ID
+			}
 
-		adminMsg := fmt.Sprintf(
-			"Новая заявка на вступление!\n\n"+
-				"Роль: %s\n"+
-				"Пользователь: %s",
-			role,
-			userRef,
-		)
+			var userRef string
 
-		_, err = c.Bot.SendMessage(
-			c,
-			botapi.ID(cfg.ApplicationChatID),
-			adminMsg,
-			botapi.WithReplyMarkup(
-				botapi.InlineKeyboard(
-					botapi.InlineRow(
-						botapi.InlineButtonData(
-							"Принять",
-							"app:accept:"+appID,
-						),
-						botapi.InlineButtonData(
-							"Отклонить",
-							"app:reject:"+appID,
+			if username != "" {
+				userRef = "@" + username
+			} else {
+				userRef = strings.TrimSpace(
+					firstname + " " + lastname,
+				)
+
+				if userRef == "" {
+					userRef = fmt.Sprintf(
+						"ID: %d",
+						senderID,
+					)
+				}
+			}
+
+			ch, ok := c.Chat()
+			if !ok {
+				return errors.New("chat not found")
+			}
+
+			chatID, ok := ch.(botapi.ChatIDInt)
+			if !ok {
+				return errors.New("invalid chat id")
+			}
+
+			data := ApplicationStateData{
+				UserID:   sender.ID,
+				ChatID:   int64(chatID),
+				Role:     role,
+				Username: username,
+			}
+
+			if err := appFSM.Enter(
+				c,
+				AppStatePending,
+				data,
+			); err != nil {
+				return err
+			}
+
+			appID := strconv.FormatInt(
+				sender.ID,
+				10,
+			)
+
+			adminMsg := fmt.Sprintf(
+				"Новая заявка на вступление!\n\n"+
+					"Роль: %s\n"+
+					"Пользователь: %s",
+				role,
+				userRef,
+			)
+
+			_, err = c.Bot.SendMessage(
+				c,
+				botapi.ID(cfg.ApplicationChatID),
+				adminMsg,
+				botapi.WithReplyMarkup(
+					botapi.InlineKeyboard(
+						botapi.InlineRow(
+							botapi.InlineButtonData(
+								"Принять",
+								"app:accept:"+appID,
+							),
+							botapi.InlineButtonData(
+								"Отклонить",
+								"app:reject:"+appID,
+							),
 						),
 					),
 				),
-			),
-		)
-
-		if err != nil {
-			return err
-		}
-
-		_, err = c.Reply(
-			"Ваша заявка отправлена на рассмотрение. Ожидайте ответа.",
-		)
-
-		return err
-	})
-
-	bot.OnCallbackQuery(func(c *botapi.Context) error {
-		cq := c.Update.CallbackQuery
-		if cq == nil {
-			return nil
-		}
-
-		var prefix string
-
-		switch {
-		case strings.HasPrefix(cq.Data, "app:accept:"):
-			prefix = "app:accept:"
-		case strings.HasPrefix(cq.Data, "app:reject:"):
-			prefix = "app:reject:"
-		default:
-			return nil
-		}
-
-		userID, err := strconv.ParseInt(
-			strings.TrimPrefix(cq.Data, prefix),
-			10,
-			64,
-		)
-		if err != nil {
-			return err
-		}
-
-		session, ok, err := appFSM.GetByKey(c.Background(), userID)
-		if err != nil {
-			return err
-		}
-
-		if !ok || session.State != AppStateAwaitRole {
-			_ = c.AnswerCallback(
-				botapi.WithCallbackText("Заявка не найдена или устарела"),
 			)
-			return nil
-		}
 
-		data := session.Data
+			if err != nil {
+				return err
+			}
 
-		var text string
+			_, err = c.Reply(
+				"Ваша заявка отправлена на рассмотрение. Ожидайте ответа.",
+			)
 
-		if prefix == "app:accept:" {
+			return err
+		},
+		appFSM.State(AppStateAwaitRole),
+		botapi.HasText(),
+		botapi.ChatTypeIs(botapi.ChatTypePrivate),
+	)
+
+	bot.OnCallbackQuery(
+		func(c *botapi.Context) error {
+			cq := c.Update.CallbackQuery
+			if cq == nil {
+				return nil
+			}
+
+			prefix := "app:accept:"
+			userID, err := strconv.ParseInt(
+				strings.TrimPrefix(cq.Data, prefix),
+				10,
+				64,
+			)
+
+			if err != nil {
+				return err
+			}
+
+			session, ok, err := appFSM.GetByKey(
+				c.Background(),
+				userID,
+			)
+
+			if err != nil {
+				return err
+			}
+
+			if !ok || session.State != AppStatePending {
+				_ = c.AnswerCallback(
+					botapi.WithCallbackText(
+						"Заявка не найдена или устарела",
+					),
+				)
+
+				return nil
+			}
+
+			data := session.Data
+
 			_, err = c.Bot.SendMessage(
 				c,
 				botapi.ID(data.ChatID),
@@ -660,11 +690,70 @@ func runApplicationBot(
 				)
 			}
 
-			text = fmt.Sprintf(
-				"Заявка на роль %s принята",
-				data.Role,
+			if err := appFSM.ClearByKey(
+				c.Background(),
+				userID,
+			); err != nil {
+				return err
+			}
+
+			_, _ = c.Bot.EditMessageText(
+				c,
+				botapi.ID(cq.Message.Chat.ID),
+				cq.Message.MessageID,
+				fmt.Sprintf(
+					"Заявка на роль %s принята",
+					data.Role,
+				),
 			)
-		} else {
+
+			return c.AnswerCallback(
+				botapi.WithCallbackText(
+					"Заявка принята",
+				),
+			)
+		},
+		botapi.CallbackPrefix("app:accept:"),
+	)
+
+	bot.OnCallbackQuery(
+		func(c *botapi.Context) error {
+			cq := c.Update.CallbackQuery
+
+			userID, err := strconv.ParseInt(
+				strings.TrimPrefix(
+					cq.Data,
+					"app:reject:",
+				),
+				10,
+				64,
+			)
+
+			if err != nil {
+				return err
+			}
+
+			session, ok, err := appFSM.GetByKey(
+				c.Background(),
+				userID,
+			)
+
+			if err != nil {
+				return err
+			}
+
+			if !ok || session.State != AppStatePending {
+				_ = c.AnswerCallback(
+					botapi.WithCallbackText(
+						"Заявка не найдена или устарела",
+					),
+				)
+
+				return nil
+			}
+
+			data := session.Data
+
 			_, err = c.Bot.SendMessage(
 				c,
 				botapi.ID(data.ChatID),
@@ -676,35 +765,36 @@ func runApplicationBot(
 
 			if err != nil {
 				log.Error(
-					"notify applicant",
+					"notify applicant rejection",
 					zap.Error(err),
 				)
 			}
 
-			text = fmt.Sprintf(
-				"Заявка на роль %s отклонена",
-				data.Role,
+			if err := appFSM.ClearByKey(
+				c.Background(),
+				userID,
+			); err != nil {
+				return err
+			}
+
+			_, _ = c.Bot.EditMessageText(
+				c,
+				botapi.ID(cq.Message.Chat.ID),
+				cq.Message.MessageID,
+				fmt.Sprintf(
+					"Заявка на роль %s отклонена",
+					data.Role,
+				),
 			)
-		}
 
-		if err := appFSM.ClearByKey(
-			c.Background(),
-			userID,
-		); err != nil {
-			return err
-		}
-
-		_, _ = c.Bot.EditMessageText(
-			c,
-			botapi.ID(cq.Message.Chat.ID),
-			cq.Message.MessageID,
-			text,
-		)
-
-		return c.AnswerCallback(
-			botapi.WithCallbackText(text),
-		)
-	})
+			return c.AnswerCallback(
+				botapi.WithCallbackText(
+					"Заявка отклонена",
+				),
+			)
+		},
+		botapi.CallbackPrefix("app:reject:"),
+	)
 
 	botLog.Info("Starting application bot listener")
 
