@@ -219,7 +219,7 @@ WHERE cm.chat_id = $1
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
   AND u.is_bot = FALSE
   AND (
-    lm.last_message_at IS NULL OR
-    lm.last_message_at < now() - interval '1 day'
+    lm.last_message_at IS NULL
+        OR lm.last_message_at < now() - $2::interval
     )
 ORDER BY lm.last_message_at NULLS FIRST;

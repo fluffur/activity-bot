@@ -42,7 +42,7 @@ func (a ParsedArgs) Number() (int64, bool) {
 }
 
 func (a ParsedArgs) Duration() (time.Duration, bool) {
-	if len(a.Durations) != 0 {
+	if len(a.Durations) == 0 {
 		return 0, false
 	}
 

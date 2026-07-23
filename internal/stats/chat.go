@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/samber/lo"
 
 	"github.com/gotd/botapi"
@@ -83,6 +84,10 @@ func ParseTimeRange(ch chat.Chat, args cctx.ParsedArgs) (from, to time.Time) {
 	loc, _ := time.LoadLocation("Europe/Moscow")
 	now := time.Now().In(loc)
 
+	if t, ok := args.Text(); ok && isAllTime(t) {
+		return time.Time{}, now
+	}
+
 	switch {
 	case len(args.Durations) == 1:
 		return now.Add(-args.Durations[0]), now
@@ -91,10 +96,33 @@ func ParseTimeRange(ch chat.Chat, args cctx.ParsedArgs) (from, to time.Time) {
 		return args.DateTimes[0], args.DateTimes[1]
 
 	default:
-		from, to = currentChatWeekRange(now, ch.WeekStartDay, ch.WeekStartTimeMicros)
-
-		return from, to
+		return currentChatWeekRange(
+			now,
+			ch.WeekStartDay,
+			ch.WeekStartTimeMicros,
+		)
 	}
+}
+
+func isAllTime(text string) bool {
+	text = strings.ToLower(strings.TrimSpace(text))
+
+	switch text {
+	case
+		"всё",
+		"все",
+		"всего",
+		"весь",
+		"вся",
+		"за всё",
+		"за все",
+		"за всё время",
+		"за все время",
+		"вся история":
+		return true
+	}
+
+	return false
 }
 
 func currentChatWeekRange(
@@ -344,8 +372,12 @@ func (h *Handler) Cancel(c *botapi.Context) error {
 func (h *Handler) ListInactive(c *botapi.Context) error {
 	ch := cctx.MustChat(c)
 	loc := cctx.MustLocalizer(c)
-
-	members, err := h.service.ListInactiveMembers(c, ch.ID)
+	duration, ok := cctx.MustArgs(c).Duration()
+	if !ok {
+		duration = 24 * time.Hour
+	}
+	spew.Dump(duration, ok)
+	members, err := h.service.ListInactiveMembers(c, ch.ID, duration)
 	if err != nil {
 		return fmt.Errorf("list inactive members: %w", err)
 	}
@@ -355,6 +387,7 @@ func (h *Handler) ListInactive(c *botapi.Context) error {
 	b.WriteString(loc.T(i18n.Cmd.Inactive.Title, i18n.CmdInactiveTitleData{
 		InactiveEmoji: "💤",
 	}))
+
 	b.WriteString("\n\n")
 	b.WriteString("<blockquote expandable>")
 	if len(members) == 0 {
@@ -384,7 +417,12 @@ func (h *Handler) ListInactive(c *botapi.Context) error {
 		botapi.DisableWebPagePreview(),
 		botapi.WithReplyMarkup(
 			botapi.InlineKeyboard(
-				botapi.InlineRow(botapi.InlineButtonData(loc.T(i18n.Cmd.Inactive.SummonButton, nil), "summon_inactive"))),
+				botapi.InlineRow(
+					botapi.InlineButtonData(
+						loc.T(i18n.Cmd.Inactive.SummonButton, nil),
+						fmt.Sprintf("summon_inactive:%d", duration.Milliseconds())),
+				),
+			),
 		),
 	)
 
@@ -392,8 +430,11 @@ func (h *Handler) ListInactive(c *botapi.Context) error {
 }
 
 func (h *Handler) AskInactiveSummonText(c *botapi.Context) error {
+	cq := c.Update.CallbackQuery
+	if cq == nil {
+		return nil
+	}
 	_ = c.AnswerCallback()
-
 	sender := c.Sender()
 	if sender == nil {
 		return nil
@@ -402,9 +443,16 @@ func (h *Handler) AskInactiveSummonText(c *botapi.Context) error {
 	ch := cctx.MustChat(c)
 	loc := cctx.MustLocalizer(c)
 
+	rawDuration := strings.TrimPrefix(cq.Data, "summon_inactive:")
+	duration, err := strconv.Atoi(rawDuration)
+	if err != nil {
+		return err
+	}
+
 	if err := h.statsFSM.Enter(c, StateAwaitInactiveSummonText, StateData{
-		UserID: sender.ID,
-		ChatID: ch.ID,
+		UserID:   sender.ID,
+		ChatID:   ch.ID,
+		Duration: time.Duration(duration) * time.Millisecond,
 	}); err != nil {
 		return err
 	}
@@ -420,7 +468,7 @@ func (h *Handler) AskInactiveSummonText(c *botapi.Context) error {
 		)
 	}
 
-	_, err := c.Bot.SendMessage(
+	_, err = c.Bot.SendMessage(
 		c,
 		chatID,
 		loc.T(i18n.Cmd.Summon.EnterText, nil),
@@ -459,7 +507,7 @@ func (h *Handler) ProcessInactiveSummonText(c *botapi.Context) error {
 	ch := cctx.MustChat(c)
 	loc := cctx.MustLocalizer(c)
 
-	members, err := h.service.ListInactiveMembers(c, session.Data.ChatID)
+	members, err := h.service.ListInactiveMembers(c, session.Data.ChatID, session.Data.Duration)
 	if err != nil {
 		return fmt.Errorf("list inactive members: %w", err)
 	}

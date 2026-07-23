@@ -26,6 +26,8 @@ func tryParseAdvancedDuration(toks []token) (time.Duration, int, bool) {
 		return d, 1, true
 	}
 
+	const maxDuration = 200 * 365 * 24 * time.Hour
+
 	if len(toks) >= 2 {
 		val, err := strconv.ParseInt(t0, 10, 64)
 		if err == nil {
@@ -34,6 +36,8 @@ func tryParseAdvancedDuration(toks []token) (time.Duration, int, bool) {
 			var multiplier time.Duration
 
 			switch {
+			case strings.HasPrefix(t1, "сек"), t1 == "с":
+				multiplier = time.Second
 			case strings.HasPrefix(t1, "мин"): // минут, минута, минуты
 				multiplier = time.Minute
 			case strings.HasPrefix(t1, "час"): // час, часа, часов
@@ -49,6 +53,10 @@ func tryParseAdvancedDuration(toks []token) (time.Duration, int, bool) {
 			}
 
 			if multiplier > 0 {
+				if val <= 0 || val > int64(maxDuration/multiplier) {
+					return 0, 0, false
+				}
+
 				return time.Duration(val) * multiplier, 2, true
 			}
 		}

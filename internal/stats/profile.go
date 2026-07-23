@@ -11,8 +11,11 @@ import (
 func (h *Handler) Profile(c *botapi.Context) error {
 	ch := cctx.MustChat(c)
 	cm := cctx.MustChatMember(c)
-	if u, ok := cctx.MustArgs(c).User(); ok {
-		cm = u
+	args, err := cctx.Args(c)
+	if err == nil {
+		if u, ok := args.User(); ok {
+			cm = u
+		}
 	}
 
 	statsRange := buildProfileStatsRange(ch.WeekStartDay, ch.WeekStartTimeMicros)

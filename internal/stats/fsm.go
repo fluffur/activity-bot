@@ -15,6 +15,7 @@ const (
 
 type StateData struct {
 	ChatID     int64
+	Duration   time.Duration
 	UserID     int64
 	SummonText string
 	NormName   string

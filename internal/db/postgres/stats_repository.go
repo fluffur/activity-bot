@@ -5,6 +5,8 @@ import (
 	"activity-bot/internal/stats"
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type StatsRepository struct {
@@ -50,8 +52,14 @@ func (r *StatsRepository) ProfileStats(
 	return mapProfileStats(s), nil
 }
 
-func (r *StatsRepository) ListInactiveMembers(ctx context.Context, chatID int64) ([]stats.InactiveMember, error) {
-	members, err := r.queries.InactiveChatMembers(ctx, chatID)
+func (r *StatsRepository) ListInactiveMembers(ctx context.Context, chatID int64, duration time.Duration) ([]stats.InactiveMember, error) {
+	members, err := r.queries.InactiveChatMembers(ctx, db.InactiveChatMembersParams{
+		ChatID: chatID,
+		Column2: pgtype.Interval{
+			Microseconds: duration.Microseconds(),
+			Valid:        true,
+		},
+	})
 	if err != nil {
 		return nil, err
 	}

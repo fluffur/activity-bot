@@ -23,5 +23,5 @@ type InactiveMember struct {
 type Repository interface {
 	ChatStats(ctx context.Context, chatID int64, fromDate time.Time, toDate time.Time) ([]ChatStats, error)
 	ProfileStats(ctx context.Context, chatID, userID int64, statsRange ProfileStatsRange) (ProfileStats, error)
-	ListInactiveMembers(ctx context.Context, chatID int64) ([]InactiveMember, error)
+	ListInactiveMembers(ctx context.Context, chatID int64, duration time.Duration) ([]InactiveMember, error)
 }

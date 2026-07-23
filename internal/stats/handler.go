@@ -50,6 +50,7 @@ func (h *Handler) Actions() []*command.Action {
 			),
 			option.WithRules(
 				rule.DateTimeOrDuration().Optional(),
+				rule.Text().Optional().Validate(isAllTime),
 			),
 		),
 		action.NewCommand(
@@ -60,6 +61,7 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithAliases("топ", "стата"),
 			option.WithRules(
 				rule.DateTimeOrDuration().Optional(),
+				rule.Text().Optional().Validate(isAllTime),
 			),
 		),
 
@@ -75,7 +77,6 @@ func (h *Handler) Actions() []*command.Action {
 			),
 			option.WithRules(
 				rule.User(),
-				rule.DateTimeOrDuration().Optional(),
 			),
 		),
 
@@ -89,9 +90,6 @@ func (h *Handler) Actions() []*command.Action {
 				i18n.Cmd.Profile.ExampleDuration,
 				i18n.Cmd.Profile.ExampleDate,
 			),
-			option.WithRules(
-				rule.DateTimeOrDuration().Optional(),
-			),
 		),
 		action.NewCommand(
 			"inactive",
@@ -99,6 +97,7 @@ func (h *Handler) Actions() []*command.Action {
 			i18n.Cmd.Inactive.Desc,
 			CategoryStats,
 			option.WithAliases("неактив", "инактив", "кто неактив"),
+			option.WithRules(rule.Duration().Optional()),
 		),
 		action.NewCallbackPrefix(
 			"summon_no_norm",
@@ -128,9 +127,9 @@ func (h *Handler) Actions() []*command.Action {
 			CategoryStats,
 			option.WithPredicates(h.statsFSM.State(StateAwaitSummonText)),
 		),
-		action.NewCallback(
+		action.NewCallbackPrefix(
 			"summon_inactive",
-			"summon_inactive",
+			"summon_inactive:",
 			h.AskInactiveSummonText,
 			CategoryStats,
 			option.WithPermission(permission.StatusAdmin),

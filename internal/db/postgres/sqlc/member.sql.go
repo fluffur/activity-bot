@@ -602,11 +602,16 @@ WHERE cm.chat_id = $1
   AND (cm.rest_until IS NULL OR cm.rest_until < now())
   AND u.is_bot = FALSE
   AND (
-    lm.last_message_at IS NULL OR
-    lm.last_message_at < now() - interval '1 day'
+    lm.last_message_at IS NULL
+        OR lm.last_message_at < now() - $2::interval
     )
 ORDER BY lm.last_message_at NULLS FIRST
 `
+
+type InactiveChatMembersParams struct {
+	ChatID  int64           `db:"chat_id" json:"chatId"`
+	Column2 pgtype.Interval `db:"column_2" json:"column2"`
+}
 
 type InactiveChatMembersRow struct {
 	User            User               `db:"user" json:"user"`
@@ -614,8 +619,8 @@ type InactiveChatMembersRow struct {
 	LmLastMessageAt pgtype.Timestamptz `db:"lm_last_message_at" json:"lmLastMessageAt"`
 }
 
-func (q *Queries) InactiveChatMembers(ctx context.Context, chatID int64) ([]InactiveChatMembersRow, error) {
-	rows, err := q.db.Query(ctx, inactiveChatMembers, chatID)
+func (q *Queries) InactiveChatMembers(ctx context.Context, arg InactiveChatMembersParams) ([]InactiveChatMembersRow, error) {
+	rows, err := q.db.Query(ctx, inactiveChatMembers, arg.ChatID, arg.Column2)
 	if err != nil {
 		return nil, err
 	}

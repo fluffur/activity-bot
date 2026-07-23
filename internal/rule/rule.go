@@ -75,3 +75,10 @@ func (r Rule) Validate(fn TextValidator) Rule {
 	r.TextValidate = fn
 	return r
 }
+
+func Duration() Rule {
+	return Rule{
+		Type:      RuleDuration,
+		CountArgs: 1,
+	}
+}
