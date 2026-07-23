@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/crocodile"
 	redis2 "activity-bot/internal/db/redis"
 	"activity-bot/internal/rp"
+	"activity-bot/internal/utils/tghtml"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -548,6 +549,15 @@ func runApplicationBot(
 		"start",
 		"Запустить бота",
 		func(c *botapi.Context) error {
+			sess, ok, err := appFSM.Get(c)
+			if err != nil {
+				return err
+			}
+			if ok && sess.State == AppStatePending {
+				_, err := c.Reply("Пожалуйста, подождите пока вашу заявку обработают, перед тем как отправлять еще одну")
+				return err
+			}
+
 			if err := appFSM.Enter(
 				c,
 				AppStateAwaitRole,
@@ -556,8 +566,10 @@ func runApplicationBot(
 				return err
 			}
 
-			_, err := c.Reply(
-				"Здравствуйте, отправьте желаемую роль",
+			_, err = c.Reply(
+				tghtml.PatPatEmoji()+
+					" Здравствуйте! Отправьте сюда желаемую роль\nСписок ролей можно посмотреть в инфо флуда",
+				botapi.WithParseMode(botapi.ParseModeHTML),
 			)
 
 			return err
