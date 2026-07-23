@@ -402,6 +402,7 @@ const (
 )
 
 type ApplicationStateData struct {
+	Test bool
 }
 
 type PendingApplication struct {
@@ -469,12 +470,12 @@ func runApplicationBot(
 			return nil
 		}
 
-		if c.Update.Message.Chat.Type != "private" {
+		if msg.Chat.Type != botapi.ChatTypePrivate {
 			return nil
 		}
 
 		if strings.HasPrefix(msg.Text, "/start") {
-			if err := appFSM.Enter(c, AppStateAwaitRole, ApplicationStateData{}); err != nil {
+			if err := appFSM.Enter(c, AppStateAwaitRole, ApplicationStateData{Test: true}); err != nil {
 				return err
 			}
 			_, err := c.Reply("Здравствуйте, укажите желаемую роль")
