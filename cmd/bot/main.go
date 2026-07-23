@@ -5,7 +5,7 @@ import (
 	redis2 "activity-bot/internal/db/redis"
 	"activity-bot/internal/rp"
 	"context"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -399,15 +399,81 @@ const (
 	AppStateIdle      ApplicationState = ""
 	AppStateAwaitRole ApplicationState = "await_role"
 	AppStatePending   ApplicationState = "pending"
-	AppStateRejecting ApplicationState = "rejecting"
 )
 
-type ApplicationStateData struct {
+type RejectState string
+type RejectStateData struct {
+	UserID int64 `json:"user_id"`
+}
+
+const (
+	RejectStateIdle               RejectState = ""
+	RejectStateAwaitRejectMessage RejectState = "await_reject_message"
+)
+
+type AppStateData struct{}
+
+type Application struct {
 	UserID        int64  `json:"user_id"`
-	ChatID        int64  `json:"chat_id"`
 	Role          string `json:"role"`
 	Username      string `json:"username"`
 	ApplicationID int    `json:"application_id"`
+}
+
+func applicationKey(userID int64) string {
+	return fmt.Sprintf("application:%d", userID)
+}
+
+func saveApplication(
+	ctx context.Context,
+	redisClient *redis.Client,
+	app Application,
+) error {
+	data, err := json.Marshal(app)
+	if err != nil {
+		return err
+	}
+
+	return redisClient.Set(
+		ctx,
+		applicationKey(app.UserID),
+		data,
+		24*time.Hour,
+	).Err()
+}
+
+func getApplication(
+	ctx context.Context,
+	redisClient *redis.Client,
+	userID int64,
+) (*Application, error) {
+	data, err := redisClient.Get(
+		ctx,
+		applicationKey(userID),
+	).Bytes()
+
+	if err != nil {
+		return nil, err
+	}
+
+	var app Application
+
+	if err := json.Unmarshal(data, &app); err != nil {
+		return nil, err
+	}
+
+	return &app, nil
+}
+
+func deleteApplication(
+	ctx context.Context,
+	redisClient *redis.Client,
+	userID int64,
+) error {
+	return redisClient.Del(
+		ctx,
+		applicationKey(userID),
+	).Err()
 }
 
 func runApplicationBot(
@@ -438,12 +504,28 @@ func runApplicationBot(
 	}
 	defer store.Close()
 
-	appFSM := fsm.NewRedisFSM[ApplicationState, ApplicationStateData](
+	appFSM := fsm.NewRedisFSM[
+		ApplicationState,
+		AppStateData,
+	](
 		redisClient,
 		fmt.Sprintf("fsm:%s:app:", botKey),
 		24*time.Hour,
 		AppStateIdle,
-		fsm.WithStrategy[ApplicationState, ApplicationStateData](fsm.StrategySender),
+		fsm.WithStrategy[
+			ApplicationState,
+			AppStateData,
+		](fsm.StrategySender),
+	)
+
+	rejectFSM := fsm.NewRedisFSM[
+		RejectState,
+		RejectStateData,
+	](
+		redisClient,
+		fmt.Sprintf("fsm:%s:app:reject:", botKey),
+		24*time.Hour,
+		RejectStateIdle,
 	)
 
 	var bot *botapi.Bot
@@ -469,7 +551,7 @@ func runApplicationBot(
 			if err := appFSM.Enter(
 				c,
 				AppStateAwaitRole,
-				ApplicationStateData{},
+				AppStateData{},
 			); err != nil {
 				return err
 			}
@@ -558,19 +640,8 @@ func runApplicationBot(
 				}
 			}
 
-			ch, ok := c.Chat()
-			if !ok {
-				return errors.New("chat not found")
-			}
-
-			chatID, ok := ch.(botapi.ChatIDInt)
-			if !ok {
-				return errors.New("invalid chat id")
-			}
-
-			data := ApplicationStateData{
+			app := Application{
 				UserID:   senderID,
-				ChatID:   int64(chatID),
 				Role:     role,
 				Username: username,
 			}
@@ -607,15 +678,20 @@ func runApplicationBot(
 					),
 				),
 			)
-			data.ApplicationID = sent.MessageID
+			if err != nil {
+				return fmt.Errorf("send message: %w", err)
+			}
+			app.ApplicationID = sent.MessageID
+
 			if err := appFSM.Enter(
 				c,
 				AppStatePending,
-				data,
+				AppStateData{},
 			); err != nil {
 				return err
 			}
-			if err != nil {
+
+			if err := saveApplication(c, redisClient, app); err != nil {
 				return err
 			}
 
@@ -648,33 +724,21 @@ func runApplicationBot(
 				return err
 			}
 
-			session, ok, err := appFSM.GetByKey(
-				c.Background(),
-				userID,
-			)
-
 			if err != nil {
 				return err
 			}
 
-			if !ok || session.State != AppStatePending {
-				_ = c.AnswerCallback(
-					botapi.WithCallbackText(
-						"Заявка не найдена или устарела",
-					),
-				)
-
-				return nil
+			application, err := getApplication(c, redisClient, userID)
+			if err != nil {
+				return err
 			}
-
-			data := session.Data
 
 			_, err = c.Bot.SendMessage(
 				c,
-				botapi.ID(data.ChatID),
+				botapi.ID(application.UserID),
 				fmt.Sprintf(
 					"Ваша заявка на роль %s была принята!\n%s",
-					data.Role,
+					application.Role,
 					cfg.TargetChatLink,
 				),
 			)
@@ -699,7 +763,7 @@ func runApplicationBot(
 				cq.Message.MessageID,
 				fmt.Sprintf(
 					"Заявка на роль %s принята",
-					data.Role,
+					application.Role,
 				),
 			)
 
@@ -729,7 +793,7 @@ func runApplicationBot(
 				return err
 			}
 
-			session, ok, err := appFSM.GetByKey(
+			sess, ok, err := appFSM.GetByKey(
 				c.Background(),
 				userID,
 			)
@@ -738,7 +802,7 @@ func runApplicationBot(
 				return err
 			}
 
-			if !ok || session.State != AppStatePending {
+			if !ok || sess.State != AppStatePending {
 				_ = c.AnswerCallback(
 					botapi.WithCallbackText(
 						"Заявка не найдена или устарела",
@@ -747,12 +811,11 @@ func runApplicationBot(
 
 				return nil
 			}
-			data := session.Data
 
-			if err := appFSM.Enter(
+			if err := rejectFSM.Enter(
 				c,
-				AppStateRejecting,
-				data,
+				RejectStateAwaitRejectMessage,
+				RejectStateData{UserID: userID},
 			); err != nil {
 				return err
 			}
@@ -776,17 +839,18 @@ func runApplicationBot(
 				return nil
 			}
 
-			session, ok, err := appFSM.Get(c)
-
+			sess, ok, err := rejectFSM.Get(c)
 			if err != nil {
 				return err
 			}
-
-			if !ok || session.State != AppStateRejecting {
+			if !ok {
 				return nil
 			}
 
-			data := session.Data
+			application, err := getApplication(c, redisClient, sess.Data.UserID)
+			if err != nil {
+				return err
+			}
 
 			reason := strings.TrimSpace(msg.Text)
 
@@ -800,10 +864,10 @@ func runApplicationBot(
 
 			_, err = c.Bot.SendMessage(
 				c,
-				botapi.ID(data.ChatID),
+				botapi.ID(application.UserID),
 				fmt.Sprintf(
 					"К сожалению, ваша заявка на роль %s была отклонена.\n\nПричина: %s",
-					data.Role,
+					application.Role,
 					reason,
 				),
 			)
@@ -817,14 +881,19 @@ func runApplicationBot(
 
 			if err := appFSM.ClearByKey(
 				c.Background(),
-				data.UserID,
+				application.UserID,
 			); err != nil {
 				return err
 			}
+
+			if err := rejectFSM.Clear(c); err != nil {
+				return err
+			}
+
 			_, _ = c.Bot.EditMessageText(
 				c,
 				botapi.ID(cfg.ApplicationChatID),
-				data.ApplicationID,
+				application.ApplicationID,
 				"Заявка отклонена\n\nПричина: "+reason,
 			)
 
@@ -834,9 +903,9 @@ func runApplicationBot(
 
 			return err
 		},
-		appFSM.State(AppStateRejecting),
+		rejectFSM.State(RejectStateAwaitRejectMessage),
 		botapi.HasText(),
-		botapi.ChatTypeIs(botapi.ChatTypePrivate),
+		botapi.Not(botapi.ChatTypeIs(botapi.ChatTypePrivate)),
 	)
 
 	botLog.Info("Starting application bot listener")
