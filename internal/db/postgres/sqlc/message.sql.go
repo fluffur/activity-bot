@@ -19,7 +19,8 @@ WITH filtered_messages AS (SELECT m.chat_id, m.user_id
                              AND ($3::timestamptz IS NULL OR m.created_at < $3::timestamptz))
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call,
        u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot,
-       COUNT(fm.chat_id) AS messages_count,Тmoved_at, c.emojis_enabled, c.skip_call_confirmation, c.allow_polygamy, c.username_changed_notify_status
+       COUNT(fm.chat_id) AS messages_count,
+       c.id, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at, c.emojis_enabled, c.skip_call_confirmation, c.allow_polygamy, c.username_changed_notify_status
 FROM chat_members cm
          JOIN chats c ON c.id = cm.chat_id
          JOIN users u ON u.id = cm.user_id

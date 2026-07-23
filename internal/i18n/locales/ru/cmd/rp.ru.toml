@@ -1,11 +1,16 @@
+[cmd.rp]
+speech = "💬 Сказав: <i>\"{{.Text}}\"</i>"
+
+choose_gender = "Выберите ваш пол для выполнения команды:"
+gender_male = "♂ Мужской"
+gender_female = "♀ Женский"
+
 [cmd.add_rp]
 desc = "Добавить рп команду"
 success = "Команда успешно добавлена.\nПопробуйте написать <code>{{.Trigger}} @{{.BotUsername}}</code>"
 example_1 = "рп погладить\n👋 погладил(а)"
 example_2 = "рп договориться\nдоговорился|договорилась с"
 
-[cmd.rp]
-speech = "💬 Сказав: <i>\"{{.Text}}\"</i>"
 
 [cmd.list_rp]
 desc = "Показать список РП команд"

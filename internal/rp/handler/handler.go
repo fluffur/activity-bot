@@ -3,6 +3,7 @@ package handler
 import (
 	"activity-bot/internal/action"
 	"activity-bot/internal/cctx"
+	"activity-bot/internal/chatmember"
 	"activity-bot/internal/command"
 	"activity-bot/internal/emoji"
 	"activity-bot/internal/i18n"
@@ -14,8 +15,10 @@ import (
 	"errors"
 	"fmt"
 	"html"
-	regexp "regexp"
+	"regexp"
 	"strings"
+
+	fsm "github.com/fluffur/botapi-fsm"
 
 	"github.com/gotd/botapi"
 )
@@ -23,11 +26,24 @@ import (
 const CategoryRP = "rp"
 
 type Handler struct {
-	repo rp.Repository
+	repo              rp.Repository
+	chatMemberService *chatmember.Service
+	userRepo          user.Repository
+	fsm               *fsm.Machine[rp.State, rp.StateData]
 }
 
-func NewHandler(repo rp.Repository) *Handler {
-	return &Handler{repo: repo}
+func NewHandler(
+	repo rp.Repository,
+	chatMemberService *chatmember.Service,
+	userRepo user.Repository,
+	rpFSM *fsm.Machine[rp.State, rp.StateData],
+) *Handler {
+	return &Handler{
+		repo:              repo,
+		userRepo:          userRepo,
+		chatMemberService: chatMemberService,
+		fsm:               rpFSM,
+	}
 }
 
 func (h *Handler) Actions() []*command.Action {
@@ -61,6 +77,12 @@ func (h *Handler) Actions() []*command.Action {
 			CategoryRP,
 			option.WithRules(rule.Text()),
 			option.WithAliases("-рп"),
+		),
+		action.NewCallbackPrefix(
+			"rpgender",
+			"rp_gender:",
+			h.HandleGenderCallback,
+			CategoryRP,
 		),
 	}
 }
@@ -172,6 +194,144 @@ func (h *Handler) HandleRPCommand(c *botapi.Context) error {
 		return nil
 	}
 
+	if user.GenderUnknown == sender.Gender() {
+		return h.AskGender(c, rpCmd, sender, target, extra, speech)
+	}
+	msg := c.Message()
+	if msg == nil {
+		return nil
+	}
+	return h.SendRP(c, rpCmd, sender, target, extra, speech, msg.MessageID)
+}
+
+func (h *Handler) AskGender(
+	c *botapi.Context,
+	rpCmd rp.Definition,
+	sender, target chatmember.ChatMember,
+	extra, speech string,
+) error {
+	msg := c.Message()
+	if msg == nil {
+		return fmt.Errorf("ask gender no message")
+	}
+
+	err := h.fsm.Enter(
+		c,
+		rp.StateAwaitGender,
+		rp.StateData{
+			UserID:    sender.ID(),
+			TargetID:  target.ID(),
+			MessageID: msg.MessageID,
+			CommandID: rpCmd.ID,
+			Extra:     extra,
+			Speech:    speech,
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	loc := cctx.MustLocalizer(c)
+
+	_, err = c.Reply(
+		loc.T(i18n.Cmd.Rp.ChooseGender, nil),
+		botapi.WithReplyMarkup(
+			&botapi.InlineKeyboardMarkup{
+				InlineKeyboard: [][]botapi.InlineKeyboardButton{
+					{
+						{
+							Text:         loc.T(i18n.Cmd.Rp.GenderMale, nil),
+							CallbackData: "rp_gender:male",
+						},
+						{
+							Text:         loc.T(i18n.Cmd.Rp.GenderFemale, nil),
+							CallbackData: "rp_gender:female",
+						},
+					},
+				},
+			},
+		),
+	)
+
+	return err
+}
+
+func (h *Handler) HandleGenderCallback(c *botapi.Context) error {
+	cq := c.Update.CallbackQuery
+	if cq == nil {
+		return nil
+	}
+
+	chatID, _ := c.Chat()
+	_ = c.Bot.DeleteMessage(c, chatID, cq.Message.MessageID)
+
+	var gender user.Gender
+
+	switch cq.Data {
+	case "rp_gender:male":
+		gender = user.GenderMale
+
+	case "rp_gender:female":
+		gender = user.GenderFemale
+
+	default:
+		return c.AnswerCallback()
+	}
+
+	state, ok, err := h.fsm.Get(c)
+	if !ok {
+		return c.AnswerCallback()
+	}
+	if err != nil {
+		return err
+	}
+
+	data := state.Data
+
+	if data.UserID != cctx.MustChatMember(c).ID() {
+		return c.AnswerCallback()
+	}
+
+	rpCmd, err := h.repo.GetByID(c, data.CommandID)
+	if err != nil {
+		return err
+	}
+
+	sender := cctx.MustChatMember(c)
+
+	sender.User.Gender = gender
+
+	if err := h.userRepo.SetGender(c, sender.ID(), gender); err != nil {
+		return fmt.Errorf("handle gender callback set gender: %w", err)
+	}
+
+	ch := cctx.MustChat(c)
+	target, err := h.chatMemberService.Get(c, ch.ID, data.TargetID)
+	if err != nil {
+		return err
+	}
+
+	_ = h.fsm.Clear(c)
+
+	_ = c.AnswerCallback()
+	return h.SendRP(
+		c,
+		rpCmd,
+		sender,
+		target,
+		data.Extra,
+		data.Speech,
+		data.MessageID,
+	)
+}
+
+func (h *Handler) SendRP(
+	c *botapi.Context,
+	rpCmd rp.Definition,
+	sender, target chatmember.ChatMember,
+	extra, speech string,
+	messageID int,
+) error {
 	act := Genderize(rpCmd.Action, sender.Gender())
 	ch := cctx.MustChat(c)
 	loc := cctx.MustLocalizer(c)
@@ -200,9 +360,13 @@ func (h *Handler) HandleRPCommand(c *botapi.Context) error {
 		}))
 	}
 
-	_, err := c.Reply(
+	chatID, _ := c.Chat()
+	_, err := c.Bot.SendMessage(
+		c,
+		chatID,
 		b.String(),
 		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.ReplyTo(messageID),
 	)
 
 	return err

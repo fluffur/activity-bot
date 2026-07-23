@@ -20,6 +20,15 @@ func normalizeRPTrigger(trigger string) string {
 	return strings.ToLower(strings.Join(strings.Fields(strings.TrimSpace(trigger)), " "))
 }
 
+func (r *RPRepository) GetByID(ctx context.Context, id int64) (rp.Definition, error) {
+	cmd, err := r.queries.GetRPCommandByID(ctx, id)
+	if err != nil {
+		return rp.Definition{}, err
+	}
+
+	return mapRPCommand(cmd), nil
+}
+
 func (r *RPRepository) Upsert(ctx context.Context, cmd rp.Definition) error {
 	return r.queries.UpsertRPCommand(ctx, db.UpsertRPCommandParams{
 		ChatID:    cmd.ChatID,
@@ -102,6 +111,7 @@ func (r *RPRepository) Match(ctx context.Context, chatID int64, text string) (rp
 
 func mapRPCommand(row db.ChatRpCommand) rp.Definition {
 	return rp.Definition{
+		ID:        row.ID,
 		ChatID:    row.ChatID,
 		Trigger:   row.Trigger,
 		Action:    row.Action,

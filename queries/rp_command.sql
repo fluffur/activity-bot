@@ -18,6 +18,13 @@ FROM chat_rp_commands
 WHERE chat_id = @chat_id
   AND trigger = @trigger;
 
+
+-- name: GetRPCommandByID :one
+SELECT *
+FROM chat_rp_commands
+WHERE id = $1;
+
+
 -- name: ListRPCommandsByChat :many
 SELECT *
 FROM chat_rp_commands

@@ -3,6 +3,7 @@ package main
 import (
 	"activity-bot/internal/crocodile"
 	redis2 "activity-bot/internal/db/redis"
+	"activity-bot/internal/rp"
 	"context"
 	"fmt"
 	"os"
@@ -172,6 +173,12 @@ func runBotInstance(
 		10*time.Hour,
 		stats.StateIdle,
 	)
+	rpFsm := fsm.NewRedisFSM[rp.State, rp.StateData](
+		redisClient,
+		fmt.Sprintf("fsm:%s:rp", botKey),
+		10*time.Hour,
+		rp.StateIdle,
+	)
 
 	registry := command.NewRegistry()
 	summonH := summon.NewHandler(chatService, chatMemberService, summonFSM)
@@ -189,7 +196,7 @@ func runBotInstance(
 		marriage.NewHandler(marriageService, chatService, chatMemberService),
 		chatHandler.NewHandler(chatService),
 		ai.NewHandler(deepseekClient),
-		rpHandler.NewHandler(rpRepository),
+		rpHandler.NewHandler(rpRepository, chatMemberService, userRepository, rpFsm),
 		crocodile.NewHandler(crocodileService),
 	}
 

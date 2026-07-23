@@ -26,6 +26,28 @@ func (q *Queries) DeleteRPCommand(ctx context.Context, arg DeleteRPCommandParams
 	return err
 }
 
+const getRPCommandByID = `-- name: GetRPCommandByID :one
+SELECT id, chat_id, trigger, action, emojis, created_by, created_at, updated_at
+FROM chat_rp_commands
+WHERE id = $1
+`
+
+func (q *Queries) GetRPCommandByID(ctx context.Context, id int64) (ChatRpCommand, error) {
+	row := q.db.QueryRow(ctx, getRPCommandByID, id)
+	var i ChatRpCommand
+	err := row.Scan(
+		&i.ID,
+		&i.ChatID,
+		&i.Trigger,
+		&i.Action,
+		&i.Emojis,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getRPCommandByTrigger = `-- name: GetRPCommandByTrigger :one
 SELECT id, chat_id, trigger, action, emojis, created_by, created_at, updated_at
 FROM chat_rp_commands
