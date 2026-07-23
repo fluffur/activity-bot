@@ -9,6 +9,7 @@ import (
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/option"
 	"activity-bot/internal/permission"
+	"activity-bot/internal/rolepost"
 	"activity-bot/internal/rule"
 	"activity-bot/internal/utils/chatmembers"
 	"activity-bot/internal/utils/participant"
@@ -23,12 +24,15 @@ import (
 const CategoryChatMember command.Category = "chat_member"
 
 type Handler struct {
-	repo    chatmember.Repository
-	service *chatmember.Service
+	repo         chatmember.Repository
+	service      *chatmember.Service
+	rolesPost    string
+	targetChatID int64
 }
 
-func NewHandler(repo chatmember.Repository, service *chatmember.Service) *Handler {
-	return &Handler{repo: repo, service: service}
+func NewHandler(repo chatmember.Repository, service *chatmember.Service, rolesPost string, targetChatID int64,
+) *Handler {
+	return &Handler{repo: repo, service: service, rolesPost: rolesPost, targetChatID: targetChatID}
 }
 
 func (h *Handler) Actions() []*command.Action {
@@ -74,6 +78,12 @@ func (h *Handler) Actions() []*command.Action {
 			i18n.Cmd.Ship.Desc,
 			CategoryChatMember,
 			option.WithAliases("шипперим рандом", "шипперим"),
+		),
+		action.NewCommand(
+			"updateroles",
+			h.UpdateRoles,
+			"BETA",
+			CategoryChatMember,
 		),
 	}
 }
@@ -156,6 +166,38 @@ func (h *Handler) UpdateChatMembers(c *botapi.Context) error {
 	_, err = c.Reply(loc.T(i18n.Cmd.ChatMember.Update.Success, nil), botapi.WithParseMode(botapi.ParseModeHTML))
 
 	return err
+}
+
+func (h *Handler) UpdateRoles(c *botapi.Context) error {
+	ch := cctx.MustChat(c)
+	if ch.ID != h.targetChatID {
+		return nil
+	}
+	members, err := h.repo.List(c, chatmember.Filter{
+		ChatID: ch.ID,
+		IsBot: chatmember.OptionalBool{
+			Bool:  false,
+			Valid: true,
+		},
+		Left: chatmember.OptionalBool{
+			Bool:  false,
+			Valid: true,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("get chat members: %w", err)
+	}
+
+	if _, err := c.Bot.EditMessageText(
+		c,
+		botapi.Username("H4venflood"),
+		8,
+		rolepost.Render(rolepost.BuildRoleStates(members)),
+	); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (h *Handler) RemoveEmoji(c *botapi.Context) error {
