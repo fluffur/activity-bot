@@ -443,6 +443,7 @@ func runApplicationBot(
 		fmt.Sprintf("fsm:%s:app:", botKey),
 		24*time.Hour,
 		AppStateIdle,
+		fsm.WithStrategy[ApplicationState, ApplicationStateData](fsm.StrategySender),
 	)
 
 	var bot *botapi.Bot

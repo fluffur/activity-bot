@@ -424,7 +424,7 @@ func (r *RuleChecker) resolveUserTag(
 		)
 
 		for i := 0; i < words; i++ {
-			part := normalizeTag(tokens[i].text)
+			part := NormalizeTag(tokens[i].text)
 			if part == "" {
 				continue
 			}
@@ -450,7 +450,7 @@ func (r *RuleChecker) resolveUserTag(
 				continue
 			}
 
-			if !tagContains(normalizeTag(member.Tag), query) {
+			if !tagContains(NormalizeTag(member.Tag), query) {
 				continue
 			}
 
@@ -498,7 +498,7 @@ func tagContains(tag, query string) bool {
 	return false
 }
 
-func normalizeTag(s string) string {
+func NormalizeTag(s string) string {
 	s = strings.ToLower(s)
 
 	var b strings.Builder
