@@ -5,7 +5,6 @@ import (
 )
 
 type Config struct {
-	BotToken          string   `env:"BOT_TOKEN"`
 	BotTokens         []string `env:"BOT_TOKENS"`
 	DBDSN             string   `env:"DB_DSN"`
 	Debug             bool     `env:"DEBUG" envDefault:"false"`
@@ -17,6 +16,11 @@ type Config struct {
 	StoragePath       string   `env:"STORAGE_PATH" envDefault:""`
 	DeepseekAPIKey    string   `env:"DEEPSEEK_API_KEY"`
 	RedisADDR         string   `env:"REDIS_ADDR" envDefault:"redis:6379"`
+
+	ApplicationBotToken string `env:"APPLICATION_BOT_TOKEN"`
+	ApplicationChatID   int64  `env:"APPLIACTION_CHAT_ID"`
+	TargetChatID        int64  `env:"TARGET_CHAT_ID"`
+	TargetChatLink      string `env:"TARGET_CHAT_LINK"`
 }
 
 func Load() (Config, error) {

@@ -5,6 +5,8 @@ import (
 	redis2 "activity-bot/internal/db/redis"
 	"activity-bot/internal/rp"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -163,6 +165,22 @@ func main() {
 				)
 			}
 		}(token)
+	}
+
+	if cfg.ApplicationBotToken != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := runApplicationBot(
+				ctx,
+				log,
+				cfg,
+				redisClient,
+				chatMemberService,
+			); err != nil {
+				log.Error("Application bot failed", zap.Error(err))
+			}
+		}()
 	}
 
 	log.Info("All bot instances successfully initialized and running")
@@ -373,4 +391,288 @@ func registerBotCommands(ctx context.Context, bot *botapi.Bot, registry *command
 	); err != nil {
 		glog.For(bot.Logger()).Error(ctx, "Set admin commands", glog.Error(err))
 	}
+}
+
+type ApplicationState string
+
+const (
+	AppStateIdle      ApplicationState = ""
+	AppStateAwaitRole ApplicationState = "await_role"
+)
+
+type ApplicationStateData struct {
+}
+
+type PendingApplication struct {
+	UserID   int64  `json:"user_id"`
+	ChatID   int64  `json:"chat_id"`
+	Role     string `json:"role"`
+	Username string `json:"username"`
+}
+
+func runApplicationBot(
+	ctx context.Context,
+	log *zap.Logger,
+	cfg config.Config,
+	redisClient *redis.Client,
+	chatMemberService *chatmember.Service,
+) error {
+	botKey := cfg.ApplicationBotToken[:8]
+	botLog := log.With(
+		zap.String("bot_key", botKey),
+	)
+
+	sessionsDir := filepath.Join(cfg.StoragePath, "sessions")
+	if err := os.MkdirAll(sessionsDir, 0750); err != nil {
+		return fmt.Errorf("create sessions dir: %w", err)
+	}
+
+	storePath := filepath.Join(
+		sessionsDir,
+		fmt.Sprintf("application_%s.bbolt", botKey),
+	)
+
+	store, err := storage.Open(storePath)
+	if err != nil {
+		return fmt.Errorf("open storage: %w", err)
+	}
+	defer store.Close()
+
+	appFSM := fsm.NewRedisFSM[ApplicationState, ApplicationStateData](
+		redisClient,
+		fmt.Sprintf("fsm:%s:app:", botKey),
+		24*time.Hour,
+		AppStateIdle,
+	)
+
+	var bot *botapi.Bot
+
+	bot, err = botapi.New(cfg.ApplicationBotToken, botapi.Options{
+		AppID:   cfg.AppID,
+		AppHash: cfg.AppHash,
+		Logger:  logzap.New(botLog),
+		Storage: store,
+		OnStart: func(ctx context.Context) {
+			botLog.Info("Application bot started")
+		},
+		FloodWait: true,
+	})
+	if err != nil {
+		return fmt.Errorf("create application bot: %w", err)
+	}
+
+	bot.OnMessage(func(c *botapi.Context) error {
+		msg := c.Message()
+		if msg == nil {
+			return nil
+		}
+
+		if c.Update.Message.Chat.Type != "private" {
+			return nil
+		}
+
+		if strings.HasPrefix(msg.Text, "/start") {
+			if err := appFSM.Enter(c, AppStateAwaitRole, ApplicationStateData{}); err != nil {
+				return err
+			}
+			_, err := c.Reply("Здравствуйте, укажите желаемую роль")
+			return err
+		}
+
+		session, ok, err := appFSM.Get(c)
+		if err != nil {
+			return err
+		}
+		if ok && session.State == AppStateAwaitRole {
+			role := strings.TrimSpace(msg.Text)
+			if role == "" {
+				_, err := c.Reply("Пожалуйста, укажите корректную роль.")
+				return err
+			}
+
+			members, err := chatMemberService.ListHumanPresentChatMembers(c.Background(), cfg.TargetChatID)
+			if err != nil {
+				log.Error("Failed to list chat members", zap.Error(err))
+				_, err := c.Reply("Произошла ошибка при проверке роли. Пожалуйста, попробуйте позже.")
+				return err
+			}
+
+			isOccupied := false
+			for _, m := range members {
+				if strings.EqualFold(m.Tag, role) {
+					isOccupied = true
+					break
+				}
+			}
+
+			if isOccupied {
+				_, err := c.Reply("Эта роль уже занята. Пожалуйста, выберите другую.")
+				return err
+			}
+
+			if err := appFSM.Clear(c); err != nil {
+				return err
+			}
+
+			sender := c.Sender()
+			var username string
+			var userRef string
+			if sender != nil {
+				username = sender.Username
+				if username != "" {
+					userRef = "@" + username
+				} else {
+					userRef = strings.TrimSpace(sender.FirstName + " " + sender.LastName)
+					if userRef == "" {
+						userRef = fmt.Sprintf("ID: %d", sender.ID)
+					}
+				}
+			}
+
+			appID := fmt.Sprintf("%d_%d", sender.ID, time.Now().UnixNano())
+
+			pending := PendingApplication{
+				UserID:   sender.ID,
+				ChatID:   c.Update.Message.Chat.ID,
+				Role:     role,
+				Username: username,
+			}
+
+			pendingData, err := json.Marshal(pending)
+			if err != nil {
+				return err
+			}
+
+			redisKey := fmt.Sprintf("app:pending:%s", appID)
+			if err := redisClient.Set(c.Background(), redisKey, pendingData, 7*24*time.Hour).Err(); err != nil {
+				log.Error("Failed to save application to redis", zap.Error(err))
+				_, err := c.Reply("Произошла ошибка при сохранении заявки. Пожалуйста, попробуйте позже.")
+				return err
+			}
+
+			adminMsgText := fmt.Sprintf("Новая заявка на вступление!\nРоль: %s\nПользователь: %s", role, userRef)
+			_, err = c.Bot.SendMessage(
+				c,
+				botapi.ID(cfg.ApplicationChatID),
+				adminMsgText,
+				botapi.WithReplyMarkup(
+					botapi.InlineKeyboard(
+						botapi.InlineRow(
+							botapi.InlineButtonData("Принять", "app:accept:"+appID),
+							botapi.InlineButtonData("Отклонить", "app:reject:"+appID),
+						),
+					),
+				),
+			)
+			if err != nil {
+				log.Error("Failed to send admin notification", zap.Error(err))
+				_, err := c.Reply("Произошла ошибка при отправке заявки админам. Пожалуйста, попробуйте позже.")
+				return err
+			}
+
+			_, err = c.Reply("Ваша заявка отправлена на рассмотрение. Ожидайте ответа.")
+			return err
+		}
+
+		return nil
+	})
+
+	bot.OnCallbackQuery(func(c *botapi.Context) error {
+		cq := c.Update.CallbackQuery
+		if cq == nil {
+			return nil
+		}
+
+		if strings.HasPrefix(cq.Data, "app:accept:") {
+			appID := strings.TrimPrefix(cq.Data, "app:accept:")
+			redisKey := fmt.Sprintf("app:pending:%s", appID)
+			data, err := redisClient.Get(c.Background(), redisKey).Bytes()
+			if err != nil {
+				if errors.Is(err, redis.Nil) {
+					_ = c.AnswerCallback(botapi.WithCallbackText("Заявка не найдена или устарела."))
+					return nil
+				}
+				return err
+			}
+
+			var pending PendingApplication
+			if err := json.Unmarshal(data, &pending); err != nil {
+				return err
+			}
+
+			_ = redisClient.Del(c.Background(), redisKey)
+
+			applicantMsg := fmt.Sprintf("Ваша заявка на роль %s была принята!\nСсылка на чат: %s", pending.Role, cfg.TargetChatLink)
+			_, err = c.Bot.SendMessage(c, botapi.ID(pending.ChatID), applicantMsg)
+			if err != nil {
+				log.Error("Failed to notify applicant of acceptance", zap.Error(err))
+			}
+
+			var userRef string
+			if pending.Username != "" {
+				userRef = "@" + pending.Username
+			} else {
+				userRef = fmt.Sprintf("ID: %d", pending.UserID)
+			}
+			newAdminText := fmt.Sprintf("Заявка от %s на роль %s принята.", userRef, pending.Role)
+			_, _ = c.Bot.EditMessageText(
+				c,
+				botapi.ID(cq.Message.Chat.ID),
+				cq.Message.MessageID,
+				newAdminText,
+			)
+
+			_ = c.AnswerCallback(botapi.WithCallbackText("Заявка принята!"))
+			return nil
+		}
+
+		if strings.HasPrefix(cq.Data, "app:reject:") {
+			appID := strings.TrimPrefix(cq.Data, "app:reject:")
+			redisKey := fmt.Sprintf("app:pending:%s", appID)
+			data, err := redisClient.Get(c.Background(), redisKey).Bytes()
+			if err != nil {
+				if errors.Is(err, redis.Nil) {
+					_ = c.AnswerCallback(botapi.WithCallbackText("Заявка не найдена или устарела."))
+					return nil
+				}
+				return err
+			}
+
+			var pending PendingApplication
+			if err := json.Unmarshal(data, &pending); err != nil {
+				return err
+			}
+
+			_ = redisClient.Del(c.Background(), redisKey)
+
+			applicantMsg := fmt.Sprintf("К сожалению, ваша заявка на роль %s была отклонена.", pending.Role)
+			_, err = c.Bot.SendMessage(c, botapi.ID(pending.ChatID), applicantMsg)
+			if err != nil {
+				log.Error("Failed to notify applicant of rejection", zap.Error(err))
+			}
+
+			var userRef string
+			if pending.Username != "" {
+				userRef = "@" + pending.Username
+			} else {
+				userRef = fmt.Sprintf("ID: %d", pending.UserID)
+			}
+			newAdminText := fmt.Sprintf("Заявка от %s на роль %s отклонена.", userRef, pending.Role)
+			_, _ = c.Bot.EditMessageText(
+				c,
+				botapi.ID(cq.Message.Chat.ID),
+				cq.Message.MessageID,
+				newAdminText,
+			)
+
+			_ = c.AnswerCallback(botapi.WithCallbackText("Заявка отклонена!"))
+			return nil
+		}
+
+		return nil
+	})
+
+	botLog.Info("Starting application bot listener")
+
+	return bot.Run(ctx)
 }
