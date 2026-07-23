@@ -399,6 +399,7 @@ const (
 	AppStateIdle      ApplicationState = ""
 	AppStateAwaitRole ApplicationState = "await_role"
 	AppStatePending   ApplicationState = "pending"
+	AppStateRejecting ApplicationState = "rejecting"
 )
 
 type ApplicationStateData struct {
@@ -714,12 +715,12 @@ func runApplicationBot(
 	bot.OnCallbackQuery(
 		func(c *botapi.Context) error {
 			cq := c.Update.CallbackQuery
+			if cq == nil {
+				return nil
+			}
 
 			userID, err := strconv.ParseInt(
-				strings.TrimPrefix(
-					cq.Data,
-					"app:reject:",
-				),
+				strings.TrimPrefix(cq.Data, "app:reject:"),
 				10,
 				64,
 			)
@@ -747,14 +748,59 @@ func runApplicationBot(
 				return nil
 			}
 
+			if err := appFSM.Enter(
+				c,
+				AppStateRejecting,
+				session.Data,
+			); err != nil {
+				return err
+			}
+
+			_, err = c.Reply(
+				"Введите причину отказа:",
+			)
+
+			return err
+		},
+		botapi.CallbackPrefix("app:reject:"),
+	)
+
+	bot.OnMessage(
+		func(c *botapi.Context) error {
+			msg := c.Message()
+			if msg == nil {
+				return nil
+			}
+
+			session, ok, err := appFSM.Get(c)
+
+			if err != nil {
+				return err
+			}
+
+			if !ok || session.State != AppStateRejecting {
+				return nil
+			}
+
 			data := session.Data
+
+			reason := strings.TrimSpace(msg.Text)
+
+			if reason == "" {
+				_, err := c.Reply(
+					"Причина не может быть пустой.",
+				)
+
+				return err
+			}
 
 			_, err = c.Bot.SendMessage(
 				c,
 				botapi.ID(data.ChatID),
 				fmt.Sprintf(
-					"К сожалению, ваша заявка на роль %s была отклонена.",
+					"К сожалению, ваша заявка на роль %s была отклонена.\n\nПричина: %s",
 					data.Role,
+					reason,
 				),
 			)
 
@@ -767,28 +813,31 @@ func runApplicationBot(
 
 			if err := appFSM.ClearByKey(
 				c.Background(),
-				userID,
+				data.UserID,
 			); err != nil {
 				return err
 			}
-
+			ch, _ := c.Chat()
 			_, _ = c.Bot.EditMessageText(
 				c,
-				botapi.ID(cq.Message.Chat.ID),
-				cq.Message.MessageID,
+				ch,
+				msg.MessageID,
 				fmt.Sprintf(
-					"Заявка на роль %s отклонена",
+					"Заявка на роль %s отклонена\n\nПричина: %s",
 					data.Role,
+					reason,
 				),
 			)
 
-			return c.AnswerCallback(
-				botapi.WithCallbackText(
-					"Заявка отклонена",
-				),
+			_, err = c.Reply(
+				"Заявка отклонена.",
 			)
+
+			return err
 		},
-		botapi.CallbackPrefix("app:reject:"),
+		appFSM.State(AppStateRejecting),
+		botapi.HasText(),
+		botapi.ChatTypeIs(botapi.ChatTypePrivate),
 	)
 
 	botLog.Info("Starting application bot listener")
