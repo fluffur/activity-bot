@@ -85,52 +85,6 @@ func main() {
 		log.Fatal("Create translator", zap.Error(err))
 	}
 
-	var wg sync.WaitGroup
-
-	for _, token := range cfg.BotTokens {
-		wg.Add(1)
-		go func(tkn string) {
-			defer wg.Done()
-
-			if err := runBotInstance(ctx, log, cfg, pool, redisClient, deepseekClient, translator, tkn); err != nil {
-				log.Error("Bot instance execution failed",
-					zap.String("bot_prefix", tkn[:8]),
-					zap.Error(err),
-				)
-			}
-		}(token)
-	}
-
-	log.Info("All bot instances successfully initialized and running")
-	wg.Wait()
-	log.Info("All bot instances gracefully stopped")
-}
-
-func runBotInstance(
-	ctx context.Context,
-	log *zap.Logger,
-	cfg config.Config,
-	pool *pgxpool.Pool,
-	redisClient *redis.Client,
-	deepseekClient *deepseek.Client,
-	translator *i18n.Translator,
-	token string,
-) error {
-	botKey := token[:8]
-	botLog := log.With(zap.String("bot_key", botKey))
-
-	sessionsDir := filepath.Join(cfg.StoragePath, "sessions")
-	if err := os.MkdirAll(sessionsDir, 0750); err != nil {
-		return fmt.Errorf("failed to create sessions directory for %s: %w", botKey, err)
-	}
-
-	instanceStoragePath := filepath.Join(sessionsDir, fmt.Sprintf("session_%s.bbolt", botKey))
-	store, err := storage.Open(instanceStoragePath)
-	if err != nil {
-		return fmt.Errorf("open storage for %s: %w", botKey, err)
-	}
-	defer func() { _ = store.Close() }()
-
 	queries := db.New(pool)
 
 	chatRepository := postgres.NewChatRepository(queries)
@@ -160,6 +114,109 @@ func runBotInstance(
 
 	permissions := predicate.NewPermissionsChecker(permissionRepository, cfg.DeveloperID)
 	rules := predicate.NewRuleChecker(chatMemberRepository, messageRepository)
+
+	var wg sync.WaitGroup
+
+	for _, token := range cfg.BotTokens {
+		wg.Add(1)
+
+		go func(tkn string) {
+			defer wg.Done()
+
+			if err := runBotInstance(
+				ctx,
+				log,
+				cfg,
+
+				redisClient,
+				deepseekClient,
+				translator,
+
+				tkn,
+
+				chatRepository,
+				userRepository,
+				chatMemberRepository,
+				messageRepository,
+				pmSessionRepository,
+				permissionRepository,
+				normRepository,
+				rpRepository,
+
+				chatService,
+				chatMemberService,
+				statsService,
+				restService,
+				marriageService,
+				moderationService,
+				crocodileService,
+
+				permissions,
+				rules,
+
+				loc,
+			); err != nil {
+				log.Error(
+					"Bot instance execution failed",
+					zap.String("bot_prefix", tkn[:8]),
+					zap.Error(err),
+				)
+			}
+		}(token)
+	}
+
+	log.Info("All bot instances successfully initialized and running")
+	wg.Wait()
+	log.Info("All bot instances gracefully stopped")
+}
+
+func runBotInstance(
+	ctx context.Context,
+	log *zap.Logger,
+	cfg config.Config,
+
+	redisClient *redis.Client,
+	deepseekClient *deepseek.Client,
+	translator *i18n.Translator,
+
+	token string,
+
+	chatRepository chat.Repository,
+	userRepository user.Repository,
+	chatMemberRepository chatmember.Repository,
+	messageRepository message.Repository,
+	pmSessionRepository pmsession.Repository,
+	permissionRepository *postgres.PermissionRepository,
+	normRepository norm.Repository,
+	rpRepository rp.Repository,
+
+	chatService *chat.Service,
+	chatMemberService *chatmember.Service,
+	statsService *stats.Service,
+	restService *rest.Service,
+	marriageService *marriage.Service,
+	moderationService *moderation.Service,
+	crocodileService *crocodile.Service,
+
+	permissions *predicate.PermissionChecker,
+	rules *predicate.RuleChecker,
+
+	loc *i18n.Localizer,
+) error {
+	botKey := token[:8]
+	botLog := log.With(zap.String("bot_key", botKey))
+
+	sessionsDir := filepath.Join(cfg.StoragePath, "sessions")
+	if err := os.MkdirAll(sessionsDir, 0750); err != nil {
+		return fmt.Errorf("failed to create sessions directory for %s: %w", botKey, err)
+	}
+
+	instanceStoragePath := filepath.Join(sessionsDir, fmt.Sprintf("session_%s.bbolt", botKey))
+	store, err := storage.Open(instanceStoragePath)
+	if err != nil {
+		return fmt.Errorf("open storage for %s: %w", botKey, err)
+	}
+	defer func() { _ = store.Close() }()
 
 	summonFSM := fsm.NewRedisFSM[summon.State, summon.StateData](
 		redisClient,
