@@ -475,13 +475,16 @@ func runApplicationBot(
 		}
 
 		if strings.HasPrefix(msg.Text, "/start") {
+			key, ok := fsm.SenderKey(c)
+			fmt.Println("ENTER", key, ok)
 			if err := appFSM.Enter(c, AppStateAwaitRole, ApplicationStateData{Test: true}); err != nil {
 				return err
 			}
 			_, err := c.Reply("Здравствуйте, укажите желаемую роль")
 			return err
 		}
-
+		key, ok := fsm.SenderKey(c)
+		fmt.Println("GET", key, ok)
 		session, ok, err := appFSM.Get(c)
 		if err != nil {
 			return err
