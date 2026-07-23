@@ -403,10 +403,11 @@ const (
 )
 
 type ApplicationStateData struct {
-	UserID   int64  `json:"user_id"`
-	ChatID   int64  `json:"chat_id"`
-	Role     string `json:"role"`
-	Username string `json:"username"`
+	UserID        int64  `json:"user_id"`
+	ChatID        int64  `json:"chat_id"`
+	Role          string `json:"role"`
+	Username      string `json:"username"`
+	ApplicationID int    `json:"application_id"`
 }
 
 func runApplicationBot(
@@ -574,14 +575,6 @@ func runApplicationBot(
 				Username: username,
 			}
 
-			if err := appFSM.Enter(
-				c,
-				AppStatePending,
-				data,
-			); err != nil {
-				return err
-			}
-
 			appID := strconv.FormatInt(
 				senderID,
 				10,
@@ -595,7 +588,7 @@ func runApplicationBot(
 				userRef,
 			)
 
-			_, err = c.Bot.SendMessage(
+			sent, err := c.Bot.SendMessage(
 				c,
 				botapi.ID(cfg.ApplicationChatID),
 				adminMsg,
@@ -614,7 +607,14 @@ func runApplicationBot(
 					),
 				),
 			)
-
+			data.ApplicationID = sent.MessageID
+			if err := appFSM.Enter(
+				c,
+				AppStatePending,
+				data,
+			); err != nil {
+				return err
+			}
 			if err != nil {
 				return err
 			}
@@ -747,16 +747,20 @@ func runApplicationBot(
 
 				return nil
 			}
+			data := session.Data
 
 			if err := appFSM.Enter(
 				c,
 				AppStateRejecting,
-				session.Data,
+				data,
 			); err != nil {
 				return err
 			}
 
-			_, err = c.Reply(
+			chatID, _ := c.Chat()
+			_, err = c.Bot.SendMessage(
+				c,
+				chatID,
 				"Введите причину отказа:",
 			)
 
@@ -817,16 +821,11 @@ func runApplicationBot(
 			); err != nil {
 				return err
 			}
-			ch, _ := c.Chat()
 			_, _ = c.Bot.EditMessageText(
 				c,
-				ch,
-				msg.MessageID,
-				fmt.Sprintf(
-					"Заявка на роль %s отклонена\n\nПричина: %s",
-					data.Role,
-					reason,
-				),
+				botapi.ID(cfg.ApplicationChatID),
+				data.ApplicationID,
+				"Заявка отклонена\n\nПричина: "+reason,
 			)
 
 			_, err = c.Reply(
