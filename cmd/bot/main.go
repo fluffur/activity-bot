@@ -5,12 +5,12 @@ import (
 	redis2 "activity-bot/internal/db/redis"
 	"activity-bot/internal/rp"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -46,7 +46,6 @@ import (
 	userHandler "activity-bot/internal/user/handler"
 
 	"github.com/cohesion-org/deepseek-go"
-	"github.com/davecgh/go-spew/spew"
 	fsm "github.com/fluffur/botapi-fsm"
 	glog "github.com/gotd/log"
 	"github.com/gotd/log/logzap"
@@ -399,13 +398,10 @@ type ApplicationState string
 const (
 	AppStateIdle      ApplicationState = ""
 	AppStateAwaitRole ApplicationState = "await_role"
+	AppStatePending   ApplicationState = "pending"
 )
 
 type ApplicationStateData struct {
-	Test bool
-}
-
-type PendingApplication struct {
 	UserID   int64  `json:"user_id"`
 	ChatID   int64  `json:"chat_id"`
 	Role     string `json:"role"`
@@ -475,113 +471,133 @@ func runApplicationBot(
 		}
 
 		if strings.HasPrefix(msg.Text, "/start") {
-			key, ok := fsm.SenderKey(c)
-			fmt.Println("ENTER", key, ok)
-			if err := appFSM.Enter(c, AppStateAwaitRole, ApplicationStateData{Test: true}); err != nil {
+			return func() error {
+				if err := appFSM.Enter(
+					c,
+					AppStateAwaitRole,
+					ApplicationStateData{},
+				); err != nil {
+					return err
+				}
+
+				_, err := c.Reply("Здравствуйте, укажите желаемую роль")
 				return err
-			}
-			_, err := c.Reply("Здравствуйте, укажите желаемую роль")
-			return err
+			}()
 		}
-		key, ok := fsm.SenderKey(c)
-		fmt.Println("GET", key, ok)
+
 		session, ok, err := appFSM.Get(c)
 		if err != nil {
 			return err
 		}
-		spew.Dump(session, ok, err)
-		if ok && session.State == AppStateAwaitRole {
-			role := strings.TrimSpace(msg.Text)
-			if role == "" {
-				_, err := c.Reply("Пожалуйста, укажите корректную роль.")
-				return err
-			}
 
-			members, err := chatMemberService.ListHumanPresentChatMembers(c.Background(), cfg.TargetChatID)
-			if err != nil {
-				log.Error("Failed to list chat members", zap.Error(err))
-				_, err := c.Reply("Произошла ошибка при проверке роли. Пожалуйста, попробуйте позже.")
-				return err
-			}
+		if !ok || session.State != AppStateAwaitRole {
+			return nil
+		}
 
-			isOccupied := false
-			for _, m := range members {
-				if strings.EqualFold(m.Tag, role) {
-					isOccupied = true
-					break
-				}
-			}
+		role := strings.TrimSpace(msg.Text)
 
-			if isOccupied {
-				_, err := c.Reply("Эта роль уже занята. Пожалуйста, выберите другую.")
-				return err
-			}
-
-			if err := appFSM.Clear(c); err != nil {
-				return err
-			}
-
-			sender := c.Sender()
-			var username string
-			var userRef string
-			if sender != nil {
-				username = sender.Username
-				if username != "" {
-					userRef = "@" + username
-				} else {
-					userRef = strings.TrimSpace(sender.FirstName + " " + sender.LastName)
-					if userRef == "" {
-						userRef = fmt.Sprintf("ID: %d", sender.ID)
-					}
-				}
-			}
-
-			appID := fmt.Sprintf("%d_%d", sender.ID, time.Now().UnixNano())
-
-			pending := PendingApplication{
-				UserID:   sender.ID,
-				ChatID:   c.Update.Message.Chat.ID,
-				Role:     role,
-				Username: username,
-			}
-
-			pendingData, err := json.Marshal(pending)
-			if err != nil {
-				return err
-			}
-
-			redisKey := fmt.Sprintf("app:pending:%s", appID)
-			if err := redisClient.Set(c.Background(), redisKey, pendingData, 7*24*time.Hour).Err(); err != nil {
-				log.Error("Failed to save application to redis", zap.Error(err))
-				_, err := c.Reply("Произошла ошибка при сохранении заявки. Пожалуйста, попробуйте позже.")
-				return err
-			}
-
-			adminMsgText := fmt.Sprintf("Новая заявка на вступление!\nРоль: %s\nПользователь: %s", role, userRef)
-			_, err = c.Bot.SendMessage(
-				c,
-				botapi.ID(cfg.ApplicationChatID),
-				adminMsgText,
-				botapi.WithReplyMarkup(
-					botapi.InlineKeyboard(
-						botapi.InlineRow(
-							botapi.InlineButtonData("Принять", "app:accept:"+appID),
-							botapi.InlineButtonData("Отклонить", "app:reject:"+appID),
-						),
-					),
-				),
-			)
-			if err != nil {
-				log.Error("Failed to send admin notification", zap.Error(err))
-				_, err := c.Reply("Произошла ошибка при отправке заявки админам. Пожалуйста, попробуйте позже.")
-				return err
-			}
-
-			_, err = c.Reply("Ваша заявка отправлена на рассмотрение. Ожидайте ответа.")
+		if role == "" {
+			_, err := c.Reply("Пожалуйста, укажите корректную роль.")
 			return err
 		}
 
-		return nil
+		members, err := chatMemberService.ListHumanPresentChatMembers(
+			c.Background(),
+			cfg.TargetChatID,
+		)
+
+		if err != nil {
+			log.Error("Failed to list chat members", zap.Error(err))
+			_, err := c.Reply(
+				"Произошла ошибка при проверке роли.",
+			)
+			return err
+		}
+
+		for _, m := range members {
+			if strings.EqualFold(m.Tag, role) {
+				_, err := c.Reply(
+					"Эта роль уже занята. Пожалуйста, выберите другую.",
+				)
+				return err
+			}
+		}
+
+		sender := c.Sender()
+		if sender == nil {
+			return errors.New("sender is nil")
+		}
+
+		username := sender.Username
+
+		var userRef string
+		if username != "" {
+			userRef = "@" + username
+		} else {
+			userRef = strings.TrimSpace(
+				sender.FirstName + " " + sender.LastName,
+			)
+
+			if userRef == "" {
+				userRef = fmt.Sprintf("ID: %d", sender.ID)
+			}
+		}
+
+		chatID, _ := c.Chat()
+		data := ApplicationStateData{
+			UserID:   sender.ID,
+			ChatID:   int64(chatID.(botapi.ChatIDInt)),
+			Role:     role,
+			Username: username,
+		}
+
+		if err := appFSM.Enter(
+			c,
+			AppStatePending,
+			data,
+		); err != nil {
+			return err
+		}
+
+		appID := fmt.Sprintf("%d", sender.ID)
+
+		adminMsg := fmt.Sprintf(
+			"Новая заявка на вступление!\n\n"+
+				"Роль: %s\n"+
+				"Пользователь: %s",
+			role,
+			userRef,
+		)
+
+		_, err = c.Bot.SendMessage(
+			c,
+			botapi.ID(cfg.ApplicationChatID),
+			adminMsg,
+			botapi.WithReplyMarkup(
+				botapi.InlineKeyboard(
+					botapi.InlineRow(
+						botapi.InlineButtonData(
+							"Принять",
+							"app:accept:"+appID,
+						),
+						botapi.InlineButtonData(
+							"Отклонить",
+							"app:reject:"+appID,
+						),
+					),
+				),
+			),
+		)
+
+		if err != nil {
+			return err
+		}
+
+		_, err = c.Reply(
+			"Ваша заявка отправлена на рассмотрение. Ожидайте ответа.",
+		)
+
+		return err
 	})
 
 	bot.OnCallbackQuery(func(c *botapi.Context) error {
@@ -590,93 +606,104 @@ func runApplicationBot(
 			return nil
 		}
 
-		if strings.HasPrefix(cq.Data, "app:accept:") {
-			appID := strings.TrimPrefix(cq.Data, "app:accept:")
-			redisKey := fmt.Sprintf("app:pending:%s", appID)
-			data, err := redisClient.Get(c.Background(), redisKey).Bytes()
-			if err != nil {
-				if errors.Is(err, redis.Nil) {
-					_ = c.AnswerCallback(botapi.WithCallbackText("Заявка не найдена или устарела."))
-					return nil
-				}
-				return err
-			}
+		var prefix string
 
-			var pending PendingApplication
-			if err := json.Unmarshal(data, &pending); err != nil {
-				return err
-			}
-
-			_ = redisClient.Del(c.Background(), redisKey)
-
-			applicantMsg := fmt.Sprintf("Ваша заявка на роль %s была принята!\nСсылка на чат: %s", pending.Role, cfg.TargetChatLink)
-			_, err = c.Bot.SendMessage(c, botapi.ID(pending.ChatID), applicantMsg)
-			if err != nil {
-				log.Error("Failed to notify applicant of acceptance", zap.Error(err))
-			}
-
-			var userRef string
-			if pending.Username != "" {
-				userRef = "@" + pending.Username
-			} else {
-				userRef = fmt.Sprintf("ID: %d", pending.UserID)
-			}
-			newAdminText := fmt.Sprintf("Заявка от %s на роль %s принята.", userRef, pending.Role)
-			_, _ = c.Bot.EditMessageText(
-				c,
-				botapi.ID(cq.Message.Chat.ID),
-				cq.Message.MessageID,
-				newAdminText,
-			)
-
-			_ = c.AnswerCallback(botapi.WithCallbackText("Заявка принята!"))
+		switch {
+		case strings.HasPrefix(cq.Data, "app:accept:"):
+			prefix = "app:accept:"
+		case strings.HasPrefix(cq.Data, "app:reject:"):
+			prefix = "app:reject:"
+		default:
 			return nil
 		}
 
-		if strings.HasPrefix(cq.Data, "app:reject:") {
-			appID := strings.TrimPrefix(cq.Data, "app:reject:")
-			redisKey := fmt.Sprintf("app:pending:%s", appID)
-			data, err := redisClient.Get(c.Background(), redisKey).Bytes()
-			if err != nil {
-				if errors.Is(err, redis.Nil) {
-					_ = c.AnswerCallback(botapi.WithCallbackText("Заявка не найдена или устарела."))
-					return nil
-				}
-				return err
-			}
+		userID, err := strconv.ParseInt(
+			strings.TrimPrefix(cq.Data, prefix),
+			10,
+			64,
+		)
+		if err != nil {
+			return err
+		}
 
-			var pending PendingApplication
-			if err := json.Unmarshal(data, &pending); err != nil {
-				return err
-			}
+		session, ok, err := appFSM.GetByKey(c.Background(), userID)
+		if err != nil {
+			return err
+		}
 
-			_ = redisClient.Del(c.Background(), redisKey)
-
-			applicantMsg := fmt.Sprintf("К сожалению, ваша заявка на роль %s была отклонена.", pending.Role)
-			_, err = c.Bot.SendMessage(c, botapi.ID(pending.ChatID), applicantMsg)
-			if err != nil {
-				log.Error("Failed to notify applicant of rejection", zap.Error(err))
-			}
-
-			var userRef string
-			if pending.Username != "" {
-				userRef = "@" + pending.Username
-			} else {
-				userRef = fmt.Sprintf("ID: %d", pending.UserID)
-			}
-			newAdminText := fmt.Sprintf("Заявка от %s на роль %s отклонена.", userRef, pending.Role)
-			_, _ = c.Bot.EditMessageText(
-				c,
-				botapi.ID(cq.Message.Chat.ID),
-				cq.Message.MessageID,
-				newAdminText,
+		if !ok || session.State != AppStateAwaitRole {
+			_ = c.AnswerCallback(
+				botapi.WithCallbackText("Заявка не найдена или устарела"),
 			)
-
-			_ = c.AnswerCallback(botapi.WithCallbackText("Заявка отклонена!"))
 			return nil
 		}
 
-		return nil
+		data := session.Data
+
+		var text string
+
+		if prefix == "app:accept:" {
+			_, err = c.Bot.SendMessage(
+				c,
+				botapi.ID(data.ChatID),
+				fmt.Sprintf(
+					"Ваша заявка на роль %s была принята!\n%s",
+					data.Role,
+					cfg.TargetChatLink,
+				),
+			)
+
+			if err != nil {
+				log.Error(
+					"notify applicant",
+					zap.Error(err),
+				)
+			}
+
+			text = fmt.Sprintf(
+				"Заявка на роль %s принята",
+				data.Role,
+			)
+		} else {
+			_, err = c.Bot.SendMessage(
+				c,
+				botapi.ID(data.ChatID),
+				fmt.Sprintf(
+					"К сожалению, ваша заявка на роль %s была отклонена.",
+					data.Role,
+				),
+			)
+
+			if err != nil {
+				log.Error(
+					"notify applicant",
+					zap.Error(err),
+				)
+			}
+
+			text = fmt.Sprintf(
+				"Заявка на роль %s отклонена",
+				data.Role,
+			)
+		}
+
+		if err := appFSM.ClearByKey(
+			c.Background(),
+			userID,
+		); err != nil {
+			return err
+		}
+
+		_, _ = c.Bot.EditMessageText(
+			c,
+			botapi.ID(cq.Message.Chat.ID),
+			cq.Message.MessageID,
+			text,
+		)
+
+		return c.AnswerCallback(
+			botapi.WithCallbackText(text),
+		)
 	})
 
 	botLog.Info("Starting application bot listener")

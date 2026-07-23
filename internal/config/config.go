@@ -18,7 +18,7 @@ type Config struct {
 	RedisADDR         string   `env:"REDIS_ADDR" envDefault:"redis:6379"`
 
 	ApplicationBotToken string `env:"APPLICATION_BOT_TOKEN"`
-	ApplicationChatID   int64  `env:"APPLIACTION_CHAT_ID"`
+	ApplicationChatID   int64  `env:"APPLIATION_CHAT_ID"`
 	TargetChatID        int64  `env:"TARGET_CHAT_ID"`
 	TargetChatLink      string `env:"TARGET_CHAT_LINK"`
 }
