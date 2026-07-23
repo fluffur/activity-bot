@@ -46,6 +46,7 @@ import (
 	userHandler "activity-bot/internal/user/handler"
 
 	"github.com/cohesion-org/deepseek-go"
+	"github.com/davecgh/go-spew/spew"
 	fsm "github.com/fluffur/botapi-fsm"
 	glog "github.com/gotd/log"
 	"github.com/gotd/log/logzap"
@@ -484,6 +485,7 @@ func runApplicationBot(
 		if err != nil {
 			return err
 		}
+		spew.Dump(session, ok, err)
 		if ok && session.State == AppStateAwaitRole {
 			role := strings.TrimSpace(msg.Text)
 			if role == "" {
