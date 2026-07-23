@@ -96,7 +96,7 @@ func (h *Handler) Actions() []*command.Action {
 			h.ListInactive,
 			i18n.Cmd.Inactive.Desc,
 			CategoryStats,
-			option.WithAliases("неактив", "инактив", "кто неактив"),
+			option.WithAliases("список неактив", "неактив", "инактив", "кто неактив"),
 			option.WithRules(rule.Duration().Optional()),
 		),
 		action.NewCallbackPrefix(
