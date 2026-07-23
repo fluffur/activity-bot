@@ -568,7 +568,7 @@ func runApplicationBot(
 
 			_, err = c.Reply(
 				tghtml.PatPatEmoji()+
-					" Здравствуйте! Отправьте сюда желаемую роль\nСписок ролей можно посмотреть в инфо флуда",
+					" Здравствуйте! Отправьте сюда желаемую роль\n"+tghtml.Link(cfg.RolesPostLink, "Список ролей флуда"),
 				botapi.WithParseMode(botapi.ParseModeHTML),
 			)
 
@@ -769,6 +769,9 @@ func runApplicationBot(
 				return err
 			}
 
+			if err := deleteApplication(c, redisClient, application.UserID); err != nil {
+				return err
+			}
 			_, _ = c.Bot.EditMessageText(
 				c,
 				botapi.ID(cq.Message.Chat.ID),
