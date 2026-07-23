@@ -473,7 +473,7 @@ func runApplicationBot(
 			}
 
 			_, err := c.Reply(
-				"Здравствуйте, укажите желаемую роль",
+				"Здравствуйте, отправьте желаемую роль",
 			)
 
 			return err
@@ -516,7 +516,7 @@ func runApplicationBot(
 			}
 
 			for _, m := range members {
-				if strings.EqualFold(m.Tag, role) {
+				if strings.EqualFold(predicate.NormalizeTag(m.Tag), role) {
 					_, err := c.Reply(
 						"Эта роль уже занята. Пожалуйста, выберите другую.",
 					)
