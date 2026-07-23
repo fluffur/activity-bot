@@ -44,6 +44,19 @@ func NewHandler(
 }
 func (h *Handler) Actions() []*command.Action {
 	return []*command.Action{
+
+		action.NewCommand(
+			"summonstyle",
+			h.SummonStyle,
+			i18n.Cmd.Summon.Style.Desc,
+			CategorySummon,
+			option.WithAliases(
+				"каллтип",
+				"каллстиль",
+				"калл тип",
+				"калл стиль",
+			),
+		),
 		action.NewCommand(
 			"summon",
 			h.SummonAll,
@@ -68,19 +81,6 @@ func (h *Handler) Actions() []*command.Action {
 			i18n.Cmd.Summon.Reg.Desc,
 			CategorySummon,
 			option.WithAliases("рег"),
-		),
-
-		action.NewCommand(
-			"summonstyle",
-			h.SummonStyle,
-			i18n.Cmd.Summon.Style.Desc,
-			CategorySummon,
-			option.WithAliases(
-				"каллтип",
-				"каллстиль",
-				"калл тип",
-				"калл стиль",
-			),
 		),
 
 		action.NewCallbackPrefix(
