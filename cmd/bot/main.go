@@ -488,7 +488,7 @@ func runApplicationBot(
 				return nil
 			}
 
-			role := strings.TrimSpace(msg.Text)
+			role := predicate.NormalizeTag(msg.Text)
 
 			if role == "" {
 				_, err := c.Reply(
