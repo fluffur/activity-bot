@@ -9,6 +9,9 @@ import (
 	"activity-bot/internal/permission"
 	"activity-bot/internal/rolepost"
 	"activity-bot/internal/rule"
+	"fmt"
+
+	"github.com/gotd/botapi"
 )
 
 const CategoryModeration command.Category = "moderation"
@@ -229,5 +232,35 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithPermission(permission.StatusModerator),
 			option.WithAliases("варнлист"),
 		),
+
+		action.NewCommand(
+			"delmessage",
+			h.DeleteMessage,
+			i18n.Cmd.Moderation.DeleteMessage.Desc,
+			CategoryModeration,
+			option.WithPermission(permission.StatusAdmin),
+			option.WithAliases("-смс"),
+		),
 	}
+}
+
+func (h *Handler) DeleteMessage(c *botapi.Context) error {
+	msg := c.Message()
+	if msg == nil {
+		return nil
+	}
+	if msg.ReplyToMessage == nil {
+		return nil
+	}
+	chatID, _ := c.Chat()
+
+	if err := c.Bot.DeleteMessage(c, chatID, msg.ReplyToMessage.MessageID); err != nil {
+		return fmt.Errorf("delete reply msg: %w", err)
+	}
+
+	if err := c.Bot.DeleteMessage(c, chatID, msg.MessageID); err != nil {
+		return fmt.Errorf("delete current msg: %w", err)
+	}
+
+	return nil
 }
