@@ -193,8 +193,10 @@ func (h *Handler) UpdateRoles(c *botapi.Context) error {
 		botapi.Username("H4venflood"),
 		8,
 		rolepost.Render(rolepost.BuildRoleStates(members)),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview(),
 	); err != nil {
-		return err
+		return fmt.Errorf("update roles: %w", err)
 	}
 
 	return nil
