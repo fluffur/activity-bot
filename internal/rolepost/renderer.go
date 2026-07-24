@@ -5,7 +5,45 @@ import (
 	"activity-bot/internal/predicate"
 	"bytes"
 	"html/template"
-	"strings"
+)
+
+type RenderData struct {
+	Categories []RenderCategory
+}
+
+type RenderCategory struct {
+	Emoji string
+	Name  string
+	Roles []RenderRole
+}
+
+type RenderRole struct {
+	Name   string
+	Status string
+}
+
+const rolesTemplate = `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . <tg-emoji emoji-id="5260536644913604662">👋</tg-emoji>
+
+<blockquote><a href="http://t.me/HavenGateBot?start=true">бот для заявок</a></blockquote>
+бронь – ✷
+занятая роль – ♡゙
+нуждаемся – !
+
+{{range .Categories}}
+<blockquote expandable>
+{{.Emoji}} {{.Name}}
+
+{{- range .Roles}}
+{{.Name}} - {{.Status}}
+{{end}}
+</blockquote>
+{{end}}
+
+менять роль можно только 2 или 3 раза для смены обратиться к владельцу или совладельцу
+`
+
+var rolesTmpl = template.Must(
+	template.New("roles").Parse(rolesTemplate),
 )
 
 type RoleState struct {
@@ -52,48 +90,40 @@ func BuildRoleStates(members []chatmember.ChatMember) map[string]RoleState {
 	return result
 }
 
-func Render(roles map[string]RoleState) string {
-
-	var b strings.Builder
-
-	b.WriteString(`˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . <tg-emoji emoji-id="5260536644913604662">👋</tg-emoji>
-
-<blockquote><a href="http://t.me/HavenGateBot?start=true">бот для заявок</a></blockquote>
-бронь – ✷
-занятая роль – ♡゙
-нуждаемся – !
-`)
-
-	for _, category := range Categories {
-
-		b.WriteString("<blockquote expandable>")
-		b.WriteString(`
-    `)
-		b.WriteString(category.Emoji)
-		b.WriteString(" ")
-		b.WriteString(category.Name)
-		b.WriteString("\n\n")
-
-		for _, role := range category.Roles {
-
-			b.WriteString(role)
-			b.WriteString(" - ")
-
-			if state, ok := roles[predicate.NormalizeTag(role)]; ok {
-				b.WriteString(state.Status)
-			}
-
-			b.WriteString("\n")
-		}
-
-		b.WriteString("</blockquote>")
+func Render(states map[string]RoleState) (string, error) {
+	data := RenderData{
+		Categories: make([]RenderCategory, 0, len(Categories)),
 	}
 
-	b.WriteString(`
-менять роль можно только 2 или 3 раза для смены обратиться к владельцу или совладельцу
-`)
+	for _, cat := range Categories {
+		rc := RenderCategory{
+			Emoji: cat.Emoji,
+			Name:  cat.Name,
+		}
 
-	return b.String()
+		for _, role := range cat.Roles {
+			status := ""
+
+			if s, ok := states[predicate.NormalizeTag(role)]; ok {
+				status = s.Status
+			}
+
+			rc.Roles = append(rc.Roles, RenderRole{
+				Name:   role,
+				Status: status,
+			})
+		}
+
+		data.Categories = append(data.Categories, rc)
+	}
+
+	var buf bytes.Buffer
+
+	if err := rolesTmpl.Execute(&buf, data); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }
 
 const applicationTemplate = `
