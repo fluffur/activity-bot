@@ -116,7 +116,7 @@ var Categories = []Category{
 
 	{
 		Name:  "Фонтейн",
-		Emoji: `<tg-emoji emoji-id="5327827576872254854">🫵</tg-emoji>`,
+		Emoji: `<tg-emoji emoji-id="5327827576872254854">💦</tg-emoji>`,
 		Roles: []string{
 			"Клоринда",
 			"Линнет",
@@ -138,7 +138,7 @@ var Categories = []Category{
 
 	{
 		Name:  "Натлан",
-		Emoji: `<tg-emoji emoji-id="5242738760000492993">🌟</tg-emoji>`,
+		Emoji: `<tg-emoji emoji-id="5242738760000492993">🔥</tg-emoji>`,
 		Roles: []string{
 			"Вареса",
 			"Иансан",
@@ -156,7 +156,7 @@ var Categories = []Category{
 
 	{
 		Name:  "Нод Край",
-		Emoji: `<tg-emoji emoji-id="5377354992246091279">🌟</tg-emoji>`,
+		Emoji: `<tg-emoji emoji-id="5377354992246091279">🇬🇧</tg-emoji>`,
 		Roles: []string{
 			"Айно",
 			"Иллуги",
@@ -171,7 +171,7 @@ var Categories = []Category{
 
 	{
 		Name:  "Снежная",
-		Emoji: `<tg-emoji emoji-id="5262510246810658941">🌟</tg-emoji>`,
+		Emoji: `<tg-emoji emoji-id="5262510246810658941">❄️</tg-emoji>`,
 		Roles: []string{
 			"Алеша",
 			"Валерий",
