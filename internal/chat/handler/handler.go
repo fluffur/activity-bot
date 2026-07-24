@@ -53,7 +53,7 @@ func (h *Handler) Actions() []*command.Action {
 			h.ShowPrompt,
 			i18n.Cmd.Chat.ShowPrompt.Desc,
 			CategoryChat,
-			option.WithAliases("промпт"),
+			option.WithAliases("промпт", "промт"),
 		),
 
 		action.NewCommand(
@@ -61,7 +61,7 @@ func (h *Handler) Actions() []*command.Action {
 			h.SetPrompt,
 			i18n.Cmd.Chat.SetPrompt.Desc,
 			CategoryChat,
-			option.WithAliases("промпт"),
+			option.WithAliases("промпт", "промт"),
 			option.WithRules(rule.Text()),
 			option.WithPermission(permission.StatusSeniorAdmin),
 		),

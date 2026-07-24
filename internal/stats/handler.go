@@ -70,7 +70,7 @@ func (h *Handler) Actions() []*command.Action {
 			h.Profile,
 			i18n.Cmd.Profile.Desc,
 			CategoryStats,
-			option.WithAliases("кто ты", "профиль"),
+			option.WithAliases("кто ты", "ктоты", "профиль"),
 			option.WithExamples(
 				i18n.Cmd.Profile.ExampleDuration,
 				i18n.Cmd.Profile.ExampleDate,
@@ -85,7 +85,7 @@ func (h *Handler) Actions() []*command.Action {
 			h.Profile,
 			i18n.Cmd.Profile.Desc,
 			CategoryStats,
-			option.WithAliases("кто я", "профиль"),
+			option.WithAliases("кто я", "ктоя", "профиль"),
 			option.WithExamples(
 				i18n.Cmd.Profile.ExampleDuration,
 				i18n.Cmd.Profile.ExampleDate,
