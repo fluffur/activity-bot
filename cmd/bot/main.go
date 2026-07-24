@@ -596,7 +596,7 @@ func runApplicationBot(
 				),
 			)
 		},
-		botapi.CallbackPrefix("app:new"),
+		botapi.CallbackData("app:new"),
 	)
 
 	bot.OnCommand(
@@ -718,6 +718,7 @@ func runApplicationBot(
 
 	bot.OnCallbackQuery(
 		func(c *botapi.Context) error {
+			spew.Dump("HEEEEY")
 			cq := c.Update.CallbackQuery
 			if cq == nil {
 				return nil
@@ -836,7 +837,6 @@ func runApplicationBot(
 			return err
 		},
 		botapi.CallbackData("app:confirm_rules"),
-		botapi.ChatTypeIs(botapi.ChatTypePrivate),
 		appFSM.State(AppStateConfirmRole),
 	)
 
