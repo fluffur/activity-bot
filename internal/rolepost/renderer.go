@@ -98,7 +98,7 @@ func Render(roles map[string]RoleState) string {
 
 const applicationTemplate = `
 ──────────────────────────────────────
-               <tg-emoji emoji-id="5404728034299239682">🔠</tg-emoji><tg-emoji emoji-id="5402092367488508573">🔠</tg-emoji><tg-emoji emoji-id="5402092367488508573">🔠</tg-emoji><tg-emoji emoji-id="5402336351695695846">🔠</tg-emoji><tg-emoji emoji-id="5402424050632909510">🔠</tg-emoji>
+               𝗔𝗣𝗣𝗟𝗬
 ──────────────────────────────────────
 
      статус – <u>{{if .Open}}открыт{{else}}закрыт{{end}}</u>
