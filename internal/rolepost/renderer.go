@@ -66,7 +66,7 @@ func Render(roles map[string]RoleState) string {
 
 	for _, category := range Categories {
 
-		b.WriteString("\n<blockquote expandable>")
+		b.WriteString("<blockquote expandable>")
 		b.WriteString(`
     `)
 		b.WriteString(category.Emoji)
@@ -90,7 +90,6 @@ func Render(roles map[string]RoleState) string {
 	}
 
 	b.WriteString(`
-
 менять роль можно только 2 или 3 раза для смены обратиться к владельцу или совладельцу
 `)
 
