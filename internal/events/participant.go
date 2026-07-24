@@ -46,10 +46,12 @@ func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.Up
 
 	newTag := participant.Rank(u.NewParticipant)
 	if participant.Rank(u.PrevParticipant) != newTag {
-		if err := h.roleUpdater.Update(ctx, chatID, h.bot); err != nil {
-			return fmt.Errorf("paricipant update: %w", err)
+		if err := h.memberService.UpdateTag(ctx, chatID, u.UserID, newTag); err != nil {
+			return fmt.Errorf("participant update tag: %w", err)
 		}
-		return h.memberService.UpdateTag(ctx, chatID, u.UserID, newTag)
+		if err := h.roleUpdater.Update(ctx, chatID, h.bot); err != nil {
+			return fmt.Errorf("participant update: %w", err)
+		}
 	}
 
 	return nil
