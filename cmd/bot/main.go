@@ -353,6 +353,7 @@ func registerMiddlewares(
 	summonH *summon.Handler,
 ) {
 	bot.UseOuter(
+		middleware.IgnoreChannelsMiddleware(),
 		middleware.ChatMiddleware(chatRepository, pmSessionRepository),
 		middleware.LocalizationMiddleware(translator),
 		middleware.ChatMemberMiddleware(

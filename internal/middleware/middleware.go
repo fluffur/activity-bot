@@ -21,6 +21,28 @@ import (
 	"github.com/gotd/botapi"
 )
 
+func IgnoreChannelsMiddleware() botapi.Middleware {
+	return func(next botapi.Handler) botapi.Handler {
+		return func(c *botapi.Context) error {
+			msg := c.Message()
+
+			if msg == nil && c.Update.CallbackQuery != nil {
+				msg = c.Update.CallbackQuery.Message
+			}
+
+			if msg == nil {
+				return next(c)
+			}
+
+			if msg.Chat.Type == botapi.ChatTypeChannel {
+				return nil
+			}
+
+			return next(c)
+		}
+	}
+}
+
 func ChatMiddleware(cr chat.Repository, sr pmsession.Repository) botapi.Middleware {
 	return func(next botapi.Handler) botapi.Handler {
 		return func(c *botapi.Context) error {

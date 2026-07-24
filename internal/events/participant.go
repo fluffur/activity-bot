@@ -19,10 +19,18 @@ import (
 )
 
 func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.UpdateChannelParticipant) error {
+
+	channel, ok := e.Channels[u.ChannelID]
+	if !ok {
+		return nil
+	}
+
+	if !channel.Megagroup {
+		return nil
+	}
 	log.Printf("participant %+v\n", u)
 
 	var peerID constant.TDLibPeerID
-
 	peerID.Channel(u.ChannelID)
 
 	chatID := int64(peerID)
