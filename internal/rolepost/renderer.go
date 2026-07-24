@@ -76,7 +76,7 @@ func Render(roles map[string]RoleState) string {
 			b.WriteString(role)
 			b.WriteString(" - ")
 
-			if state, ok := roles[role]; ok {
+			if state, ok := roles[predicate.NormalizeTag(role)]; ok {
 				b.WriteString(state.Status)
 			}
 
