@@ -48,6 +48,7 @@ import (
 	userHandler "activity-bot/internal/user/handler"
 
 	"github.com/cohesion-org/deepseek-go"
+	"github.com/davecgh/go-spew/spew"
 	fsm "github.com/fluffur/botapi-fsm"
 	glog "github.com/gotd/log"
 	"github.com/gotd/log/logzap"
@@ -726,7 +727,7 @@ func runApplicationBot(
 			if msg == nil {
 				return nil
 			}
-
+			spew.Dump("CA", msg)
 			var senderID int64
 			var username, firstname, lastname string
 			if sender := c.Sender(); sender != nil {
