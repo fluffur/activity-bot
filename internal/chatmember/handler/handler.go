@@ -152,6 +152,10 @@ func (h *Handler) UpdateChatMembers(c *botapi.Context) error {
 		return fmt.Errorf("get chat members on update: %w", err)
 	}
 
+	if err := h.updater.UpdateMembersCount(c, ch.ID, c.Bot); err != nil {
+		return fmt.Errorf("process join: %w", err)
+	}
+
 	if err = h.service.SyncChatMembers(
 		c,
 		ch.ID,

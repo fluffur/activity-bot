@@ -3,9 +3,14 @@ package help
 import (
 	"activity-bot/internal/cctx"
 	"activity-bot/internal/command"
+	"context"
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
+
+	"github.com/gotd/td/telegram/message/entity"
+	"github.com/gotd/td/tg"
 
 	"github.com/gotd/botapi"
 )
@@ -20,8 +25,58 @@ func (h *Handler) Help(c *botapi.Context) error {
 			h.categoriesKeyboard(loc),
 		),
 	)
+	if err != nil {
+		return fmt.Errorf("send: %w", err)
+	}
+	eb := &entity.Builder{}
+	eb.CustomEmoji("👋", 5260536644913604662)
+	message, entities := eb.Complete()
+	peer, err := resolveChannel(c, c.Bot.Raw(), "asadsaas")
+	if err != nil {
+		return err
+	}
+
+	_, err = c.Bot.Raw().MessagesSendMessage(c, &tg.MessagesSendMessageRequest{
+		Message:  message,
+		Peer:     peer,
+		Entities: entities,
+		RandomID: rand.Int63(),
+	})
+	if err != nil {
+		return fmt.Errorf("send: %w", err)
+	}
+	_, err = c.Bot.SendMessage(c, botapi.Username("asadsaas"), "<tg-emoji emoji-id=\"5260536644913604662\">👋</tg-emoji>",
+		botapi.WithParseMode(botapi.ParseModeHTML))
 
 	return err
+}
+
+func resolveChannel(ctx context.Context, api *tg.Client, username string) (tg.InputPeerClass, error) {
+	resolved, err := api.ContactsResolveUsername(ctx, &tg.ContactsResolveUsernameRequest{
+		Username: username,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	switch peer := resolved.Peer.(type) {
+	case *tg.PeerChannel:
+		for _, ch := range resolved.Chats {
+			channel, ok := ch.(*tg.Channel)
+			if !ok {
+				continue
+			}
+
+			if channel.ID == peer.ChannelID {
+				return &tg.InputPeerChannel{
+					ChannelID:  channel.ID,
+					AccessHash: channel.AccessHash,
+				}, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("channel not found")
 }
 
 func (h *Handler) ShowCategory(c *botapi.Context) error {
