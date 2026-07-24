@@ -54,7 +54,7 @@ func Render(roles map[string]RoleState) string {
 
 	var b strings.Builder
 
-	b.WriteString(`˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ .
+	b.WriteString(`˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . <tg-emoji emoji-id="5260536644913604662">👋</tg-emoji>
 
 <blockquote><a href="http://t.me/HavenGateBot?start=true">бот для заявок</a></blockquote>
 бронь – ✷
@@ -64,7 +64,7 @@ func Render(roles map[string]RoleState) string {
 
 	for _, category := range Categories {
 
-		b.WriteString("\n\n")
+		b.WriteString("\n\n<blockquote expandable>")
 
 		b.WriteString(category.Emoji)
 		b.WriteString(" ")
@@ -83,7 +83,7 @@ func Render(roles map[string]RoleState) string {
 			b.WriteString("\n")
 		}
 
-		//b.WriteString("</blockquote>")
+		b.WriteString("</blockquote>")
 	}
 
 	b.WriteString(`
