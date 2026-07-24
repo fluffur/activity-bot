@@ -573,7 +573,7 @@ func runApplicationBot(
 			_, err = c.Bot.SendMessage(
 				c,
 				botapi.ID(cq.From.ID),
-				"Хорошо, отправьте желаемую роль заново.\n\n"+
+				"Хорошо, отправьте желаемую роль заново\n\n"+
 					tghtml.PatPatEmoji()+" "+
 					tghtml.Link(cfg.RolesPostLink, "Роли флуда"),
 				botapi.WithParseMode(botapi.ParseModeHTML),
@@ -797,8 +797,7 @@ func runApplicationBot(
 				c,
 				botapi.ID(application.UserID),
 				fmt.Sprintf(
-					"Ваша заявка на роль %s была принята!\n%s",
-					application.Role,
+					"Ваша заявка принята, добро пожаловать!\n%s",
 					cfg.TargetChatLink,
 				),
 			)
@@ -818,6 +817,12 @@ func runApplicationBot(
 			}
 
 			if err := deleteApplication(c, redisClient, application.UserID); err != nil {
+				return err
+			}
+
+			chatID, _ := c.Chat()
+
+			if _, err := c.Bot.SendMessage(c, chatID, "Заявка успешно принята", botapi.ReplyTo(cq.Message.MessageID)); err != nil {
 				return err
 			}
 
