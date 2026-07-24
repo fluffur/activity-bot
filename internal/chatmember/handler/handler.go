@@ -191,7 +191,7 @@ func (h *Handler) UpdateRoles(c *botapi.Context) error {
 	if _, err := c.Bot.EditMessageCaption(
 		c,
 		botapi.Username("H4venflood"),
-		8,
+		15,
 		rolepost.Render(rolepost.BuildRoleStates(members)),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
