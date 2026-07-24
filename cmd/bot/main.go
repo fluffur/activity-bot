@@ -291,7 +291,6 @@ func runBotInstance(
 			registerBotCommands(ctx, bot, registry, loc)
 			registerDefaultAdminRights(ctx, bot)
 		},
-		FloodWait:                  true,
 		DisableCommandRegistration: true,
 	})
 	if err != nil {
