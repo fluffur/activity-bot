@@ -48,7 +48,6 @@ import (
 	userHandler "activity-bot/internal/user/handler"
 
 	"github.com/cohesion-org/deepseek-go"
-	"github.com/davecgh/go-spew/spew"
 	fsm "github.com/fluffur/botapi-fsm"
 	glog "github.com/gotd/log"
 	"github.com/gotd/log/logzap"
@@ -718,14 +717,12 @@ func runApplicationBot(
 
 	bot.OnCallbackQuery(
 		func(c *botapi.Context) error {
-			spew.Dump("HEEEEY")
 			cq := c.Update.CallbackQuery
 			if cq == nil {
 				return nil
 			}
 
 			msg := cq.Message
-			spew.Dump("CA", msg)
 			if msg == nil {
 				return nil
 			}
