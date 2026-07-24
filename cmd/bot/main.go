@@ -564,7 +564,7 @@ func runApplicationBot(
 				c,
 				botapi.ID(cq.Message.Chat.ID),
 				cq.Message.MessageID,
-				botapi.InlineKeyboard(),
+				nil,
 			)
 			if err != nil {
 				log.Error("remove old keyboard", zap.Error(err))
@@ -820,15 +820,6 @@ func runApplicationBot(
 			if err := deleteApplication(c, redisClient, application.UserID); err != nil {
 				return err
 			}
-			_, _ = c.Bot.EditMessageText(
-				c,
-				botapi.ID(cq.Message.Chat.ID),
-				cq.Message.MessageID,
-				fmt.Sprintf(
-					"Заявка на роль %s принята",
-					application.Role,
-				),
-			)
 
 			return c.AnswerCallback(
 				botapi.WithCallbackText(
@@ -961,13 +952,6 @@ func runApplicationBot(
 			if err := rejectFSM.Clear(c); err != nil {
 				return err
 			}
-
-			_, _ = c.Bot.EditMessageText(
-				c,
-				botapi.ID(cfg.ApplicationChatID),
-				application.ApplicationID,
-				"Заявка отклонена\n\nПричина: "+reason,
-			)
 
 			_, err = c.Reply(
 				"Заявка отклонена.",
