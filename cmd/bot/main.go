@@ -545,6 +545,54 @@ func runApplicationBot(
 		return fmt.Errorf("create application bot: %w", err)
 	}
 
+	bot.OnCallbackQuery(
+		func(c *botapi.Context) error {
+			cq := c.Update.CallbackQuery
+			if cq == nil {
+				return nil
+			}
+
+			if err := appFSM.Enter(
+				c,
+				AppStateAwaitRole,
+				AppStateData{},
+			); err != nil {
+				return err
+			}
+
+			_, err := c.Bot.EditMessageReplyMarkup(
+				c,
+				botapi.ID(cq.Message.Chat.ID),
+				cq.Message.MessageID,
+				botapi.InlineKeyboard(),
+			)
+			if err != nil {
+				log.Error("remove old keyboard", zap.Error(err))
+			}
+
+			_, err = c.Bot.SendMessage(
+				c,
+				botapi.ID(cq.From.ID),
+				"Хорошо, отправьте желаемую роль заново.\n\n"+
+					tghtml.PatPatEmoji()+" "+
+					tghtml.Link(cfg.RolesPostLink, "Роли флуда"),
+				botapi.WithParseMode(botapi.ParseModeHTML),
+				botapi.DisableWebPagePreview(),
+			)
+
+			if err != nil {
+				return err
+			}
+
+			return c.AnswerCallback(
+				botapi.WithCallbackText(
+					"Можно отправить новую заявку",
+				),
+			)
+		},
+		botapi.CallbackPrefix("app:new"),
+	)
+
 	bot.OnCommand(
 		"start",
 		"Запустить бота",
@@ -881,9 +929,18 @@ func runApplicationBot(
 				c,
 				botapi.ID(application.UserID),
 				fmt.Sprintf(
-					"К сожалению, ваша заявка на роль %s была отклонена.\n\nПричина: %s",
-					application.Role,
+					"К сожалению, ваша заявка была отклонена.\n\nПричина: %s",
 					reason,
+				),
+				botapi.WithReplyMarkup(
+					botapi.InlineKeyboard(
+						botapi.InlineRow(
+							botapi.InlineButtonData(
+								"📨 Отправить новую заявку",
+								"app:new",
+							),
+						),
+					),
 				),
 			)
 
