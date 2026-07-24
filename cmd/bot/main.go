@@ -399,10 +399,15 @@ func registerBotCommands(ctx context.Context, bot *botapi.Bot, registry *command
 type ApplicationState string
 
 const (
-	AppStateIdle      ApplicationState = ""
-	AppStateAwaitRole ApplicationState = "await_role"
-	AppStatePending   ApplicationState = "pending"
+	AppStateIdle        ApplicationState = ""
+	AppStateAwaitRole   ApplicationState = "await_role"
+	AppStateConfirmRole ApplicationState = "confirm_role"
+	AppStatePending     ApplicationState = "pending"
 )
+
+type AppStateData struct {
+	Role string `json:"role"`
+}
 
 type RejectState string
 type RejectStateData struct {
@@ -413,8 +418,6 @@ const (
 	RejectStateIdle               RejectState = ""
 	RejectStateAwaitRejectMessage RejectState = "await_reject_message"
 )
-
-type AppStateData struct{}
 
 type Application struct {
 	UserID        int64  `json:"user_id"`
@@ -505,7 +508,7 @@ func runApplicationBot(
 	if err != nil {
 		return fmt.Errorf("open storage: %w", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	appFSM := fsm.NewRedisFSM[
 		ApplicationState,
@@ -676,6 +679,54 @@ func runApplicationBot(
 				}
 			}
 
+			if err := appFSM.Enter(
+				c,
+				AppStateConfirmRole,
+				AppStateData{
+					Role: role,
+				},
+			); err != nil {
+				return err
+			}
+
+			_, err = c.Reply(
+				fmt.Sprintf(
+					"Перед отправкой заявки подтвердите, что вы ознакомились с %s",
+					tghtml.Link("https://telegra.ph/Pravila-fluda-07-23-35", "правилами флуда"),
+				),
+				botapi.WithParseMode(botapi.ParseModeHTML),
+				botapi.DisableWebPagePreview(),
+				botapi.WithReplyMarkup(
+					botapi.InlineKeyboard(
+						botapi.InlineRow(
+							botapi.InlineButtonData(
+								"✅ Подтвердить",
+								"app:confirm_rules",
+							),
+						),
+					),
+				),
+			)
+
+			return err
+		},
+		appFSM.State(AppStateAwaitRole),
+		botapi.HasText(),
+		botapi.ChatTypeIs(botapi.ChatTypePrivate),
+	)
+
+	bot.OnCallbackQuery(
+		func(c *botapi.Context) error {
+			cq := c.Update.CallbackQuery
+			if cq == nil {
+				return nil
+			}
+
+			msg := cq.Message
+			if msg == nil {
+				return nil
+			}
+
 			var senderID int64
 			var username, firstname, lastname string
 			if sender := c.Sender(); sender != nil {
@@ -707,9 +758,17 @@ func runApplicationBot(
 				}
 			}
 
+			sess, ok, err := appFSM.Get(c)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return nil
+			}
+
 			app := Application{
 				UserID:   senderID,
-				Role:     role,
+				Role:     sess.Data.Role,
 				Username: username,
 			}
 
@@ -722,7 +781,7 @@ func runApplicationBot(
 				"Новая заявка на вступление!\n\n"+
 					"Роль: %s\n"+
 					"Пользователь: %s",
-				role,
+				sess.Data.Role,
 				userRef,
 			)
 
@@ -766,11 +825,18 @@ func runApplicationBot(
 				"Ваша заявка отправлена на рассмотрение. Ожидайте ответа.",
 			)
 
+			_, _ = c.Bot.EditMessageReplyMarkup(
+				c,
+				botapi.ID(msg.Chat.ID),
+				msg.MessageID,
+				nil,
+			)
+
 			return err
 		},
-		appFSM.State(AppStateAwaitRole),
-		botapi.HasText(),
+		botapi.CallbackData("app:confirm_rules"),
 		botapi.ChatTypeIs(botapi.ChatTypePrivate),
+		appFSM.State(AppStateConfirmRole),
 	)
 
 	bot.OnCallbackQuery(
