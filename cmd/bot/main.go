@@ -772,7 +772,7 @@ func runApplicationBot(
 			if err := deleteApplication(c, redisClient, application.UserID); err != nil {
 				return err
 			}
-			_, _ = c.Bot.EditMessageCaption(
+			_, _ = c.Bot.EditMessageText(
 				c,
 				botapi.ID(cq.Message.Chat.ID),
 				cq.Message.MessageID,

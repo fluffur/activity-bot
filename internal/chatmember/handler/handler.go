@@ -188,7 +188,7 @@ func (h *Handler) UpdateRoles(c *botapi.Context) error {
 		return fmt.Errorf("get chat members: %w", err)
 	}
 
-	if _, err := c.Bot.EditMessageText(
+	if _, err := c.Bot.EditMessageCaption(
 		c,
 		botapi.Username("H4venflood"),
 		8,
