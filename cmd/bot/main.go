@@ -820,8 +820,11 @@ func runApplicationBot(
 				return err
 			}
 
-			_, err = c.Reply(
-				"Ваша заявка отправлена на рассмотрение. Ожидайте ответа.",
+			chatID, _ := c.Chat()
+			_, err = c.Bot.SendMessage(
+				c,
+				chatID,
+				"Ваша заявка отправлена на рассмотрение. Ожидайте скорого ответа",
 			)
 
 			_, _ = c.Bot.EditMessageReplyMarkup(
