@@ -724,10 +724,10 @@ func runApplicationBot(
 			}
 
 			msg := cq.Message
+			spew.Dump("CA", msg)
 			if msg == nil {
 				return nil
 			}
-			spew.Dump("CA", msg)
 			var senderID int64
 			var username, firstname, lastname string
 			if sender := c.Sender(); sender != nil {
