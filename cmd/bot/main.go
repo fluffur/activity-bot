@@ -566,9 +566,8 @@ func runApplicationBot(
 				return err
 			}
 
-			_, err = c.Reply(
-				tghtml.PatPatEmoji()+
-					" Здравствуйте! Отправьте этому боту в сообщения желаемую роль\n\n"+tghtml.Link(cfg.RolesPostLink, "Роли флуда"),
+			_, err = c.Reply("Здравствуйте! Отправьте этому боту в сообщения желаемую роль\n\n"+
+				tghtml.PatPatEmoji()+" "+tghtml.Link(cfg.RolesPostLink, "Роли флуда"),
 				botapi.WithParseMode(botapi.ParseModeHTML),
 				botapi.DisableWebPagePreview(),
 			)
