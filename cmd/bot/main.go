@@ -3,6 +3,7 @@ package main
 import (
 	"activity-bot/internal/crocodile"
 	redis2 "activity-bot/internal/db/redis"
+	"activity-bot/internal/rolepost"
 	"activity-bot/internal/rp"
 	"activity-bot/internal/utils/tghtml"
 	"context"
@@ -659,6 +660,11 @@ func runApplicationBot(
 				return err
 			}
 
+			if !hasRole(role) {
+				_, err := c.Reply("Данная роль не найдена, пожалуйста укажите в сообщении сушествующую роль")
+				return err
+			}
+
 			for _, m := range members {
 				if strings.EqualFold(predicate.NormalizeTag(m.Tag), role) {
 					_, err := c.Reply(
@@ -987,4 +993,15 @@ func runApplicationBot(
 	botLog.Info("Starting application bot listener")
 
 	return bot.Run(ctx)
+}
+
+func hasRole(role string) bool {
+	for _, cat := range rolepost.Categories {
+		for _, rol := range cat.Roles {
+			if strings.EqualFold(predicate.NormalizeTag(rol), role) {
+				return true
+			}
+		}
+	}
+	return false
 }
