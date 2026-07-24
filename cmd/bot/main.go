@@ -614,7 +614,7 @@ func runApplicationBot(
 				return err
 			}
 
-			_, err = c.Reply("Отправьте этому боту в сообщения желаемую роль\n\n"+
+			_, err = c.Reply("Отправьте этому боту желаемую роль одним сообщением\n\n"+
 				tghtml.PatPatEmoji()+" "+tghtml.Link(cfg.RolesPostLink, "Роли флуда"),
 				botapi.WithParseMode(botapi.ParseModeHTML),
 				botapi.DisableWebPagePreview(),
@@ -822,6 +822,15 @@ func runApplicationBot(
 
 			chatID, _ := c.Chat()
 
+			if _, err := c.Bot.EditMessageReplyMarkup(
+				c,
+				botapi.ID(cq.Message.Chat.ID),
+				cq.Message.MessageID,
+				nil,
+			); err != nil {
+				return err
+			}
+
 			if _, err := c.Bot.SendMessage(c, chatID, "Заявка успешно принята", botapi.ReplyTo(cq.Message.MessageID)); err != nil {
 				return err
 			}
@@ -880,6 +889,12 @@ func runApplicationBot(
 			}
 
 			chatID, _ := c.Chat()
+			_, _ = c.Bot.EditMessageReplyMarkup(
+				c,
+				botapi.ID(cq.Message.Chat.ID),
+				cq.Message.MessageID,
+				nil,
+			)
 			_, err = c.Bot.SendMessage(
 				c,
 				chatID,
