@@ -34,10 +34,6 @@ func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.Up
 
 	chatID := int64(peerID)
 
-	if err := h.roleUpdater.UpdateMembersCount(ctx, chatID, h.bot); err != nil {
-		return fmt.Errorf("process join: %w", err)
-	}
-
 	if participant.IsNotInChat(u.NewParticipant) &&
 		!participant.IsNotInChat(u.PrevParticipant) {
 		return h.processLeft(ctx, u, chatID)
@@ -145,7 +141,9 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 		text,
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
-
+	if err := h.roleUpdater.UpdateMembersCount(ctx, chatID, h.bot); err != nil {
+		return fmt.Errorf("process join: %w", err)
+	}
 	return err
 }
 
@@ -174,6 +172,8 @@ func (h *Handler) processLeft(ctx context.Context, u *tg.UpdateChannelParticipan
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
 	)
-
+	if err := h.roleUpdater.UpdateMembersCount(ctx, chatID, h.bot); err != nil {
+		return fmt.Errorf("process join: %w", err)
+	}
 	return err
 }

@@ -152,10 +152,6 @@ func (h *Handler) UpdateChatMembers(c *botapi.Context) error {
 		return fmt.Errorf("get chat members on update: %w", err)
 	}
 
-	if err := h.updater.UpdateMembersCount(c, ch.ID, c.Bot); err != nil {
-		return fmt.Errorf("process join: %w", err)
-	}
-
 	if err = h.service.SyncChatMembers(
 		c,
 		ch.ID,
@@ -165,6 +161,10 @@ func (h *Handler) UpdateChatMembers(c *botapi.Context) error {
 	}
 
 	loc := cctx.MustLocalizer(c)
+
+	if err := h.updater.UpdateMembersCount(c, ch.ID, c.Bot); err != nil {
+		return fmt.Errorf("process join: %w", err)
+	}
 
 	_, err = c.Reply(loc.T(i18n.Cmd.ChatMember.Update.Success, nil), botapi.WithParseMode(botapi.ParseModeHTML))
 
