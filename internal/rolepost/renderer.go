@@ -66,7 +66,7 @@ func Render(roles map[string]RoleState) string {
 
 	for _, category := range Categories {
 
-		b.WriteString("\n\n<blockquote expandable>")
+		b.WriteString("\n<blockquote expandable>")
 
 		b.WriteString(category.Emoji)
 		b.WriteString(" ")
