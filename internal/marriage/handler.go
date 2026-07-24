@@ -119,6 +119,7 @@ func (h *Handler) Actions() []*command.Action {
 			CategoryMarriage,
 			option.WithPermission(permission.StatusAdmin),
 			option.WithAliases("поженить", "поженить пару"),
+			option.WithRules(rule.User().Count(2)),
 		),
 
 		action.NewCommand(
@@ -128,6 +129,7 @@ func (h *Handler) Actions() []*command.Action {
 			CategoryMarriage,
 			option.WithPermission(permission.StatusAdmin),
 			option.WithAliases("развести", "развести пару"),
+			option.WithRules(rule.User().Count(2)),
 		),
 	}
 }
