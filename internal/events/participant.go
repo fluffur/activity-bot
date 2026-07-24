@@ -19,7 +19,6 @@ import (
 )
 
 func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.UpdateChannelParticipant) error {
-
 	channel, ok := e.Channels[u.ChannelID]
 	if !ok {
 		return nil
@@ -47,6 +46,9 @@ func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.Up
 
 	newTag := participant.Rank(u.NewParticipant)
 	if participant.Rank(u.PrevParticipant) != newTag {
+		if err := h.roleUpdater.Update(ctx, chatID, h.bot); err != nil {
+			return fmt.Errorf("paricipant update: %w", err)
+		}
 		return h.memberService.UpdateTag(ctx, chatID, u.UserID, newTag)
 	}
 

@@ -3,6 +3,7 @@ package events
 import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/rolepost"
 
 	"github.com/gotd/botapi"
 )
@@ -11,17 +12,20 @@ type Handler struct {
 	bot           *botapi.Bot
 	translator    *i18n.Translator
 	memberService *chatmember.Service
+	roleUpdater   *rolepost.RoleUpdater
 }
 
 func NewHandler(
 	b *botapi.Bot,
 	t *i18n.Translator,
 	ms *chatmember.Service,
+	roleUpdater *rolepost.RoleUpdater,
 ) *Handler {
 	return &Handler{
 		bot:           b,
 		translator:    t,
 		memberService: ms,
+		roleUpdater:   roleUpdater,
 	}
 }
 

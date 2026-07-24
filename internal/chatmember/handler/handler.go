@@ -24,15 +24,14 @@ import (
 const CategoryChatMember command.Category = "chat_member"
 
 type Handler struct {
-	repo         chatmember.Repository
-	service      *chatmember.Service
-	rolesPost    string
-	targetChatID int64
+	repo    chatmember.Repository
+	service *chatmember.Service
+	updater *rolepost.RoleUpdater
 }
 
-func NewHandler(repo chatmember.Repository, service *chatmember.Service, rolesPost string, targetChatID int64,
+func NewHandler(repo chatmember.Repository, service *chatmember.Service, updater *rolepost.RoleUpdater,
 ) *Handler {
-	return &Handler{repo: repo, service: service, rolesPost: rolesPost, targetChatID: targetChatID}
+	return &Handler{repo: repo, service: service, updater: updater}
 }
 
 func (h *Handler) Actions() []*command.Action {
@@ -169,37 +168,8 @@ func (h *Handler) UpdateChatMembers(c *botapi.Context) error {
 }
 
 func (h *Handler) UpdateRoles(c *botapi.Context) error {
-	ch := cctx.MustChat(c)
-	if ch.ID != h.targetChatID {
-		return nil
-	}
-	members, err := h.repo.List(c, chatmember.Filter{
-		ChatID: ch.ID,
-		IsBot: chatmember.OptionalBool{
-			Bool:  false,
-			Valid: true,
-		},
-		Left: chatmember.OptionalBool{
-			Bool:  false,
-			Valid: true,
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("get chat members: %w", err)
-	}
-
-	if _, err := c.Bot.EditMessageCaption(
-		c,
-		botapi.Username("H4venflood"),
-		15,
-		rolepost.Render(rolepost.BuildRoleStates(members)),
-		botapi.WithParseMode(botapi.ParseModeHTML),
-		botapi.DisableWebPagePreview(),
-	); err != nil {
-		return fmt.Errorf("update roles: %w", err)
-	}
-
-	return nil
+	chatID, _ := c.Chat()
+	return h.updater.Update(c, int64(chatID.(botapi.ChatIDInt)), c.Bot)
 }
 
 func (h *Handler) RemoveEmoji(c *botapi.Context) error {

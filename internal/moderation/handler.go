@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/option"
 	"activity-bot/internal/permission"
+	"activity-bot/internal/rolepost"
 	"activity-bot/internal/rule"
 )
 
@@ -15,15 +16,18 @@ const CategoryModeration command.Category = "moderation"
 type Handler struct {
 	service           *Service
 	chatMemberService *chatmember.Service
+	roleUpdater       *rolepost.RoleUpdater
 }
 
 func NewHandler(
 	service *Service,
 	cms *chatmember.Service,
+	roleUpdater *rolepost.RoleUpdater,
 ) *Handler {
 	return &Handler{
 		service:           service,
 		chatMemberService: cms,
+		roleUpdater:       roleUpdater,
 	}
 }
 

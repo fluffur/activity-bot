@@ -256,6 +256,7 @@ func runBotInstance(
 		10*time.Hour,
 		rp.StateIdle,
 	)
+	roleUpdater := rolepost.NewRoleUpdater(chatMemberRepository, cfg.TargetChatID)
 
 	registry := command.NewRegistry()
 	summonH := summon.NewHandler(chatService, chatMemberService, summonFSM)
@@ -265,11 +266,11 @@ func runBotInstance(
 		norm.NewHandler(normRepository),
 		stats.NewHandler(statsService, normRepository, summonH, statsFSM),
 		rest.NewHandler(restService, chatMemberService),
-		moderation.NewHandler(moderationService, chatMemberService),
+		moderation.NewHandler(moderationService, chatMemberService, roleUpdater),
 		permissionHandler.NewHandler(registry, permissionRepository),
 		manage.NewHandler(chatService, pmSessionRepository),
 		userHandler.NewHandler(userRepository),
-		chatMemberHandler.NewHandler(chatMemberRepository, chatMemberService, cfg.RolesPostLink, cfg.TargetChatID),
+		chatMemberHandler.NewHandler(chatMemberRepository, chatMemberService, roleUpdater),
 		marriage.NewHandler(marriageService, chatService, chatMemberService),
 		chatHandler.NewHandler(chatService),
 		ai.NewHandler(deepseekClient),
@@ -310,7 +311,7 @@ func runBotInstance(
 	)
 
 	register.Attach(bot, registry, permissions, rules, rpRepository)
-	events.NewHandler(bot, translator, chatMemberService).Attach()
+	events.NewHandler(bot, translator, chatMemberService, roleUpdater).Attach()
 
 	botLog.Info("Starting bot instance listener...")
 	return bot.Run(ctx)
