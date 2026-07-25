@@ -4,7 +4,7 @@ import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/utils/tghtml"
 	"bytes"
-	"html/template"
+	"text/template"
 	"time"
 )
 
