@@ -31,7 +31,7 @@ const rolesTemplate = `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . �
 нуждаемся – !
 
 {{range .Categories -}}
-{{.Emoji}} {{.Name}}
+{{.Name}}
 <blockquote expandable>{{range .Roles}}{{.Name}} - {{.Status}}
 {{end}}
 </blockquote>
