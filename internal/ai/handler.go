@@ -49,7 +49,7 @@ func (h *Handler) AI(c *botapi.Context) error {
 		return nil
 	}
 	request := &deepseek.ChatCompletionRequest{
-		Model: deepseek.DeepSeekChat,
+		Model: deepseek.DeepSeekV4Flash,
 		Messages: []deepseek.ChatCompletionMessage{
 			{
 				Role:    deepseek.ChatMessageRoleSystem,
