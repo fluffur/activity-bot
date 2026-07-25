@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/td/tg"
 
 	"github.com/gotd/botapi"
@@ -14,6 +15,7 @@ func GetChatMembers(bot *botapi.Bot, ctx context.Context, e tg.Entities, channel
 
 	channel, ok := e.Channels[channelID]
 	if !ok {
+		spew.Dump(e.Channels)
 		return nil, fmt.Errorf("channel %d not found in entities", channelID)
 	}
 
