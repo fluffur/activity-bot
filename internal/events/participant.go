@@ -3,7 +3,6 @@ package events
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"activity-bot/internal/i18n"
@@ -27,7 +26,6 @@ func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.Up
 	if !channel.Megagroup {
 		return nil
 	}
-	log.Printf("participant %+v\n", u)
 
 	var peerID constant.TDLibPeerID
 	peerID.Channel(u.ChannelID)

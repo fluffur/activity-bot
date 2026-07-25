@@ -96,7 +96,7 @@ func (r *Updater) UpdateApplyPost(c context.Context, chatID int64, bot *botapi.B
 	)
 
 	if err != nil {
-		return fmt.Errorf("update roles: %w", err)
+		return fmt.Errorf("update apply: %w", err)
 	}
 
 	return nil

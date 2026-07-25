@@ -162,12 +162,10 @@ func (h *Handler) UpdateChatMembers(c *botapi.Context) error {
 
 	loc := cctx.MustLocalizer(c)
 
+	_, err = c.Reply(loc.T(i18n.Cmd.ChatMember.Update.Success, nil), botapi.WithParseMode(botapi.ParseModeHTML))
 	if err := h.updater.UpdateApplyPost(c, ch.ID, c.Bot); err != nil {
 		return fmt.Errorf("process join: %w", err)
 	}
-
-	_, err = c.Reply(loc.T(i18n.Cmd.ChatMember.Update.Success, nil), botapi.WithParseMode(botapi.ParseModeHTML))
-
 	return err
 }
 
