@@ -33,9 +33,7 @@ const rolesTemplate = `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . �
 {{range .Categories}}
 {{.Emoji}} {{.Name}}
 <blockquote expandable>
-{{- range .Roles}}
-{{.Name}} - {{.Status}}
-{{end}}
+{{- range .Roles}}{{.Name}} - {{.Status}}{{end}}
 </blockquote>
 {{end}}
 
@@ -68,7 +66,6 @@ func BuildRoleStates(members []chatmember.ChatMember) map[string]RoleState {
 	}
 
 	for _, member := range members {
-
 		tag := predicate.NormalizeTag(member.Tag)
 
 		if tag == "" {
