@@ -5,6 +5,7 @@ import (
 	redis2 "activity-bot/internal/db/redis"
 	"activity-bot/internal/info"
 	"activity-bot/internal/info/genshin"
+	"activity-bot/internal/reward"
 	"activity-bot/internal/rp"
 	"activity-bot/internal/utils/tghtml"
 	"context"
@@ -106,6 +107,7 @@ func main() {
 	rpRepository := postgres.NewRPRepository(queries)
 	crocodileRepository := redis2.NewCrocodileRepository(redisClient)
 	wordRepository := postgres.NewWordRepository(queries)
+	rewardRepository := postgres.NewRewardRepository(queries)
 
 	chatService := chat.NewService(chatRepository, cfg.DeveloperID)
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
@@ -147,6 +149,7 @@ func main() {
 				permissionRepository,
 				normRepository,
 				rpRepository,
+				rewardRepository,
 
 				chatService,
 				chatMemberService,
@@ -210,6 +213,7 @@ func runBotInstance(
 	permissionRepository *postgres.PermissionRepository,
 	normRepository norm.Repository,
 	rpRepository rp.Repository,
+	rewardRepository reward.Repository,
 
 	chatService *chat.Service,
 	chatMemberService *chatmember.Service,
@@ -265,7 +269,7 @@ func runBotInstance(
 		help.NewHandler(registry, permissionRepository),
 		summonH,
 		norm.NewHandler(normRepository),
-		stats.NewHandler(statsService, normRepository, summonH, statsFSM),
+		stats.NewHandler(statsService, normRepository, rewardRepository, summonH, statsFSM),
 		rest.NewHandler(restService, chatMemberService, infoUpdater),
 		moderation.NewHandler(moderationService, chatMemberService, infoUpdater),
 		permissionHandler.NewHandler(registry, permissionRepository),
@@ -277,6 +281,7 @@ func runBotInstance(
 		ai.NewHandler(deepseekClient),
 		rpHandler.NewHandler(rpRepository, chatMemberService, userRepository, rpFsm),
 		crocodile.NewHandler(crocodileService),
+		reward.NewHandler(rewardRepository),
 	}
 
 	for _, h := range handlers {

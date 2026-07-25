@@ -26,7 +26,13 @@ func (h *Handler) Profile(c *botapi.Context) error {
 	}
 
 	loc := cctx.MustLocalizer(c)
-	htmlMessage := RenderProfile(loc, ch, profile, statsRange.WeekStart)
+
+	rewards, err := h.rwRepo.ListRewards(c, ch.ID, cm.ID())
+	if err != nil {
+		return fmt.Errorf("list rewards: %w", err)
+	}
+
+	htmlMessage := RenderProfile(loc, ch, profile, statsRange.WeekStart, rewards)
 
 	_, err = c.Reply(
 		htmlMessage,

@@ -1,0 +1,13 @@
+[cmd.reward]
+desc = "Выдать награду участнику"
+success = "Награда выдана"
+
+[cmd.unreward]
+desc = "Снять награду"
+success = "Награда снята"
+
+[cmd.list_rewards]
+desc = "Посмотреть весь список наград участника"
+title = "Награды {{.User}}"
+given = "выдана"
+no_rewards = "Нет наград"

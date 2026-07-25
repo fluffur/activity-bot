@@ -3,6 +3,7 @@ package stats
 import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/norm"
+	"activity-bot/internal/reward"
 	"activity-bot/internal/utils"
 	"fmt"
 	"strings"
@@ -182,6 +183,7 @@ func RenderProfile(
 	ch chat.Chat,
 	profile ProfileStats,
 	weekStart time.Time,
+	rewards []reward.Reward,
 ) string {
 	var b strings.Builder
 
@@ -317,6 +319,38 @@ func RenderProfile(
 
 			b.WriteByte('\n')
 		}
+	}
+
+	if len(rewards) > 0 {
+		b.WriteString("\n\n")
+		var rb strings.Builder
+
+		limit := len(rewards)
+		if limit > 3 {
+			limit = 3
+		}
+
+		for i := 0; i < limit; i++ {
+			rw := rewards[i]
+
+			rb.WriteString(fmt.Sprintf(
+				"%d. %s %s",
+				i+1,
+				tghtml.Escape(rw.Reason),
+				reward.RankEmoji(rw.Rank),
+			))
+
+			if i != limit-1 {
+				rb.WriteByte('\n')
+			}
+		}
+
+		b.WriteString(loc.T(
+			i18n.Cmd.Profile.Rewards,
+			i18n.CmdProfileRewardsData{
+				Rewards: rb.String(),
+			},
+		))
 	}
 
 	return strings.TrimSpace(b.String())

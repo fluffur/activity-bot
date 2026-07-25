@@ -1,5 +1,7 @@
 [cmd.profile]
 desc = "Статистика участника"
+rewards = """🏆 Награды
+<blockquote expandable>{{.Rewards}}</blockquote>"""
 
 example_duration = "профиль неделя"
 example_date = "профиль 1 июня 25 июля"

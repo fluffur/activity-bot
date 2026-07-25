@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/norm"
 	"activity-bot/internal/option"
 	"activity-bot/internal/permission"
+	"activity-bot/internal/reward"
 	"activity-bot/internal/rule"
 	"activity-bot/internal/summon"
 
@@ -18,6 +19,7 @@ const CategoryStats command.Category = "stats"
 type Handler struct {
 	service  *Service
 	normRepo norm.Repository
+	rwRepo   reward.Repository
 	summonH  *summon.Handler
 	statsFSM *fsm.Machine[State, StateData]
 }
@@ -25,12 +27,14 @@ type Handler struct {
 func NewHandler(
 	s *Service,
 	normRepo norm.Repository,
+	rwRepo reward.Repository,
 	summonH *summon.Handler,
 	statsFSM *fsm.Machine[State, StateData],
 ) *Handler {
 	return &Handler{
 		service:  s,
 		normRepo: normRepo,
+		rwRepo:   rwRepo,
 		summonH:  summonH,
 		statsFSM: statsFSM,
 	}

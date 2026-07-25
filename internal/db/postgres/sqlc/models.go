@@ -277,6 +277,16 @@ type RestRequest struct {
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updatedAt"`
 }
 
+type Reward struct {
+	ID        int64              `db:"id" json:"id"`
+	ChatID    int64              `db:"chat_id" json:"chatId"`
+	UserID    int64              `db:"user_id" json:"userId"`
+	AuthorID  int64              `db:"author_id" json:"authorId"`
+	Rank      int16              `db:"rank" json:"rank"`
+	Reason    string             `db:"reason" json:"reason"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+}
+
 type User struct {
 	ID            int64              `db:"id" json:"id"`
 	Username      pgtype.Text        `db:"username" json:"username"`
