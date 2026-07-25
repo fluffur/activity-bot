@@ -5,7 +5,7 @@ import (
 	"activity-bot/internal/info/genshin"
 	"activity-bot/internal/predicate"
 	"bytes"
-	"html/template"
+	"text/template"
 )
 
 type RenderData struct {
