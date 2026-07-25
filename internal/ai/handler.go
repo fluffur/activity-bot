@@ -8,11 +8,13 @@ import (
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/option"
 	"activity-bot/internal/rule"
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/cohesion-org/deepseek-go"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/log"
 
 	"github.com/gotd/botapi"
@@ -44,7 +46,6 @@ func (h *Handler) Actions() []*command.Action {
 func (h *Handler) AI(c *botapi.Context) error {
 	ch := cctx.MustChat(c)
 	text, ok := cctx.MustArgs(c).Text()
-
 	if !ok {
 		return nil
 	}
@@ -53,22 +54,32 @@ func (h *Handler) AI(c *botapi.Context) error {
 		Messages: []deepseek.ChatCompletionMessage{
 			{
 				Role:    deepseek.ChatMessageRoleSystem,
-				Content: ch.AISystemPrompt,
+				Content: "Отвечай кратко. Максимум 5 предложений\n" + ch.AISystemPrompt,
 			},
 			{
 				Role:    deepseek.ChatMessageRoleUser,
 				Content: text,
 			},
 		},
+		Thinking: &deepseek.ThinkingConfig{
+			Type: "disabled",
+		},
 		MaxTokens:   128,
 		Temperature: 0.5,
 	}
 	start := time.Now()
-	resp, err := h.client.CreateChatCompletion(c, request)
+	ctx, cancel := context.WithTimeout(c.Background(), 15*time.Second)
+	defer cancel()
+	log.For(c.Bot.Logger()).Info(c, "sending ai request")
+
+	resp, err := h.client.CreateChatCompletion(ctx, request)
+
+	log.For(c.Bot.Logger()).Info(c, "ai response received")
 	if err != nil {
 		return fmt.Errorf("bot: create chat completion: %w", err)
 	}
 
+	spew.Dump(resp)
 	if len(resp.Choices) == 0 {
 		return nil
 	}
