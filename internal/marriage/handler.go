@@ -18,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/botapi"
 )
 
@@ -119,7 +118,7 @@ func (h *Handler) Actions() []*command.Action {
 			i18n.Cmd.AdminMarry.Desc,
 			CategoryMarriage,
 			option.WithPermission(permission.StatusAdmin),
-			option.WithAliases("поженить", "поженить пару"),
+			option.WithAliases("поженить пару", "поженить"),
 			option.WithRules(rule.User().Count(2)),
 		),
 
@@ -129,7 +128,7 @@ func (h *Handler) Actions() []*command.Action {
 			"Развести двух пользователей",
 			CategoryMarriage,
 			option.WithPermission(permission.StatusAdmin),
-			option.WithAliases("развести", "развести пару"),
+			option.WithAliases("развести пару", "развести"),
 			option.WithRules(rule.User().Count(2)),
 		),
 	}
@@ -707,12 +706,10 @@ func parseMarriageCallbackUserID(data string) (int64, error) {
 }
 
 func (h *Handler) ForceMarry(c *botapi.Context) error {
-	spew.Dump("FORCE MARRY")
 	loc := cctx.MustLocalizer(c)
 	ch := cctx.MustChat(c)
 
 	users := cctx.MustArgs(c).Users
-	spew.Dump("FORCE MARRY", users)
 
 	if len(users) < 2 {
 		_, err := c.Reply(
