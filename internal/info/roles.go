@@ -32,8 +32,7 @@ const rolesTemplate = `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . �
 
 {{range .Categories -}}
 {{.Emoji}} {{.Name}}
-<blockquote expandable>{{range .Roles}}
-{{.Name}} - {{.Status}}{{end}}
+<blockquote expandable>{{range .Roles}}{{.Name}} - {{.Status}}{{end}}
 </blockquote>
 {{end}}
 
