@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/chatmember"
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/gotd/botapi"
 )
@@ -47,13 +48,12 @@ func (r *Updater) UpdateRolesPost(c context.Context, chatID int64, bot *botapi.B
 	if err != nil {
 		return fmt.Errorf("render role states: %w", err)
 	}
-	_, err = bot.EditMessageCaption(
+	err = editCaption(
 		c,
-		botapi.Username("H4venflood"),
+		bot,
+		"H4venflood",
 		15,
 		text,
-		botapi.WithParseMode(botapi.ParseModeHTML),
-		botapi.DisableWebPagePreview(),
 	)
 
 	if err != nil {
@@ -86,17 +86,17 @@ func (r *Updater) UpdateApplyPost(c context.Context, chatID int64, bot *botapi.B
 	if err != nil {
 		return fmt.Errorf("render application: %w", err)
 	}
-	_, err = bot.EditMessageCaption(
+	err = editCaption(
 		c,
-		botapi.Username("H4venflood"),
+		bot,
+		"H4venflood",
 		18,
 		text,
-		botapi.WithParseMode(botapi.ParseModeHTML),
-		botapi.DisableWebPagePreview(),
 	)
 
 	if err != nil {
 		return fmt.Errorf("update apply: %w", err)
+
 	}
 
 	return nil
@@ -128,13 +128,12 @@ func (r *Updater) UpdateRestsPost(c context.Context, chatID int64, bot *botapi.B
 		return fmt.Errorf("render rests: %w", err)
 	}
 
-	_, err = bot.EditMessageCaption(
+	err = editCaption(
 		c,
-		botapi.Username("H4venflood"),
+		bot,
+		"H4venflood",
 		17,
 		text,
-		botapi.WithParseMode(botapi.ParseModeHTML),
-		botapi.DisableWebPagePreview(),
 	)
 
 	if err != nil {
@@ -142,4 +141,27 @@ func (r *Updater) UpdateRestsPost(c context.Context, chatID int64, bot *botapi.B
 	}
 
 	return nil
+}
+
+func editCaption(
+	ctx context.Context,
+	bot *botapi.Bot,
+	username string,
+	msgID int,
+	text string,
+) error {
+	_, err := bot.EditMessageCaption(
+		ctx,
+		botapi.Username(username),
+		msgID,
+		text,
+		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview(),
+	)
+
+	if err != nil && strings.Contains(err.Error(), "message is not modified") {
+		return nil
+	}
+
+	return err
 }
