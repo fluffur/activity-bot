@@ -43,11 +43,15 @@ func (r *RoleUpdater) Update(c context.Context, chatID int64, bot *botapi.Bot) e
 		return fmt.Errorf("get chat members: %w", err)
 	}
 
+	text, err := Render(BuildRoleStates(members))
+	if err != nil {
+		return fmt.Errorf("render role states: %w", err)
+	}
 	_, err = bot.EditMessageCaption(
 		c,
 		botapi.Username("H4venflood"),
 		15,
-		Render(BuildRoleStates(members)),
+		text,
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
 	)
