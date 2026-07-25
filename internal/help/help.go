@@ -5,11 +5,9 @@ import (
 	"activity-bot/internal/command"
 	"context"
 	"fmt"
-	"math/rand"
 	"strconv"
 	"strings"
 
-	"github.com/gotd/td/telegram/message/entity"
 	"github.com/gotd/td/tg"
 
 	"github.com/gotd/botapi"
@@ -28,25 +26,6 @@ func (h *Handler) Help(c *botapi.Context) error {
 	if err != nil {
 		return fmt.Errorf("send: %w", err)
 	}
-	eb := &entity.Builder{}
-	eb.CustomEmoji("👋", 5260536644913604662)
-	message, entities := eb.Complete()
-	peer, err := resolveChannel(c, c.Bot.Raw(), "asadsaas")
-	if err != nil {
-		return err
-	}
-
-	_, err = c.Bot.Raw().MessagesSendMessage(c, &tg.MessagesSendMessageRequest{
-		Message:  message,
-		Peer:     peer,
-		Entities: entities,
-		RandomID: rand.Int63(),
-	})
-	if err != nil {
-		return fmt.Errorf("send: %w", err)
-	}
-	_, err = c.Bot.SendMessage(c, botapi.Username("asadsaas"), "<tg-emoji emoji-id=\"5260536644913604662\">👋</tg-emoji>",
-		botapi.WithParseMode(botapi.ParseModeHTML))
 
 	return err
 }
