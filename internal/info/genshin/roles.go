@@ -1,4 +1,4 @@
-package rolepost
+package genshin
 
 type Category struct {
 	Name  string

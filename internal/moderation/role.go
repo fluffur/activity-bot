@@ -71,7 +71,7 @@ func (h *Handler) SetRole(c *botapi.Context) error {
 
 	chatID, _ := c.Chat()
 
-	if err := h.roleUpdater.Update(c, int64(chatID.(botapi.ChatIDInt)), c.Bot); err != nil {
+	if err := h.roleUpdater.UpdateRolesPost(c, int64(chatID.(botapi.ChatIDInt)), c.Bot); err != nil {
 		return fmt.Errorf("set role: %w", err)
 	}
 	return nil

@@ -3,7 +3,8 @@ package main
 import (
 	"activity-bot/internal/crocodile"
 	redis2 "activity-bot/internal/db/redis"
-	"activity-bot/internal/rolepost"
+	"activity-bot/internal/info"
+	"activity-bot/internal/info/genshin"
 	"activity-bot/internal/rp"
 	"activity-bot/internal/utils/tghtml"
 	"context"
@@ -256,7 +257,7 @@ func runBotInstance(
 		10*time.Hour,
 		rp.StateIdle,
 	)
-	roleUpdater := rolepost.NewRoleUpdater(chatMemberRepository, cfg.TargetChatID)
+	infoUpdater := info.NewUpdater(chatMemberRepository, cfg.TargetChatID)
 
 	registry := command.NewRegistry()
 	summonH := summon.NewHandler(chatService, chatMemberService, summonFSM)
@@ -265,12 +266,12 @@ func runBotInstance(
 		summonH,
 		norm.NewHandler(normRepository),
 		stats.NewHandler(statsService, normRepository, summonH, statsFSM),
-		rest.NewHandler(restService, chatMemberService),
-		moderation.NewHandler(moderationService, chatMemberService, roleUpdater),
+		rest.NewHandler(restService, chatMemberService, infoUpdater),
+		moderation.NewHandler(moderationService, chatMemberService, infoUpdater),
 		permissionHandler.NewHandler(registry, permissionRepository),
 		manage.NewHandler(chatService, pmSessionRepository),
 		userHandler.NewHandler(userRepository),
-		chatMemberHandler.NewHandler(chatMemberRepository, chatMemberService, roleUpdater),
+		chatMemberHandler.NewHandler(chatMemberRepository, chatMemberService, infoUpdater),
 		marriage.NewHandler(marriageService, chatService, chatMemberService),
 		chatHandler.NewHandler(chatService),
 		ai.NewHandler(deepseekClient),
@@ -311,7 +312,7 @@ func runBotInstance(
 	)
 
 	register.Attach(bot, registry, permissions, rules, rpRepository)
-	events.NewHandler(bot, translator, chatMemberService, roleUpdater).Attach()
+	events.NewHandler(bot, translator, chatMemberService, infoUpdater).Attach()
 
 	botLog.Info("Starting bot instance listener...")
 	return bot.Run(ctx)
@@ -1064,7 +1065,7 @@ func runApplicationBot(
 }
 
 func hasRole(role string) bool {
-	for _, cat := range rolepost.Categories {
+	for _, cat := range genshin.Categories {
 		for _, rol := range cat.Roles {
 			if strings.EqualFold(predicate.NormalizeTag(rol), role) {
 				return true

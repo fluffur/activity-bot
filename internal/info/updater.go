@@ -1,4 +1,4 @@
-package rolepost
+package info
 
 import (
 	"activity-bot/internal/chatmember"
@@ -8,23 +8,23 @@ import (
 	"github.com/gotd/botapi"
 )
 
-type RoleUpdater struct {
+type Updater struct {
 	repo          chatmember.Repository
 	targetChatID  int64
 	rolesPostChat string
 }
 
-func NewRoleUpdater(
+func NewUpdater(
 	repo chatmember.Repository,
 	targetChatID int64,
-) *RoleUpdater {
-	return &RoleUpdater{
+) *Updater {
+	return &Updater{
 		repo:         repo,
 		targetChatID: targetChatID,
 	}
 }
 
-func (r *RoleUpdater) Update(c context.Context, chatID int64, bot *botapi.Bot) error {
+func (r *Updater) UpdateRolesPost(c context.Context, chatID int64, bot *botapi.Bot) error {
 	if r.targetChatID != chatID {
 		return nil
 	}
@@ -63,7 +63,7 @@ func (r *RoleUpdater) Update(c context.Context, chatID int64, bot *botapi.Bot) e
 	return nil
 }
 
-func (r *RoleUpdater) UpdateMembersCount(c context.Context, chatID int64, bot *botapi.Bot) error {
+func (r *Updater) UpdateApplyPost(c context.Context, chatID int64, bot *botapi.Bot) error {
 	if r.targetChatID != chatID {
 		return nil
 	}
@@ -97,6 +97,48 @@ func (r *RoleUpdater) UpdateMembersCount(c context.Context, chatID int64, bot *b
 
 	if err != nil {
 		return fmt.Errorf("update roles: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Updater) UpdateRestsPost(c context.Context, chatID int64, bot *botapi.Bot) error {
+	if r.targetChatID != chatID {
+		return nil
+	}
+
+	members, err := r.repo.List(c, chatmember.Filter{
+		ChatID: r.targetChatID,
+		IsBot: chatmember.OptionalBool{
+			Bool:  false,
+			Valid: true,
+		},
+		Left: chatmember.OptionalBool{
+			Bool:  false,
+			Valid: true,
+		},
+	})
+
+	if err != nil {
+		return fmt.Errorf("get chat members: %w", err)
+	}
+
+	text, err := RenderRests(BuildRestMembers(members))
+	if err != nil {
+		return fmt.Errorf("render rests: %w", err)
+	}
+
+	_, err = bot.EditMessageCaption(
+		c,
+		botapi.Username("H4venflood"),
+		17,
+		text,
+		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview(),
+	)
+
+	if err != nil {
+		return fmt.Errorf("update rests: %w", err)
 	}
 
 	return nil

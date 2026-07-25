@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/info"
 	"activity-bot/internal/option"
 	"activity-bot/internal/permission"
 	"activity-bot/internal/rule"
@@ -20,15 +21,18 @@ const (
 type Handler struct {
 	chatMemberService *chatmember.Service
 	service           *Service
+	updater           *info.Updater
 }
 
 func NewHandler(
 	rsrv *Service,
 	cms *chatmember.Service,
+	updater *info.Updater,
 ) *Handler {
 	return &Handler{
 		service:           rsrv,
 		chatMemberService: cms,
+		updater:           updater,
 	}
 }
 func (h *Handler) Actions() []*command.Action {

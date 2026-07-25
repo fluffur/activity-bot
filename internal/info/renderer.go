@@ -1,7 +1,8 @@
-package rolepost
+package info
 
 import (
 	"activity-bot/internal/chatmember"
+	"activity-bot/internal/info/genshin"
 	"activity-bot/internal/predicate"
 	"bytes"
 	"html/template"
@@ -61,7 +62,7 @@ func BuildRoleStates(members []chatmember.ChatMember) map[string]RoleState {
 
 	roleIndex := make(map[string]struct{})
 
-	for _, category := range Categories {
+	for _, category := range genshin.Categories {
 		for _, role := range category.Roles {
 			roleIndex[predicate.NormalizeTag(role)] = struct{}{}
 		}
@@ -92,10 +93,10 @@ func BuildRoleStates(members []chatmember.ChatMember) map[string]RoleState {
 
 func Render(states map[string]RoleState) (string, error) {
 	data := RenderData{
-		Categories: make([]RenderCategory, 0, len(Categories)),
+		Categories: make([]RenderCategory, 0, len(genshin.Categories)),
 	}
 
-	for _, cat := range Categories {
+	for _, cat := range genshin.Categories {
 		rc := RenderCategory{
 			Emoji: cat.Emoji,
 			Name:  cat.Name,
@@ -124,48 +125,4 @@ func Render(states map[string]RoleState) (string, error) {
 	}
 
 	return buf.String(), nil
-}
-
-const applicationTemplate = `
-──────────────────────────────────────
-               𝗔𝗣𝗣𝗟𝗬
-──────────────────────────────────────
-
-     статус – <u>{{if .Open}}открыт{{else}}закрыт{{end}}</u>
-
-                {{.Current}}/{{.Max}}
-
-     для вступления
-
-     <a href="http://t.me/HavenGateBot?start=true">напишите свою роль боту</a>
-
-      ˚₊·— ⁠⁠⁠♡ <a href="https://t.me/H4venflood/15">список ролей</a>
-
-˚₊‧✩ ˚₊‧꒰ა ʚིᵋº‌‌‌‌‌‌ᵌɞྀ ໒꒱ ‧₊˚ ✩‧₊˚•*¨*•.¸¸☆*
-`
-
-var applicationTmpl = template.Must(
-	template.New("application").Parse(applicationTemplate),
-)
-
-type ApplicationPostData struct {
-	Current int
-	Max     int
-	Open    bool
-}
-
-func RenderApplication(current, max int) (string, error) {
-	var b bytes.Buffer
-
-	err := applicationTmpl.Execute(&b, ApplicationPostData{
-		Current: current,
-		Max:     max,
-		Open:    current < max,
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	return b.String(), nil
 }

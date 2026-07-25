@@ -132,6 +132,10 @@ func (h *Handler) SetRest(c *botapi.Context) error {
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
 
+	if err := h.updater.UpdateRestsPost(c, ch.ID, c.Bot); err != nil {
+		return fmt.Errorf("set rest update rests: %w", err)
+	}
+
 	return err
 }
 
@@ -189,6 +193,10 @@ func (h *Handler) EndRest(c *botapi.Context) error {
 		),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
+
+	if err := h.updater.UpdateRestsPost(c, ch.ID, c.Bot); err != nil {
+		return fmt.Errorf("end rest update rests: %w", err)
+	}
 
 	return err
 }
@@ -368,6 +376,10 @@ func (h *Handler) ApproveRestRequest(c *botapi.Context) error {
 		return fmt.Errorf("edit approved request: %w", err)
 	}
 
+	if err := h.updater.UpdateRestsPost(c, ch.ID, c.Bot); err != nil {
+		return fmt.Errorf("approve rest update rests: %w", err)
+	}
+
 	return c.AnswerCallback(
 		botapi.WithCallbackText(
 			loc.T(i18n.Cmd.RestRequest.Approved, nil),
@@ -480,6 +492,10 @@ func (h *Handler) RemoveRestRequest(c *botapi.Context) error {
 		_, err = c.Reply(
 			loc.T(i18n.Cmd.Rests.Delete.DeletedActive, nil),
 		)
+
+		if err := h.updater.UpdateRestsPost(c, ch.ID, c.Bot); err != nil {
+			return fmt.Errorf("remove and end rest update rests: %w", err)
+		}
 
 		return err
 	}

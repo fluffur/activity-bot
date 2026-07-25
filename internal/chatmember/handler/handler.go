@@ -7,9 +7,9 @@ import (
 	"activity-bot/internal/command"
 	"activity-bot/internal/emoji"
 	"activity-bot/internal/i18n"
+	"activity-bot/internal/info"
 	"activity-bot/internal/option"
 	"activity-bot/internal/permission"
-	"activity-bot/internal/rolepost"
 	"activity-bot/internal/rule"
 	"activity-bot/internal/utils/chatmembers"
 	"activity-bot/internal/utils/participant"
@@ -26,10 +26,10 @@ const CategoryChatMember command.Category = "chat_member"
 type Handler struct {
 	repo    chatmember.Repository
 	service *chatmember.Service
-	updater *rolepost.RoleUpdater
+	updater *info.Updater
 }
 
-func NewHandler(repo chatmember.Repository, service *chatmember.Service, updater *rolepost.RoleUpdater,
+func NewHandler(repo chatmember.Repository, service *chatmember.Service, updater *info.Updater,
 ) *Handler {
 	return &Handler{repo: repo, service: service, updater: updater}
 }
@@ -162,7 +162,7 @@ func (h *Handler) UpdateChatMembers(c *botapi.Context) error {
 
 	loc := cctx.MustLocalizer(c)
 
-	if err := h.updater.UpdateMembersCount(c, ch.ID, c.Bot); err != nil {
+	if err := h.updater.UpdateApplyPost(c, ch.ID, c.Bot); err != nil {
 		return fmt.Errorf("process join: %w", err)
 	}
 
@@ -173,7 +173,7 @@ func (h *Handler) UpdateChatMembers(c *botapi.Context) error {
 
 func (h *Handler) UpdateRoles(c *botapi.Context) error {
 	chatID, _ := c.Chat()
-	return h.updater.Update(c, int64(chatID.(botapi.ChatIDInt)), c.Bot)
+	return h.updater.UpdateRolesPost(c, int64(chatID.(botapi.ChatIDInt)), c.Bot)
 }
 
 func (h *Handler) RemoveEmoji(c *botapi.Context) error {
