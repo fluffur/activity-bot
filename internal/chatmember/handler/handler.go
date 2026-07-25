@@ -147,7 +147,7 @@ func (h *Handler) ShowEmoji(c *botapi.Context) error {
 
 func (h *Handler) UpdateChatMembers(c *botapi.Context) error {
 	ch := cctx.MustChat(c)
-	members, err := participant.GetChatMembers(c.Bot, c, c.Update.Entities, ch.ID)
+	members, err := participant.GetChatMembers(c.Bot, c, ch.ID)
 	if err != nil {
 		return fmt.Errorf("get chat members on update: %w", err)
 	}

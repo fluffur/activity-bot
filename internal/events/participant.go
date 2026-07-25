@@ -75,7 +75,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	loc := h.translator.Localizer(res.ChatMember.Chat.Lang)
 
 	if res.IsNew && participant.IsSelf(u.NewParticipant) {
-		members, err := participant.GetChatMembers(h.bot, ctx, e, u.ChannelID)
+		members, err := participant.GetChatMembers(h.bot, ctx, u.ChannelID)
 		if err != nil {
 			return fmt.Errorf("get chat members on bot join: %w", err)
 		}
