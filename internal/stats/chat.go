@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/samber/lo"
 
 	"github.com/gotd/botapi"
@@ -376,7 +375,7 @@ func (h *Handler) ListInactive(c *botapi.Context) error {
 	if !ok {
 		duration = 24 * time.Hour
 	}
-	spew.Dump(duration, ok)
+
 	members, err := h.service.ListInactiveMembers(c, ch.ID, duration)
 	if err != nil {
 		return fmt.Errorf("list inactive members: %w", err)

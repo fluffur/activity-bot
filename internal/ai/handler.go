@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/cohesion-org/deepseek-go"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/log"
 
 	"github.com/gotd/botapi"
@@ -79,7 +78,6 @@ func (h *Handler) AI(c *botapi.Context) error {
 		return fmt.Errorf("bot: create chat completion: %w", err)
 	}
 
-	spew.Dump(resp)
 	if len(resp.Choices) == 0 {
 		return nil
 	}

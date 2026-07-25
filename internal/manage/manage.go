@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/gotd/botapi"
 )
 
@@ -28,7 +26,6 @@ func (h *Handler) Manage(c *botapi.Context) error {
 	} else {
 		senderID = msg.Chat.ID
 	}
-	spew.Dump("SENDER ID", senderID)
 
 	search, _ := cctx.MustArgs(c).Text()
 
