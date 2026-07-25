@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/botapi"
 )
 
@@ -706,10 +707,13 @@ func parseMarriageCallbackUserID(data string) (int64, error) {
 }
 
 func (h *Handler) ForceMarry(c *botapi.Context) error {
+	spew.Dump("FORCE MARRY")
 	loc := cctx.MustLocalizer(c)
 	ch := cctx.MustChat(c)
 
 	users := cctx.MustArgs(c).Users
+	spew.Dump("FORCE MARRY", users)
+
 	if len(users) < 2 {
 		_, err := c.Reply(
 			loc.T(i18n.Cmd.AdminMarry.InvalidTarget, nil),
