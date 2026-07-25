@@ -35,7 +35,6 @@ const rolesTemplate = `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . �
 <blockquote expandable>{{range .Roles}}{{.Name}} - {{.Status}}{{end}}
 </blockquote>
 {{end}}
-
 менять роль можно только 2 или 3 раза для смены обратиться к владельцу или совладельцу
 `
 
