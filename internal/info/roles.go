@@ -10,6 +10,8 @@ import (
 
 type RenderData struct {
 	Categories []RenderCategory
+	Header     string
+	Footer     string
 }
 
 type RenderCategory struct {
@@ -23,21 +25,14 @@ type RenderRole struct {
 	Status string
 }
 
-const rolesTemplate = `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . <tg-emoji emoji-id="5260536644913604662">👋</tg-emoji>
-
-<blockquote><a href="http://t.me/HavenGateBot?start=true">бот для заявок</a></blockquote>
-бронь – ✷
-занятая роль – ♡゙
-нуждаемся – !
-
+const rolesTemplate = `{{.Header}}
 {{range .Categories -}}
 {{.Name}}
 <blockquote expandable>{{range .Roles}}{{.Name}} - {{.Status}}
 {{end}}
 </blockquote>
 {{end}}
-менять роль можно только 2 или 3 раза для смены обратиться к владельцу или совладельцу
-`
+{{.Footer}}`
 
 var rolesTmpl = template.Must(
 	template.New("roles").Parse(rolesTemplate),
@@ -89,6 +84,14 @@ func BuildRoleStates(members []chatmember.ChatMember) map[string]RoleState {
 func Render(states map[string]RoleState) (string, error) {
 	data := RenderData{
 		Categories: make([]RenderCategory, 0, len(genshin.Categories)),
+		Header: `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . <tg-emoji emoji-id="5260536644913604662">👋</tg-emoji>
+
+<blockquote><a href="http://t.me/HavenGateBot?start=true">бот для заявок</a></blockquote>
+бронь – ✷
+занятая роль – ♡゙
+нуждаемся – !`,
+		Footer: `
+менять роль можно только 2 или 3 раза для смены обратиться к владельцу или совладельцу`,
 	}
 
 	for _, cat := range genshin.Categories {
