@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"activity-bot/internal/i18n"
@@ -138,7 +139,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 			return fmt.Errorf("apply application role: %w", err)
 		}
 
-		if err := h.bot.SetChatMemberTag(ctx, botapi.ID(chatID), u.UserID, app.Role); err != nil {
+		if err := setMemberTagRetry(ctx, h.bot, chatID, u.UserID, app.Role); err != nil {
 			return fmt.Errorf("process join set tag: %w", err)
 		}
 
@@ -262,5 +263,36 @@ func (h *Handler) processLeft(ctx context.Context, u *tg.UpdateChannelParticipan
 	if err := h.roleUpdater.UpdateApplyPost(ctx, chatID, h.bot); err != nil {
 		return fmt.Errorf("process join: %w", err)
 	}
+	return err
+}
+
+func setMemberTagRetry(
+	ctx context.Context,
+	bot *botapi.Bot,
+	chatID int64,
+	userID int64,
+	tag string,
+) error {
+	var err error
+
+	for i := 0; i < 5; i++ {
+		err = bot.SetChatMemberTag(
+			ctx,
+			botapi.ID(chatID),
+			userID,
+			tag,
+		)
+
+		if err == nil {
+			return nil
+		}
+
+		if !strings.Contains(err.Error(), "user is not a member") {
+			return err
+		}
+
+		time.Sleep(time.Duration(i+1) * time.Second)
+	}
+
 	return err
 }
