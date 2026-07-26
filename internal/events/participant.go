@@ -128,6 +128,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	if err != nil {
 		return fmt.Errorf("get application on join: %w", err)
 	}
+	loc := h.translator.Localizer(res.ChatMember.Chat.Lang)
 
 	if app != nil {
 		if err := h.memberService.UpdateTag(
@@ -143,14 +144,6 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 			return fmt.Errorf("process join set tag: %w", err)
 		}
 
-		if err := h.applicationRepository.Delete(
-			ctx,
-			chatID,
-			u.UserID,
-		); err != nil {
-			return fmt.Errorf("delete application: %w", err)
-		}
-
 		if err := h.roleUpdater.UpdateRolesPost(
 			ctx,
 			chatID,
@@ -158,9 +151,53 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 		); err != nil {
 			return fmt.Errorf("update roles after application: %w", err)
 		}
-	}
 
-	loc := h.translator.Localizer(res.ChatMember.Chat.Lang)
+		cms, err := h.memberService.ListSummonChatMembers(ctx, chatID)
+		if err != nil {
+			return fmt.Errorf("get members for summon: %w", err)
+		}
+
+		var key i18n.MessageID
+		var data any
+		if res.IsNew {
+			key = i18n.User.Apply.Joined
+			data = i18n.UserApplyJoinedData{
+				User: app.Role,
+			}
+		} else {
+			key = i18n.User.Returned
+			data = i18n.UserReturnedData{
+				User: app.Role,
+			}
+		}
+
+		summonText := loc.T(key, data)
+
+		if err := h.summonHandler.RunSummon(
+			ctx,
+			h.bot,
+			loc,
+			chatID,
+			0,
+			summonText,
+			res.ChatMember.Chat,
+			cms,
+		); err != nil {
+			return fmt.Errorf("run application summon: %w", err)
+		}
+
+		if err := h.applicationRepository.Delete(
+			ctx,
+			chatID,
+			u.UserID,
+		); err != nil {
+			return fmt.Errorf("delete application: %w", err)
+		}
+		if err := h.roleUpdater.UpdateApplyPost(ctx, chatID, h.bot); err != nil {
+			return fmt.Errorf("process join: %w", err)
+		}
+		return nil
+	}
 
 	if res.IsNew && participant.IsSelf(u.NewParticipant) {
 		members, err := participant.GetChatMembers(h.bot, ctx, u.ChannelID)

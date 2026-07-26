@@ -1,6 +1,9 @@
 [user]
 unknown = "участник"
 
+[user.apply]
+joined = "Приветствуем нью {{.User}}!"
+
 [user.joined]
 male = "{{.User}} присоединился к чату"
 female = "{{.User}} присоединилась к чату"

@@ -6,6 +6,7 @@ import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/utils/tghtml"
+	"context"
 
 	tdhtml "github.com/gotd/td/telegram/message/html"
 
@@ -59,14 +60,30 @@ func (h *Handler) Summon(
 		return nil
 	}
 
+	return h.RunSummon(
+		c,
+		c.Bot,
+		cctx.MustLocalizer(c),
+		int64(chatID.(botapi.ChatIDInt)),
+		msgID,
+		text,
+		ch,
+		cms,
+	)
+}
+
+func (h *Handler) RunSummon(
+	ctx context.Context,
+	bot *botapi.Bot,
+	loc *i18n.Localizer,
+	chatID int64,
+	msgID int,
+	text string,
+	ch chat.Chat,
+	cms []chatmember.ChatMember,
+) error {
 	if _, loaded := h.activeSummons.LoadOrStore(ch.ID, struct{}{}); loaded {
-		loc := cctx.MustLocalizer(c)
-
-		_, err := c.Reply(
-			loc.T(i18n.Cmd.Summon.AlreadyRunning, nil),
-		)
-
-		return err
+		return nil
 	}
 
 	perMsg := int(ch.MentionsPerMessage)
@@ -80,15 +97,16 @@ func (h *Handler) Summon(
 		defer h.activeSummons.Delete(ch.ID)
 
 		if err := SendMessages(
-			c,
-			cctx.MustLocalizer(c),
+			ctx,
+			bot,
+			loc,
 			chatID,
 			msgID,
 			text,
 			ch.MentionTypes,
 			groups,
 		); err != nil {
-			log.For(c.Bot.Logger()).Error(c, "send messages", log.Error(err))
+			log.For(bot.Logger()).Error(ctx, "send messages", log.Error(err))
 		}
 	}()
 
@@ -143,25 +161,32 @@ func BuildMentionMessage(
 }
 
 func SendMessages(
-	c *botapi.Context,
+	ctx context.Context,
+	bot *botapi.Bot,
 	loc *i18n.Localizer,
-	chatID botapi.ChatID,
+	chatID int64,
 	msgID int,
 	text string,
 	mentionTypes chat.MentionTypes,
 	groups [][]chatmember.ChatMember,
 ) error {
-	limiter := rate.NewLimiter(rate.Every(1500*time.Microsecond), 1)
-	peer, err := c.Bot.Peers().ResolveTDLibID(
-		c.Background(),
-		constant.TDLibPeerID(chatID.(botapi.ChatIDInt)),
+	limiter := rate.NewLimiter(
+		rate.Every(1500*time.Microsecond),
+		1,
+	)
+
+	peer, err := bot.Peers().ResolveTDLibID(
+		ctx,
+		constant.TDLibPeerID(chatID),
 	)
 	if err != nil {
 		return err
 	}
+
 	inputPeer := peer.InputPeer()
+
 	for i, group := range groups {
-		if err := limiter.Wait(c.Background()); err != nil {
+		if err := limiter.Wait(ctx); err != nil {
 			return err
 		}
 
@@ -173,23 +198,31 @@ func SendMessages(
 			group,
 			mentionTypes,
 		)
+
 		if i == len(groups)-1 {
 			eb.Plain("\n\n")
-			eb.Plain(loc.T(i18n.Cmd.Summon.Completed, nil))
+			eb.Plain(
+				loc.T(i18n.Cmd.Summon.Completed, nil),
+			)
 		}
+
 		finalText, entities := eb.Complete()
 
-		_, err = c.Bot.Raw().MessagesSendMessage(
-			c.Background(),
-			&tg.MessagesSendMessageRequest{
-				Peer:     inputPeer,
-				Message:  finalText,
-				Entities: entities,
-				RandomID: rand.Int63(),
-				ReplyTo: &tg.InputReplyToMessage{
-					ReplyToMsgID: msgID,
-				},
-			},
+		opts := &tg.MessagesSendMessageRequest{
+			Peer:     inputPeer,
+			Message:  finalText,
+			Entities: entities,
+			RandomID: rand.Int63(),
+		}
+
+		if msgID != 0 {
+			opts.ReplyTo = &tg.InputReplyToMessage{
+				ReplyToMsgID: msgID,
+			}
+		}
+		_, err = bot.Raw().MessagesSendMessage(
+			ctx,
+			opts,
 		)
 
 		if err != nil {
@@ -197,7 +230,7 @@ func SendMessages(
 		}
 	}
 
-	return err
+	return nil
 }
 
 func RenderMention(cm chatmember.ChatMember, mentionTypes chat.MentionTypes) string {

@@ -314,7 +314,14 @@ func runBotInstance(
 	)
 
 	register.Attach(bot, registry, permissions, rules, rpRepository)
-	events.NewHandler(bot, translator, chatMemberService, infoUpdater, application.NewRepository(redisClient)).Attach()
+	events.NewHandler(
+		bot,
+		translator,
+		chatMemberService,
+		infoUpdater,
+		application.NewRepository(redisClient),
+		summonH,
+	).Attach()
 
 	botLog.Info("Starting bot instance listener...")
 	return bot.Run(ctx)

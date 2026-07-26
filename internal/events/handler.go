@@ -5,6 +5,7 @@ import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/info"
+	"activity-bot/internal/summon"
 
 	"github.com/gotd/botapi"
 )
@@ -16,6 +17,7 @@ type Handler struct {
 	roleUpdater   *info.Updater
 
 	applicationRepository *application.Repository
+	summonHandler         *summon.Handler
 }
 
 func NewHandler(
@@ -24,6 +26,7 @@ func NewHandler(
 	ms *chatmember.Service,
 	roleUpdater *info.Updater,
 	applicationRepository *application.Repository,
+	summonHandler *summon.Handler,
 ) *Handler {
 	return &Handler{
 		bot:                   b,
@@ -31,6 +34,7 @@ func NewHandler(
 		memberService:         ms,
 		roleUpdater:           roleUpdater,
 		applicationRepository: applicationRepository,
+		summonHandler:         summonHandler,
 	}
 }
 
