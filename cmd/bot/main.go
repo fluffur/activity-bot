@@ -62,7 +62,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	log, _ := zap.NewDevelopment()
+	log, _ := zap.NewProduction()
 	defer func() { _ = log.Sync() }()
 
 	cfg, err := config.Load()
