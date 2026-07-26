@@ -23,6 +23,7 @@ func NewRepository(redis *redis.Client) *Repository {
 }
 
 func (r *Repository) Save(ctx context.Context, app Application) error {
+	fmt.Printf("save SAVE %p\n", r.redis)
 	key := KeyApplication(app.ChatID, app.UserID)
 
 	fmt.Println("REDIS SAVE KEY:", key)
@@ -50,6 +51,8 @@ func (r *Repository) Save(ctx context.Context, app Application) error {
 }
 
 func (r *Repository) Get(ctx context.Context, chatID, userID int64) (*Application, error) {
+	fmt.Printf("GET %p\n", r.redis)
+
 	key := KeyApplication(chatID, userID)
 
 	fmt.Println("REDIS GET KEY:", key)
