@@ -159,6 +159,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 
 		var key i18n.MessageID
 		var data any
+		var opts []i18n.LocalizeOption
 		if res.IsNew {
 			key = i18n.User.Apply.Joined
 			data = i18n.UserApplyJoinedData{
@@ -169,9 +170,10 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 			data = i18n.UserReturnedData{
 				User: app.Role,
 			}
+			opts = append(opts, i18n.WithGender(res.ChatMember.Gender()))
 		}
 
-		summonText := loc.T(key, data)
+		summonText := loc.T(key, data, opts...)
 
 		if err := h.summonHandler.RunSummon(
 			ctx,
