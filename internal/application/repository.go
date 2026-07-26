@@ -50,9 +50,17 @@ func (r *Repository) Save(ctx context.Context, app Application) error {
 }
 
 func (r *Repository) Get(ctx context.Context, chatID, userID int64) (*Application, error) {
-	data, err := r.redis.Get(ctx, KeyApplication(chatID, userID)).Bytes()
+	key := KeyApplication(chatID, userID)
+
+	fmt.Println("REDIS GET KEY:", key)
+	fmt.Println("REDIS ADDR:", r.redis.Options().Addr)
+
+	data, err := r.redis.Get(ctx, key).Bytes()
 
 	if errors.Is(err, redis.Nil) {
+		keys, _ := r.redis.Keys(ctx, "application:*").Result()
+		fmt.Println("REDIS APPLICATION KEYS:", keys)
+
 		return nil, nil
 	}
 
