@@ -23,10 +23,7 @@ func NewRepository(redis *redis.Client) *Repository {
 }
 
 func (r *Repository) Save(ctx context.Context, app Application) error {
-	fmt.Printf("save SAVE %p\n", r.redis)
 	key := KeyApplication(app.ChatID, app.UserID)
-
-	fmt.Println("REDIS SAVE KEY:", key)
 
 	data, err := json.Marshal(app)
 	if err != nil {
@@ -44,26 +41,15 @@ func (r *Repository) Save(ctx context.Context, app Application) error {
 		return err
 	}
 
-	value, err := r.redis.Get(ctx, key).Result()
-	fmt.Println("REDIS AFTER SAVE:", key, value, err)
-
 	return nil
 }
 
 func (r *Repository) Get(ctx context.Context, chatID, userID int64) (*Application, error) {
-	fmt.Printf("GET %p\n", r.redis)
-
 	key := KeyApplication(chatID, userID)
-
-	fmt.Println("REDIS GET KEY:", key)
-	fmt.Println("REDIS ADDR:", r.redis.Options().Addr)
 
 	data, err := r.redis.Get(ctx, key).Bytes()
 
 	if errors.Is(err, redis.Nil) {
-		keys, _ := r.redis.Keys(ctx, "application:*").Result()
-		fmt.Println("REDIS APPLICATION KEYS:", keys)
-
 		return nil, nil
 	}
 
