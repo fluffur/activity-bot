@@ -281,7 +281,7 @@ func runBotInstance(
 		ai.NewHandler(deepseekClient),
 		rpHandler.NewHandler(rpRepository, chatMemberService, userRepository, rpFsm),
 		crocodile.NewHandler(crocodileService),
-		reward.NewHandler(rewardRepository),
+		reward.NewHandler(rewardRepository, chatMemberService),
 	}
 
 	for _, h := range handlers {

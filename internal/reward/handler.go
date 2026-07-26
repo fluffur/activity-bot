@@ -3,6 +3,7 @@ package reward
 import (
 	"activity-bot/internal/action"
 	"activity-bot/internal/cctx"
+	"activity-bot/internal/chatmember"
 	"activity-bot/internal/command"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/option"
@@ -19,11 +20,18 @@ import (
 const CategoryRewards command.Category = "rewards"
 
 type Handler struct {
-	repo Repository
+	repo              Repository
+	chatMemberService *chatmember.Service
 }
 
-func NewHandler(repo Repository) *Handler {
-	return &Handler{repo: repo}
+func NewHandler(
+	repo Repository,
+	chatMemberService *chatmember.Service,
+) *Handler {
+	return &Handler{
+		repo:              repo,
+		chatMemberService: chatMemberService,
+	}
 }
 
 func (h *Handler) Actions() []*command.Action {
@@ -54,6 +62,12 @@ func (h *Handler) Actions() []*command.Action {
 			CategoryRewards,
 			option.WithRules(rule.User().Optional()),
 			option.WithAliases("награды"),
+		),
+		action.NewCallbackPrefix(
+			"profilerewards",
+			"rewards:",
+			h.ListRewardsCallback,
+			CategoryRewards,
 		),
 	}
 }
@@ -182,29 +196,93 @@ func (h *Handler) ListRewards(c *botapi.Context) error {
 	return err
 }
 
+func (h *Handler) ListRewardsCallback(c *botapi.Context) error {
+	ch := cctx.MustChat(c)
+	cq := c.Update.CallbackQuery
+	if cq == nil {
+		return nil
+	}
+	var userID int64
+	if _, err := fmt.Sscanf(cq.Data, "rewards:%d", &userID); err != nil {
+		return err
+	}
+	cm, err := h.chatMemberService.Get(c, ch.ID, userID)
+	if err != nil {
+		return err
+	}
+	rws, err := h.repo.ListRewards(c, ch.ID, cm.ID())
+	if err != nil {
+		return fmt.Errorf("unreward: list rewards: %w", err)
+	}
+
+	loc := cctx.MustLocalizer(c)
+
+	var b strings.Builder
+
+	title := loc.T(i18n.Cmd.ListRewards.Title, i18n.CmdListRewardsTitleData{
+		User: tghtml.MemberLink(loc, ch, cm),
+	})
+
+	b.WriteString(title)
+	b.WriteString("\n")
+	b.WriteString("<blockquote expandable>")
+	if len(rws) == 0 {
+		b.WriteString(loc.T(i18n.Cmd.ListRewards.NoRewards, nil))
+	}
+	given := loc.T(i18n.Cmd.ListRewards.Given, nil)
+	for i, rw := range rws {
+		b.WriteString(fmt.Sprintf("%d. %s %s",
+			i+1,
+			tghtml.Bold(tghtml.Escape(rw.Reason)),
+			RankEmoji(rw.Rank),
+		))
+
+		b.WriteString("\n    ")
+		b.WriteString(given)
+		b.WriteString(" ")
+		b.WriteString(tghtml.DefaultDateTime(rw.CreatedAt))
+
+		if i != len(rws)-1 {
+			b.WriteString("\n")
+		}
+	}
+	b.WriteString("</blockquote>")
+	chatID, _ := c.Chat()
+
+	_, err = c.Bot.SendMessage(
+		c,
+		chatID,
+		b.String(),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview(),
+		botapi.ReplyTo(cq.Message.MessageID),
+	)
+	return err
+}
+
 func RankEmoji(rank int16) string {
 	switch rank {
 	case 0:
-		return "❤️"
+		return "🎗"
 	case 1:
-		return "⭐"
+		return "🎖"
 	case 2:
-		return "🌟"
+		return "🏅"
 	case 3:
-		return "💎"
+		return "🥈"
 	case 4:
-		return "🔥"
+		return "🥇"
 	case 5:
-		return "✨"
-	case 6:
-		return "🌸"
-	case 7:
-		return "👑"
-	case 8:
-		return "💠"
-	case 9:
 		return "🏆"
+	case 6:
+		return "💎"
+	case 7:
+		return "💠"
+	case 8:
+		return "👑"
+	case 9:
+		return "🌠"
 	default:
-		return "❤️"
+		return "🎗"
 	}
 }

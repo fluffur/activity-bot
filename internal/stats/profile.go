@@ -2,6 +2,7 @@ package stats
 
 import (
 	"activity-bot/internal/cctx"
+	"activity-bot/internal/i18n"
 	"fmt"
 	"time"
 
@@ -34,10 +35,26 @@ func (h *Handler) Profile(c *botapi.Context) error {
 
 	htmlMessage := RenderProfile(loc, ch, profile, statsRange.WeekStart, rewards)
 
-	_, err = c.Reply(
-		htmlMessage,
+	opts := []botapi.SendOption{
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
+	}
+
+	if len(rewards) > 3 {
+		opts = append(opts, botapi.WithReplyMarkup(
+			botapi.InlineKeyboard(
+				botapi.InlineRow(
+					botapi.InlineButtonData(
+						loc.T(i18n.Cmd.Profile.RewardsButton, nil), fmt.Sprintf("rewards:%d", cm.ID()),
+					),
+				),
+			),
+		))
+	}
+
+	_, err = c.Reply(
+		htmlMessage,
+		opts...,
 	)
 
 	return err

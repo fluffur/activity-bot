@@ -2,6 +2,7 @@
 desc = "Статистика участника"
 rewards = """🏆 Награды
 <blockquote expandable>{{.Rewards}}</blockquote>"""
+rewards_button = "Все награды"
 
 example_duration = "профиль неделя"
 example_date = "профиль 1 июня 25 июля"
