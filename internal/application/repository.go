@@ -23,19 +23,28 @@ func NewRepository(redis *redis.Client) *Repository {
 }
 
 func (r *Repository) Save(ctx context.Context, app Application) error {
+	key := KeyApplication(app.ChatID, app.UserID)
+
+	fmt.Println("REDIS SAVE KEY:", key)
+
 	data, err := json.Marshal(app)
 	if err != nil {
-		return fmt.Errorf("marshal application: %w", err)
+		return err
 	}
 
-	if err := r.redis.Set(
+	err = r.redis.Set(
 		ctx,
-		KeyApplication(app.ChatID, app.UserID),
+		key,
 		data,
 		applicationTTL,
-	).Err(); err != nil {
-		return fmt.Errorf("save application: %w", err)
+	).Err()
+
+	if err != nil {
+		return err
 	}
+
+	value, err := r.redis.Get(ctx, key).Result()
+	fmt.Println("REDIS AFTER SAVE:", key, value, err)
 
 	return nil
 }
