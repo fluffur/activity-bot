@@ -37,7 +37,7 @@ func (h *Handler) BotChatInviteRequester(
 	peerID.Channel(channel.ID)
 
 	chatID := int64(peerID)
-	spew.Dump("CHAT ID", chatID)
+	spew.Dump("CHAT ID", chatID, update.UserID)
 	app, err := h.applicationRepository.Get(
 		ctx,
 		chatID,

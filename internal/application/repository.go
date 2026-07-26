@@ -30,7 +30,7 @@ func (r *Repository) Save(ctx context.Context, app Application) error {
 
 	if err := r.redis.Set(
 		ctx,
-		keyApplication(app.ChatID, app.UserID),
+		KeyApplication(app.ChatID, app.UserID),
 		data,
 		applicationTTL,
 	).Err(); err != nil {
@@ -41,7 +41,7 @@ func (r *Repository) Save(ctx context.Context, app Application) error {
 }
 
 func (r *Repository) Get(ctx context.Context, chatID, userID int64) (*Application, error) {
-	data, err := r.redis.Get(ctx, keyApplication(chatID, userID)).Bytes()
+	data, err := r.redis.Get(ctx, KeyApplication(chatID, userID)).Bytes()
 
 	if errors.Is(err, redis.Nil) {
 		return nil, nil
@@ -61,14 +61,14 @@ func (r *Repository) Get(ctx context.Context, chatID, userID int64) (*Applicatio
 }
 
 func (r *Repository) Delete(ctx context.Context, chatID, userID int64) error {
-	if err := r.redis.Del(ctx, keyApplication(chatID, userID)).Err(); err != nil {
+	if err := r.redis.Del(ctx, KeyApplication(chatID, userID)).Err(); err != nil {
 		return fmt.Errorf("delete application: %w", err)
 	}
 
 	return nil
 }
 
-func keyApplication(chatID, userID int64) string {
+func KeyApplication(chatID, userID int64) string {
 	return fmt.Sprintf(
 		"application:%d:%d",
 		chatID,

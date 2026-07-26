@@ -303,6 +303,8 @@ func (h *Handler) ConfirmRules(c *botapi.Context) error {
 		return err
 	}
 
+	fmt.Println("SAVE KEY:", KeyApplication(app.ChatID, app.UserID))
+	fmt.Printf("%+v\n", app)
 	if err := h.repository.Save(c, app); err != nil {
 		return err
 	}
