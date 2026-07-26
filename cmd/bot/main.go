@@ -62,7 +62,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	log, _ := zap.NewProduction()
+	log, _ := zap.NewDevelopment()
 	defer func() { _ = log.Sync() }()
 
 	cfg, err := config.Load()
@@ -314,7 +314,7 @@ func runBotInstance(
 	)
 
 	register.Attach(bot, registry, permissions, rules, rpRepository)
-	events.NewHandler(bot, translator, chatMemberService, infoUpdater).Attach()
+	events.NewHandler(bot, translator, chatMemberService, infoUpdater, application.NewRepository(redisClient)).Attach()
 
 	botLog.Info("Starting bot instance listener...")
 	return bot.Run(ctx)

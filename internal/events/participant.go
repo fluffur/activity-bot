@@ -11,18 +11,58 @@ import (
 	"activity-bot/internal/utils/participant"
 	"activity-bot/internal/utils/tghtml"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/td/constant"
 	"github.com/gotd/td/tg"
 
 	"github.com/gotd/botapi"
 )
 
-func (h *Handler) PendingJoinRequests(ctx context.Context, e tg.Entities, update *tg.UpdatePendingJoinRequests) error {
-	spew.Dump("pending", update)
+func (h *Handler) BotChatInviteRequester(
+	ctx context.Context,
+	e tg.Entities,
+	update *tg.UpdateBotChatInviteRequester,
+) error {
+	peer, ok := update.Peer.(*tg.PeerChannel)
+	if !ok {
+		return nil
+	}
+
+	channel, ok := e.Channels[peer.ChannelID]
+	if !ok {
+		return fmt.Errorf("channel not found")
+	}
+
+	var peerID constant.TDLibPeerID
+	peerID.Channel(channel.ID)
+
+	chatID := int64(peerID)
+
+	app, err := h.applicationRepository.Get(
+		ctx,
+		chatID,
+		update.UserID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("get application: %w", err)
+	}
+
+	if app == nil {
+		return nil
+	}
+
+	err = h.bot.ApproveChatJoinRequest(
+		ctx,
+		botapi.ID(chatID),
+		update.UserID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("approve join request: %w", err)
+	}
+
 	return nil
 }
-
 func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.UpdateChannelParticipant) error {
 	channel, ok := e.Channels[u.ChannelID]
 	if !ok {
@@ -61,7 +101,10 @@ func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.Up
 	return nil
 }
 func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateChannelParticipant, chatID int64) error {
-	ue := e.Users[u.UserID]
+	ue, ok := e.Users[u.UserID]
+	if !ok {
+		return fmt.Errorf("user %d not found in entities", u.UserID)
+	}
 
 	userDTO := user.New(u.UserID, ue.FirstName, ue.LastName, ue.Username, user.GenderUnknown, ue.Bot, time.Now())
 
@@ -74,6 +117,47 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 	)
 	if err != nil {
 		return fmt.Errorf("handler process join: %w", err)
+	}
+
+	app, err := h.applicationRepository.Get(
+		ctx,
+		chatID,
+		u.UserID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("get application on join: %w", err)
+	}
+
+	if app != nil {
+		if err := h.memberService.UpdateTag(
+			ctx,
+			chatID,
+			u.UserID,
+			app.Role,
+		); err != nil {
+			return fmt.Errorf("apply application role: %w", err)
+		}
+
+		if err := h.bot.SetChatMemberTag(ctx, botapi.ID(chatID), u.UserID, app.Role); err != nil {
+			return fmt.Errorf("process join set tag: %w", err)
+		}
+
+		if err := h.applicationRepository.Delete(
+			ctx,
+			chatID,
+			u.UserID,
+		); err != nil {
+			return fmt.Errorf("delete application: %w", err)
+		}
+
+		if err := h.roleUpdater.UpdateRolesPost(
+			ctx,
+			chatID,
+			h.bot,
+		); err != nil {
+			return fmt.Errorf("update roles after application: %w", err)
+		}
 	}
 
 	loc := h.translator.Localizer(res.ChatMember.Chat.Lang)
