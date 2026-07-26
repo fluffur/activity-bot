@@ -49,15 +49,15 @@ func NewHandler(
 	}
 }
 
-func hasRole(role string) bool {
+func findRole(role string) (string, bool) {
 	for _, cat := range genshin.Categories {
 		for _, rol := range cat.Roles {
 			if strings.EqualFold(predicate.NormalizeTag(rol), role) {
-				return true
+				return rol, true
 			}
 		}
 	}
-	return false
+	return "", false
 }
 
 func (h *Handler) Start(c *botapi.Context) error {
@@ -155,8 +155,8 @@ func (h *Handler) ProcessRole(c *botapi.Context) error {
 	if err != nil {
 		return fmt.Errorf("list chat members: %w", err)
 	}
-
-	if !hasRole(role) {
+	foundRole, ok := findRole(role)
+	if !ok {
 		_, err := c.Reply("Данная роль не найдена, пожалуйста укажите в сообщении сушествующую роль")
 		return err
 	}
@@ -175,7 +175,7 @@ func (h *Handler) ProcessRole(c *botapi.Context) error {
 		c,
 		AppStateConfirmRole,
 		AppStateData{
-			Role: role,
+			Role: foundRole,
 		},
 	); err != nil {
 		return err
