@@ -61,7 +61,7 @@ func (h *Handler) Summon(
 	}
 
 	return h.RunSummon(
-		c,
+		c.Background(),
 		c.Bot,
 		cctx.MustLocalizer(c),
 		int64(chatID.(botapi.ChatIDInt)),
