@@ -11,6 +11,7 @@ import (
 	"activity-bot/internal/utils/participant"
 	"activity-bot/internal/utils/tghtml"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/td/constant"
 	"github.com/gotd/td/tg"
 
@@ -36,7 +37,7 @@ func (h *Handler) BotChatInviteRequester(
 	peerID.Channel(channel.ID)
 
 	chatID := int64(peerID)
-
+	spew.Dump("CHAT ID", chatID)
 	app, err := h.applicationRepository.Get(
 		ctx,
 		chatID,
