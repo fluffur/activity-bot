@@ -88,11 +88,14 @@ func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.Up
 		return h.processJoin(ctx, e, u, chatID)
 	}
 
+	prevTag := participant.Rank(u.PrevParticipant)
 	newTag := participant.Rank(u.NewParticipant)
-	if participant.Rank(u.PrevParticipant) != newTag {
+
+	if newTag != "" && prevTag != newTag {
 		if err := h.memberService.UpdateTag(ctx, chatID, u.UserID, newTag); err != nil {
 			return fmt.Errorf("participant update tag: %w", err)
 		}
+
 		if err := h.roleUpdater.UpdateRolesPost(ctx, chatID, h.bot); err != nil {
 			return fmt.Errorf("participant update: %w", err)
 		}

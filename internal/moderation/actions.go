@@ -209,7 +209,7 @@ func (h *Handler) Mute(c *botapi.Context) error {
 func (h *Handler) Unban(c *botapi.Context) error {
 	args := cctx.MustArgs(c)
 
-	target, ok := args.User()
+	target, ok := args.AnyUser()
 	if !ok {
 		return nil
 	}
