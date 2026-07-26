@@ -254,6 +254,7 @@ func (h *Handler) ConfirmRules(c *botapi.Context) error {
 
 	app := Application{
 		UserID:   senderID,
+		ChatID:   h.targetChatID,
 		Role:     sess.Data.Role,
 		Username: username,
 	}
@@ -271,7 +272,7 @@ func (h *Handler) ConfirmRules(c *botapi.Context) error {
 		userRef,
 	)
 
-	sent, err := c.Bot.SendMessage(
+	_, err = c.Bot.SendMessage(
 		c,
 		botapi.ID(h.applicationChatID),
 		adminMsg,
@@ -293,7 +294,6 @@ func (h *Handler) ConfirmRules(c *botapi.Context) error {
 	if err != nil {
 		return fmt.Errorf("send message: %w", err)
 	}
-	app.ApplicationID = sent.MessageID
 
 	if err := h.appFSM.Enter(
 		c,
@@ -341,9 +341,12 @@ func (h *Handler) Accept(c *botapi.Context) error {
 		return fmt.Errorf("accept: %w", err)
 	}
 
-	application, err := h.repository.Get(c, userID)
+	application, err := h.repository.Get(c, h.targetChatID, userID)
 	if err != nil {
 		return err
+	}
+	if application == nil {
+		return c.AnswerCallback()
 	}
 
 	_, err = c.Bot.SendMessage(
@@ -366,7 +369,7 @@ func (h *Handler) Accept(c *botapi.Context) error {
 		return err
 	}
 
-	if err := h.repository.Delete(c, application.UserID); err != nil {
+	if err := h.repository.Delete(c, application.ChatID, application.UserID); err != nil {
 		return err
 	}
 
@@ -430,7 +433,7 @@ func (h *Handler) Reject(c *botapi.Context) error {
 	if err := h.rejectFSM.Enter(
 		c,
 		RejectStateAwaitRejectMessage,
-		RejectStateData{UserID: userID},
+		RejectStateData{UserID: userID, ChatID: h.targetChatID},
 	); err != nil {
 		return err
 	}
@@ -465,11 +468,13 @@ func (h *Handler) RejectMessage(c *botapi.Context) error {
 		return nil
 	}
 
-	application, err := h.repository.Get(c, sess.Data.UserID)
+	application, err := h.repository.Get(c, sess.Data.ChatID, sess.Data.UserID)
 	if err != nil {
 		return err
 	}
-
+	if application == nil {
+		return nil
+	}
 	reason := strings.TrimSpace(msg.Text)
 
 	if reason == "" {
@@ -517,6 +522,14 @@ func (h *Handler) RejectMessage(c *botapi.Context) error {
 	_, err = c.Reply(
 		"Заявка отклонена.",
 	)
+
+	if err := h.repository.Delete(
+		c,
+		application.ChatID,
+		application.UserID,
+	); err != nil {
+		return err
+	}
 
 	return err
 }

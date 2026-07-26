@@ -11,11 +11,17 @@ import (
 	"activity-bot/internal/utils/participant"
 	"activity-bot/internal/utils/tghtml"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/td/constant"
 	"github.com/gotd/td/tg"
 
 	"github.com/gotd/botapi"
 )
+
+func (h *Handler) PendingJoinRequests(ctx context.Context, e tg.Entities, update *tg.UpdatePendingJoinRequests) error {
+	spew.Dump("pending", update)
+	return nil
+}
 
 func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.UpdateChannelParticipant) error {
 	channel, ok := e.Channels[u.ChannelID]

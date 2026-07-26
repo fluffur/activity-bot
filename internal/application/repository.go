@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -29,7 +30,7 @@ func (r *Repository) Save(ctx context.Context, app Application) error {
 
 	if err := r.redis.Set(
 		ctx,
-		keyApplication(app.UserID),
+		keyApplication(app.ChatID, app.UserID),
 		data,
 		applicationTTL,
 	).Err(); err != nil {
@@ -39,8 +40,13 @@ func (r *Repository) Save(ctx context.Context, app Application) error {
 	return nil
 }
 
-func (r *Repository) Get(ctx context.Context, userID int64) (*Application, error) {
-	data, err := r.redis.Get(ctx, keyApplication(userID)).Bytes()
+func (r *Repository) Get(ctx context.Context, chatID, userID int64) (*Application, error) {
+	data, err := r.redis.Get(ctx, keyApplication(chatID, userID)).Bytes()
+
+	if errors.Is(err, redis.Nil) {
+		return nil, nil
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("get application: %w", err)
 	}
@@ -54,14 +60,18 @@ func (r *Repository) Get(ctx context.Context, userID int64) (*Application, error
 	return &app, nil
 }
 
-func (r *Repository) Delete(ctx context.Context, userID int64) error {
-	if err := r.redis.Del(ctx, keyApplication(userID)).Err(); err != nil {
+func (r *Repository) Delete(ctx context.Context, chatID, userID int64) error {
+	if err := r.redis.Del(ctx, keyApplication(chatID, userID)).Err(); err != nil {
 		return fmt.Errorf("delete application: %w", err)
 	}
 
 	return nil
 }
 
-func keyApplication(userID int64) string {
-	return fmt.Sprintf("application:%d", userID)
+func keyApplication(chatID, userID int64) string {
+	return fmt.Sprintf(
+		"application:%d:%d",
+		chatID,
+		userID,
+	)
 }

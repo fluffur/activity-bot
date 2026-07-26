@@ -31,4 +31,5 @@ func NewHandler(
 
 func (h *Handler) Attach() {
 	h.bot.Dispatcher().OnChannelParticipant(h.ParticipantUpdate)
+	h.bot.Dispatcher().OnPendingJoinRequests(h.PendingJoinRequests)
 }

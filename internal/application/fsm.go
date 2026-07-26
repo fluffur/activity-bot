@@ -16,6 +16,7 @@ type AppStateData struct {
 type RejectState string
 type RejectStateData struct {
 	UserID int64 `json:"user_id"`
+	ChatID int64 `json:"chat_id"`
 }
 
 const (
