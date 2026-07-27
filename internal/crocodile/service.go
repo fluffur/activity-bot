@@ -107,6 +107,11 @@ func (s *Service) NextWord(
 		return "", err
 	}
 
+	if game.Word != "" {
+		game.SkippedWords = append(game.SkippedWords, game.Word)
+		game.SkipCount++
+	}
+
 	game.Word = word.Word
 
 	if err := s.repo.Update(ctx, game); err != nil {

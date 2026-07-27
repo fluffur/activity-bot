@@ -8,6 +8,8 @@ import (
 	"activity-bot/internal/option"
 	"activity-bot/internal/utils/tghtml"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/gotd/botapi"
 )
@@ -162,7 +164,6 @@ func (h *Handler) ShowWord(c *botapi.Context) error {
 		botapi.WithCallbackAlert(),
 	)
 }
-
 func (h *Handler) NextWord(c *botapi.Context) error {
 	cb := c.Update.CallbackQuery
 	if cb == nil {
@@ -171,6 +172,7 @@ func (h *Handler) NextWord(c *botapi.Context) error {
 
 	loc := cctx.MustLocalizer(c)
 	ch := cctx.MustChat(c)
+	cm := cctx.MustChatMember(c)
 
 	word, err := h.service.NextWord(
 		c,
@@ -203,19 +205,43 @@ func (h *Handler) NextWord(c *botapi.Context) error {
 		}
 	}
 
-	return c.AnswerCallback(
-		botapi.WithCallbackText(
-			loc.T(
-				i18n.Cmd.Crocodile.Callback.Word,
-				i18n.CmdCrocodileCallbackWordData{
-					Word: word,
-				},
+	game, err := h.service.Get(c, ch.ID)
+	if err != nil {
+		return c.AnswerCallback(
+			botapi.WithCallbackText(
+				loc.T(i18n.Cmd.Crocodile.Error.NextWord, nil),
 			),
-		),
+		)
+	}
+
+	text := loc.T(
+		i18n.Cmd.Crocodile.Callback.Word,
+		i18n.CmdCrocodileCallbackWordData{
+			Word: word,
+		},
+	)
+
+	if len(game.SkippedWords) > 0 {
+		msgText := loc.T(i18n.Cmd.Crocodile.StartedSkippedWords, i18n.CmdCrocodileStartedSkippedWordsData{
+			Host:         tghtml.MemberLink(loc, ch, cm),
+			SkippedWords: strings.Join(game.SkippedWords, ", "),
+		})
+		chatID, _ := c.Chat()
+		if _, err := c.Bot.EditMessageText(
+			c, chatID, cb.Message.MessageID, msgText,
+			botapi.WithParseMode(botapi.ParseModeHTML),
+			botapi.WithReplyMarkup(cb.Message.ReplyMarkup),
+			botapi.DisableWebPagePreview(),
+		); err != nil {
+			return fmt.Errorf("next word edit message: %w", err)
+		}
+	}
+
+	return c.AnswerCallback(
+		botapi.WithCallbackText(text),
 		botapi.WithCallbackAlert(),
 	)
 }
-
 func (h *Handler) Finish(c *botapi.Context) error {
 	cb := c.Update.CallbackQuery
 	if cb == nil {
