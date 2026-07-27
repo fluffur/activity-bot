@@ -420,7 +420,7 @@ func (h *Handler) BecomeHost(c *botapi.Context) error {
 		c,
 		chatID,
 		cb.Message.MessageID,
-		cb.Message.Text+"\n\n"+loc.T(
+		cb.Message.OriginalTextHTML()+"\n\n"+loc.T(
 			i18n.Cmd.Crocodile.Continued,
 			i18n.CmdCrocodileContinuedData{
 				User: mention,
