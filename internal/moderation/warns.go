@@ -22,7 +22,7 @@ func (h *Handler) Warn(c *botapi.Context) error {
 
 	until, ok := args.Until()
 	if !ok {
-		until = time.Time{}
+		until = time.Now().Add(time.Hour * 24 * 7)
 	}
 
 	reason, _ := args.Text()

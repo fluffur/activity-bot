@@ -82,7 +82,7 @@ func (h *Handler) Ban(c *botapi.Context) error {
 
 	until, ok := args.Until()
 	if !ok {
-		until = time.Time{}
+		until = time.Now().Add(time.Hour * 24 * 7)
 	}
 
 	reason, _ := args.Text()
@@ -165,7 +165,7 @@ func (h *Handler) Mute(c *botapi.Context) error {
 
 	until, ok := args.Until()
 	if !ok {
-		until = time.Time{}
+		until = time.Now().Add(time.Hour * 24 * 7)
 	}
 
 	reason, _ := args.Text()
