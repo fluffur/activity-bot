@@ -86,6 +86,10 @@ func (h *Handler) Ban(c *botapi.Context) error {
 	}
 
 	reason, _ := args.Text()
+	if strings.ToLower(reason) == "навсегда" {
+		until = time.Time{}
+		reason = ""
+	}
 	ch := cctx.MustChat(c)
 	if err := c.Bot.BanChatMember(
 		c,
@@ -127,6 +131,9 @@ func (h *Handler) Kick(c *botapi.Context) error {
 	}
 
 	reason, _ := args.Text()
+	if strings.ToLower(reason) == "навсегда" {
+		reason = ""
+	}
 	ch := cctx.MustChat(c)
 
 	if err := h.service.Kick(c, ch.ID, target, moderator, reason); err != nil {
@@ -169,6 +176,10 @@ func (h *Handler) Mute(c *botapi.Context) error {
 	}
 
 	reason, _ := args.Text()
+	if strings.ToLower(reason) == "навсегда" {
+		until = time.Time{}
+		reason = ""
+	}
 	ch := cctx.MustChat(c)
 
 	if err := h.service.Mute(c, ch.ID, target, moderator, until, reason); err != nil {
