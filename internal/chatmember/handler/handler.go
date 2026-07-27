@@ -98,7 +98,7 @@ func (h *Handler) SetEmoji(c *botapi.Context) error {
 	emojisString := strings.Join(emojis, "")
 
 	moderator := cctx.MustChatMember(c)
-	target, ok := cctx.MustArgs(c).User()
+	target, ok := cctx.MustArgs(c).AnyUser()
 
 	if !ok || !moderator.Permitted(cctx.MustPermission(c)) {
 		target = moderator
