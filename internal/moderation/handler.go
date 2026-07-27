@@ -88,7 +88,7 @@ func (h *Handler) Actions() []*command.Action {
 			i18n.Cmd.Moderation.Mute.Desc,
 			CategoryModeration,
 			option.WithPermission(permission.StatusAdmin),
-			option.WithAliases("мут", "молчать"),
+			option.WithAliases("мут"),
 			option.WithRules(
 				rule.User(),
 				rule.DateTimeOrDuration().Optional(),
@@ -102,7 +102,7 @@ func (h *Handler) Actions() []*command.Action {
 			i18n.Cmd.Moderation.Unban.Desc,
 			CategoryModeration,
 			option.WithPermission(permission.StatusSeniorAdmin),
-			option.WithAliases("разбан", "размут", "снять мут", "говори"),
+			option.WithAliases("-мут", "разбан", "размут", "снять мут", "говори"),
 			option.WithRules(
 				rule.User(),
 			),
