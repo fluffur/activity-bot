@@ -29,7 +29,7 @@ func (h *Handler) Actions() []*command.Action {
 	return []*command.Action{
 		action.NewCommand(
 			"weatherfun",
-			h.Weather,
+			h.WeatherFun,
 			i18n.Cmd.Weather.Desc,
 			handler.CategoryChat,
 			option.WithAliases("погода сиксевенбург"),
@@ -48,9 +48,102 @@ func (h *Handler) Actions() []*command.Action {
 }
 
 func (h *Handler) WeatherFun(c *botapi.Context) error {
-	_, err := c.Reply("🌡 +100000C")
+	now := time.Now()
+
+	w := &ForecastResponse{
+		Location: Location{
+			Name:    "Сиксевенбург",
+			Country: "67",
+		},
+		Current: Current{
+			TempC:      67,
+			FeelsLikeC: 67,
+			WindKph:    67 * 3.6,
+			Humidity:   67,
+			Cloud:      67,
+			Condition: Condition{
+				Text: "Переменная облачность",
+			},
+		},
+	}
+
+	w.Forecast.Forecastday = []ForecastDay{
+		{
+			Date: now.Format("2006-01-02"),
+			Day: struct {
+				MinTemp   float64   `json:"mintemp_c"`
+				MaxTemp   float64   `json:"maxtemp_c"`
+				Condition Condition `json:"condition"`
+			}{
+				MinTemp: 67,
+				MaxTemp: 67,
+				Condition: Condition{
+					Text: "Переменная облачность",
+				},
+			},
+			Hour: fakeHours(now),
+		},
+		{
+			Date: now.AddDate(0, 0, 1).Format("2006-01-02"),
+			Day: struct {
+				MinTemp   float64   `json:"mintemp_c"`
+				MaxTemp   float64   `json:"maxtemp_c"`
+				Condition Condition `json:"condition"`
+			}{
+				MinTemp: 67,
+				MaxTemp: 67,
+				Condition: Condition{
+					Text: "Переменная облачность",
+				},
+			},
+			Hour: fakeHours(now.AddDate(0, 0, 1)),
+		},
+	}
+
+	loc := cctx.MustLocalizer(c)
+
+	current := loc.T(
+		i18n.Cmd.Weather.Current,
+		i18n.CmdWeatherCurrentData{
+			Temp:      "+67°",
+			Condition: "Переменная облачность",
+			FeelsLike: "+67°",
+			Wind:      "67",
+			Humidity:  67,
+		},
+	)
+
+	data := i18n.CmdWeatherMessageData{
+		City:     w.Location.Name,
+		Current:  current,
+		Forecast: renderForecast(loc, w),
+	}
+
+	_, err := c.Reply(
+		loc.T(i18n.Cmd.Weather.Message, data),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+	)
+
 	return err
 }
+
+func fakeHours(date time.Time) []Hour {
+	hours := make([]Hour, 0, 24)
+
+	for i := 0; i < 24; i++ {
+		hours = append(hours, Hour{
+			Time: date.Format("2006-01-02") +
+				fmt.Sprintf(" %02d:00", i),
+			Temp: 67,
+			Condition: Condition{
+				Text: "Переменная облачность",
+			},
+		})
+	}
+
+	return hours
+}
+
 func (h *Handler) Weather(c *botapi.Context) error {
 	place, ok := cctx.MustArgs(c).Text()
 	if !ok {
