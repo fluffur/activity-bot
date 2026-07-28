@@ -28,6 +28,13 @@ func NewHandler(client *Client) *Handler {
 func (h *Handler) Actions() []*command.Action {
 	return []*command.Action{
 		action.NewCommand(
+			"weatherfun",
+			h.Weather,
+			i18n.Cmd.Weather.Desc,
+			handler.CategoryChat,
+			option.WithAliases("погода сиксевенбург"),
+		),
+		action.NewCommand(
 			"weather",
 			h.Weather,
 			i18n.Cmd.Weather.Desc,
@@ -40,6 +47,10 @@ func (h *Handler) Actions() []*command.Action {
 	}
 }
 
+func (h *Handler) WeatherFun(c *botapi.Context) error {
+	_, err := c.Reply("🌡 +100000C")
+	return err
+}
 func (h *Handler) Weather(c *botapi.Context) error {
 	place, ok := cctx.MustArgs(c).Text()
 	if !ok {
