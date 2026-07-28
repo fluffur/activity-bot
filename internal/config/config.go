@@ -22,6 +22,8 @@ type Config struct {
 	TargetChatID        int64  `env:"TARGET_CHAT_ID"`
 	TargetChatLink      string `env:"TARGET_CHAT_LINK"`
 	RolesPostLink       string `env:"ROLES_POST_LINK"`
+
+	WeatherAPIKey string `env:"WEATHER_API_KEY"`
 }
 
 func Load() (Config, error) {

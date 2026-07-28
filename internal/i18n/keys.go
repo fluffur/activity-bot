@@ -716,6 +716,18 @@ var (
 				Success MessageID
 			}
 		}
+		Weather struct {
+			Current  MessageID
+			Day      MessageID
+			Desc     MessageID
+			Evening  MessageID
+			Failed   MessageID
+			Message  MessageID
+			Morning  MessageID
+			Night    MessageID
+			Today    MessageID
+			Tomorrow MessageID
+		}
 	}{
 		AddNorm: struct {
 			Added           MessageID
@@ -2296,6 +2308,29 @@ var (
 				Success: "cmd.user.show_gender.success",
 			},
 		},
+		Weather: struct {
+			Current  MessageID
+			Day      MessageID
+			Desc     MessageID
+			Evening  MessageID
+			Failed   MessageID
+			Message  MessageID
+			Morning  MessageID
+			Night    MessageID
+			Today    MessageID
+			Tomorrow MessageID
+		}{
+			Current:  "cmd.weather.current",
+			Day:      "cmd.weather.day",
+			Desc:     "cmd.weather.desc",
+			Evening:  "cmd.weather.evening",
+			Failed:   "cmd.weather.failed",
+			Message:  "cmd.weather.message",
+			Morning:  "cmd.weather.morning",
+			Night:    "cmd.weather.night",
+			Today:    "cmd.weather.today",
+			Tomorrow: "cmd.weather.tomorrow",
+		},
 	}
 	Common = struct {
 		Close   MessageID
@@ -2391,6 +2426,400 @@ var (
 	}
 )
 
+type UserReturnedData struct {
+	User any
+}
+
+type UserLeftData struct {
+	User any
+}
+
+type UserApplyJoinedData struct {
+	User any
+}
+
+type UserJoinedData struct {
+	User any
+}
+
+type CmdShipNormal5Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipSelf3Data struct {
+	First any
+}
+
+type CmdShipSelf1Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipSelf7Data struct {
+	First any
+}
+
+type CmdShipBot8Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipBot4Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipBotBot3Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipNormal3Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipNormal7Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipSelf8Data struct {
+	First any
+}
+
+type CmdShipBotBot5Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipSelf4Data struct {
+	First any
+}
+
+type CmdShipBotBot8Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipSelf2Data struct {
+	First any
+}
+
+type CmdShipBot1Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipBot2Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipBotBot2Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipSelf5Data struct {
+	First any
+}
+
+type CmdShipNormal6Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipNormal8Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipNormal2Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipNormal4Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipNormal1Data struct {
+	First  any
+	Second any
+}
+
+type CmdShipBotBot1Data struct {
+	First  any
+	Second any
+}
+
+type CmdHelpDisableInfoData struct {
+	Command any
+}
+
+type CmdHelpEnableInfoData struct {
+	Command any
+	Status  any
+}
+
+type CmdHelpPageData struct {
+	Page  any
+	Pages any
+}
+
+type CmdMarriagesTogetherData struct {
+	Duration any
+}
+
+type CmdMarriagesCategoryYearsData struct {
+	Years any
+}
+
+type CmdMarryDirectPolygamyData struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryAnnounce5Data struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryAnnounce6Data struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryAnnouncePolygamy3Data struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryRequestData struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryAnnouncePolygamy4Data struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryBotSelfData struct {
+	Sender any
+}
+
+type CmdMarryAutoAcceptedData struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryRequestPolygamyData struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryAnnounce2Data struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryAnnouncePolygamy1Data struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryAnnouncePolygamy2Data struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryAnnouncePolygamy6Data struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryDirectData struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryAnnounce3Data struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryAnnounce4Data struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryAutoAcceptedPolygamyData struct {
+	Sender any
+	Target any
+}
+
+type CmdMarrySelfData struct {
+	User any
+}
+
+type CmdMarryAnnounce1Data struct {
+	Sender any
+	Target any
+}
+
+type CmdMarryBotData struct {
+	Sender any
+	Target any
+}
+
+type CmdAddRpSuccessData struct {
+	Trigger     any
+	BotUsername any
+}
+
+type CmdChatSetNewbieThresholdSuccessData struct {
+	Days any
+}
+
+type CmdChatShowPromptSuccessData struct {
+	Prompt any
+}
+
+type CmdChatShowWeekStartSuccessData struct {
+	Weekday any
+	Time    any
+}
+
+type CmdChatSetWeekStartSuccessData struct {
+	Weekday any
+	Time    any
+}
+
+type CmdChatShowPrefixSuccessCustomData struct {
+	Prefix any
+}
+
+type CmdChatSetPrefixSuccessCustomData struct {
+	Prefix any
+}
+
+type CmdChatShowNewbieThresholdSuccessData struct {
+	Days any
+}
+
+type CmdCrocodileStartedData struct {
+	Host any
+}
+
+type CmdCrocodileStartedSkippedWordsData struct {
+	Host         any
+	SkippedWords any
+}
+
+type CmdCrocodileContinuedData struct {
+	User any
+}
+
+type CmdCrocodileCallbackWordData struct {
+	Word any
+}
+
+type CmdCrocodileWordData struct {
+	Word any
+}
+
+type CmdCrocodileTimeoutMessageData struct {
+	Word any
+}
+
+type CmdCrocodileWinnerData struct {
+	User any
+	Word any
+}
+
+type CmdDivorceAnnouncePolygamyData struct {
+	Sender  any
+	Partner any
+}
+
+type CmdDivorceSelfData struct {
+	User any
+}
+
+type CmdDivorceAnnounceData struct {
+	Sender  any
+	Partner any
+}
+
+type CmdDeleteNormDeletedData struct {
+	Name any
+}
+
+type CmdDeleteNormErrNothingToDeleteData struct {
+	Name any
+}
+
+type CmdStatsPassedData struct {
+	SuccessEmoji any
+}
+
+type CmdStatsRestingData struct {
+	RestEmoji any
+}
+
+type CmdStatsNewbiesData struct {
+	NewbieEmoji any
+}
+
+type CmdStatsTotalMessagesData struct {
+	TotalEmoji any
+	Total      any
+}
+
+type CmdStatsUserPassedData struct {
+	List     any
+	User     any
+	Messages any
+}
+
+type CmdStatsNobodyToSummonData struct {
+	Name any
+}
+
+type CmdStatsFailedData struct {
+	DangerEmoji any
+}
+
+type CmdStatsTitleData struct {
+	StatsEmoji any
+	From       any
+	To         any
+}
+
+type CmdStatsNormTitleData struct {
+	Name     any
+	Required any
+}
+
+type CmdStatsAskForSummonTextData struct {
+	Norm any
+}
+
+type CmdStatsUserFailedData struct {
+	List     any
+	User     any
+	Messages any
+	Required any
+}
+
+type CmdStatsNormNotFoundData struct {
+	Name any
+}
+
 type CmdShowNormBodyData struct {
 	Name  any
 	Value any
@@ -2400,30 +2829,86 @@ type CmdShowNormNotFoundData struct {
 	Name any
 }
 
-type CmdRestInfoReasonData struct {
+type CmdUnassignNormUnassignedData struct {
+	Name any
+}
+
+type CmdRpSpeechData struct {
+	Text any
+}
+
+type CmdUserShowGenderSuccessData struct {
 	User   any
-	Date   any
-	Reason any
+	Gender any
 }
 
-type CmdRestNoRestData struct {
+type CmdUserSetEmojiSuccessData struct {
+	Emoji any
+	User  any
+}
+
+type CmdUserShowEmojiNoEmojiData struct {
 	User any
 }
 
-type CmdRestSetData struct {
-	User any
-	Date any
+type CmdUserShowEmojiSuccessData struct {
+	User  any
+	Emoji any
 }
 
-type CmdRestSetReasonData struct {
-	User   any
-	Date   any
-	Reason any
+type CmdUserRemoveEmojiSuccessData struct {
+	Emoji any
+	User  any
 }
 
-type CmdRestInfoData struct {
+type CmdUserSetGenderSuccessData struct {
+	Gender any
+}
+
+type CmdChatMemberShowEmojiNoEmojiData struct {
 	User any
-	Date any
+}
+
+type CmdChatMemberShowEmojiSuccessData struct {
+	User  any
+	Emoji any
+}
+
+type CmdChatMemberRemoveEmojiSuccessData struct {
+	Emoji any
+	User  any
+}
+
+type CmdChatMemberSetEmojiSuccessData struct {
+	Emoji any
+	User  any
+}
+
+type CmdAdminDivorceSuccessData struct {
+	User1 any
+	User2 any
+}
+
+type CmdManageSuccessData struct {
+	Chat any
+}
+
+type CmdWeatherMessageData struct {
+	City     any
+	Current  any
+	Forecast any
+}
+
+type CmdWeatherCurrentData struct {
+	Temp      any
+	Condition any
+	FeelsLike any
+	Wind      any
+	Humidity  any
+}
+
+type CmdWeatherFailedData struct {
+	Error any
 }
 
 type CmdMarriageActiveManyData struct {
@@ -2440,315 +2925,68 @@ type CmdMarriageActiveData struct {
 	Partner any
 }
 
-type CmdDeleteNormDeletedData struct {
-	Name any
-}
-
-type CmdDeleteNormErrNothingToDeleteData struct {
-	Name any
-}
-
-type CmdListNormsItemData struct {
-	Name  any
-	Value any
-}
-
-type CmdRpSpeechData struct {
-	Text any
-}
-
-type CmdStatsFailedData struct {
-	DangerEmoji any
-}
-
-type CmdStatsNormNotFoundData struct {
-	Name any
-}
-
-type CmdStatsAskForSummonTextData struct {
-	Norm any
-}
-
-type CmdStatsNobodyToSummonData struct {
-	Name any
-}
-
-type CmdStatsNewbiesData struct {
-	NewbieEmoji any
-}
-
-type CmdStatsUserPassedData struct {
-	List     any
-	User     any
-	Messages any
-}
-
-type CmdStatsUserFailedData struct {
-	List     any
-	User     any
-	Messages any
-	Required any
-}
-
-type CmdStatsPassedData struct {
-	SuccessEmoji any
-}
-
-type CmdStatsRestingData struct {
-	RestEmoji any
-}
-
-type CmdStatsNormTitleData struct {
-	Name     any
-	Required any
-}
-
-type CmdStatsTitleData struct {
-	StatsEmoji any
-	From       any
-	To         any
-}
-
-type CmdStatsTotalMessagesData struct {
+type CmdProfileTotalMessagesData struct {
 	TotalEmoji any
 	Total      any
 }
 
-type CmdEndRestEndedData struct {
-	User any
+type CmdProfileRestExemptData struct {
+	RestEmoji any
 }
 
-type CmdEndRestNotInRestData struct {
-	User any
+type CmdProfileRestUntilData struct {
+	RestEmoji any
+	Date      any
 }
 
-type CmdChatShowNewbieThresholdSuccessData struct {
+type CmdProfileMemberPeriodData struct {
+	From any
+	To   any
 	Days any
 }
 
-type CmdChatSetPrefixSuccessCustomData struct {
-	Prefix any
+type CmdProfileActivityData struct {
+	CalendarEmoji any
+	Day           any
+	Week          any
+	Month         any
+	ChartEmoji    any
+	DayRolling    any
+	WeekRolling   any
+	MonthRolling  any
+	TotalEmoji    any
+	Total         any
 }
 
-type CmdChatShowPromptSuccessData struct {
-	Prompt any
-}
-
-type CmdChatSetWeekStartSuccessData struct {
-	Weekday any
-	Time    any
-}
-
-type CmdChatShowPrefixSuccessCustomData struct {
-	Prefix any
-}
-
-type CmdChatSetNewbieThresholdSuccessData struct {
-	Days any
-}
-
-type CmdChatShowWeekStartSuccessData struct {
-	Weekday any
-	Time    any
-}
-
-type CmdUnassignNormUnassignedData struct {
-	Name any
-}
-
-type CmdAdminDivorceSuccessData struct {
-	User1 any
-	User2 any
-}
-
-type CmdMarryRequestPolygamyData struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryDirectPolygamyData struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryAnnounce2Data struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryAnnounce6Data struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryDirectData struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryAnnouncePolygamy3Data struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryBotSelfData struct {
-	Sender any
-}
-
-type CmdMarryBotData struct {
-	Sender any
-	Target any
-}
-
-type CmdMarrySelfData struct {
-	User any
-}
-
-type CmdMarryAnnouncePolygamy1Data struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryAnnouncePolygamy6Data struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryAnnouncePolygamy4Data struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryAnnounce4Data struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryAnnounce3Data struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryAnnouncePolygamy2Data struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryAnnounce5Data struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryRequestData struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryAutoAcceptedPolygamyData struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryAnnounce1Data struct {
-	Sender any
-	Target any
-}
-
-type CmdMarryAutoAcceptedData struct {
-	Sender any
-	Target any
-}
-
-type CmdMarriagesTogetherData struct {
-	Duration any
-}
-
-type CmdMarriagesCategoryYearsData struct {
-	Years any
-}
-
-type CmdAdminMarrySuccessData struct {
-	User1 any
-	User2 any
-}
-
-type CmdAssignNormAssignedData struct {
-	Name any
-}
-
-type CmdRestsHistoryItemReasonData struct {
-	Index    any
-	From     any
-	To       any
-	Duration any
-	Reason   any
-}
-
-type CmdRestsHistoryTotalData struct {
-	Count any
-}
-
-type CmdRestsHistoryEmptyData struct {
-	User any
-}
-
-type CmdRestsHistoryTitleData struct {
-	User any
-}
-
-type CmdRestsHistoryItemData struct {
-	Index    any
-	From     any
-	To       any
-	Duration any
-}
-
-type CmdChatMemberSetEmojiSuccessData struct {
-	Emoji any
-	User  any
-}
-
-type CmdChatMemberShowEmojiSuccessData struct {
-	User  any
-	Emoji any
-}
-
-type CmdChatMemberShowEmojiNoEmojiData struct {
-	User any
-}
-
-type CmdChatMemberRemoveEmojiSuccessData struct {
-	Emoji any
-	User  any
-}
-
-type CmdManageSuccessData struct {
-	Chat any
-}
-
-type CmdAddRpSuccessData struct {
-	Trigger     any
-	BotUsername any
-}
-
-type CmdInactiveTitleData struct {
-	InactiveEmoji any
-}
-
-type CmdInactiveUserData struct {
-	List         any
+type CmdProfileTitleData struct {
+	ProfileEmoji any
 	User         any
-	LastActivity any
 }
 
-type CmdRestRequestTitleData struct {
-	User any
+type CmdProfileNormFailedData struct {
+	DangerEmoji any
+	Name        any
+	Current     any
+	Required    any
 }
 
-type CmdRestRequestItemData struct {
-	Index any
-	From  any
-	To    any
+type CmdProfileNewbieExemptData struct {
+	NewbieEmoji any
+}
+
+type CmdProfileRewardsData struct {
+	Rewards any
+}
+
+type CmdProfileMemberSinceData struct {
+	Date any
+	Days any
+}
+
+type CmdProfileNormPassedData struct {
+	SuccessEmoji any
+	Name         any
+	Required     any
 }
 
 type CmdRestRequestTextData struct {
@@ -2771,148 +3009,23 @@ type CmdRestRequestEmptyData struct {
 	User any
 }
 
-type CmdShipBot1Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipNormal8Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipNormal6Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipNormal7Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipSelf4Data struct {
-	First any
-}
-
-type CmdShipNormal5Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipSelf2Data struct {
-	First any
-}
-
-type CmdShipBotBot5Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipBotBot8Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipBot2Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipBotBot2Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipSelf1Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipNormal2Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipBot4Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipSelf3Data struct {
-	First any
-}
-
-type CmdShipSelf7Data struct {
-	First any
-}
-
-type CmdShipBot8Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipSelf5Data struct {
-	First any
-}
-
-type CmdShipNormal3Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipNormal1Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipNormal4Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipSelf8Data struct {
-	First any
-}
-
-type CmdShipBotBot3Data struct {
-	First  any
-	Second any
-}
-
-type CmdShipBotBot1Data struct {
-	First  any
-	Second any
-}
-
-type CmdCrocodileWordData struct {
-	Word any
-}
-
-type CmdCrocodileStartedData struct {
-	Host any
-}
-
-type CmdCrocodileCallbackWordData struct {
-	Word any
-}
-
-type CmdCrocodileWinnerData struct {
+type CmdRestRequestTitleData struct {
 	User any
-	Word any
 }
 
-type CmdCrocodileStartedSkippedWordsData struct {
-	Host         any
-	SkippedWords any
+type CmdRestRequestItemData struct {
+	Index any
+	From  any
+	To    any
 }
 
-type CmdCrocodileTimeoutMessageData struct {
-	Word any
-}
-
-type CmdCrocodileContinuedData struct {
+type CmdListRewardsTitleData struct {
 	User any
+}
+
+type CmdAdminMarrySuccessData struct {
+	User1 any
+	User2 any
 }
 
 type CmdPermissionShowSuccessData struct {
@@ -2925,131 +3038,80 @@ type CmdPermissionSetSuccessData struct {
 	Status any
 }
 
-type CmdProfileMemberSinceData struct {
-	Date any
-	Days any
+type CmdRestsHistoryItemData struct {
+	Index    any
+	From     any
+	To       any
+	Duration any
 }
 
-type CmdProfileActivityData struct {
-	CalendarEmoji any
-	Day           any
-	Week          any
-	Month         any
-	ChartEmoji    any
-	DayRolling    any
-	WeekRolling   any
-	MonthRolling  any
-	TotalEmoji    any
-	Total         any
+type CmdRestsHistoryItemReasonData struct {
+	Index    any
+	From     any
+	To       any
+	Duration any
+	Reason   any
 }
 
-type CmdProfileNewbieExemptData struct {
-	NewbieEmoji any
+type CmdRestsHistoryTotalData struct {
+	Count any
 }
 
-type CmdProfileMemberPeriodData struct {
-	From any
-	To   any
-	Days any
+type CmdRestsHistoryEmptyData struct {
+	User any
 }
 
-type CmdProfileRestUntilData struct {
-	RestEmoji any
-	Date      any
+type CmdRestsHistoryTitleData struct {
+	User any
 }
 
-type CmdProfileTitleData struct {
-	ProfileEmoji any
+type CmdInactiveTitleData struct {
+	InactiveEmoji any
+}
+
+type CmdInactiveUserData struct {
+	List         any
 	User         any
+	LastActivity any
 }
 
-type CmdProfileRestExemptData struct {
-	RestEmoji any
+type CmdAssignNormAssignedData struct {
+	Name any
 }
 
-type CmdProfileNormPassedData struct {
-	SuccessEmoji any
-	Name         any
-	Required     any
+type CmdListNormsItemData struct {
+	Name  any
+	Value any
 }
 
-type CmdProfileNormFailedData struct {
-	DangerEmoji any
-	Name        any
-	Current     any
-	Required    any
-}
-
-type CmdProfileTotalMessagesData struct {
-	TotalEmoji any
-	Total      any
-}
-
-type CmdProfileRewardsData struct {
-	Rewards any
-}
-
-type CmdListRewardsTitleData struct {
+type CmdRestNoRestData struct {
 	User any
 }
 
-type CmdUserRemoveEmojiSuccessData struct {
-	Emoji any
-	User  any
+type CmdRestSetData struct {
+	User any
+	Date any
 }
 
-type CmdUserSetGenderSuccessData struct {
-	Gender any
-}
-
-type CmdUserShowGenderSuccessData struct {
+type CmdRestSetReasonData struct {
 	User   any
-	Gender any
+	Date   any
+	Reason any
 }
 
-type CmdUserSetEmojiSuccessData struct {
-	Emoji any
-	User  any
-}
-
-type CmdUserShowEmojiNoEmojiData struct {
+type CmdRestInfoData struct {
 	User any
+	Date any
 }
 
-type CmdUserShowEmojiSuccessData struct {
-	User  any
-	Emoji any
+type CmdRestInfoReasonData struct {
+	User   any
+	Date   any
+	Reason any
 }
 
-type CmdDivorceSelfData struct {
+type CmdModerationSetRoleAdminSetData struct {
 	User any
-}
-
-type CmdDivorceAnnounceData struct {
-	Sender  any
-	Partner any
-}
-
-type CmdDivorceAnnouncePolygamyData struct {
-	Sender  any
-	Partner any
-}
-
-type CmdModerationSetMaxWarnsSetData struct {
-	Max any
-}
-
-type CmdModerationMaxWarnsShowData struct {
-	Max any
-}
-
-type CmdModerationTemplatesModeratorData struct {
-	Moderator any
-}
-
-type CmdModerationTemplatesWarnsData struct {
-	Current any
-	Max     any
 }
 
 type CmdModerationTemplatesUntilData struct {
@@ -3066,41 +3128,16 @@ type CmdModerationTemplatesReasonData struct {
 	Reason any
 }
 
-type CmdModerationRemoveAdminSuccessData struct {
-	User any
-}
-
-type CmdModerationUnwarnSuccessData struct {
-	User  any
-	Left  any
-	Total any
-}
-
-type CmdModerationShowWarnsItemData struct {
-	Index     any
-	Created   any
+type CmdModerationTemplatesModeratorData struct {
 	Moderator any
 }
 
-type CmdModerationShowWarnsExpiresData struct {
-	Until any
-}
-
-type CmdModerationShowWarnsReasonData struct {
-	Reason any
-}
-
-type CmdModerationShowWarnsHeaderData struct {
-	User    any
+type CmdModerationTemplatesWarnsData struct {
 	Current any
 	Max     any
 }
 
-type CmdModerationShowWarnsEmptyData struct {
-	User any
-}
-
-type CmdModerationSetRoleAdminSetData struct {
+type CmdModerationRemoveAdminSuccessData struct {
 	User any
 }
 
@@ -3111,6 +3148,28 @@ type CmdModerationSetRoleSetData struct {
 type CmdModerationSetStatusSuccessData struct {
 	User   any
 	Status any
+}
+
+type CmdModerationSetMaxWarnsSetData struct {
+	Max any
+}
+
+type CmdModerationUnbanUnbannedData struct {
+	User any
+}
+
+type CmdModerationClearWarnsSuccessData struct {
+	User any
+}
+
+type CmdModerationUnwarnSuccessData struct {
+	User  any
+	Left  any
+	Total any
+}
+
+type CmdModerationMaxWarnsShowData struct {
+	Max any
 }
 
 type CmdModerationWarnListItemData struct {
@@ -3133,17 +3192,28 @@ type CmdModerationWarnListHeaderData struct {
 	MaxWarns any
 }
 
-type CmdModerationUnbanUnbannedData struct {
+type CmdModerationShowWarnsExpiresData struct {
+	Until any
+}
+
+type CmdModerationShowWarnsReasonData struct {
+	Reason any
+}
+
+type CmdModerationShowWarnsHeaderData struct {
+	User    any
+	Current any
+	Max     any
+}
+
+type CmdModerationShowWarnsEmptyData struct {
 	User any
 }
 
-type CmdModerationClearWarnsSuccessData struct {
-	User any
-}
-
-type CmdAddNormAddedData struct {
-	Name  any
-	Value any
+type CmdModerationShowWarnsItemData struct {
+	Index     any
+	Created   any
+	Moderator any
 }
 
 type CmdAddNormErrInvalidValueData struct {
@@ -3152,22 +3222,30 @@ type CmdAddNormErrInvalidValueData struct {
 	Max   any
 }
 
+type CmdAddNormAddedData struct {
+	Name  any
+	Value any
+}
+
+type CmdEndRestNotInRestData struct {
+	User any
+}
+
+type CmdEndRestEndedData struct {
+	User any
+}
+
 type CmdDelRpSuccessData struct {
 	Trigger any
 }
 
-type CmdHelpPageData struct {
-	Page  any
-	Pages any
+type SystemNoPermissionData struct {
+	Status any
 }
 
-type CmdHelpDisableInfoData struct {
-	Command any
-}
-
-type CmdHelpEnableInfoData struct {
-	Command any
-	Status  any
+type SystemUsernameAddedData struct {
+	User        any
+	NewUsername any
 }
 
 type SystemBotAddedAdminData struct {
@@ -3180,36 +3258,11 @@ type SystemUsernameChangedData struct {
 	NewUsername any
 }
 
-type SystemUsernameAddedData struct {
-	User        any
-	NewUsername any
-}
-
-type SystemBotAddedData struct {
-	Emoji any
-}
-
-type SystemNoPermissionData struct {
-	Status any
-}
-
 type SystemUsernameDeletedData struct {
 	User        any
 	OldUsername any
 }
 
-type UserJoinedData struct {
-	User any
-}
-
-type UserReturnedData struct {
-	User any
-}
-
-type UserLeftData struct {
-	User any
-}
-
-type UserApplyJoinedData struct {
-	User any
+type SystemBotAddedData struct {
+	Emoji any
 }

@@ -1,0 +1,24 @@
+[cmd.weather]
+desc = "Посмотреть погоду"
+
+failed = "❌ Не удалось получить погоду: {{.Error}}"
+
+message = """🌡 <b>Погода {{.City}}</b>
+{{.Current}}
+{{.Forecast}}"""
+
+current = """
+
+☁️ <b>Сейчас:</b> {{.Temp}} | {{.Condition}}
+🧖‍♂️ <b>Ощущается как:</b> {{.FeelsLike}}
+↘️ <b>Ветер:</b> {{.Wind}} м/с
+💦 <b>Влажность:</b> {{.Humidity}}%"""
+
+today = "<b>Сегодня</b>"
+
+tomorrow = "<b>Завтра</b>"
+
+night = "Ночью"
+morning = "Утром"
+day = "Днём"
+evening = "Вечером"

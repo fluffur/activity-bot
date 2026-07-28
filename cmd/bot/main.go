@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/info"
 	"activity-bot/internal/reward"
 	"activity-bot/internal/rp"
+	"activity-bot/internal/weather"
 	"context"
 	"fmt"
 	"os"
@@ -114,6 +115,8 @@ func main() {
 	moderationService := moderation.NewService(moderationRepository, chatMemberRepository, cfg.DeveloperID)
 	crocodileService := crocodile.NewService(crocodileRepository, wordRepository)
 
+	weatherClient := weather.NewClient(cfg.WeatherAPIKey)
+
 	loc := translator.Default()
 
 	permissions := predicate.NewPermissionsChecker(permissionRepository, cfg.DeveloperID)
@@ -134,6 +137,7 @@ func main() {
 
 				redisClient,
 				deepseekClient,
+				weatherClient,
 				translator,
 
 				tkn,
@@ -198,6 +202,7 @@ func runBotInstance(
 
 	redisClient *redis.Client,
 	deepseekClient *deepseek.Client,
+	weatherClient *weather.Client,
 	translator *i18n.Translator,
 
 	token string,
@@ -279,6 +284,7 @@ func runBotInstance(
 		rpHandler.NewHandler(rpRepository, chatMemberService, userRepository, rpFsm),
 		crocodile.NewHandler(crocodileService),
 		reward.NewHandler(rewardRepository, chatMemberService),
+		weather.NewHandler(weatherClient),
 	}
 
 	for _, h := range handlers {
