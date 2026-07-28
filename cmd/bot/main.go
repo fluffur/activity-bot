@@ -287,11 +287,11 @@ func runBotInstance(
 
 	var bot *botapi.Bot
 	bot, err = botapi.New(token, botapi.Options{
-		AppID:   cfg.AppID,
-		AppHash: cfg.AppHash,
-		Logger:  logzap.New(botLog),
-
-		Storage: store,
+		AppID:     cfg.AppID,
+		AppHash:   cfg.AppHash,
+		Logger:    logzap.New(botLog),
+		FloodWait: true,
+		Storage:   store,
 		OnStart: func(ctx context.Context) {
 			registerBotCommands(ctx, bot, registry, loc)
 			registerDefaultAdminRights(ctx, bot)
