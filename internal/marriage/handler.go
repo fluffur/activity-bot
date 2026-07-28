@@ -574,6 +574,7 @@ func (h *Handler) ListMarriages(c *botapi.Context) error {
 
 	b.WriteString(loc.T(i18n.Cmd.Marriages.List, nil))
 	b.WriteString("\n\n")
+	b.WriteString("<blockquote expandable>")
 
 	writeGroup := func(title i18n.MessageID, items []Marriage) {
 		if len(items) == 0 {
@@ -598,19 +599,12 @@ func (h *Handler) ListMarriages(c *botapi.Context) error {
 
 			if !m.MarriedAt.IsZero() {
 				b.WriteString(" (")
-				b.WriteString(loc.T(
-					i18n.Cmd.Marriages.Together,
-					i18n.CmdMarriagesTogetherData{
-						Duration: tghtml.RelativeDateTime(m.MarriedAt, time.Now()),
-					},
-				))
+				b.WriteString(tghtml.RelativeDateTime(m.MarriedAt, time.Now()))
 				b.WriteString(")")
 			}
 
 			b.WriteByte('\n')
 		}
-
-		b.WriteByte('\n')
 	}
 
 	for _, category := range order {
@@ -622,8 +616,10 @@ func (h *Handler) ListMarriages(c *botapi.Context) error {
 		writeGroup(category, items)
 	}
 
+	text := strings.TrimRight(b.String(), "\n")
+	text += "</blockquote>"
 	_, err = c.Reply(
-		b.String(),
+		text,
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
 	)
