@@ -272,7 +272,7 @@ func runBotInstance(
 		permissionHandler.NewHandler(registry, permissionRepository),
 		manage.NewHandler(chatService, pmSessionRepository),
 		userHandler.NewHandler(userRepository),
-		chatMemberHandler.NewHandler(chatMemberRepository, chatMemberService, infoUpdater),
+		chatMemberHandler.NewHandler(chatMemberRepository, chatMemberService, marriageService, infoUpdater),
 		marriage.NewHandler(marriageService, chatService, chatMemberService),
 		chatHandler.NewHandler(chatService),
 		ai.NewHandler(deepseekClient),

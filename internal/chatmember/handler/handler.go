@@ -8,6 +8,7 @@ import (
 	"activity-bot/internal/emoji"
 	"activity-bot/internal/i18n"
 	"activity-bot/internal/info"
+	"activity-bot/internal/marriage"
 	"activity-bot/internal/option"
 	"activity-bot/internal/permission"
 	"activity-bot/internal/rule"
@@ -24,14 +25,24 @@ import (
 const CategoryChatMember command.Category = "chat_member"
 
 type Handler struct {
-	repo    chatmember.Repository
-	service *chatmember.Service
-	updater *info.Updater
+	repo            chatmember.Repository
+	service         *chatmember.Service
+	marriageService *marriage.Service
+	updater         *info.Updater
 }
 
-func NewHandler(repo chatmember.Repository, service *chatmember.Service, updater *info.Updater,
+func NewHandler(
+	repo chatmember.Repository,
+	service *chatmember.Service,
+	marriageService *marriage.Service,
+	updater *info.Updater,
 ) *Handler {
-	return &Handler{repo: repo, service: service, updater: updater}
+	return &Handler{
+		repo:            repo,
+		service:         service,
+		marriageService: marriageService,
+		updater:         updater,
+	}
 }
 
 func (h *Handler) Actions() []*command.Action {
@@ -147,26 +158,49 @@ func (h *Handler) ShowEmoji(c *botapi.Context) error {
 
 func (h *Handler) UpdateChatMembers(c *botapi.Context) error {
 	ch := cctx.MustChat(c)
+
 	members, err := participant.GetChatMembers(c.Bot, c, ch.ID)
 	if err != nil {
 		return fmt.Errorf("get chat members on update: %w", err)
 	}
 
+	chatMembers := chatmembers.ExtractMembers(members)
+
 	if err = h.service.SyncChatMembers(
 		c,
 		ch.ID,
-		chatmembers.ExtractMembers(members),
+		chatMembers,
 	); err != nil {
 		return fmt.Errorf("update chat members: %w", err)
 	}
 
+	presentUsers := make(map[int64]struct{}, len(chatMembers))
+	for _, member := range chatMembers {
+		presentUsers[member.User.ID] = struct{}{}
+	}
+
+	if err := h.marriageService.DivorceInactiveMarriages(
+		c,
+		ch.ID,
+		presentUsers,
+	); err != nil {
+		return fmt.Errorf("cleanup marriages: %w", err)
+	}
+
 	loc := cctx.MustLocalizer(c)
 
-	_, err = c.Reply(loc.T(i18n.Cmd.ChatMember.Update.Success, nil), botapi.WithParseMode(botapi.ParseModeHTML))
+	if _, err = c.Reply(
+		loc.T(i18n.Cmd.ChatMember.Update.Success, nil),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+	); err != nil {
+		return err
+	}
+
 	if err := h.updater.UpdateApplyPost(c, ch.ID, c.Bot); err != nil {
 		return fmt.Errorf("update apply: %w", err)
 	}
-	return err
+
+	return nil
 }
 
 func (h *Handler) UpdateRoles(c *botapi.Context) error {

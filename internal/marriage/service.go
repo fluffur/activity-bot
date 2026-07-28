@@ -194,3 +194,33 @@ func (s *Service) AdminDivorce(
 ) error {
 	return s.repo.DivorceMarriage(ctx, marriageID, chatID)
 }
+
+func (s *Service) DivorceInactiveMarriages(
+	ctx context.Context,
+	chatID int64,
+	presentUsers map[int64]struct{},
+) error {
+	marriages, err := s.repo.ListActiveMarriages(ctx, chatID)
+	if err != nil {
+		return err
+	}
+
+	for _, marriage := range marriages {
+		_, user1Present := presentUsers[marriage.User1.ID()]
+		_, user2Present := presentUsers[marriage.User2.ID()]
+
+		if user1Present || user2Present {
+			continue
+		}
+
+		if err := s.repo.DivorceMarriage(
+			ctx,
+			marriage.ID,
+			chatID,
+		); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
