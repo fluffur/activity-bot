@@ -171,7 +171,7 @@ func SendMessages(
 	groups [][]chatmember.ChatMember,
 ) error {
 	limiter := rate.NewLimiter(
-		rate.Every(1900*time.Microsecond),
+		rate.Every(2200*time.Microsecond),
 		1,
 	)
 

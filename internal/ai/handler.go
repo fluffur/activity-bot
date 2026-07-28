@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/cohesion-org/deepseek-go"
-	"github.com/gotd/log"
 
 	"github.com/gotd/botapi"
 )
@@ -66,14 +65,12 @@ func (h *Handler) AI(c *botapi.Context) error {
 		MaxTokens:   128,
 		Temperature: 1.0,
 	}
-	start := time.Now()
+
 	ctx, cancel := context.WithTimeout(c.Background(), 15*time.Second)
 	defer cancel()
-	log.For(c.Bot.Logger()).Info(c, "sending ai request")
 
 	resp, err := h.client.CreateChatCompletion(ctx, request)
 
-	log.For(c.Bot.Logger()).Info(c, "ai response received")
 	if err != nil {
 		return fmt.Errorf("bot: create chat completion: %w", err)
 	}
@@ -87,12 +84,6 @@ func (h *Handler) AI(c *botapi.Context) error {
 	if content == "" {
 		return nil
 	}
-
-	log.For(c.Bot.Logger()).Info(c, "ai request",
-		log.Duration("elapsed", time.Since(start)),
-		log.Int("prompt_tokens", resp.Usage.PromptTokens),
-		log.Int("completion_tokens", resp.Usage.CompletionTokens),
-	)
 
 	_, err = c.Reply(content, botapi.WithParseMode(botapi.ParseModeMarkdownV2))
 

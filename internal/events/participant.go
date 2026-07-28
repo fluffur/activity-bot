@@ -48,7 +48,7 @@ func (h *Handler) BotChatInviteRequester(
 	}
 
 	if app == nil {
-		return fmt.Errorf("no application found")
+		return nil
 	}
 
 	err = h.bot.ApproveChatJoinRequest(
