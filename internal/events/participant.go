@@ -166,15 +166,16 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 		var key i18n.MessageID
 		var data any
 		var opts []i18n.LocalizeOption
+		role := strings.TrimSpace(app.Role.Emoji + " " + app.Role.Name)
 		if res.IsNew {
 			key = i18n.User.Apply.Joined
 			data = i18n.UserApplyJoinedData{
-				User: app.Role.Emoji + " " + app.Role.Name,
+				User: role,
 			}
 		} else {
 			key = i18n.User.Returned
 			data = i18n.UserReturnedData{
-				User: app.Role.Emoji + " " + app.Role.Name,
+				User: role,
 			}
 			opts = append(opts, i18n.WithGender(res.ChatMember.Gender()))
 		}
