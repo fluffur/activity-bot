@@ -127,6 +127,10 @@ func (s *Service) UpdateTag(ctx context.Context, chatID, userID int64, newRank s
 	return s.chatMemberRepo.SetTag(ctx, chatID, userID, newRank)
 }
 
+func (s *Service) SetEmoji(ctx context.Context, chatID, userID int64, emoji string) error {
+	return s.chatMemberRepo.SetEmoji(ctx, chatID, userID, emoji)
+}
+
 func (s *Service) ListSummonChatMembers(ctx context.Context, chatID int64) ([]ChatMember, error) {
 	return s.chatMemberRepo.List(ctx, Filter{
 		ChatID: chatID,

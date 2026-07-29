@@ -55,7 +55,7 @@ func BuildRoleStates(members []chatmember.ChatMember) map[string]RoleState {
 
 	for _, category := range genshin.Categories {
 		for _, role := range category.Roles {
-			roleIndex[predicate.NormalizeTag(role)] = struct{}{}
+			roleIndex[predicate.NormalizeTag(role.Name)] = struct{}{}
 		}
 	}
 
@@ -103,12 +103,12 @@ func Render(states map[string]RoleState) (string, error) {
 		for _, role := range cat.Roles {
 			status := ""
 
-			if s, ok := states[predicate.NormalizeTag(role)]; ok {
+			if s, ok := states[predicate.NormalizeTag(role.Name)]; ok {
 				status = s.Status
 			}
 
 			rc.Roles = append(rc.Roles, RenderRole{
-				Name:   role,
+				Name:   role.Name,
 				Status: status,
 			})
 		}

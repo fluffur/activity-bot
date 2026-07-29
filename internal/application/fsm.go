@@ -1,5 +1,9 @@
 package application
 
+import (
+	"activity-bot/internal/info/genshin"
+)
+
 type State string
 
 const (
@@ -10,7 +14,7 @@ const (
 )
 
 type AppStateData struct {
-	Role string `json:"role"`
+	Role genshin.Role `json:"role"`
 }
 
 type RejectState string

@@ -138,12 +138,15 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 			ctx,
 			chatID,
 			u.UserID,
-			app.Role,
+			app.Role.Name,
 		); err != nil {
 			return fmt.Errorf("apply application role: %w", err)
 		}
 
-		if err := setMemberTagRetry(ctx, h.bot, chatID, u.UserID, app.Role); err != nil {
+		if err := h.memberService.SetEmoji(ctx, chatID, u.UserID, app.Role.Emoji); err != nil {
+			return fmt.Errorf("process join set emoji: %w", err)
+		}
+		if err := setMemberTagRetry(ctx, h.bot, chatID, u.UserID, app.Role.Name); err != nil {
 			return fmt.Errorf("process join set tag: %w", err)
 		}
 
