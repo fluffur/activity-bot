@@ -257,7 +257,7 @@ func (h *Handler) ConfirmRules(c *botapi.Context) error {
 		"Новая заявка на вступление!\n\n"+
 			"Роль: %s\n"+
 			"Пользователь: %s",
-		sess.Data.Role,
+		sess.Data.Role.Name,
 		userRef,
 	)
 
