@@ -169,12 +169,12 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 		if res.IsNew {
 			key = i18n.User.Apply.Joined
 			data = i18n.UserApplyJoinedData{
-				User: app.Role,
+				User: app.Role.Emoji + " " + app.Role.Name,
 			}
 		} else {
 			key = i18n.User.Returned
 			data = i18n.UserReturnedData{
-				User: app.Role,
+				User: app.Role.Emoji + " " + app.Role.Name,
 			}
 			opts = append(opts, i18n.WithGender(res.ChatMember.Gender()))
 		}
