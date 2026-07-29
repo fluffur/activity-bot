@@ -59,7 +59,6 @@ var Fatui = Category{
 			Emoji: `<tg-emoji emoji-id="5217591275510854319">🤡</tg-emoji><tg-emoji emoji-id="5413415954275114462">😎</tg-emoji>`,
 			Aliases: []string{
 				"Скара",
-				"Странник",
 			},
 		},
 		{
