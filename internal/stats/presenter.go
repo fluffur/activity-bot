@@ -56,7 +56,7 @@ func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats, forceS
 				&b,
 				"%d. %s — %d",
 				i+1,
-				tghtml.MemberLink(loc, ch, u.Member),
+				tghtml.MemberLinkCustom(loc, false, u.Member),
 				u.Messages,
 			)
 
@@ -90,7 +90,7 @@ func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats, forceS
 						i18n.Cmd.Stats.UserFailed,
 						i18n.CmdStatsUserFailedData{
 							List:     i + 1,
-							User:     tghtml.MemberLink(loc, ch, u.Member),
+							User:     tghtml.MemberLinkCustom(loc, false, u.Member),
 							Messages: u.Messages,
 							Required: r.Required,
 						},
@@ -117,7 +117,7 @@ func RenderStats(loc *i18n.Localizer, ch chat.Chat, data CalculatedStats, forceS
 						i18n.Cmd.Stats.UserPassed,
 						i18n.CmdStatsUserPassedData{
 							List:     i + 1,
-							User:     tghtml.MemberLink(loc, ch, u.Member),
+							User:     tghtml.MemberLinkCustom(loc, false, u.Member),
 							Messages: u.Messages,
 						},
 					))

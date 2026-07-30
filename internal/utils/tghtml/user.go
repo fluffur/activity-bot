@@ -24,11 +24,19 @@ func MemberLink(
 	ch chat.Chat,
 	member chatmember.ChatMember,
 ) string {
+	return MemberLinkCustom(loc, ch.EmojisEnabled, member)
+}
+
+func MemberLinkCustom(
+	loc *i18n.Localizer,
+	emojisEnabled bool,
+	member chatmember.ChatMember,
+) string {
 	name := member.Name(loc.T(i18n.User.Unknown, nil))
 
 	mention := UserLink(member.User.Username, name, member.ID())
 
-	if !ch.EmojisEnabled {
+	if !emojisEnabled {
 		return mention
 	}
 
