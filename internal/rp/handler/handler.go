@@ -133,7 +133,7 @@ func (h *Handler) AddRPCommand(c *botapi.Context) error {
 	}
 
 	_, err = c.Reply(
-		fmt.Sprintf("Команда успешно добавлена.\nПопробуйте написать <code>%s @%s</code>", cmd.Trigger, c.Bot.Self().Username),
+		"Команда успешно добавлена",
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
 	return err
