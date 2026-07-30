@@ -6,92 +6,92 @@ var Liyue = Category{
 	Roles: []Role{
 		{
 			Name:  "Бай Чжу",
-			Emoji: `<tg-emoji emoji-id="5217544915633859449">🐍</tg-emoji><tg-emoji emoji-id="5399819878817341838">🧉</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5399819878817341838">🧉</tg-emoji>`,
 		},
 		{
 			Name:  "Бэй Доу",
-			Emoji: `<tg-emoji emoji-id="5217788715157450752">⚓️</tg-emoji><tg-emoji emoji-id="5264953138309243874">🥒</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5264953138309243874">🥒</tg-emoji>`,
 			Aliases: []string{
 				"Бей Доу",
 			},
 		},
 		{
 			Name:  "Гань Юй",
-			Emoji: `<tg-emoji emoji-id="5217715795202699854">🐐</tg-emoji><tg-emoji emoji-id="5264970550106661111">🧀</tg-emoji><tg-emoji emoji-id="5312477466835566653">👩</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5264970550106661111">🧀</tg-emoji>`,
 		},
 		{
 			Name:  "Гуй Чжун",
-			Emoji: `<tg-emoji emoji-id="5292009048567224287">🪷</tg-emoji><tg-emoji emoji-id="5226704019291909733">🙂</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5226704019291909733">🙂</tg-emoji>`,
 		},
 		{
 			Name:  "Е Лань",
-			Emoji: `<tg-emoji emoji-id="5215436898440349048">🎲</tg-emoji><tg-emoji emoji-id="5264971426279990347">🫐</tg-emoji><tg-emoji emoji-id="5197583840377347067">👱‍♀️</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5264971426279990347">🫐</tg-emoji>`,
 			Aliases: []string{
 				"Елань",
 			},
 		},
 		{
 			Name:  "Ка Мин",
-			Emoji: `<tg-emoji emoji-id="5217892580351571483">🦁</tg-emoji><tg-emoji emoji-id="5197525845433925842">😏</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5197525845433925842">😏</tg-emoji>`,
 			Aliases: []string{
 				"Камин",
 			},
 		},
 		{
 			Name:  "Кэ Цин",
-			Emoji: `<tg-emoji emoji-id="5217525717130050750">😐</tg-emoji><tg-emoji emoji-id="5265057725057867421">🫑</tg-emoji><tg-emoji emoji-id="5348268391385803618">⚡️</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5265057725057867421">🫑</tg-emoji>`,
 			Aliases: []string{
 				"Кэцин",
 			},
 		},
 		{
 			Name:  "Лань Янь",
-			Emoji: `<tg-emoji emoji-id="5217833756479482061">🪭</tg-emoji><tg-emoji emoji-id="5328001218105071153">👩</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5328001218105071153">👩</tg-emoji>`,
 		},
 		{
 			Name:  "Мадам Пин",
-			Emoji: `<tg-emoji emoji-id="5291934273186599347">🪕</tg-emoji><tg-emoji emoji-id="5229146111926612482">😊</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5229146111926612482">😊</tg-emoji>`,
 		},
 		{
 			Name:  "Нин Гуан",
-			Emoji: `<tg-emoji emoji-id="5215653540885719566">🪙</tg-emoji><tg-emoji emoji-id="5265037543006544190">🍰</tg-emoji><tg-emoji emoji-id="5348120232193959119">🪨</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5265037543006544190">🍰</tg-emoji>`,
 			Aliases: []string{
 				"Нингуан",
 			},
 		},
 		{
 			Name:  "Син Цю",
-			Emoji: `<tg-emoji emoji-id="5215298209651389547">🥕</tg-emoji><tg-emoji emoji-id="5265039312533070590">🍍</tg-emoji><tg-emoji emoji-id="5314265032224162036">🧑</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5265039312533070590">🍍</tg-emoji>`,
 			Aliases: []string{
 				"Синцю",
 			},
 		},
 		{
 			Name:  "Синь Янь",
-			Emoji: `<tg-emoji emoji-id="5217543034438186138">🎸</tg-emoji><tg-emoji emoji-id="5264765637216968650">🍏</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5264765637216968650">🍏</tg-emoji>`,
 		},
 		{
 			Name:  "Сян Лин",
-			Emoji: `<tg-emoji emoji-id="5217481431722258678">🍎</tg-emoji><tg-emoji emoji-id="5264840326698246729">🍐</tg-emoji><tg-emoji emoji-id="5465439797914918004">🐻</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5264840326698246729">🍐</tg-emoji>`,
 			Aliases: []string{
 				"Сянлин",
 			},
 		},
 		{
 			Name:  "Сянь Юнь",
-			Emoji: `<tg-emoji emoji-id="5217735878469777425">🪶</tg-emoji><tg-emoji emoji-id="5197406136105448621">🧐</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5197406136105448621">🧐</tg-emoji>`,
 		},
 		{
 			Name:  "Сяо",
-			Emoji: `<tg-emoji emoji-id="5217752603072424549">👹</tg-emoji><tg-emoji emoji-id="5264953941468126798">🍆</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5264953941468126798">🍆</tg-emoji>`,
 		},
 		{
 			Name:  "Ху Тао",
-			Emoji: `<tg-emoji emoji-id="5217580993359147075">⚰️</tg-emoji><tg-emoji emoji-id="5264821514741489564">🍋</tg-emoji><tg-emoji emoji-id="5467414997539776891">👻</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5264821514741489564">🍋</tg-emoji>`,
 		},
 		{
 			Name:  "Ци Ци",
-			Emoji: `<tg-emoji emoji-id="5217603082375952454">🧟‍♀️</tg-emoji><tg-emoji emoji-id="5264716056114502742">🥞</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5264716056114502742">🥞</tg-emoji>`,
 			Aliases: []string{
 				"Чича",
 				"Цици",
@@ -99,11 +99,11 @@ var Liyue = Category{
 		},
 		{
 			Name:  "Цзы Бай",
-			Emoji: `<tg-emoji emoji-id="5465494747726517027">🐴</tg-emoji><tg-emoji emoji-id="5298678583022098287">👩</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5298678583022098287">👩</tg-emoji>`,
 		},
 		{
 			Name:  "Чжун Ли",
-			Emoji: `<tg-emoji emoji-id="5215411759996762338">🪨</tg-emoji><tg-emoji emoji-id="5264811172460241580">🍟</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5264811172460241580">🍟</tg-emoji>`,
 			Aliases: []string{
 				"Чжунли",
 				"Моракс",
@@ -111,26 +111,26 @@ var Liyue = Category{
 		},
 		{
 			Name:  "Чун Юнь",
-			Emoji: `<tg-emoji emoji-id="5217462946183017393">☯️</tg-emoji><tg-emoji emoji-id="5264781726164459320">🧇</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5264781726164459320">🧇</tg-emoji>`,
 		},
 		{
 			Name:  "Шэнь Хэ",
-			Emoji: `<tg-emoji emoji-id="5217820107073417622">👻</tg-emoji><tg-emoji emoji-id="5264812383641018525">🥓</tg-emoji><tg-emoji emoji-id="5314583018717853822">👩</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5264812383641018525">🥓</tg-emoji>`,
 			Aliases: []string{
 				"Шень Хэ",
 			},
 		},
 		{
 			Name:  "Юнь Цзинь",
-			Emoji: `<tg-emoji emoji-id="5217775469478311095">🎎</tg-emoji><tg-emoji emoji-id="5265047868107922783">🍿</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5265047868107922783">🍿</tg-emoji>`,
 		},
 		{
 			Name:  "Янь Фэй",
-			Emoji: `<tg-emoji emoji-id="5217520417140405638">👩‍⚖️</tg-emoji><tg-emoji emoji-id="5265234312638242561">🍉</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5265234312638242561">🍉</tg-emoji>`,
 		},
 		{
 			Name:  "Яо Яо",
-			Emoji: `<tg-emoji emoji-id="5217527495246508041">🐇</tg-emoji><tg-emoji emoji-id="5231120139025392866">🙂</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5231120139025392866">🙂</tg-emoji>`,
 		},
 	},
 }
