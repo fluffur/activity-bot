@@ -61,8 +61,9 @@ func (h *Handler) SetRole(c *botapi.Context) error {
 	}
 
 	if _, err := c.Reply(
-		loc.T(i18n.Cmd.Moderation.SetRole.Set, i18n.CmdModerationSetRoleAdminSetData{
-			User: tghtml.MemberMention(loc, ch, cm),
+		loc.T(i18n.Cmd.Moderation.SetRole.Set, i18n.CmdModerationSetRoleSetData{
+			User:    tghtml.MemberMention(loc, ch, cm),
+			Changed: newRole,
 		}),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	); err != nil {
@@ -125,8 +126,9 @@ func (h *Handler) SetRoleAdmin(c *botapi.Context) error {
 	}
 
 	if _, err := c.Reply(
-		loc.T(i18n.Cmd.Moderation.SetRoleAdmin.Set, i18n.CmdModerationSetRoleAdminSetData{
-			User: tghtml.MemberMention(loc, ch, cm),
+		loc.T(i18n.Cmd.Moderation.SetRole.Set, i18n.CmdModerationSetRoleSetData{
+			User:    tghtml.MemberMention(loc, ch, cm),
+			Changed: newRole,
 		}),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	); err != nil {

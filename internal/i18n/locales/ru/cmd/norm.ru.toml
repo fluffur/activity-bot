@@ -1,5 +1,5 @@
 [cmd.add_norm]
-desc = "Добавить новую норму"
+desc = "Добавить новуню норму"
 example_simple = "+норма 50"
 example_named = "+норма 70 варн"
 example_users = """+норма 10 особенные
