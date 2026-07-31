@@ -280,11 +280,11 @@ func runBotInstance(
 		chatMemberHandler.NewHandler(chatMemberRepository, chatMemberService, marriageService, infoUpdater),
 		marriage.NewHandler(marriageService, chatService, chatMemberService),
 		chatHandler.NewHandler(chatService),
-		fun.NewHandler(deepseekClient, chatMemberService),
 		rpHandler.NewHandler(rpRepository, chatMemberService, userRepository, rpFsm),
 		crocodile.NewHandler(crocodileService),
 		reward.NewHandler(rewardRepository, chatMemberService),
 		weather.NewHandler(weatherClient),
+		fun.NewHandler(deepseekClient, chatMemberService),
 	}
 
 	for _, h := range handlers {
