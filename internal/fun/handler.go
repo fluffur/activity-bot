@@ -214,7 +214,7 @@ func (h *Handler) AI(c *botapi.Context) error {
 			Type: "disabled",
 		},
 		MaxTokens:   128,
-		Temperature: 1.0,
+		Temperature: 0.1,
 	}
 
 	ctx, cancel := context.WithTimeout(c.Background(), 15*time.Second)
