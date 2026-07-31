@@ -145,13 +145,6 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithAliases("-эмодзи"),
 		),
 		action.NewCommand(
-			"fakeleave",
-			h.FakeLeave,
-			i18n.Cmd.Chat.FakeLeave.Desc,
-			CategoryChat,
-			option.WithAliases("фейклив"),
-		),
-		action.NewCommand(
 			"usernamenotify",
 			h.SetNotifyUsernameChangedStatus,
 			i18n.Cmd.Chat.SetNotifyUsernameChangedStatus.Desc,
@@ -414,26 +407,6 @@ func (h *Handler) EnableEmojis(c *botapi.Context) error {
 
 	_, err := c.Reply(loc.T(i18n.Cmd.Chat.EnableEmojis.Success, nil))
 	return err
-}
-
-func (h *Handler) FakeLeave(c *botapi.Context) error {
-	msg := c.Message()
-	if msg == nil {
-		return nil
-	}
-	cm := cctx.MustChatMember(c)
-	ch := cctx.MustChat(c)
-	loc := cctx.MustLocalizer(c)
-	chatID, _ := c.Chat()
-	_ = c.Bot.DeleteMessage(c, chatID, msg.MessageID)
-	text := loc.T(i18n.User.Left, i18n.UserLeftData{
-		User: tghtml.MemberMention(loc, ch, cm),
-	}, i18n.WithGender(cm.Gender()))
-
-	if _, err := c.Bot.SendMessage(c, chatID, text, botapi.DisableWebPagePreview(), botapi.WithParseMode(botapi.ParseModeHTML)); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (h *Handler) SetNotifyUsernameChangedStatus(c *botapi.Context) error {

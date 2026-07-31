@@ -4,6 +4,7 @@ import (
 	"activity-bot/internal/application"
 	"activity-bot/internal/crocodile"
 	redis2 "activity-bot/internal/db/redis"
+	"activity-bot/internal/fun"
 	"activity-bot/internal/info"
 	"activity-bot/internal/reward"
 	"activity-bot/internal/rp"
@@ -17,7 +18,6 @@ import (
 	"sync"
 	"time"
 
-	"activity-bot/internal/ai"
 	"activity-bot/internal/chat"
 	chatHandler "activity-bot/internal/chat/handler"
 	"activity-bot/internal/chatmember"
@@ -280,7 +280,7 @@ func runBotInstance(
 		chatMemberHandler.NewHandler(chatMemberRepository, chatMemberService, marriageService, infoUpdater),
 		marriage.NewHandler(marriageService, chatService, chatMemberService),
 		chatHandler.NewHandler(chatService),
-		ai.NewHandler(deepseekClient),
+		fun.NewHandler(deepseekClient, chatMemberService),
 		rpHandler.NewHandler(rpRepository, chatMemberService, userRepository, rpFsm),
 		crocodile.NewHandler(crocodileService),
 		reward.NewHandler(rewardRepository, chatMemberService),

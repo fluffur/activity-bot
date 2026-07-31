@@ -16,7 +16,6 @@ import (
 	"activity-bot/internal/utils/participant"
 	"activity-bot/internal/utils/tghtml"
 	"fmt"
-	"math/rand/v2"
 	"strings"
 
 	"github.com/gotd/botapi"
@@ -81,13 +80,6 @@ func (h *Handler) Actions() []*command.Action {
 			i18n.Cmd.ChatMember.Update.Desc,
 			CategoryChatMember,
 			option.WithAliases("обновить чат", "чат обновить"),
-		),
-		action.NewCommand(
-			"ship",
-			h.Ship,
-			i18n.Cmd.Ship.Desc,
-			CategoryChatMember,
-			option.WithAliases("шипперим рандом", "шипперим"),
 		),
 		action.NewCommand(
 			"updateroles",
@@ -227,99 +219,4 @@ func (h *Handler) RemoveEmoji(c *botapi.Context) error {
 	}), botapi.WithParseMode(botapi.ParseModeHTML))
 
 	return err
-}
-
-func (h *Handler) Ship(c *botapi.Context) error {
-	loc := cctx.MustLocalizer(c)
-	ch := cctx.MustChat(c)
-
-	members, err := h.service.ListHumanPresentChatMembers(c, ch.ID)
-	if err != nil {
-		return fmt.Errorf("ship: list members: %w", err)
-	}
-
-	if len(members) < 2 {
-		_, err = c.Reply(loc.T(i18n.Cmd.Ship.None, nil))
-		return err
-	}
-
-	rand.Shuffle(len(members), func(i, j int) {
-		members[i], members[j] = members[j], members[i]
-	})
-
-	first := members[0]
-	second := members[1]
-
-	firstMention := tghtml.MemberLink(loc, ch, first)
-	secondMention := tghtml.MemberLink(loc, ch, second)
-
-	var msg i18n.MessageID
-
-	switch {
-	case first.User.ID == second.User.ID:
-		msg = randomShipMessage(
-			i18n.Cmd.Ship.Self1,
-			i18n.Cmd.Ship.Self2,
-			i18n.Cmd.Ship.Self3,
-			i18n.Cmd.Ship.Self4,
-			i18n.Cmd.Ship.Self5,
-			i18n.Cmd.Ship.Self6,
-			i18n.Cmd.Ship.Self7,
-			i18n.Cmd.Ship.Self8,
-		)
-
-	case first.User.IsBot && second.User.IsBot:
-		msg = randomShipMessage(
-			i18n.Cmd.Ship.BotBot1,
-			i18n.Cmd.Ship.BotBot2,
-			i18n.Cmd.Ship.BotBot3,
-			i18n.Cmd.Ship.BotBot4,
-			i18n.Cmd.Ship.BotBot5,
-			i18n.Cmd.Ship.BotBot6,
-			i18n.Cmd.Ship.BotBot7,
-			i18n.Cmd.Ship.BotBot8,
-		)
-
-	case first.User.IsBot || second.User.IsBot:
-		msg = randomShipMessage(
-			i18n.Cmd.Ship.Bot1,
-			i18n.Cmd.Ship.Bot2,
-			i18n.Cmd.Ship.Bot3,
-			i18n.Cmd.Ship.Bot4,
-			i18n.Cmd.Ship.Bot5,
-			i18n.Cmd.Ship.Bot6,
-			i18n.Cmd.Ship.Bot7,
-			i18n.Cmd.Ship.Bot8,
-		)
-
-	default:
-		msg = randomShipMessage(
-			i18n.Cmd.Ship.Normal1,
-			i18n.Cmd.Ship.Normal2,
-			i18n.Cmd.Ship.Normal3,
-			i18n.Cmd.Ship.Normal4,
-			i18n.Cmd.Ship.Normal5,
-			i18n.Cmd.Ship.Normal6,
-			i18n.Cmd.Ship.Normal7,
-			i18n.Cmd.Ship.Normal8,
-		)
-	}
-
-	_, err = c.Reply(
-		loc.T(
-			msg,
-			i18n.CmdShipNormal1Data{
-				First:  firstMention,
-				Second: secondMention,
-			},
-		),
-		botapi.WithParseMode(botapi.ParseModeHTML),
-		botapi.DisableWebPagePreview(),
-	)
-
-	return err
-}
-
-func randomShipMessage(ids ...i18n.MessageID) i18n.MessageID {
-	return ids[rand.IntN(len(ids))]
 }
