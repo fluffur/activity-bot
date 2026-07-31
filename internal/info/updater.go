@@ -157,6 +157,13 @@ func editCaption(
 		text,
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
+		botapi.WithReplyMarkup(
+			botapi.InlineKeyboard(
+				botapi.InlineRow(
+					botapi.InlineButtonURL("☍ Navigation", "https://t.me/H4venflood/5"),
+				),
+			),
+		),
 	)
 
 	if err != nil && strings.Contains(err.Error(), "message is not modified") {
