@@ -79,4 +79,4 @@ FROM marriages m
          JOIN users u2 ON u2.id = cm2.user_id
 WHERE m.chat_id = $1
   AND m.divorced_at IS NULL
-ORDER BY m.married_at DESC;
+ORDER BY m.married_at;
