@@ -572,19 +572,25 @@ func (h *Handler) ListMarriages(c *botapi.Context) error {
 
 	var b strings.Builder
 
-	b.WriteString(loc.T(i18n.Cmd.Marriages.List, nil))
-	b.WriteString("\n\n")
-	b.WriteString("<blockquote expandable>")
-
-	writeGroup := func(title i18n.MessageID, items []Marriage) {
+	writeGroup := func(category i18n.MessageID, items []Marriage) {
 		if len(items) == 0 {
 			return
 		}
 
-		b.WriteString(loc.T(title, nil))
+		emoji := marriageCategoryEmoji(category)
+
+		b.WriteString(emoji)
+		b.WriteString(" ")
+		b.WriteString(loc.T(category, nil))
 		b.WriteByte('\n')
 
+		b.WriteString("<blockquote expandable>")
+
 		for i, m := range items {
+			if i > 0 {
+				b.WriteByte('\n')
+			}
+
 			b.WriteString(strconv.Itoa(i + 1))
 			b.WriteString(". ")
 
@@ -602,9 +608,9 @@ func (h *Handler) ListMarriages(c *botapi.Context) error {
 				b.WriteString(tghtml.RelativeDateTime(m.MarriedAt, time.Now()))
 				b.WriteString(")")
 			}
-
-			b.WriteByte('\n')
 		}
+
+		b.WriteString("</blockquote>\n\n")
 	}
 
 	for _, category := range order {
@@ -617,7 +623,7 @@ func (h *Handler) ListMarriages(c *botapi.Context) error {
 	}
 
 	text := strings.TrimRight(b.String(), "\n")
-	text += "</blockquote>"
+
 	_, err = c.Reply(
 		text,
 		botapi.WithParseMode(botapi.ParseModeHTML),
@@ -625,6 +631,24 @@ func (h *Handler) ListMarriages(c *botapi.Context) error {
 	)
 
 	return err
+}
+
+func marriageCategoryEmoji(cat i18n.MessageID) string {
+	cats := map[i18n.MessageID]string{
+		i18n.Cmd.Marriages.Category.Newlyweds: "💍",
+		i18n.Cmd.Marriages.Category.Green:     "🌿",
+		i18n.Cmd.Marriages.Category.Calico:    "🧵",
+		i18n.Cmd.Marriages.Category.Paper:     "📜",
+		i18n.Cmd.Marriages.Category.Leather:   "👜",
+		i18n.Cmd.Marriages.Category.Linen:     "🪡",
+		i18n.Cmd.Marriages.Category.Wooden:    "🪵",
+		i18n.Cmd.Marriages.Category.CastIron:  "⚙️",
+		i18n.Cmd.Marriages.Category.Copper:    "🟠",
+		i18n.Cmd.Marriages.Category.Tin:       "🥫",
+		i18n.Cmd.Marriages.Category.Faience:   "🏺",
+		i18n.Cmd.Marriages.Category.Rose:      "🌹",
+	}
+	return cats[cat]
 }
 
 func (h *Handler) EnablePolygamy(c *botapi.Context) error {
