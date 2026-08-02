@@ -170,10 +170,7 @@ func SendMessages(
 	mentionTypes chat.MentionTypes,
 	groups [][]chatmember.ChatMember,
 ) error {
-	limiter := rate.NewLimiter(
-		rate.Every(2200*time.Microsecond),
-		1,
-	)
+	limiter := rate.NewLimiter(rate.Every(time.Second), 5)
 
 	peer, err := bot.Peers().ResolveTDLibID(
 		ctx,
