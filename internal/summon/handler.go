@@ -2,6 +2,7 @@ package summon
 
 import (
 	"activity-bot/internal/action"
+	"activity-bot/internal/cctx"
 	"activity-bot/internal/chat"
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/command"
@@ -12,6 +13,8 @@ import (
 	"sync"
 
 	fsm "github.com/fluffur/botapi-fsm"
+
+	"github.com/gotd/botapi"
 )
 
 const CategorySummon command.Category = "summon"
@@ -117,5 +120,30 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithPredicates(h.summonFSM.State(StateAwaitConfirmation)),
 			option.WithPermission(permission.StatusAdmin),
 		),
+		action.NewCommand(
+			"summonuser",
+			h.SummonSpecific,
+			i18n.Cmd.SummonSpecific.Desc,
+			CategorySummon,
+			option.WithAliases("позвать", "призвать"),
+			option.WithRules(rule.User(), rule.Text().Optional()),
+			option.WithPermission(permission.StatusAdmin),
+		),
 	}
+}
+
+func (h *Handler) SummonSpecific(c *botapi.Context) error {
+	args := cctx.MustArgs(c)
+	users := args.Users
+	if len(users) == 0 {
+		return nil
+	}
+	msg := c.Message()
+	if msg == nil {
+		return nil
+	}
+	text, _ := args.Text()
+	ch := cctx.MustChat(c)
+
+	return h.Summon(c, text, msg.MessageID, ch, users)
 }

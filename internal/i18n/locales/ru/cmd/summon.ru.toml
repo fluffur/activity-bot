@@ -1,3 +1,6 @@
+[cmd.summon_specific]
+desc = "Призвать указанных участников"
+
 [cmd.summon]
 
 desc = "Призыв всех участников"
