@@ -61,6 +61,13 @@ func (h *Handler) Actions() []*command.Action {
 				rule.Text().Validate(isValidRoleString),
 			),
 		),
+		action.NewCallbackPrefix(
+			"toggleadmin",
+			"toggle_admin_right:",
+			h.OnRightToggleCallback,
+			CategoryModeration,
+			option.WithPermission(permission.StatusCoOwner),
+		),
 		action.NewCommand(
 			"roles",
 			h.ListRoles,

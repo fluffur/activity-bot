@@ -151,3 +151,15 @@ empty = "В этом чате нет администраторов"
 
 [cmd.moderation.delete_message]
 desc = "Удалить сообщение"
+
+[cmd.moderation.rights]
+can_manage_chat = "Управление чатом"
+can_delete_messages = "Удаление сообщений"
+can_restrict_members = "Бан"
+can_promote_members = "Назначение админов"
+can_change_info = "Изменение инфо"
+can_invite_users = "Приглашение участников"
+can_pin_messages = "Закрепление сообщений"
+can_manage_topics = "Управление топиками"
+updated = "Права обновлены"
+update_failed = "Не удалось обновить права"

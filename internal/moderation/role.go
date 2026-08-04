@@ -78,6 +78,100 @@ func (h *Handler) SetRole(c *botapi.Context) error {
 	return nil
 }
 
+type adminRightItem struct {
+	Key    string
+	LocKey i18n.MessageID
+}
+
+var adminRightsList = []adminRightItem{
+	{Key: "can_manage_chat", LocKey: i18n.Cmd.Moderation.Rights.CanManageChat},
+	{Key: "can_delete_messages", LocKey: i18n.Cmd.Moderation.Rights.CanDeleteMessages},
+	{Key: "can_restrict_members", LocKey: i18n.Cmd.Moderation.Rights.CanRestrictMembers},
+	{Key: "can_promote_members", LocKey: i18n.Cmd.Moderation.Rights.CanPromoteMembers},
+	{Key: "can_change_info", LocKey: i18n.Cmd.Moderation.Rights.CanChangeInfo},
+	{Key: "can_invite_users", LocKey: i18n.Cmd.Moderation.Rights.CanInviteUsers},
+	{Key: "can_pin_messages", LocKey: i18n.Cmd.Moderation.Rights.CanPinMessages},
+	{Key: "can_manage_topics", LocKey: i18n.Cmd.Moderation.Rights.CanManageTopics},
+}
+
+func buildRightsKeyboard(loc *i18n.Localizer, targetUserID int64, rights botapi.ChatAdminRights) *botapi.InlineKeyboardMarkup {
+	const columns = 2
+	var rows [][]botapi.InlineKeyboardButton
+	var currentRow []botapi.InlineKeyboardButton
+
+	for _, r := range adminRightsList {
+		enabled := isRightEnabled(rights, r.Key)
+		icon := "❌"
+		if enabled {
+			icon = "✅"
+		}
+
+		title := loc.T(r.LocKey, nil)
+		btnText := fmt.Sprintf("%s %s", icon, title)
+		callbackData := fmt.Sprintf("toggle_admin_right:%d:%s", targetUserID, r.Key)
+
+		btn := botapi.InlineButtonData(btnText, callbackData)
+		currentRow = append(currentRow, btn)
+
+		if len(currentRow) == columns {
+			rows = append(rows, currentRow)
+			currentRow = nil
+		}
+	}
+
+	if len(currentRow) > 0 {
+		rows = append(rows, currentRow)
+	}
+
+	return botapi.InlineKeyboard(rows...)
+}
+
+func isRightEnabled(rights botapi.ChatAdminRights, key string) bool {
+	switch key {
+	case "can_manage_chat":
+		return rights.CanManageChat
+	case "can_delete_messages":
+		return rights.CanDeleteMessages
+	case "can_restrict_members":
+		return rights.CanRestrictMembers
+	case "can_promote_members":
+		return rights.CanPromoteMembers
+	case "can_change_info":
+		return rights.CanChangeInfo
+	case "can_invite_users":
+		return rights.CanInviteUsers
+	case "can_pin_messages":
+		return rights.CanPinMessages
+	case "can_manage_topics":
+		return rights.CanManageTopics
+	default:
+		return false
+	}
+}
+
+func extractAdminRights(member botapi.ChatMember) botapi.ChatAdminRights {
+	if admin, ok := member.(*botapi.ChatMemberAdministrator); ok {
+		return botapi.ChatAdminRights{
+			IsAnonymous:         admin.IsAnonymous,
+			CanManageChat:       admin.CanManageChat,
+			CanDeleteMessages:   admin.CanDeleteMessages,
+			CanManageVideoChats: admin.CanManageVideoChats,
+			CanRestrictMembers:  admin.CanRestrictMembers,
+			CanPromoteMembers:   admin.CanPromoteMembers,
+			CanChangeInfo:       admin.CanChangeInfo,
+			CanInviteUsers:      admin.CanInviteUsers,
+			CanPostMessages:     admin.CanPostMessages,
+			CanEditMessages:     admin.CanEditMessages,
+			CanPinMessages:      admin.CanPinMessages,
+			CustomTitle:         admin.CustomTitle,
+		}
+	}
+
+	return botapi.ChatAdminRights{
+		CanManageChat: true,
+	}
+}
+
 func (h *Handler) SetRoleAdmin(c *botapi.Context) error {
 	cm := cctx.MustChatMember(c)
 	args := cctx.MustArgs(c)
@@ -118,24 +212,97 @@ func (h *Handler) SetRoleAdmin(c *botapi.Context) error {
 		return fmt.Errorf("set role admin set tag: %w", err)
 	}
 
-	if err := c.Bot.PromoteChatMember(c, botapi.ID(ch.ID), cm.ID(), botapi.ChatAdminRights{
-		CanManageChat: true,
-		CustomTitle:   newRole,
-	}); err != nil {
+	member, err := c.Bot.GetChatMember(c, botapi.ID(ch.ID), cm.ID())
+	if err != nil {
+		return fmt.Errorf("set role admin get chat member: %w", err)
+	}
+
+	currentRights := extractAdminRights(member)
+	currentRights.CustomTitle = newRole
+
+	if err := c.Bot.PromoteChatMember(c, botapi.ID(ch.ID), cm.ID(), currentRights); err != nil {
 		return fmt.Errorf("set role admin promote chat member: %w", err)
 	}
 
+	kb := buildRightsKeyboard(loc, cm.ID(), currentRights)
 	if _, err := c.Reply(
 		loc.T(i18n.Cmd.Moderation.SetRole.Set, i18n.CmdModerationSetRoleSetData{
 			User:    tghtml.MemberMention(loc, ch, cm),
 			Changed: newRole,
 		}),
 		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.WithReplyMarkup(kb),
 	); err != nil {
 		return fmt.Errorf("set role admin reply: %w", err)
 	}
 
 	return nil
+}
+
+func (h *Handler) OnRightToggleCallback(c *botapi.Context) error {
+	cb := c.Update.CallbackQuery
+	if cb == nil {
+		return nil
+	}
+
+	parts := strings.Split(cb.Data, ":")
+	if len(parts) < 3 || parts[0] != "toggle_admin_right" {
+		return nil
+	}
+
+	var targetUserID int64
+	_, _ = fmt.Sscanf(parts[1], "%d", &targetUserID)
+	rightKey := parts[2]
+
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
+
+	member, err := c.Bot.GetChatMember(c, botapi.ID(ch.ID), targetUserID)
+	if err != nil {
+		return fmt.Errorf("get chat member failed: %w", err)
+	}
+
+	memberAdmin, ok := member.(*botapi.ChatMemberAdministrator)
+	if !ok {
+		return errors.New("not a chat admin")
+	}
+
+	toggleRightAdminMember(memberAdmin, rightKey)
+	adminRights := extractAdminRights(memberAdmin)
+
+	if err := c.Bot.PromoteChatMember(c, botapi.ID(ch.ID), targetUserID, adminRights); err != nil {
+		_ = c.AnswerCallback(botapi.WithCallbackText(loc.T(i18n.Cmd.Moderation.Rights.UpdateFailed, nil)))
+		return fmt.Errorf("toggle right promote error: %w", err)
+	}
+
+	newKb := buildRightsKeyboard(loc, targetUserID, adminRights)
+	chatID, _ := c.Chat()
+
+	if _, err := c.Bot.EditMessageReplyMarkup(c, chatID, cb.Message.MessageID, newKb); err != nil {
+		return fmt.Errorf("edit message markup: %w", err)
+	}
+
+	return c.AnswerCallback(botapi.WithCallbackText(loc.T(i18n.Cmd.Moderation.Rights.Updated, nil)))
+}
+
+func toggleRightAdminMember(m *botapi.ChatMemberAdministrator, key string) {
+	switch key {
+	case "can_manage_chat":
+		m.CanManageChat = !m.CanManageChat
+	case "can_delete_messages":
+		m.CanDeleteMessages = !m.CanDeleteMessages
+	case "can_restrict_members":
+		m.CanRestrictMembers = !m.CanRestrictMembers
+	case "can_promote_members":
+		m.CanPromoteMembers = !m.CanPromoteMembers
+	case "can_change_info":
+		m.CanChangeInfo = !m.CanChangeInfo
+	case "can_invite_users":
+		m.CanInviteUsers = !m.CanInviteUsers
+	case "can_pin_messages":
+		m.CanPinMessages = !m.CanPinMessages
+	case "can_manage_topics":
+	}
 }
 
 func (h *Handler) ListRoles(c *botapi.Context) error {
