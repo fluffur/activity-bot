@@ -32,7 +32,7 @@ func (h *Handler) Chat(c *botapi.Context) error {
 	}
 
 	loc := cctx.MustLocalizer(c)
-	htmlMessage := RenderStats(loc, ch, calculatedData, false)
+	htmlMessage := RenderStats(loc, calculatedData, false)
 
 	opts := []botapi.SendOption{
 		botapi.WithParseMode(botapi.ParseModeHTML),
@@ -68,7 +68,7 @@ func (h *Handler) Top(c *botapi.Context) error {
 	}
 
 	loc := cctx.MustLocalizer(c)
-	htmlMessage := RenderStats(loc, ch, calculatedData, true)
+	htmlMessage := RenderStats(loc, calculatedData, true)
 
 	_, err = c.Reply(
 		htmlMessage,
