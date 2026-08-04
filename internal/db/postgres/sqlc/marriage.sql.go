@@ -87,7 +87,7 @@ func (q *Queries) DivorceMarriage(ctx context.Context, arg DivorceMarriageParams
 }
 
 const getActiveMarriage = `-- name: GetActiveMarriage :one
-SELECT m.id, m.chat_id, m.user1_id, m.user2_id, m.married_at, m.divorced_at, cm1.chat_id, cm1.user_id, cm1.joined_at, cm1.rest_until, cm1.tag, cm1.left_at, cm1.rest_reason, cm1.emoji, cm1.status, cm1.emoji_json, cm1.exclude_from_call, u1.id, u1.username, u1.first_name, u1.last_name, u1.created_at, u1.gender, u1.emoji, u1.custom_emoji_id, u1.emoji_json, u1.is_bot, cm2.chat_id, cm2.user_id, cm2.joined_at, cm2.rest_until, cm2.tag, cm2.left_at, cm2.rest_reason, cm2.emoji, cm2.status, cm2.emoji_json, cm2.exclude_from_call, u2.id, u2.username, u2.first_name, u2.last_name, u2.created_at, u2.gender, u2.emoji, u2.custom_emoji_id, u2.emoji_json, u2.is_bot
+SELECT m.id, m.chat_id, m.user1_id, m.user2_id, m.married_at, m.divorced_at, cm1.chat_id, cm1.user_id, cm1.joined_at, cm1.rest_until, cm1.tag, cm1.left_at, cm1.rest_reason, cm1.emoji, cm1.status, cm1.emoji_json, cm1.exclude_from_call, cm1.description, u1.id, u1.username, u1.first_name, u1.last_name, u1.created_at, u1.gender, u1.emoji, u1.custom_emoji_id, u1.emoji_json, u1.is_bot, cm2.chat_id, cm2.user_id, cm2.joined_at, cm2.rest_until, cm2.tag, cm2.left_at, cm2.rest_reason, cm2.emoji, cm2.status, cm2.emoji_json, cm2.exclude_from_call, cm2.description, u2.id, u2.username, u2.first_name, u2.last_name, u2.created_at, u2.gender, u2.emoji, u2.custom_emoji_id, u2.emoji_json, u2.is_bot
 FROM marriages m
          JOIN chat_members cm1 ON cm1.chat_id = m.chat_id AND cm1.user_id = m.user1_id
          JOIN users u1 ON u1.id = cm1.user_id
@@ -133,6 +133,7 @@ func (q *Queries) GetActiveMarriage(ctx context.Context, arg GetActiveMarriagePa
 		&i.ChatMember.Status,
 		&i.ChatMember.EmojiJson,
 		&i.ChatMember.ExcludeFromCall,
+		&i.ChatMember.Description,
 		&i.User.ID,
 		&i.User.Username,
 		&i.User.FirstName,
@@ -154,6 +155,7 @@ func (q *Queries) GetActiveMarriage(ctx context.Context, arg GetActiveMarriagePa
 		&i.ChatMember_2.Status,
 		&i.ChatMember_2.EmojiJson,
 		&i.ChatMember_2.ExcludeFromCall,
+		&i.ChatMember_2.Description,
 		&i.User_2.ID,
 		&i.User_2.Username,
 		&i.User_2.FirstName,
@@ -243,7 +245,7 @@ func (q *Queries) GetIncomingMarriageRequests(ctx context.Context, arg GetIncomi
 }
 
 const getMarriageBetweenUsers = `-- name: GetMarriageBetweenUsers :one
-SELECT m.id, m.chat_id, m.user1_id, m.user2_id, m.married_at, m.divorced_at, cm1.chat_id, cm1.user_id, cm1.joined_at, cm1.rest_until, cm1.tag, cm1.left_at, cm1.rest_reason, cm1.emoji, cm1.status, cm1.emoji_json, cm1.exclude_from_call, u1.id, u1.username, u1.first_name, u1.last_name, u1.created_at, u1.gender, u1.emoji, u1.custom_emoji_id, u1.emoji_json, u1.is_bot, cm2.chat_id, cm2.user_id, cm2.joined_at, cm2.rest_until, cm2.tag, cm2.left_at, cm2.rest_reason, cm2.emoji, cm2.status, cm2.emoji_json, cm2.exclude_from_call, u2.id, u2.username, u2.first_name, u2.last_name, u2.created_at, u2.gender, u2.emoji, u2.custom_emoji_id, u2.emoji_json, u2.is_bot
+SELECT m.id, m.chat_id, m.user1_id, m.user2_id, m.married_at, m.divorced_at, cm1.chat_id, cm1.user_id, cm1.joined_at, cm1.rest_until, cm1.tag, cm1.left_at, cm1.rest_reason, cm1.emoji, cm1.status, cm1.emoji_json, cm1.exclude_from_call, cm1.description, u1.id, u1.username, u1.first_name, u1.last_name, u1.created_at, u1.gender, u1.emoji, u1.custom_emoji_id, u1.emoji_json, u1.is_bot, cm2.chat_id, cm2.user_id, cm2.joined_at, cm2.rest_until, cm2.tag, cm2.left_at, cm2.rest_reason, cm2.emoji, cm2.status, cm2.emoji_json, cm2.exclude_from_call, cm2.description, u2.id, u2.username, u2.first_name, u2.last_name, u2.created_at, u2.gender, u2.emoji, u2.custom_emoji_id, u2.emoji_json, u2.is_bot
 FROM marriages m
          JOIN chat_members cm1 ON cm1.chat_id = m.chat_id AND cm1.user_id = m.user1_id
          JOIN users u1 ON u1.id = cm1.user_id
@@ -290,6 +292,7 @@ func (q *Queries) GetMarriageBetweenUsers(ctx context.Context, arg GetMarriageBe
 		&i.ChatMember.Status,
 		&i.ChatMember.EmojiJson,
 		&i.ChatMember.ExcludeFromCall,
+		&i.ChatMember.Description,
 		&i.User.ID,
 		&i.User.Username,
 		&i.User.FirstName,
@@ -311,6 +314,7 @@ func (q *Queries) GetMarriageBetweenUsers(ctx context.Context, arg GetMarriageBe
 		&i.ChatMember_2.Status,
 		&i.ChatMember_2.EmojiJson,
 		&i.ChatMember_2.ExcludeFromCall,
+		&i.ChatMember_2.Description,
 		&i.User_2.ID,
 		&i.User_2.Username,
 		&i.User_2.FirstName,
@@ -326,7 +330,7 @@ func (q *Queries) GetMarriageBetweenUsers(ctx context.Context, arg GetMarriageBe
 }
 
 const listActiveMarriages = `-- name: ListActiveMarriages :many
-SELECT m.id, m.chat_id, m.user1_id, m.user2_id, m.married_at, m.divorced_at, cm1.chat_id, cm1.user_id, cm1.joined_at, cm1.rest_until, cm1.tag, cm1.left_at, cm1.rest_reason, cm1.emoji, cm1.status, cm1.emoji_json, cm1.exclude_from_call, u1.id, u1.username, u1.first_name, u1.last_name, u1.created_at, u1.gender, u1.emoji, u1.custom_emoji_id, u1.emoji_json, u1.is_bot, cm2.chat_id, cm2.user_id, cm2.joined_at, cm2.rest_until, cm2.tag, cm2.left_at, cm2.rest_reason, cm2.emoji, cm2.status, cm2.emoji_json, cm2.exclude_from_call, u2.id, u2.username, u2.first_name, u2.last_name, u2.created_at, u2.gender, u2.emoji, u2.custom_emoji_id, u2.emoji_json, u2.is_bot
+SELECT m.id, m.chat_id, m.user1_id, m.user2_id, m.married_at, m.divorced_at, cm1.chat_id, cm1.user_id, cm1.joined_at, cm1.rest_until, cm1.tag, cm1.left_at, cm1.rest_reason, cm1.emoji, cm1.status, cm1.emoji_json, cm1.exclude_from_call, cm1.description, u1.id, u1.username, u1.first_name, u1.last_name, u1.created_at, u1.gender, u1.emoji, u1.custom_emoji_id, u1.emoji_json, u1.is_bot, cm2.chat_id, cm2.user_id, cm2.joined_at, cm2.rest_until, cm2.tag, cm2.left_at, cm2.rest_reason, cm2.emoji, cm2.status, cm2.emoji_json, cm2.exclude_from_call, cm2.description, u2.id, u2.username, u2.first_name, u2.last_name, u2.created_at, u2.gender, u2.emoji, u2.custom_emoji_id, u2.emoji_json, u2.is_bot
 FROM marriages m
          JOIN chat_members cm1 ON cm1.chat_id = m.chat_id AND cm1.user_id = m.user1_id
          JOIN users u1 ON u1.id = cm1.user_id
@@ -334,7 +338,7 @@ FROM marriages m
          JOIN users u2 ON u2.id = cm2.user_id
 WHERE m.chat_id = $1
   AND m.divorced_at IS NULL
-ORDER BY m.married_at DESC
+ORDER BY m.married_at
 `
 
 type ListActiveMarriagesRow struct {
@@ -372,6 +376,7 @@ func (q *Queries) ListActiveMarriages(ctx context.Context, chatID int64) ([]List
 			&i.ChatMember.Status,
 			&i.ChatMember.EmojiJson,
 			&i.ChatMember.ExcludeFromCall,
+			&i.ChatMember.Description,
 			&i.User.ID,
 			&i.User.Username,
 			&i.User.FirstName,
@@ -393,6 +398,7 @@ func (q *Queries) ListActiveMarriages(ctx context.Context, chatID int64) ([]List
 			&i.ChatMember_2.Status,
 			&i.ChatMember_2.EmojiJson,
 			&i.ChatMember_2.ExcludeFromCall,
+			&i.ChatMember_2.Description,
 			&i.User_2.ID,
 			&i.User_2.Username,
 			&i.User_2.FirstName,

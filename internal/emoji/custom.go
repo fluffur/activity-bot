@@ -37,6 +37,9 @@ const (
 	ProfileID       = 5879770735999717115
 	ProfileFallback = "👤"
 
+	DescID       = 5886436057091673541
+	DescFallback = "💬"
+
 	StatusMemberID       = 5888465618117598264
 	StatusMemberFallback = "0️⃣"
 

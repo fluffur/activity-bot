@@ -71,3 +71,7 @@ func RollingEmoji() string {
 func ProfileEmoji() string {
 	return Emoji(emoji.ProfileID, emoji.ProfileFallback)
 }
+
+func DescEmoji() string {
+	return Emoji(emoji.DescID, emoji.DescFallback)
+}

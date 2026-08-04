@@ -185,3 +185,11 @@ func (r *ChatMemberRepository) SetEmoji(ctx context.Context, chatID, userID int6
 		Emoji:  text(emojiString),
 	})
 }
+
+func (r *ChatMemberRepository) SetDescription(ctx context.Context, chatID, userID int64, description string) error {
+	return r.queries.SetChatMemberDescription(ctx, db.SetChatMemberDescriptionParams{
+		Description: text(description),
+		ChatID:      chatID,
+		UserID:      userID,
+	})
+}

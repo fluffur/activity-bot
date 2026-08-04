@@ -52,15 +52,15 @@ WITH upserted_users AS (
                  UNNEST(@emojis::TEXT[])
                  ) AS u(id, username, first_name, last_name, is_bot, emoji)
         ON CONFLICT (id) DO UPDATE SET
-            username   = EXCLUDED.username,
+            username = EXCLUDED.username,
             first_name = EXCLUDED.first_name,
-            last_name  = EXCLUDED.last_name,
-            is_bot     = EXCLUDED.is_bot,
-            emoji      = CASE
-                             WHEN (users.emoji IS NULL OR users.emoji = '')
-                                 AND EXCLUDED.emoji <> ''
-                                 THEN EXCLUDED.emoji
-                             ELSE users.emoji
+            last_name = EXCLUDED.last_name,
+            is_bot = EXCLUDED.is_bot,
+            emoji = CASE
+                        WHEN (users.emoji IS NULL OR users.emoji = '')
+                            AND EXCLUDED.emoji <> ''
+                            THEN EXCLUDED.emoji
+                        ELSE users.emoji
                 END
         RETURNING id)
 INSERT
@@ -129,3 +129,9 @@ WHERE cm.chat_id = $1
   AND is_bot = false
   AND cm.status >= $2
 ORDER BY cm.status DESC;
+
+-- name: SetChatMemberDescription :exec
+UPDATE chat_members
+SET description = $1
+WHERE chat_id = $2
+  AND user_id = $3;

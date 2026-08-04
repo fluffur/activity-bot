@@ -199,6 +199,16 @@ func RenderProfile(
 	b.WriteString(loc.T(status.TranslationKey(), nil))
 	b.WriteString("\n\n")
 
+	if profile.ChatMember.Description != "" {
+		b.WriteString(
+			tghtml.ExpandableBlockquote(
+				tghtml.DescEmoji() + " " +
+					profile.ChatMember.Description,
+			),
+		)
+		b.WriteString("\n\n")
+	}
+
 	if profile.ChatMember.LeftAt.IsZero() {
 		b.WriteString(loc.T(
 			i18n.Cmd.Profile.MemberSince,

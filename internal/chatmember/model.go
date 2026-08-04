@@ -19,6 +19,7 @@ type ChatMember struct {
 	JoinedAt        time.Time
 	LeftAt          time.Time
 	ExcludeFromCall bool
+	Description     string
 }
 
 func New(u user.User, c chat.Chat, tag string, status permission.Status, now time.Time) ChatMember {

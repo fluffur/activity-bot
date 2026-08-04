@@ -74,6 +74,7 @@ func mapChatMember(m db.ChatMember) chatmember.ChatMember {
 		JoinedAt:        m.JoinedAt.Time,
 		LeftAt:          m.LeftAt.Time,
 		ExcludeFromCall: m.ExcludeFromCall,
+		Description:     m.Description.String,
 	}
 }
 

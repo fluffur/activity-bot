@@ -17,6 +17,7 @@ import (
 	"activity-bot/internal/utils/tghtml"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gotd/botapi"
 )
@@ -86,6 +87,21 @@ func (h *Handler) Actions() []*command.Action {
 			h.UpdateRoles,
 			"BETA",
 			CategoryChatMember,
+		),
+		action.NewCommand(
+			"setdesc",
+			h.SetDescription,
+			i18n.Cmd.ChatMember.SetDescription.Desc,
+			CategoryChatMember,
+			option.WithAliases("описание", "+описание"),
+			option.WithRules(rule.Text()),
+		),
+		action.NewCommand(
+			"deldesc",
+			h.DeleteDescription,
+			i18n.Cmd.ChatMember.DeleteDescription.Desc,
+			CategoryChatMember,
+			option.WithAliases("-описание"),
 		),
 	}
 }
@@ -217,6 +233,39 @@ func (h *Handler) RemoveEmoji(c *botapi.Context) error {
 	_, err := c.Reply(loc.T(i18n.Cmd.ChatMember.RemoveEmoji.Success, i18n.CmdChatMemberRemoveEmojiSuccessData{
 		User: tghtml.MemberMentionCustom(loc, target, false),
 	}), botapi.WithParseMode(botapi.ParseModeHTML))
+
+	return err
+}
+
+func (h *Handler) SetDescription(c *botapi.Context) error {
+	msg := cctx.MustArgsMessage(c)
+	text := msg.OriginalTextHTML()
+	ch := cctx.MustChat(c)
+	cm := cctx.MustChatMember(c)
+	loc := cctx.MustLocalizer(c)
+
+	if utf8.RuneCountInString(msg.Text) > 500 {
+		_, err := c.Reply(loc.T(i18n.Cmd.ChatMember.SetDescription.TooLong, nil))
+		return err
+	}
+
+	if err := h.repo.SetDescription(c, ch.ID, cm.ID(), text); err != nil {
+		return fmt.Errorf("set description: %w", err)
+	}
+
+	_, err := c.Reply(loc.T(i18n.Cmd.ChatMember.SetDescription.Success, nil))
+	return err
+}
+
+func (h *Handler) DeleteDescription(c *botapi.Context) error {
+	ch := cctx.MustChat(c)
+	cm := cctx.MustChatMember(c)
+
+	if err := h.repo.SetDescription(c, ch.ID, cm.ID(), ""); err != nil {
+		return fmt.Errorf("delete description: %w", err)
+	}
+	loc := cctx.MustLocalizer(c)
+	_, err := c.Reply(loc.T(i18n.Cmd.ChatMember.DeleteDescription.Success, nil))
 
 	return err
 }

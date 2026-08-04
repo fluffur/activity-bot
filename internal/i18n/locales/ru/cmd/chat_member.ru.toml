@@ -17,3 +17,12 @@ success = "Значок {{.Emoji}} для {{.User}} успешно удален"
 [cmd.chat_member.update]
 desc = "Обновить список участников чата"
 success = "Список участников обновлен"
+
+[cmd.chat_member.set_description]
+desc = "Установить описание"
+success = "Новое описание установлено"
+too_long = "Описание слишком длинное"
+
+[cmd.chat_member.delete_description]
+desc = "Удалить описание"
+success = "Описание удалено"
