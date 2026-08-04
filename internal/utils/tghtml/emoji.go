@@ -64,6 +64,10 @@ func ChartEmoji() string {
 	return Emoji(emoji.ChartID, emoji.ChartFallback)
 }
 
+func RollingEmoji() string {
+	return Emoji(emoji.RollingID, emoji.RollingFallback)
+}
+
 func ProfileEmoji() string {
 	return Emoji(emoji.ProfileID, emoji.ProfileFallback)
 }

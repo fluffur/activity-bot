@@ -275,7 +275,7 @@ func RenderProfile(
 				i18n.Cmd.Profile.Activity,
 				i18n.CmdProfileActivityData{
 					CalendarEmoji: tghtml.CalendarEmoji(),
-					ChartEmoji:    tghtml.ChartEmoji(),
+					ChartEmoji:    tghtml.RollingEmoji(),
 					TotalEmoji:    tghtml.TotalEmoji(),
 
 					Day:          tghtml.Number(profile.DayCount),

@@ -25,8 +25,11 @@ const (
 	StatsID       = 5258391025281408576
 	StatsFallback = "📊"
 
-	CalendarID       = 6291837908491965005
+	CalendarID       = 5967412305338568701
 	CalendarFallback = "📅"
+
+	RollingID       = 5900006938271288826
+	RollingFallback = "📈"
 
 	ChartID       = 5258391025281408576
 	ChartFallback = "📈"
