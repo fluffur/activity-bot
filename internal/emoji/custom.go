@@ -16,10 +16,10 @@ const (
 	Rest2ID       = 5454076053184082697
 	Rest2Fallback = "💤"
 
-	SuccessID       = 5411197345968701560
+	SuccessID       = 5985596818912712352
 	SuccessFallback = "✅"
 
-	DangerID       = 5416076321442777828
+	DangerID       = 5985346521103604145
 	DangerFallback = "❌"
 
 	StatsID       = 5258391025281408576
