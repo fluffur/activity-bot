@@ -14,7 +14,7 @@ var NodKrai = Category{
 		},
 		{
 			Name:  "Инеффа",
-			Emoji: `<tg-emoji emoji-id="5265063295630450830">🥔</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5375563101825429916">🥔</tg-emoji>`,
 		},
 		{
 			Name:  "Лаума",

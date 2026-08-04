@@ -22,6 +22,9 @@ total_messages = "{{.TotalEmoji}} Всего сообщений: {{.Total}}"
 rest_exempt = "{{.RestEmoji}} Освобождён от выполнения нормы"
 newbie_exempt = "{{.NewbieEmoji}} Освобождён от выполнения нормы"
 
+all_norms_passed = "Все нормы пройдены"
+norms_status_header = "пройдена"
+
 activity = """{{.CalendarEmoji}} Календарная активность
 • Сегодня — {{.Day}}
 • Неделя — {{.Week}}

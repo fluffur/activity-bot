@@ -293,31 +293,44 @@ func RenderProfile(
 	if !isExemptByRest && !newbie && len(profile.Norms) > 0 {
 		b.WriteString("\n\n")
 
+		allPassed := true
 		for _, n := range profile.Norms {
-			normName := utils.UcFirst(norm.LocalisedNormName(loc, n.Name))
-
-			if n.Passed {
-				b.WriteString(loc.T(
-					i18n.Cmd.Profile.NormPassed,
-					i18n.CmdProfileNormPassedData{
-						SuccessEmoji: tghtml.SuccessEmoji(),
-						Name:         normName,
-						Required:     n.Required,
-					},
-				))
-			} else {
-				b.WriteString(loc.T(
-					i18n.Cmd.Profile.NormFailed,
-					i18n.CmdProfileNormFailedData{
-						DangerEmoji: tghtml.DangerEmoji(),
-						Name:        normName,
-						Current:     n.Current,
-						Required:    n.Required,
-					},
-				))
+			if !n.Passed {
+				allPassed = false
+				break
 			}
+		}
 
+		if allPassed {
+			b.WriteString(loc.T(i18n.Cmd.Profile.AllNormsPassed, nil))
 			b.WriteByte('\n')
+		} else {
+			for _, n := range profile.Norms {
+				normName := utils.UcFirst(norm.LocalisedNormName(loc, n.Name))
+
+				if n.Passed {
+					b.WriteString(loc.T(
+						i18n.Cmd.Profile.NormPassed,
+						i18n.CmdProfileNormPassedData{
+							SuccessEmoji: tghtml.SuccessEmoji(),
+							Name:         normName,
+							Required:     n.Required,
+						},
+					))
+				} else {
+					b.WriteString(loc.T(
+						i18n.Cmd.Profile.NormFailed,
+						i18n.CmdProfileNormFailedData{
+							DangerEmoji: tghtml.DangerEmoji(),
+							Name:        normName,
+							Current:     n.Current,
+							Required:    n.Required,
+						},
+					))
+				}
+
+				b.WriteByte('\n')
+			}
 		}
 	}
 
