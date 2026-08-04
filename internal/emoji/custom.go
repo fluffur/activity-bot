@@ -31,7 +31,7 @@ const (
 	ChartID       = 5258391025281408576
 	ChartFallback = "📈"
 
-	ProfileID       = 5316727448644103237
+	ProfileID       = 5879770735999717115
 	ProfileFallback = "👤"
 
 	StatusMemberID       = 5888465618117598264
