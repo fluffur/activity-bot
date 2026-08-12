@@ -90,6 +90,10 @@ func (h *Handler) Ban(c *botapi.Context) error {
 		until = time.Time{}
 		reason = ""
 	}
+	if !strings.Contains(reason, "\n") {
+		return nil
+	}
+	reason = strings.TrimPrefix(reason, "\n")
 	ch := cctx.MustChat(c)
 	if err := c.Bot.BanChatMember(
 		c,
@@ -134,6 +138,10 @@ func (h *Handler) Kick(c *botapi.Context) error {
 	if strings.ToLower(reason) == "навсегда" {
 		reason = ""
 	}
+	if strings.TrimSpace(reason) != "" && !strings.Contains(reason, "\n") {
+		return nil
+	}
+	reason = strings.TrimPrefix(reason, "\n")
 	ch := cctx.MustChat(c)
 
 	if err := h.service.Kick(c, ch.ID, target, moderator, reason); err != nil {
@@ -180,6 +188,11 @@ func (h *Handler) Mute(c *botapi.Context) error {
 		until = time.Time{}
 		reason = ""
 	}
+
+	if strings.TrimSpace(reason) != "" && !strings.Contains(reason, "\n") {
+		return nil
+	}
+	reason = strings.TrimPrefix(reason, "\n")
 	ch := cctx.MustChat(c)
 
 	if err := h.service.Mute(c, ch.ID, target, moderator, until, reason); err != nil {
@@ -380,15 +393,7 @@ func (h *Handler) ChangeStatus(c *botapi.Context, delta int) error {
 			return nil
 		}
 	} else {
-		newStatus = currentStatus + permission.Status(delta)
-
-		if newStatus < permission.StatusMin {
-			newStatus = permission.StatusMin
-		}
-
-		if newStatus > permission.StatusMax {
-			newStatus = permission.StatusMax
-		}
+		newStatus = min(max(currentStatus+permission.Status(delta), permission.StatusMin), permission.StatusMax)
 	}
 
 	if err := h.service.SetStatus(c, ch.ID, moderator, target, newStatus); err != nil {

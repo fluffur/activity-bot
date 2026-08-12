@@ -26,6 +26,12 @@ func (h *Handler) Warn(c *botapi.Context) error {
 	}
 
 	reason, _ := args.Text()
+
+	if strings.TrimSpace(reason) != "" && !strings.Contains(reason, "\n") {
+		return nil
+	}
+	reason = strings.TrimPrefix(reason, "\n")
+
 	ch := cctx.MustChat(c)
 
 	warnsCount, err := h.service.Warn(
