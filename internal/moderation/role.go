@@ -91,7 +91,6 @@ var adminRightsList = []adminRightItem{
 	{Key: "can_change_info", LocKey: i18n.Cmd.Moderation.Rights.CanChangeInfo},
 	{Key: "can_invite_users", LocKey: i18n.Cmd.Moderation.Rights.CanInviteUsers},
 	{Key: "can_pin_messages", LocKey: i18n.Cmd.Moderation.Rights.CanPinMessages},
-	{Key: "can_manage_topics", LocKey: i18n.Cmd.Moderation.Rights.CanManageTopics},
 }
 
 func buildRightsKeyboard(loc *i18n.Localizer, targetUserID int64, rights botapi.ChatAdminRights) *botapi.InlineKeyboardMarkup {
@@ -301,7 +300,6 @@ func toggleRightAdminMember(m *botapi.ChatMemberAdministrator, key string) {
 		m.CanInviteUsers = !m.CanInviteUsers
 	case "can_pin_messages":
 		m.CanPinMessages = !m.CanPinMessages
-	case "can_manage_topics":
 	}
 }
 
