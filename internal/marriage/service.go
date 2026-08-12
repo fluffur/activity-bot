@@ -209,7 +209,7 @@ func (s *Service) DivorceInactiveMarriages(
 		_, user1Present := presentUsers[marriage.User1.ID()]
 		_, user2Present := presentUsers[marriage.User2.ID()]
 
-		if user1Present || user2Present {
+		if user1Present && user2Present {
 			continue
 		}
 
