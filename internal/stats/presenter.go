@@ -104,31 +104,31 @@ func RenderStats(loc *i18n.Localizer, data CalculatedStats, forceSimple bool) st
 				b.WriteByte('\n')
 			}
 
-			if len(r.Passed) > 0 {
-				var passed strings.Builder
-
-				for i, u := range r.Passed {
-					passed.WriteString(loc.T(
-						i18n.Cmd.Stats.UserPassed,
-						i18n.CmdStatsUserPassedData{
-							List:     i + 1,
-							User:     tghtml.MemberLinkCustom(loc, false, u.Member),
-							Messages: u.Messages,
-						},
-					))
-					passed.WriteByte('\n')
-				}
-
-				b.WriteString(loc.T(
-					i18n.Cmd.Stats.Passed,
-					i18n.CmdStatsPassedData{
-						SuccessEmoji: tghtml.SuccessEmoji(),
-					},
-				))
-				b.WriteByte('\n')
-				b.WriteString(tghtml.ExpandableBlockquote(passed.String()))
-				b.WriteByte('\n')
-			}
+			//if len(r.Passed) > 0 {
+			//	var passed strings.Builder
+			//
+			//	for i, u := range r.Passed {
+			//		passed.WriteString(loc.T(
+			//			i18n.Cmd.Stats.UserPassed,
+			//			i18n.CmdStatsUserPassedData{
+			//				List:     i + 1,
+			//				User:     tghtml.MemberLinkCustom(loc, false, u.Member),
+			//				Messages: u.Messages,
+			//			},
+			//		))
+			//		passed.WriteByte('\n')
+			//	}
+			//
+			//	b.WriteString(loc.T(
+			//		i18n.Cmd.Stats.Passed,
+			//		i18n.CmdStatsPassedData{
+			//			SuccessEmoji: tghtml.SuccessEmoji(),
+			//		},
+			//	))
+			//	b.WriteByte('\n')
+			//	b.WriteString(tghtml.ExpandableBlockquote(passed.String()))
+			//	b.WriteByte('\n')
+			//}
 
 			b.WriteByte('\n')
 		}
