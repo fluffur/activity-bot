@@ -104,6 +104,16 @@ func RenderStats(loc *i18n.Localizer, data CalculatedStats, forceSimple bool) st
 				b.WriteByte('\n')
 			}
 
+			if len(r.Failed) == 0 {
+				b.WriteString(loc.T(
+					i18n.Cmd.Stats.AllPassed,
+					i18n.CmdStatsAllPassedData{
+						SuccessEmoji: tghtml.SuccessEmoji(),
+					},
+				))
+				b.WriteByte('\n')
+			}
+
 			//if len(r.Passed) > 0 {
 			//	var passed strings.Builder
 			//
