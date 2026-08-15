@@ -82,7 +82,7 @@ func (r *Updater) UpdateApplyPost(c context.Context, chatID int64, bot *botapi.B
 		return fmt.Errorf("get chat members: %w", err)
 	}
 
-	text, err := RenderApplication(len(members), 45)
+	text, err := RenderApplication(len(members), 55)
 	if err != nil {
 		return fmt.Errorf("render application: %w", err)
 	}
