@@ -6,7 +6,7 @@ var Fatui = Category{
 	Roles: []Role{
 		{
 			Name:  "Пьеро",
-			Emoji: `<tg-emoji emoji-id="5380051243865483403">🫅</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5460959275146847487">🫅</tg-emoji>`,
 		},
 		{
 			Name:  "Капитано",
@@ -33,7 +33,7 @@ var Fatui = Category{
 		},
 		{
 			Name:  "Пульчинелла",
-			Emoji: `<tg-emoji emoji-id="5379853314592614058">🙍</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5460750668585277854">🙍</tg-emoji>`,
 		},
 		{
 			Name:  "Сандроне",
@@ -49,10 +49,7 @@ var Fatui = Category{
 		},
 		{
 			Name:  "Панталоне",
-			Emoji: `<tg-emoji emoji-id="5379941314177541730">🤵‍♂️</tg-emoji>`,
-			Aliases: []string{
-				"Феофан",
-			},
+			Emoji: `<tg-emoji emoji-id="5460954177020665228">🤵‍♂️</tg-emoji>`,
 		},
 		{
 			Name:  "Скарамучча",

@@ -13,23 +13,23 @@ var Snezhnaya = Category{
 		},
 		{
 			Name:  "Валерий",
-			Emoji: `<tg-emoji emoji-id="5328156073150946486">🧑</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5460781648184387849">🧑</tg-emoji>`,
 		},
 		{
 			Name:  "Весна",
-			Emoji: `<tg-emoji emoji-id="5328081705792213364">👩</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5470096599025759502">👩</tg-emoji>`,
 		},
 		{
 			Name:  "Водяница",
-			Emoji: `<tg-emoji emoji-id="5357153059518586865">👩</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5467717651000238508">👩</tg-emoji>`,
 		},
 		{
 			Name:  "Даника",
-			Emoji: `<tg-emoji emoji-id="5330444792503506996">👩</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5443066664730009476">👩</tg-emoji>`,
 		},
 		{
 			Name:  "Митя",
-			Emoji: `<tg-emoji emoji-id="5327822714969299126">🧑</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5460779006779500682">🧑</tg-emoji>`,
 		},
 		{
 			Name:  "Ной",
@@ -41,10 +41,10 @@ var Snezhnaya = Category{
 		},
 		{
 			Name:  "Царица",
-			Emoji: `<tg-emoji emoji-id="5328110610922121823">👸</tg-emoji>`,
+			Emoji: `<tg-emoji emoji-id="5443105340910510257">👸</tg-emoji>`,
 			Aliases: []string{
 				"Анастасия Фёдоровна",
-				"Царица Снежная",
+				"Снежная",
 			},
 		},
 	},
