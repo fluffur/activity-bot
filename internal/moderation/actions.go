@@ -90,7 +90,7 @@ func (h *Handler) Ban(c *botapi.Context) error {
 		until = time.Time{}
 		reason = ""
 	}
-	if !strings.Contains(reason, "\n") {
+	if strings.TrimSpace(reason) != "" && !strings.Contains(reason, "\n") {
 		return nil
 	}
 	reason = strings.TrimPrefix(reason, "\n")
