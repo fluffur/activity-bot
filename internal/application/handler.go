@@ -173,7 +173,7 @@ func (h *Handler) ProcessRole(c *botapi.Context) error {
 	_, err = c.Reply(
 		fmt.Sprintf(
 			"Перед отправкой заявки подтвердите, что вы ознакомились с %s",
-			tghtml.Link("https://telegra.ph/Pravila-fluda-07-23-35", "правилами флуда"),
+			tghtml.Link("https://t.me/H4venflood", "инфо флуда"),
 		),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
