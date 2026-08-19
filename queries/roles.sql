@@ -125,10 +125,10 @@ FROM roles r
          JOIN fandoms f ON f.id = rc.fandom_id
          LEFT JOIN role_aliases ra ON ra.role_id = r.id
 WHERE f.chat_id = $1
-  AND f.name = $2
+  AND LOWER(f.name) = LOWER($2)
   AND (
-    r.name = $3
-        OR ra.name = $3
+    LOWER(r.name) = LOWER($3)
+        OR LOWER(ra.name) = LOWER($3)
     )
 LIMIT 1;
 

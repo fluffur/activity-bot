@@ -408,22 +408,22 @@ FROM roles r
          JOIN fandoms f ON f.id = rc.fandom_id
          LEFT JOIN role_aliases ra ON ra.role_id = r.id
 WHERE f.chat_id = $1
-  AND f.name = $2
+  AND LOWER(f.name) = LOWER($2)
   AND (
-    r.name = $3
-        OR ra.name = $3
+    LOWER(r.name) = LOWER($3)
+        OR LOWER(ra.name) = LOWER($3)
     )
 LIMIT 1
 `
 
 type GetRoleByNameOrAliasParams struct {
-	ChatID int64  `db:"chat_id" json:"chatId"`
-	Name   string `db:"name" json:"name"`
-	Name_2 string `db:"name_2" json:"name2"`
+	ChatID  int64  `db:"chat_id" json:"chatId"`
+	Lower   string `db:"lower" json:"lower"`
+	Lower_2 string `db:"lower_2" json:"lower2"`
 }
 
 func (q *Queries) GetRoleByNameOrAlias(ctx context.Context, arg GetRoleByNameOrAliasParams) (Role, error) {
-	row := q.db.QueryRow(ctx, getRoleByNameOrAlias, arg.ChatID, arg.Name, arg.Name_2)
+	row := q.db.QueryRow(ctx, getRoleByNameOrAlias, arg.ChatID, arg.Lower, arg.Lower_2)
 	var i Role
 	err := row.Scan(
 		&i.ID,
