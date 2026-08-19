@@ -12,9 +12,8 @@ var Other = Category{
 			Name:  "Итер",
 			Emoji: `<tg-emoji emoji-id="5264828382394195732">☕️</tg-emoji>`,
 			Aliases: []string{
-				"Эфир",
+				"Итэр",
 				"Путешественник",
-				"Главный герой",
 			},
 		},
 		{
