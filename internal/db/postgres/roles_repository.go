@@ -174,9 +174,9 @@ func (r *Repository) GetRoleByNameOrAlias(
 	name string,
 ) (roles.Role, error) {
 	row, err := r.queries.GetRoleByNameOrAlias(ctx, db.GetRoleByNameOrAliasParams{
-		ChatID: chatID,
-		Name:   fandomName,
-		Name_2: name,
+		ChatID:  chatID,
+		Lower:   fandomName,
+		Lower_2: name,
 	})
 	if err != nil {
 		return roles.Role{}, err
