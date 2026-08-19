@@ -2,8 +2,8 @@ package application
 
 import (
 	"activity-bot/internal/chatmember"
-	"activity-bot/internal/info/genshin"
 	"activity-bot/internal/predicate"
+	"activity-bot/internal/roles"
 	"activity-bot/internal/utils/tghtml"
 	"fmt"
 	"strconv"
@@ -20,6 +20,7 @@ type Handler struct {
 
 	chatMemberService *chatmember.Service
 	repository        *Repository
+	rolesRepository   roles.Repository
 
 	targetChatID      int64
 	targetChatLink    string
@@ -32,6 +33,7 @@ func NewHandler(
 	rejectFSM *fsm.Machine[RejectState, RejectStateData],
 	chatMemberService *chatmember.Service,
 	repository *Repository,
+	rolesRepository roles.Repository,
 	targetChatID int64,
 	applicationChatID int64,
 	targetChatLink string,
@@ -46,6 +48,7 @@ func NewHandler(
 		rolesPostLink:     rolesPostLink,
 		targetChatLink:    targetChatLink,
 		repository:        repository,
+		rolesRepository:   rolesRepository,
 	}
 }
 
@@ -144,8 +147,8 @@ func (h *Handler) ProcessRole(c *botapi.Context) error {
 	if err != nil {
 		return fmt.Errorf("list chat members: %w", err)
 	}
-	_, foundRole, ok := genshin.FindRole(role)
-	if !ok {
+	foundRole, err := h.rolesRepository.GetRoleByNameOrAlias(c, h.targetChatID, "Genshin Impact", role)
+	if err != nil {
 		_, err := c.Reply("Данная роль не найдена, пожалуйста укажите в сообщении сушествующую роль")
 		return err
 	}

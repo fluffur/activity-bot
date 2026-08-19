@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/norm"
 	"activity-bot/internal/permission"
 	"activity-bot/internal/rest"
+	"activity-bot/internal/roles"
 	"activity-bot/internal/stats"
 	"activity-bot/internal/user"
 )
@@ -136,4 +137,23 @@ func mapRestRequestFull(rr db.RestRequest, cm db.ChatMember, u db.User) rest.Req
 	r.ChatMember = mapChatMemberFull(cm, db.Chat{}, u)
 
 	return r
+}
+
+func mapFandom(row db.Fandom) roles.Fandom {
+	return roles.Fandom{
+		Name: row.Name,
+	}
+}
+
+func mapCategory(row db.RoleCategory) roles.Category {
+	return roles.Category{
+		Name: row.Name,
+	}
+}
+
+func mapRole(row db.Role) roles.Role {
+	return roles.Role{
+		Name:  row.Name,
+		Emoji: row.Emoji.String,
+	}
 }

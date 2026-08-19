@@ -2,6 +2,7 @@ package info
 
 import (
 	"activity-bot/internal/chatmember"
+	"activity-bot/internal/roles"
 	"context"
 	"fmt"
 	"strings"
@@ -10,17 +11,19 @@ import (
 )
 
 type Updater struct {
-	repo          chatmember.Repository
-	targetChatID  int64
-	rolesPostChat string
+	repo         chatmember.Repository
+	rolesRepo    roles.Repository
+	targetChatID int64
 }
 
 func NewUpdater(
 	repo chatmember.Repository,
+	rolesRepo roles.Repository,
 	targetChatID int64,
 ) *Updater {
 	return &Updater{
 		repo:         repo,
+		rolesRepo:    rolesRepo,
 		targetChatID: targetChatID,
 	}
 }
@@ -44,7 +47,11 @@ func (r *Updater) UpdateRolesPost(c context.Context, chatID int64, bot *botapi.B
 		return fmt.Errorf("get chat members: %w", err)
 	}
 
-	text, err := Render(BuildRoleStates(members))
+	fandoms, err := r.rolesRepo.ListRoleTemplates(c, chatID)
+	if err != nil {
+		return err
+	}
+	text, err := Render(fandoms, BuildRoleStates(fandoms, members))
 	if err != nil {
 		return fmt.Errorf("render role states: %w", err)
 	}

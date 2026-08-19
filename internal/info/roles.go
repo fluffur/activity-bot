@@ -2,9 +2,10 @@ package info
 
 import (
 	"activity-bot/internal/chatmember"
-	"activity-bot/internal/info/genshin"
 	"activity-bot/internal/predicate"
+	"activity-bot/internal/roles"
 	"bytes"
+	"errors"
 	"text/template"
 )
 
@@ -48,14 +49,16 @@ type RoleState struct {
 	Status string
 }
 
-func BuildRoleStates(members []chatmember.ChatMember) map[string]RoleState {
+func BuildRoleStates(fandoms []roles.Fandom, members []chatmember.ChatMember) map[string]RoleState {
 	result := make(map[string]RoleState)
 
 	roleIndex := make(map[string]struct{})
 
-	for _, category := range genshin.Categories {
-		for _, role := range category.Roles {
-			roleIndex[predicate.NormalizeTag(role.Name)] = struct{}{}
+	for _, f := range fandoms {
+		for _, category := range f.Categories {
+			for _, role := range category.Roles {
+				roleIndex[predicate.NormalizeTag(role.Name)] = struct{}{}
+			}
 		}
 	}
 
@@ -81,9 +84,12 @@ func BuildRoleStates(members []chatmember.ChatMember) map[string]RoleState {
 	return result
 }
 
-func Render(states map[string]RoleState) (string, error) {
+func Render(fandoms []roles.Fandom, states map[string]RoleState) (string, error) {
+	if len(fandoms) != 1 {
+		return "", errors.New("must provide exactly one random role")
+	}
 	data := RenderData{
-		Categories: make([]RenderCategory, 0, len(genshin.Categories)),
+		Categories: make([]RenderCategory, 0, len(fandoms[0].Categories)),
 		Header: `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . <tg-emoji emoji-id="5260536644913604662">👋</tg-emoji>
 
 <blockquote><a href="http://t.me/HavenGateBot?start=true">бот для заявок</a></blockquote>
@@ -94,10 +100,9 @@ func Render(states map[string]RoleState) (string, error) {
 для смены роли следует обратиться к владельцу или совладельцу`,
 	}
 
-	for _, cat := range genshin.Categories {
+	for _, cat := range fandoms[0].Categories {
 		rc := RenderCategory{
-			Emoji: cat.Emoji,
-			Name:  cat.Name,
+			Name: cat.Name,
 		}
 
 		for _, role := range cat.Roles {

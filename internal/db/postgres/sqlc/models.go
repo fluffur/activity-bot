@@ -227,6 +227,12 @@ type CrocodileWord struct {
 	LastUsedAt pgtype.Timestamp `db:"last_used_at" json:"lastUsedAt"`
 }
 
+type Fandom struct {
+	ID     int64  `db:"id" json:"id"`
+	ChatID int64  `db:"chat_id" json:"chatId"`
+	Name   string `db:"name" json:"name"`
+}
+
 type Marriage struct {
 	ID         int64              `db:"id" json:"id"`
 	ChatID     int64              `db:"chat_id" json:"chatId"`
@@ -285,6 +291,34 @@ type Reward struct {
 	AuthorID  int64              `db:"author_id" json:"authorId"`
 	Rank      int16              `db:"rank" json:"rank"`
 	Reason    string             `db:"reason" json:"reason"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+}
+
+type Role struct {
+	ID         int64              `db:"id" json:"id"`
+	CategoryID int64              `db:"category_id" json:"categoryId"`
+	Name       string             `db:"name" json:"name"`
+	Emoji      pgtype.Text        `db:"emoji" json:"emoji"`
+	CreatedAt  pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+}
+
+type RoleAlias struct {
+	ID     int64  `db:"id" json:"id"`
+	RoleID int64  `db:"role_id" json:"roleId"`
+	Name   string `db:"name" json:"name"`
+}
+
+type RoleCategory struct {
+	ID        int64              `db:"id" json:"id"`
+	FandomID  int64              `db:"fandom_id" json:"fandomId"`
+	Name      string             `db:"name" json:"name"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+}
+
+type RoleReservation struct {
+	ID        int64              `db:"id" json:"id"`
+	ChatID    int64              `db:"chat_id" json:"chatId"`
+	RoleID    int64              `db:"role_id" json:"roleId"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
 }
 

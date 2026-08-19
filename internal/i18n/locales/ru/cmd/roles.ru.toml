@@ -1,0 +1,3 @@
+[cmd.roles.genshin]
+desc = "Установить шаблон ролей Genshin Impact"
+success = "Установлен шаблон ролей Genshin Impact"

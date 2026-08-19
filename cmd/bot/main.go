@@ -7,6 +7,7 @@ import (
 	"activity-bot/internal/fun"
 	"activity-bot/internal/info"
 	"activity-bot/internal/reward"
+	"activity-bot/internal/roles"
 	"activity-bot/internal/rp"
 	"activity-bot/internal/weather"
 	"context"
@@ -106,6 +107,7 @@ func main() {
 	crocodileRepository := redis2.NewCrocodileRepository(redisClient)
 	wordRepository := postgres.NewWordRepository(queries)
 	rewardRepository := postgres.NewRewardRepository(queries)
+	rolesRepository := postgres.NewRolesRepository(pool, queries)
 
 	chatService := chat.NewService(chatRepository, cfg.DeveloperID)
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
@@ -151,6 +153,7 @@ func main() {
 				normRepository,
 				rpRepository,
 				rewardRepository,
+				rolesRepository,
 
 				chatService,
 				chatMemberService,
@@ -175,19 +178,18 @@ func main() {
 	}
 
 	if cfg.ApplicationBotToken != "" {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			if err := runApplicationBot(
 				ctx,
 				log,
 				cfg,
 				redisClient,
 				chatMemberService,
+				rolesRepository,
 			); err != nil {
 				log.Error("Application bot failed", zap.Error(err))
 			}
-		}()
+		})
 	}
 
 	log.Info("All bot instances successfully initialized and running")
@@ -216,6 +218,7 @@ func runBotInstance(
 	normRepository norm.Repository,
 	rpRepository rp.Repository,
 	rewardRepository reward.Repository,
+	rolesRepository roles.Repository,
 
 	chatService *chat.Service,
 	chatMemberService *chatmember.Service,
@@ -263,7 +266,7 @@ func runBotInstance(
 		10*time.Hour,
 		rp.StateIdle,
 	)
-	infoUpdater := info.NewUpdater(chatMemberRepository, cfg.TargetChatID)
+	infoUpdater := info.NewUpdater(chatMemberRepository, rolesRepository, cfg.TargetChatID)
 
 	registry := command.NewRegistry()
 	summonH := summon.NewHandler(chatService, chatMemberService, summonFSM)
@@ -285,6 +288,7 @@ func runBotInstance(
 		reward.NewHandler(rewardRepository, chatMemberService),
 		weather.NewHandler(weatherClient),
 		fun.NewHandler(deepseekClient, chatMemberService),
+		roles.NewHandler(rolesRepository),
 	}
 
 	for _, h := range handlers {
@@ -420,6 +424,7 @@ func runApplicationBot(
 	cfg config.Config,
 	redisClient *redis.Client,
 	chatMemberService *chatmember.Service,
+	rolesRepository roles.Repository,
 ) error {
 	botKey := cfg.ApplicationBotToken[:8]
 	botLog := log.With(
@@ -487,6 +492,7 @@ func runApplicationBot(
 		rejectFSM,
 		chatMemberService,
 		application.NewRepository(redisClient),
+		rolesRepository,
 		cfg.TargetChatID,
 		cfg.ApplicationChatID,
 		cfg.TargetChatLink,
