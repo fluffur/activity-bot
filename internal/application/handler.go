@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	fsm "github.com/fluffur/botapi-fsm"
 
 	"github.com/gotd/botapi"
@@ -149,6 +150,7 @@ func (h *Handler) ProcessRole(c *botapi.Context) error {
 	}
 	foundRole, err := h.rolesRepository.GetRoleByNameOrAlias(c, h.targetChatID, "Genshin Impact", role)
 	if err != nil {
+		spew.Dump("GENSHIN", err)
 		_, err := c.Reply("Данная роль не найдена, пожалуйста укажите в сообщении сушествующую роль")
 		return err
 	}
