@@ -49,9 +49,14 @@ func (r *Updater) UpdateRolesPost(c context.Context, chatID int64, bot *botapi.B
 
 	fandoms, err := r.rolesRepo.ListRoleTemplates(c, chatID)
 	if err != nil {
-		return err
+		return fmt.Errorf("list role templates: %w", err)
 	}
-	text, err := Render(fandoms, BuildRoleStates(fandoms, members))
+
+	reservations, err := r.rolesRepo.ListRoleReservations(c, chatID)
+	if err != nil {
+		return fmt.Errorf("list role reservations: %w", err)
+	}
+	text, err := Render(fandoms, BuildRoleStates(fandoms, members, reservations))
 	if err != nil {
 		return fmt.Errorf("render role states: %w", err)
 	}

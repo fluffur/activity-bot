@@ -43,10 +43,9 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json, is_bot
+SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json, is_bot, birthday
 FROM users
-WHERE id = $1
-LIMIT 1
+WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
@@ -63,12 +62,13 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.CustomEmojiID,
 		&i.EmojiJson,
 		&i.IsBot,
+		&i.Birthday,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json, is_bot
+SELECT id, username, first_name, last_name, created_at, gender, emoji, custom_emoji_id, emoji_json, is_bot, birthday
 FROM users
 WHERE LOWER(username) = LOWER($1)
 `
@@ -87,8 +87,25 @@ func (q *Queries) GetUserByUsername(ctx context.Context, lower string) (User, er
 		&i.CustomEmojiID,
 		&i.EmojiJson,
 		&i.IsBot,
+		&i.Birthday,
 	)
 	return i, err
+}
+
+const setUserBirthday = `-- name: SetUserBirthday :exec
+UPDATE users
+SET birthday = $1
+WHERE id = $2
+`
+
+type SetUserBirthdayParams struct {
+	Birthday pgtype.Date `db:"birthday" json:"birthday"`
+	ID       int64       `db:"id" json:"id"`
+}
+
+func (q *Queries) SetUserBirthday(ctx context.Context, arg SetUserBirthdayParams) error {
+	_, err := q.db.Exec(ctx, setUserBirthday, arg.Birthday, arg.ID)
+	return err
 }
 
 const setUserCustomEmojiID = `-- name: SetUserCustomEmojiID :exec
@@ -187,11 +204,11 @@ SELECT unnest($1::bigint[]),
        unnest($3::text[]),
        unnest($4::text[]),
        unnest($5::boolean[]),
-       unnest($6::text[])
-ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
-                               first_name = EXCLUDED.first_name,
-                               last_name  = EXCLUDED.last_name,
-                               is_bot     = EXCLUDED.is_bot
+       unnest($6::text[]) ON CONFLICT (id) DO
+UPDATE SET username = EXCLUDED.username,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    is_bot = EXCLUDED.is_bot
 `
 
 type UpsertUsersParams struct {

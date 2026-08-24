@@ -157,3 +157,12 @@ func mapRole(row db.Role) roles.Role {
 		Emoji: row.Emoji.String,
 	}
 }
+
+func mapRoleReservation(row db.RoleReservation) roles.RoleReservation {
+	return roles.RoleReservation{
+		ID:        row.ID,
+		ChatID:    row.ChatID,
+		CreatedAt: row.CreatedAt.Time,
+		Role:      mapRole(db.Role{ID: row.RoleID}),
+	}
+}

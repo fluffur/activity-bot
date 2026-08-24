@@ -4,6 +4,9 @@ import (
 	db "activity-bot/internal/db/postgres/sqlc"
 	"activity-bot/internal/user"
 	"context"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type UserRepository struct {
@@ -56,5 +59,15 @@ func (r *UserRepository) SetGender(ctx context.Context, id int64, gender user.Ge
 	return r.queries.SetUserGender(ctx, db.SetUserGenderParams{
 		ID:     id,
 		Gender: string(gender),
+	})
+}
+
+func (r *UserRepository) SetBirthday(ctx context.Context, id int64, birthday time.Time) error {
+	return r.queries.SetUserBirthday(ctx, db.SetUserBirthdayParams{
+		Birthday: pgtype.Date{
+			Time:  birthday,
+			Valid: true,
+		},
+		ID: id,
 	})
 }

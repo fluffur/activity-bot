@@ -83,7 +83,7 @@ func (q *Queries) GetNormByID(ctx context.Context, id int64) (ChatNorm, error) {
 }
 
 const getNormMembers = `-- name: GetNormMembers :many
-SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, cm.description, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot
+SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, cm.description, u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot, u.birthday
 FROM chat_norms cn
          JOIN chat_member_norms cmn ON cmn.norm_id = cn.id
          JOIN chat_members cm ON cm.user_id = cmn.user_id AND cm.chat_id = cn.chat_id
@@ -128,6 +128,7 @@ func (q *Queries) GetNormMembers(ctx context.Context, id int64) ([]GetNormMember
 			&i.User.CustomEmojiID,
 			&i.User.EmojiJson,
 			&i.User.IsBot,
+			&i.User.Birthday,
 		); err != nil {
 			return nil, err
 		}

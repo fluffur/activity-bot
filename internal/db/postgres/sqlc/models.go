@@ -320,6 +320,7 @@ type RoleReservation struct {
 	ChatID    int64              `db:"chat_id" json:"chatId"`
 	RoleID    int64              `db:"role_id" json:"roleId"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	UserID    int64              `db:"user_id" json:"userId"`
 }
 
 type User struct {
@@ -333,6 +334,7 @@ type User struct {
 	CustomEmojiID pgtype.Text        `db:"custom_emoji_id" json:"customEmojiId"`
 	EmojiJson     emoji.Emojis       `db:"emoji_json" json:"emojiJson"`
 	IsBot         bool               `db:"is_bot" json:"isBot"`
+	Birthday      pgtype.Date        `db:"birthday" json:"birthday"`
 }
 
 type UserPmSession struct {

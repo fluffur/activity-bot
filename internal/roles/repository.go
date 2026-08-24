@@ -2,16 +2,15 @@ package roles
 
 import (
 	"context"
-
-	db "activity-bot/internal/db/postgres/sqlc"
 )
 
 type Repository interface {
 	CreateRoleReservation(
 		ctx context.Context,
 		chatID int64,
+		userID int64,
 		roleID int64,
-	) (db.RoleReservation, error)
+	) error
 
 	DeleteRoleReservation(
 		ctx context.Context,
@@ -19,16 +18,10 @@ type Repository interface {
 		roleID int64,
 	) error
 
-	GetRoleReservation(
-		ctx context.Context,
-		chatID int64,
-		roleID int64,
-	) (db.RoleReservation, error)
-
 	ListRoleReservations(
 		ctx context.Context,
 		chatID int64,
-	) ([]db.ListRoleReservationsRow, error)
+	) ([]RoleReservation, error)
 
 	CreateRoleTemplate(
 		ctx context.Context,
@@ -73,12 +66,6 @@ type Repository interface {
 	) error
 
 	GetFandom(
-		ctx context.Context,
-		chatID int64,
-		name string,
-	) (Fandom, error)
-
-	CreateFandom(
 		ctx context.Context,
 		chatID int64,
 		name string,

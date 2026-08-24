@@ -18,7 +18,7 @@ WITH filtered_messages AS (SELECT m.chat_id, m.user_id
                              AND ($2::timestamptz IS NULL OR m.created_at >= $2::timestamptz)
                              AND ($3::timestamptz IS NULL OR m.created_at < $3::timestamptz))
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, cm.description,
-       u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot,
+       u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot, u.birthday,
        COUNT(fm.chat_id) AS messages_count,
        c.id, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at, c.emojis_enabled, c.skip_call_confirmation, c.allow_polygamy, c.username_changed_notify_status
 FROM chat_members cm
@@ -80,6 +80,7 @@ func (q *Queries) ChatMemberMessageStatsByChat(ctx context.Context, arg ChatMemb
 			&i.User.CustomEmojiID,
 			&i.User.EmojiJson,
 			&i.User.IsBot,
+			&i.User.Birthday,
 			&i.MessagesCount,
 			&i.Chat.ID,
 			&i.Chat.NewbieThresholdDays,
@@ -119,7 +120,7 @@ WITH user_messages AS (SELECT m.created_at
                        WHERE m.chat_id = $2
                          AND m.user_id = $3)
 SELECT cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, cm.description,
-       u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot,
+       u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot, u.birthday,
        c.id, c.newbie_threshold_days, c.ai_system_prompt, c.max_ladder, c.call_on_join, c.welcome_call_message, c.week_start_day, c.max_warns, c.command_prefix, c.allow_prefixless, c.mentions_per_message, c.mention_types, c.title, c.tags_enabled, c.week_start_time, c.broadcast_enabled, c.removed_at, c.emojis_enabled, c.skip_call_confirmation, c.allow_polygamy, c.username_changed_notify_status,
        COUNT(*) FILTER (WHERE m.created_at >= date_trunc('day', now()))   AS day_count,
        COUNT(*) FILTER (WHERE m.created_at >= now() - interval '1 day')   AS day_rolling_count,
@@ -183,6 +184,7 @@ func (q *Queries) ChatMemberMessageStatsByUser(ctx context.Context, arg ChatMemb
 		&i.User.CustomEmojiID,
 		&i.User.EmojiJson,
 		&i.User.IsBot,
+		&i.User.Birthday,
 		&i.Chat.ID,
 		&i.Chat.NewbieThresholdDays,
 		&i.Chat.AiSystemPrompt,
@@ -280,7 +282,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) er
 }
 
 const getMessageAuthor = `-- name: GetMessageAuthor :one
-SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot, cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, cm.description
+SELECT u.id, u.username, u.first_name, u.last_name, u.created_at, u.gender, u.emoji, u.custom_emoji_id, u.emoji_json, u.is_bot, u.birthday, cm.chat_id, cm.user_id, cm.joined_at, cm.rest_until, cm.tag, cm.left_at, cm.rest_reason, cm.emoji, cm.status, cm.emoji_json, cm.exclude_from_call, cm.description
 FROM messages m
          JOIN users u ON u.id = m.user_id
          JOIN chat_members cm
@@ -314,6 +316,7 @@ func (q *Queries) GetMessageAuthor(ctx context.Context, arg GetMessageAuthorPara
 		&i.User.CustomEmojiID,
 		&i.User.EmojiJson,
 		&i.User.IsBot,
+		&i.User.Birthday,
 		&i.ChatMember.ChatID,
 		&i.ChatMember.UserID,
 		&i.ChatMember.JoinedAt,

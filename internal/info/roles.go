@@ -49,7 +49,11 @@ type RoleState struct {
 	Status string
 }
 
-func BuildRoleStates(fandoms []roles.Fandom, members []chatmember.ChatMember) map[string]RoleState {
+func BuildRoleStates(
+	fandoms []roles.Fandom,
+	members []chatmember.ChatMember,
+	reservations []roles.RoleReservation,
+) map[string]RoleState {
 	result := make(map[string]RoleState)
 
 	roleIndex := make(map[string]struct{})
@@ -59,6 +63,23 @@ func BuildRoleStates(fandoms []roles.Fandom, members []chatmember.ChatMember) ma
 			for _, role := range category.Roles {
 				roleIndex[predicate.NormalizeTag(role.Name)] = struct{}{}
 			}
+		}
+	}
+
+	for _, reservation := range reservations {
+		tag := predicate.NormalizeTag(reservation.Role.Name)
+
+		if tag == "" {
+			continue
+		}
+
+		if _, ok := roleIndex[tag]; !ok {
+			continue
+		}
+
+		result[tag] = RoleState{
+			Role:   tag,
+			Status: "✷",
 		}
 	}
 
@@ -73,11 +94,9 @@ func BuildRoleStates(fandoms []roles.Fandom, members []chatmember.ChatMember) ma
 			continue
 		}
 
-		status := "♡゙"
-
 		result[tag] = RoleState{
 			Role:   tag,
-			Status: status,
+			Status: "♡゙",
 		}
 	}
 
@@ -90,7 +109,7 @@ func Render(fandoms []roles.Fandom, states map[string]RoleState) (string, error)
 	}
 	data := RenderData{
 		Categories: make([]RenderCategory, 0, len(fandoms[0].Categories)),
-		Header: `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . <tg-emoji emoji-id="5260536644913604662">👋</tg-emoji>
+		Header: `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . 
 
 <blockquote><a href="http://t.me/HavenGateBot?start=true">бот для заявок</a></blockquote>
 бронь – ✷

@@ -12,8 +12,7 @@ WHERE id = $4;
 -- name: GetUserByID :one
 SELECT *
 FROM users
-WHERE id = $1
-LIMIT 1;
+WHERE id = $1 LIMIT 1;
 
 -- name: GetUserByUsername :one
 SELECT *
@@ -28,11 +27,11 @@ SELECT unnest(@ids::bigint[]),
        unnest(@first_names::text[]),
        unnest(@last_names::text[]),
        unnest(@is_bots::boolean[]),
-       unnest(@emojis::text[])
-ON CONFLICT (id) DO UPDATE SET username   = EXCLUDED.username,
-                               first_name = EXCLUDED.first_name,
-                               last_name  = EXCLUDED.last_name,
-                               is_bot     = EXCLUDED.is_bot;
+       unnest(@emojis::text[]) ON CONFLICT (id) DO
+UPDATE SET username = EXCLUDED.username,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    is_bot = EXCLUDED.is_bot;
 
 -- name: SetUserGender :exec
 UPDATE users
@@ -53,3 +52,8 @@ WHERE id = $1;
 UPDATE users
 SET custom_emoji_id = $2
 WHERE id = $1;
+
+-- name: SetUserBirthday :exec
+UPDATE users
+SET birthday = $1
+WHERE id = $2;

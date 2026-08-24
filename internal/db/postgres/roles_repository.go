@@ -26,11 +26,13 @@ func NewRolesRepository(
 
 func (r *Repository) CreateRoleReservation(
 	ctx context.Context,
-	chatID int64,
+	chatID,
+	userID,
 	roleID int64,
-) (db.RoleReservation, error) {
+) error {
 	return r.queries.CreateRoleReservation(ctx, db.CreateRoleReservationParams{
 		ChatID: chatID,
+		UserID: userID,
 		RoleID: roleID,
 	})
 }
@@ -50,18 +52,31 @@ func (r *Repository) GetRoleReservation(
 	ctx context.Context,
 	chatID int64,
 	roleID int64,
-) (db.RoleReservation, error) {
-	return r.queries.GetRoleReservation(ctx, db.GetRoleReservationParams{
+) (roles.RoleReservation, error) {
+	rr, err := r.queries.GetRoleReservation(ctx, db.GetRoleReservationParams{
 		ChatID: chatID,
 		RoleID: roleID,
 	})
+	if err != nil {
+		return roles.RoleReservation{}, err
+	}
+	return mapRoleReservation(rr), nil
+
 }
 
 func (r *Repository) ListRoleReservations(
 	ctx context.Context,
 	chatID int64,
-) ([]db.ListRoleReservationsRow, error) {
-	return r.queries.ListRoleReservations(ctx, chatID)
+) ([]roles.RoleReservation, error) {
+	reservations, err := r.queries.ListRoleReservations(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+	return mapList(reservations, func(row db.ListRoleReservationsRow) roles.RoleReservation {
+		rr := mapRoleReservation(row.RoleReservation)
+		rr.Role = mapRole(row.Role)
+		return rr
+	}), err
 }
 
 func (r *Repository) CreateRoleTemplate(
@@ -222,22 +237,6 @@ func (r *Repository) GetFandom(
 	name string,
 ) (roles.Fandom, error) {
 	row, err := r.queries.GetFandom(ctx, db.GetFandomParams{
-		ChatID: chatID,
-		Name:   name,
-	})
-	if err != nil {
-		return roles.Fandom{}, err
-	}
-
-	return mapFandom(row), nil
-}
-
-func (r *Repository) CreateFandom(
-	ctx context.Context,
-	chatID int64,
-	name string,
-) (roles.Fandom, error) {
-	row, err := r.queries.CreateFandom(ctx, db.CreateFandomParams{
 		ChatID: chatID,
 		Name:   name,
 	})
