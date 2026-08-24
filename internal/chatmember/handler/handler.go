@@ -303,7 +303,7 @@ func (h *Handler) SetChatMemberBirthday(c *botapi.Context) error {
 
 	_, err := c.Reply(loc.T(i18n.Cmd.ChatMember.Birthday.Set.Success, i18n.CmdChatMemberBirthdaySetSuccessData{
 		User: tghtml.MemberLink(loc, ch, u),
-	}))
+	}), botapi.WithParseMode(botapi.ParseModeHTML))
 
 	return err
 
