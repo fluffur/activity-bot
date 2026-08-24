@@ -2,6 +2,8 @@ package info
 
 import (
 	"activity-bot/internal/chatmember"
+	"activity-bot/internal/utils"
+	"activity-bot/internal/utils/tghtml"
 	"sort"
 	"strconv"
 	"strings"
@@ -36,7 +38,7 @@ func BuildBirthdayMonths(members []chatmember.ChatMember) []BirthdayMonth {
 	months := make([]BirthdayMonth, 12)
 
 	for i := range months {
-		months[i].Name = birthdayMonths[i]
+		months[i].Name = tghtml.Blockquote(utils.UcFirst(birthdayMonths[i]))
 	}
 
 	for _, member := range members {
