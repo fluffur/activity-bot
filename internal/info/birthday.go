@@ -61,8 +61,7 @@ func BuildBirthdayMonths(members []chatmember.ChatMember) []BirthdayMonth {
 		sort.Slice(
 			months[i].Members,
 			func(a, b int) bool {
-				return strings.ToLower(months[i].Members[a].Name) <
-					strings.ToLower(months[i].Members[b].Name)
+				return months[i].Members[a].Day < months[i].Members[b].Day
 			},
 		)
 	}
