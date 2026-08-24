@@ -186,6 +186,7 @@ type ChatMember struct {
 	EmojiJson       emoji.Emojis       `db:"emoji_json" json:"emojiJson"`
 	ExcludeFromCall bool               `db:"exclude_from_call" json:"excludeFromCall"`
 	Description     pgtype.Text        `db:"description" json:"description"`
+	Birthday        pgtype.Date        `db:"birthday" json:"birthday"`
 }
 
 type ChatMemberNorm struct {

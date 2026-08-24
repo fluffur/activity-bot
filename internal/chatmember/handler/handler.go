@@ -103,6 +103,15 @@ func (h *Handler) Actions() []*command.Action {
 			CategoryChatMember,
 			option.WithAliases("-описание"),
 		),
+		action.NewCommand(
+			"setbirthday",
+			h.SetChatMemberBirthday,
+			i18n.Cmd.ChatMember.Birthday.Set.Desc,
+			CategoryChatMember,
+			option.WithAliases("др", "+др"),
+			option.WithRules(rule.User().Optional(), rule.DateTimeOrDuration()),
+			option.WithPermission(permission.StatusModerator),
+		),
 	}
 }
 
@@ -268,4 +277,34 @@ func (h *Handler) DeleteDescription(c *botapi.Context) error {
 	_, err := c.Reply(loc.T(i18n.Cmd.ChatMember.DeleteDescription.Success, nil))
 
 	return err
+}
+
+func (h *Handler) SetChatMemberBirthday(c *botapi.Context) error {
+	ch := cctx.MustChat(c)
+	args := cctx.MustArgs(c)
+	u, ok := args.User()
+	if !ok {
+		u = cctx.MustChatMember(c)
+	}
+
+	bd, ok := args.DateTime()
+	if !ok {
+		return nil
+	}
+
+	if err := h.repo.SetBirthday(c, ch.ID, u.ID(), bd); err != nil {
+		return fmt.Errorf("set birthday: %w", err)
+	}
+
+	if err := h.updater.UpdateBirthdaysPost(c, ch.ID, c.Bot); err != nil {
+		return fmt.Errorf("update birthdays post: %w", err)
+	}
+	loc := cctx.MustLocalizer(c)
+
+	_, err := c.Reply(loc.T(i18n.Cmd.ChatMember.Birthday.Set.Success, i18n.CmdChatMemberBirthdaySetSuccessData{
+		User: tghtml.MemberLink(loc, ch, u),
+	}))
+
+	return err
+
 }

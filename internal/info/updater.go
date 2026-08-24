@@ -155,6 +155,43 @@ func (r *Updater) UpdateRestsPost(c context.Context, chatID int64, bot *botapi.B
 	return nil
 }
 
+func (r *Updater) UpdateBirthdaysPost(c context.Context, chatID int64, bot *botapi.Bot) error {
+	if r.targetChatID != chatID {
+		return nil
+	}
+
+	members, err := r.repo.List(c, chatmember.Filter{
+		ChatID: r.targetChatID,
+		IsBot: chatmember.OptionalBool{
+			Bool:  false,
+			Valid: true,
+		},
+		Left: chatmember.OptionalBool{
+			Bool:  false,
+			Valid: true,
+		},
+	})
+
+	if err != nil {
+		return fmt.Errorf("get chat members: %w", err)
+	}
+
+	err = editCaption(
+		c,
+		bot,
+		"H4venflood",
+		21,
+		RenderBirthdays(members),
+	)
+
+	if err != nil {
+		return fmt.Errorf("update rests: %w", err)
+	}
+
+	return nil
+
+}
+
 func editCaption(
 	ctx context.Context,
 	bot *botapi.Bot,

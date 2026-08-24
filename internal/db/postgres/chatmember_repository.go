@@ -193,3 +193,14 @@ func (r *ChatMemberRepository) SetDescription(ctx context.Context, chatID, userI
 		UserID:      userID,
 	})
 }
+
+func (r *ChatMemberRepository) SetBirthday(ctx context.Context, chatID, userID int64, birthday time.Time) error {
+	return r.queries.SetChatMemberBirthday(ctx, db.SetChatMemberBirthdayParams{
+		Birthday: pgtype.Date{
+			Time:  birthday,
+			Valid: true,
+		},
+		ChatID: chatID,
+		UserID: userID,
+	})
+}

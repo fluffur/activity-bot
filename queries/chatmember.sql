@@ -135,3 +135,9 @@ UPDATE chat_members
 SET description = $1
 WHERE chat_id = $2
   AND user_id = $3;
+
+-- name: SetChatMemberBirthday :exec
+UPDATE chat_members
+SET birthday = $1
+WHERE chat_id = $2
+  AND user_id = $3;

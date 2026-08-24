@@ -40,7 +40,7 @@ func BuildRestMembers(members []chatmember.ChatMember) []RestMember {
 	rests := make([]RestMember, 0)
 	now := time.Now()
 	for _, member := range members {
-		if !member.IsResting(now) {
+		if !member.IsResting(now) || member.IsLeft() {
 			continue
 		}
 

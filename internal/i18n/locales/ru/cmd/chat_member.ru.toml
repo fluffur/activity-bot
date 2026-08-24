@@ -26,3 +26,7 @@ too_long = "Описание слишком длинное"
 [cmd.chat_member.delete_description]
 desc = "Удалить описание"
 success = "Описание удалено"
+
+[cmd.chat_member.birthday.set]
+desc = "Установить день рождения"
+success = "День рождения для {{.User}} установлен"

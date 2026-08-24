@@ -32,4 +32,5 @@ type Repository interface {
 	SetExcludeFromSummon(ctx context.Context, chatID, userID int64, excluded bool) error
 	SetEmoji(c context.Context, chatID, userID int64, emojisString string) error
 	SetDescription(ctx context.Context, chatID, userID int64, description string) error
+	SetBirthday(ctx context.Context, chatID, userID int64, birthday time.Time) error
 }

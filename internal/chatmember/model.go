@@ -20,6 +20,7 @@ type ChatMember struct {
 	LeftAt          time.Time
 	ExcludeFromCall bool
 	Description     string
+	Birthday        time.Time
 }
 
 func New(u user.User, c chat.Chat, tag string, status permission.Status, now time.Time) ChatMember {
