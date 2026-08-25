@@ -4,8 +4,8 @@ import (
 	"activity-bot/internal/chatmember"
 	"activity-bot/internal/utils"
 	"activity-bot/internal/utils/tghtml"
+	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 )
 
@@ -15,6 +15,7 @@ type BirthdayMember struct {
 }
 
 type BirthdayMonth struct {
+	Number  int
 	Name    string
 	Members []BirthdayMember
 }
@@ -39,6 +40,7 @@ func BuildBirthdayMonths(members []chatmember.ChatMember) []BirthdayMonth {
 
 	for i := range months {
 		months[i].Name = tghtml.Blockquote(utils.UcFirst(birthdayMonths[i]))
+		months[i].Number = i + 1
 	}
 
 	for _, member := range members {
@@ -91,7 +93,7 @@ func RenderBirthdays(members []chatmember.ChatMember) string {
 		for _, member := range month.Members {
 			b.WriteString(member.Name)
 			b.WriteString(" — ")
-			b.WriteString(strconv.Itoa(member.Day))
+			b.WriteString(fmt.Sprintf("%02d.%02d", member.Day, month.Number))
 			b.WriteString("\n")
 		}
 
