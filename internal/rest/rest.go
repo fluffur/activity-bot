@@ -298,6 +298,76 @@ func (h *Handler) AllUserRests(c *botapi.Context) error {
 	return err
 }
 
+func (h *Handler) AllRests(c *botapi.Context) error {
+	loc := cctx.MustLocalizer(c)
+	ch := cctx.MustChat(c)
+
+	members, err := h.service.GetRestMembers(
+		c,
+		ch.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("all rests: %w", err)
+	}
+
+	if len(members) == 0 {
+		_, err = c.Reply(
+			loc.T(
+				i18n.Cmd.AllRests.Empty,
+				nil,
+			),
+			botapi.WithParseMode(botapi.ParseModeHTML),
+		)
+
+		return err
+	}
+
+	var text strings.Builder
+
+	text.WriteString(
+		loc.T(
+			i18n.Cmd.AllRests.Title,
+			nil,
+		),
+	)
+	text.WriteString("\n\n<blockquote expandable>")
+
+	for i, m := range members {
+		if i > 0 {
+			text.WriteString("\n")
+		}
+
+		text.WriteString(
+			loc.T(
+				i18n.Cmd.AllRests.Item,
+				i18n.CmdAllRestsItemData{
+					Index: i + 1,
+					User:  tghtml.MemberLink(loc, ch, m),
+					Until: tghtml.DefaultDateTime(m.RestUntil),
+				},
+			),
+		)
+	}
+
+	text.WriteString("</blockquote>")
+
+	text.WriteString(
+		loc.T(
+			i18n.Cmd.Rests.HistoryTotal,
+			i18n.CmdRestsHistoryTotalData{
+				Count: len(members),
+			},
+		),
+	)
+
+	_, err = c.Reply(
+		text.String(),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+	)
+
+	return err
+}
+
 func (h *Handler) ApproveRestRequest(c *botapi.Context) error {
 	ch := cctx.MustChat(c)
 	loc := cctx.MustLocalizer(c)

@@ -83,8 +83,15 @@ func (h *Handler) Actions() []*command.Action {
 			CategoryRest,
 			option.WithAliases("ресты", "все ресты"),
 			option.WithRules(
-				rule.User().Optional(),
+				rule.User(),
 			),
+		),
+		action.NewCommand(
+			"allrests",
+			h.AllRests,
+			i18n.Cmd.AllRests.Desc,
+			CategoryRest,
+			option.WithAliases("ресты"),
 		),
 
 		action.NewCallbackPrefix(
