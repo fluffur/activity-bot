@@ -363,6 +363,7 @@ func (h *Handler) AllRests(c *botapi.Context) error {
 	_, err = c.Reply(
 		text.String(),
 		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview(),
 	)
 
 	return err
