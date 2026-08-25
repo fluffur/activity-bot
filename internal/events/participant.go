@@ -96,7 +96,7 @@ func (h *Handler) ParticipantUpdate(ctx context.Context, e tg.Entities, u *tg.Up
 			return fmt.Errorf("participant update tag: %w", err)
 		}
 
-		if err := h.roleUpdater.UpdateRolesPost(ctx, chatID, h.bot); err != nil {
+		if err := h.updater.UpdateRolesPost(ctx, chatID, h.bot); err != nil {
 			return fmt.Errorf("participant update: %w", err)
 		}
 	}
@@ -150,7 +150,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 			return fmt.Errorf("process join set tag: %w", err)
 		}
 
-		if err := h.roleUpdater.UpdateRolesPost(
+		if err := h.updater.UpdateRolesPost(
 			ctx,
 			chatID,
 			h.bot,
@@ -202,7 +202,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 		); err != nil {
 			return fmt.Errorf("delete application: %w", err)
 		}
-		if err := h.roleUpdater.UpdateApplyPost(ctx, chatID, h.bot); err != nil {
+		if err := h.updater.UpdateApplyPost(ctx, chatID, h.bot); err != nil {
 			return fmt.Errorf("process join: %w", err)
 		}
 		return nil
@@ -275,7 +275,7 @@ func (h *Handler) processJoin(ctx context.Context, e tg.Entities, u *tg.UpdateCh
 		text,
 		botapi.WithParseMode(botapi.ParseModeHTML),
 	)
-	if err := h.roleUpdater.UpdateApplyPost(ctx, chatID, h.bot); err != nil {
+	if err := h.updater.UpdateApplyPost(ctx, chatID, h.bot); err != nil {
 		return fmt.Errorf("process join: %w", err)
 	}
 	return err
@@ -306,9 +306,22 @@ func (h *Handler) processLeft(ctx context.Context, u *tg.UpdateChannelParticipan
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
 	)
-	if err := h.roleUpdater.UpdateApplyPost(ctx, chatID, h.bot); err != nil {
-		return fmt.Errorf("process join: %w", err)
+	if err := h.updater.UpdateApplyPost(ctx, chatID, h.bot); err != nil {
+		return fmt.Errorf("process lefy: %w", err)
 	}
+
+	if err := h.updater.UpdateRestsPost(ctx, chatID, h.bot); err != nil {
+		return fmt.Errorf("update rests: %w", err)
+	}
+
+	if err := h.updater.UpdateRolesPost(ctx, chatID, h.bot); err != nil {
+		return fmt.Errorf("update rests: %w", err)
+	}
+
+	if err := h.updater.UpdateBirthdaysPost(ctx, chatID, h.bot); err != nil {
+		return fmt.Errorf("update birthdays: %w", err)
+	}
+
 	return err
 }
 

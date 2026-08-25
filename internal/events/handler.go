@@ -14,7 +14,7 @@ type Handler struct {
 	bot           *botapi.Bot
 	translator    *i18n.Translator
 	memberService *chatmember.Service
-	roleUpdater   *info.Updater
+	updater       *info.Updater
 
 	applicationRepository *application.Repository
 	summonHandler         *summon.Handler
@@ -32,7 +32,7 @@ func NewHandler(
 		bot:                   b,
 		translator:            t,
 		memberService:         ms,
-		roleUpdater:           roleUpdater,
+		updater:               roleUpdater,
 		applicationRepository: applicationRepository,
 		summonHandler:         summonHandler,
 	}

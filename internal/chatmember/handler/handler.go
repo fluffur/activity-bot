@@ -206,18 +206,28 @@ func (h *Handler) UpdateChatMembers(c *botapi.Context) error {
 
 	loc := cctx.MustLocalizer(c)
 
-	if _, err = c.Reply(
+	_, err = c.Reply(
 		loc.T(i18n.Cmd.ChatMember.Update.Success, nil),
 		botapi.WithParseMode(botapi.ParseModeHTML),
-	); err != nil {
-		return err
-	}
+	)
 
 	if err := h.updater.UpdateApplyPost(c, ch.ID, c.Bot); err != nil {
 		return fmt.Errorf("update apply: %w", err)
 	}
 
-	return nil
+	if err := h.updater.UpdateRestsPost(c, ch.ID, c.Bot); err != nil {
+		return fmt.Errorf("update rests: %w", err)
+	}
+
+	if err := h.updater.UpdateRolesPost(c, ch.ID, c.Bot); err != nil {
+		return fmt.Errorf("update rests: %w", err)
+	}
+
+	if err := h.updater.UpdateBirthdaysPost(c, ch.ID, c.Bot); err != nil {
+		return fmt.Errorf("update birthdays: %w", err)
+	}
+
+	return err
 }
 
 func (h *Handler) UpdateRoles(c *botapi.Context) error {
