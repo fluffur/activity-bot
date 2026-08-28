@@ -154,6 +154,7 @@ func mapCategory(row db.RoleCategory) roles.Category {
 
 func mapRole(row db.Role) roles.Role {
 	return roles.Role{
+		ID:    row.ID,
 		Name:  row.Name,
 		Emoji: row.Emoji.String,
 	}
