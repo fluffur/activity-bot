@@ -12,7 +12,6 @@ import (
 	"activity-bot/internal/rule"
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/botapi"
 )
 
@@ -47,6 +46,15 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithRules(rule.Number().Optional(), rule.Text()),
 			option.WithPermission(permission.StatusAdmin),
 		),
+		action.NewCommand(
+			"free",
+			h.FreeRole,
+			i18n.Cmd.Roles.Free.Desc,
+			RolesCategory,
+			option.WithAliases("-бронь", "снять бронь"),
+			option.WithRules(rule.Text()),
+			option.WithPermission(permission.StatusAdmin),
+		),
 	}
 }
 
@@ -57,7 +65,6 @@ func (h *Handler) ReserveRole(c *botapi.Context) error {
 	if !ok {
 		return nil
 	}
-	spew.Dump(args)
 	number, ok := args.Number()
 	if !ok {
 		return nil
@@ -74,7 +81,35 @@ func (h *Handler) ReserveRole(c *botapi.Context) error {
 
 	loc := cctx.MustLocalizer(c)
 
-	_, err = c.Reply(loc.T(i18n.Cmd.Roles.Reserve.Success, nil))
+	_, err = c.Reply(loc.T(i18n.Cmd.Roles.Reserve.Success, i18n.CmdRolesReserveSuccessData{
+		Role: role.Name,
+	}))
+
+	return err
+}
+
+func (h *Handler) FreeRole(c *botapi.Context) error {
+	ch := cctx.MustChat(c)
+	args := cctx.MustArgs(c)
+	text, ok := args.Text()
+	if !ok {
+		return nil
+	}
+	role, err := h.repo.GetRoleByNameOrAlias(c, ch.ID, "Genshin Impact", predicate.NormalizeTag(text))
+
+	if err != nil {
+		return fmt.Errorf("reserve role: %w", err)
+	}
+
+	if err := h.repo.DeleteRoleReservation(c, ch.ID, role.ID); err != nil {
+		return fmt.Errorf("create role reservation: %w", err)
+	}
+
+	loc := cctx.MustLocalizer(c)
+
+	_, err = c.Reply(loc.T(i18n.Cmd.Roles.Free.Success, i18n.CmdRolesFreeSuccessData{
+		Role: role.Name,
+	}))
 
 	return err
 }

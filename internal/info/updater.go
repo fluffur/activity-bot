@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/botapi"
 )
 
@@ -57,7 +56,7 @@ func (r *Updater) UpdateRolesPost(c context.Context, chatID int64, bot *botapi.B
 	if err != nil {
 		return fmt.Errorf("list role reservations: %w", err)
 	}
-	spew.Dump("rr", reservations)
+
 	text, err := Render(fandoms, BuildRoleStates(fandoms, members, reservations))
 	if err != nil {
 		return fmt.Errorf("render role states: %w", err)

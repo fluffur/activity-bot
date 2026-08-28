@@ -5,3 +5,7 @@ success = "Установлен шаблон ролей Genshin Impact"
 [cmd.roles.reserve]
 desc = "Забронировать роль"
 success = "Роль {{.Role}} забронирована"
+
+[cmd.roles.free]
+desc = "Снять бронь с роли"
+success = "Бронь с роли {{.Role}} успешно снята"
