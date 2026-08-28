@@ -1,5 +1,7 @@
 package norm
 
+import "slices"
+
 type Norm struct {
 	ID     int64
 	ChatID int64
@@ -14,11 +16,5 @@ func (n Norm) BelongsToUser(userID int64) bool {
 		return true
 	}
 
-	for _, id := range n.UserIDs {
-		if id == userID {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(n.UserIDs, userID)
 }
