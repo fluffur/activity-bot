@@ -305,7 +305,7 @@ func runBotInstance(
 			registerBotCommands(ctx, bot, registry, loc)
 			registerDefaultAdminRights(ctx, bot)
 		},
-		FloodWait:                  true,
+		FloodWait:                  false,
 		RequestsPerSecond:          25,
 		RequestBurst:               1,
 		DisableCommandRegistration: true,
