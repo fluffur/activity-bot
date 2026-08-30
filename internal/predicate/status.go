@@ -199,3 +199,29 @@ func (p *PermissionChecker) PassDev() botapi.Predicate {
 		return true
 	}
 }
+
+func (p *PermissionChecker) RequireDev() botapi.Predicate {
+	return func(c *botapi.Context) bool {
+		msg := c.Message()
+		if msg == nil {
+			return false
+		}
+
+		var senderID int64
+
+		sender := c.Sender()
+		if sender != nil {
+			senderID = sender.ID
+		} else {
+			senderID = msg.Chat.ID
+		}
+
+		if p.devID != senderID {
+			return false
+		}
+
+		c.Context = cctx.PassDev(c.Context)
+
+		return true
+	}
+}

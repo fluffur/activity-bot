@@ -143,6 +143,20 @@ func (ns NullRestStatus) Value() (driver.Value, error) {
 	return string(ns.RestStatus), nil
 }
 
+type BannedChat struct {
+	ChatID    int64              `db:"chat_id" json:"chatId"`
+	Reason    pgtype.Text        `db:"reason" json:"reason"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	ExpiresAt pgtype.Timestamptz `db:"expires_at" json:"expiresAt"`
+}
+
+type BannedUser struct {
+	UserID    int64              `db:"user_id" json:"userId"`
+	Reason    pgtype.Text        `db:"reason" json:"reason"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+	ExpiresAt pgtype.Timestamptz `db:"expires_at" json:"expiresAt"`
+}
+
 type BotDeveloper struct {
 	UserID int64  `db:"user_id" json:"userId"`
 	Role   string `db:"role" json:"role"`

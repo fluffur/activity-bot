@@ -87,6 +87,7 @@ type Action struct {
 
 	ShowInHelp bool
 	AllowDev   bool
+	OnlyDev    bool
 
 	ExtraPredicates []botapi.Predicate
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"activity-bot/internal/application"
+	"activity-bot/internal/ban"
 	"activity-bot/internal/crocodile"
 	redis2 "activity-bot/internal/db/redis"
 	"activity-bot/internal/fun"
@@ -108,6 +109,7 @@ func main() {
 	wordRepository := postgres.NewWordRepository(queries)
 	rewardRepository := postgres.NewRewardRepository(queries)
 	rolesRepository := postgres.NewRolesRepository(pool, queries)
+	banRepository := postgres.NewBanRepository(queries)
 
 	chatService := chat.NewService(chatRepository, cfg.DeveloperID)
 	chatMemberService := chatmember.NewService(chatRepository, userRepository, chatMemberRepository)
@@ -154,6 +156,7 @@ func main() {
 				rpRepository,
 				rewardRepository,
 				rolesRepository,
+				banRepository,
 
 				chatService,
 				chatMemberService,
@@ -219,6 +222,7 @@ func runBotInstance(
 	rpRepository rp.Repository,
 	rewardRepository reward.Repository,
 	rolesRepository roles.Repository,
+	banRepository ban.Repository,
 
 	chatService *chat.Service,
 	chatMemberService *chatmember.Service,
@@ -289,6 +293,7 @@ func runBotInstance(
 		weather.NewHandler(weatherClient),
 		fun.NewHandler(deepseekClient, chatMemberService),
 		roles.NewHandler(rolesRepository),
+		ban.NewHandler(banRepository),
 	}
 
 	for _, h := range handlers {
@@ -322,6 +327,7 @@ func runBotInstance(
 		userRepository,
 		chatMemberRepository,
 		messageRepository,
+		banRepository,
 		summonH,
 	)
 
@@ -374,6 +380,7 @@ func registerMiddlewares(
 	userRepository user.Repository,
 	chatMemberRepository chatmember.Repository,
 	messageRepository message.Repository,
+	banRepository ban.Repository,
 	summonH *summon.Handler,
 ) {
 	bot.UseOuter(
@@ -392,6 +399,8 @@ func registerMiddlewares(
 		botapi.Recover(),
 		botapi.Timeout(time.Minute),
 		botapi.Logging(),
+
+		middleware.BanMiddleware(banRepository),
 	)
 }
 

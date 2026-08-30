@@ -73,3 +73,9 @@ func AllowDev() Option {
 		c.AllowDev = true
 	}
 }
+
+func OnlyDev() Option {
+	return func(c *command.Action) {
+		c.OnlyDev = true
+	}
+}

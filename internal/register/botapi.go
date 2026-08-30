@@ -105,6 +105,10 @@ func buildCommandPredicates(
 		predicates = append(predicates, predicate.NoArgs())
 	}
 
+	if action.OnlyDev {
+		predicates = append(predicates, permissions.RequireDev())
+	}
+
 	if action.IgnorePermissionDenied {
 		predicates = append(predicates,
 			permissions.Pass(action.Key, action.Permission),
