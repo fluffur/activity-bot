@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gotd/botapi"
 	"github.com/jackc/pgx/v5"
 )
@@ -25,6 +26,8 @@ func BanMiddleware(repo ban.Repository) botapi.Middleware {
 				}
 
 				if err == nil {
+					spew.Dump("user banned", userBan, c.Message().Text)
+
 					_, err := c.Reply(
 						fmt.Sprintf(
 							"Вы забанены у бота.%s",
