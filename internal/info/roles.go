@@ -33,6 +33,7 @@ const rolesTemplate = `{{.Header}}
 {{range .Categories -}}
 {{.Name}}
 <blockquote expandable>{{.Text}}</blockquote>
+
 {{end}}
 {{.Footer}}`
 
@@ -119,8 +120,6 @@ func formatRoles(roles []RenderRole) string {
 		if i+1 < len(roles) {
 			right := formatRole(roles[i+1])
 
-			// Плавающий отступ между колонками.
-			// Чем длиннее левая роль, тем меньше расстояние.
 			padding := 20 - len([]rune(left))
 
 			if padding < 4 {
