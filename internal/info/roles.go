@@ -151,7 +151,8 @@ func Render(fandoms []roles.Fandom, states map[string]RoleState) (string, error)
 <blockquote><a href="http://t.me/HavenGateBot?start=true">бот для заявок</a></blockquote>
 бронь – ✷
 занятая роль – ♡゙
-нуждаемся – !`,
+нуждаемся – !
+`,
 		Footer: `менять роль можно только 3 раза
 для смены роли следует обратиться к владельцу или совладельцу`,
 	}
