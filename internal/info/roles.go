@@ -145,6 +145,16 @@ func Render(
 		return nil, errors.New("must provide exactly one random role")
 	}
 
+	const maxCaptionLength = 1000
+
+	header := `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . 
+
+<blockquote><a href="https://t.me/HavenGateBot?start=true">бот для заявок</a></blockquote>
+бронь – ✷
+занятая роль – ♡゙
+нуждаемся – !
+`
+
 	categories := make([]RenderCategory, 0, len(fandoms[0].Categories))
 
 	for _, cat := range fandoms[0].Categories {
@@ -170,27 +180,47 @@ func Render(
 		categories = append(categories, rc)
 	}
 
-	mid := (len(categories) + 1) / 2
+	var posts []string
+	var current []RenderCategory
+	currentHeader := header
 
-	header := `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . 
+	for _, category := range categories {
+		testCategories := append(
+			append([]RenderCategory(nil), current...),
+			category,
+		)
 
-<blockquote><a href="https://t.me/HavenGateBot?start=true">бот для заявок</a></blockquote>
-бронь – ✷
-занятая роль – ♡゙
-нуждаемся – !
-`
+		testPost, err := renderCategories(testCategories, currentHeader)
+		if err != nil {
+			return nil, err
+		}
 
-	post1, err := renderCategories(categories[:mid], header)
-	if err != nil {
-		return nil, err
+		if len([]rune(testPost)) > maxCaptionLength && len(current) > 0 {
+			post, err := renderCategories(current, currentHeader)
+			if err != nil {
+				return nil, err
+			}
+
+			posts = append(posts, post)
+
+			current = []RenderCategory{category}
+			currentHeader = ""
+			continue
+		}
+
+		current = testCategories
 	}
 
-	post2, err := renderCategories(categories[mid:], "")
-	if err != nil {
-		return nil, err
+	if len(current) > 0 {
+		post, err := renderCategories(current, currentHeader)
+		if err != nil {
+			return nil, err
+		}
+
+		posts = append(posts, post)
 	}
 
-	return []string{post1, post2}, nil
+	return posts, nil
 }
 
 func renderCategories(
