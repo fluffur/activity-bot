@@ -170,7 +170,7 @@ func Render(
 		categories = append(categories, rc)
 	}
 
-	mid := (len(categories) - 1) / 2
+	mid := (len(categories) - 3) / 2
 
 	header := `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . 
 
