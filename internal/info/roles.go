@@ -178,7 +178,7 @@ func Render(
 нуждаемся – !
 `
 
-	firstCount := 1
+	firstCount := 3
 
 	if firstCount > len(categories) {
 		firstCount = len(categories)
