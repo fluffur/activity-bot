@@ -34,8 +34,7 @@ const rolesTemplate = `{{.Header}}
 {{.Name}}
 <blockquote expandable>{{.Text}}</blockquote>
 
-{{end}}
-{{.Footer}}`
+{{end}}`
 
 var rolesTmpl = template.Must(
 	template.New("roles").Parse(rolesTemplate),
@@ -138,23 +137,15 @@ func formatRoles(roles []RenderRole) string {
 	return buf.String()
 }
 
-func Render(fandoms []roles.Fandom, states map[string]RoleState) (string, error) {
+func Render(
+	fandoms []roles.Fandom,
+	states map[string]RoleState,
+) ([]string, error) {
 	if len(fandoms) != 1 {
-		return "", errors.New("must provide exactly one random role")
+		return nil, errors.New("must provide exactly one random role")
 	}
 
-	data := RenderData{
-		Categories: make([]RenderCategory, 0, len(fandoms[0].Categories)),
-		Header: `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . 
-
-<blockquote><a href="http://t.me/HavenGateBot?start=true">бот для заявок</a></blockquote>
-бронь – ✷
-занятая роль – ♡゙
-нуждаемся – !
-`,
-		Footer: `менять роль можно только 3 раза
-для смены роли следует обратиться к владельцу или совладельцу`,
-	}
+	categories := make([]RenderCategory, 0, len(fandoms[0].Categories))
 
 	for _, cat := range fandoms[0].Categories {
 		rc := RenderCategory{
@@ -176,7 +167,39 @@ func Render(fandoms []roles.Fandom, states map[string]RoleState) (string, error)
 
 		rc.Text = formatRoles(rc.Roles)
 
-		data.Categories = append(data.Categories, rc)
+		categories = append(categories, rc)
+	}
+
+	mid := (len(categories) + 1) / 2
+
+	header := `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . 
+
+<blockquote><a href="https://t.me/HavenGateBot?start=true">бот для заявок</a></blockquote>
+бронь – ✷
+занятая роль – ♡゙
+нуждаемся – !
+`
+
+	post1, err := renderCategories(categories[:mid], header)
+	if err != nil {
+		return nil, err
+	}
+
+	post2, err := renderCategories(categories[mid:], "")
+	if err != nil {
+		return nil, err
+	}
+
+	return []string{post1, post2}, nil
+}
+
+func renderCategories(
+	categories []RenderCategory,
+	header string,
+) (string, error) {
+	data := RenderData{
+		Categories: categories,
+		Header:     header,
 	}
 
 	var buf bytes.Buffer
