@@ -6,6 +6,8 @@ import (
 	"activity-bot/internal/roles"
 	"bytes"
 	"errors"
+	"fmt"
+	"strings"
 	"text/template"
 )
 
@@ -19,6 +21,7 @@ type RenderCategory struct {
 	Emoji string
 	Name  string
 	Roles []RenderRole
+	Text  string
 }
 
 type RenderRole struct {
@@ -29,9 +32,7 @@ type RenderRole struct {
 const rolesTemplate = `{{.Header}}
 {{range .Categories -}}
 {{.Name}}
-<blockquote expandable>{{range .Roles}}{{.Name}} - {{.Status}}
-{{end}}
-</blockquote>
+<blockquote expandable>{{.Text}}</blockquote>
 {{end}}
 {{.Footer}}`
 
@@ -103,10 +104,46 @@ func BuildRoleStates(
 	return result
 }
 
+func formatRole(role RenderRole) string {
+	return fmt.Sprintf("%s  — %s", role.Name, role.Status)
+}
+
+func formatRoles(roles []RenderRole) string {
+	var buf bytes.Buffer
+
+	for i := 0; i < len(roles); i += 2 {
+		left := formatRole(roles[i])
+
+		buf.WriteString(left)
+
+		if i+1 < len(roles) {
+			right := formatRole(roles[i+1])
+
+			// Плавающий отступ между колонками.
+			// Чем длиннее левая роль, тем меньше расстояние.
+			padding := 20 - len([]rune(left))
+
+			if padding < 4 {
+				padding = 4
+			}
+
+			buf.WriteString(strings.Repeat(" ", padding))
+			buf.WriteString(right)
+		}
+
+		if i+2 < len(roles) {
+			buf.WriteByte('\n')
+		}
+	}
+
+	return buf.String()
+}
+
 func Render(fandoms []roles.Fandom, states map[string]RoleState) (string, error) {
 	if len(fandoms) != 1 {
 		return "", errors.New("must provide exactly one random role")
 	}
+
 	data := RenderData{
 		Categories: make([]RenderCategory, 0, len(fandoms[0].Categories)),
 		Header: `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . 
@@ -136,6 +173,8 @@ func Render(fandoms []roles.Fandom, states map[string]RoleState) (string, error)
 				Status: status,
 			})
 		}
+
+		rc.Text = formatRoles(rc.Roles)
 
 		data.Categories = append(data.Categories, rc)
 	}
