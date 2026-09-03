@@ -7,14 +7,17 @@ import (
 type State string
 
 const (
-	AppStateIdle        State = ""
-	AppStateAwaitRole   State = "await_role"
-	AppStateConfirmRole State = "confirm_role"
-	AppStatePending     State = "pending"
+	AppStateIdle          State = ""
+	AppStateAwaitRole     State = "await_role"
+	AppStateAwaitDocument State = "await_document"
+	AppStateConfirmRules  State = "confirm_role"
+	AppStatePending       State = "pending"
 )
 
 type AppStateData struct {
-	Role roles.Role `json:"role"`
+	Role     roles.Role `json:"role"`
+	FileID   string     `json:"file_id"`
+	FileType string     `json:"file_type"`
 }
 
 type RejectState string

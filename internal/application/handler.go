@@ -165,7 +165,7 @@ func (h *Handler) ProcessRole(c *botapi.Context) error {
 
 	if err := h.appFSM.Enter(
 		c,
-		AppStateConfirmRole,
+		AppStateAwaitDocument,
 		AppStateData{
 			Role: foundRole,
 		},
@@ -174,8 +174,59 @@ func (h *Handler) ProcessRole(c *botapi.Context) error {
 	}
 
 	_, err = c.Reply(
+		"Отправьте фото документа, подтверждающего ваш возраст " +
+			"(паспорт, удостоверение личности, водительские права, скрин с госуслуг и т.д.)" +
+			"\nВажно замазать всё кроме даты",
+	)
+
+	return err
+}
+
+func (h *Handler) ProcessDocument(c *botapi.Context) error {
+	msg := c.Message()
+	if msg == nil {
+		return nil
+	}
+
+	sess, ok, err := h.appFSM.Get(c)
+	if err != nil {
+		return err
+	}
+
+	if !ok || sess.State != AppStateAwaitDocument {
+		return nil
+	}
+
+	var fileID string
+	var fileType string
+
+	if len(msg.Photo) > 0 {
+		fileID = msg.Photo[len(msg.Photo)-1].FileID
+		fileType = "photo"
+	} else if msg.Document != nil {
+		fileID = msg.Document.FileID
+		fileType = "document"
+	} else {
+		_, err := c.Reply(
+			"Пожалуйста, отправьте фото паспорта или документ.",
+		)
+		return err
+	}
+
+	sess.Data.FileID = fileID
+	sess.Data.FileType = fileType
+
+	if err := h.appFSM.Enter(
+		c,
+		AppStateConfirmRules,
+		sess.Data,
+	); err != nil {
+		return err
+	}
+
+	_, err = c.Reply(
 		fmt.Sprintf(
-			"Перед отправкой заявки подтвердите, что вы ознакомились с %s",
+			"Документ получен.\n\nПеред отправкой заявки подтвердите, что вы ознакомились с %s",
 			tghtml.Link("https://t.me/H4venflood", "инфо флуда"),
 		),
 		botapi.WithParseMode(botapi.ParseModeHTML),
@@ -205,8 +256,10 @@ func (h *Handler) ConfirmRules(c *botapi.Context) error {
 	if msg == nil {
 		return nil
 	}
+
 	var senderID int64
 	var username, firstname, lastname string
+
 	if sender := c.Sender(); sender != nil {
 		username = sender.Username
 		firstname = sender.FirstName
@@ -224,15 +277,10 @@ func (h *Handler) ConfirmRules(c *botapi.Context) error {
 	if username != "" {
 		userRef = "@" + username
 	} else {
-		userRef = strings.TrimSpace(
-			firstname + " " + lastname,
-		)
+		userRef = strings.TrimSpace(firstname + " " + lastname)
 
 		if userRef == "" {
-			userRef = fmt.Sprintf(
-				"ID: %d",
-				senderID,
-			)
+			userRef = fmt.Sprintf("ID: %d", senderID)
 		}
 	}
 
@@ -244,6 +292,10 @@ func (h *Handler) ConfirmRules(c *botapi.Context) error {
 		return nil
 	}
 
+	if sess.Data.FileID == "" {
+		return fmt.Errorf("application document file_id is empty")
+	}
+
 	app := Application{
 		UserID:   senderID,
 		ChatID:   h.targetChatID,
@@ -251,10 +303,7 @@ func (h *Handler) ConfirmRules(c *botapi.Context) error {
 		Username: username,
 	}
 
-	appID := strconv.FormatInt(
-		senderID,
-		10,
-	)
+	appID := strconv.FormatInt(senderID, 10)
 
 	adminMsg := fmt.Sprintf(
 		"Новая заявка на вступление!\n\n"+
@@ -264,27 +313,49 @@ func (h *Handler) ConfirmRules(c *botapi.Context) error {
 		userRef,
 	)
 
-	_, err = c.Bot.SendMessage(
-		c,
-		botapi.ID(h.applicationChatID),
-		adminMsg,
-		botapi.WithReplyMarkup(
-			botapi.InlineKeyboard(
-				botapi.InlineRow(
-					botapi.InlineButtonData(
-						"Принять",
-						"app:accept:"+appID,
-					),
-					botapi.InlineButtonData(
-						"Отклонить",
-						"app:reject:"+appID,
-					),
+	keyboard := botapi.WithReplyMarkup(
+		botapi.InlineKeyboard(
+			botapi.InlineRow(
+				botapi.InlineButtonData(
+					"Принять",
+					"app:accept:"+appID,
+				),
+				botapi.InlineButtonData(
+					"Отклонить",
+					"app:reject:"+appID,
 				),
 			),
 		),
 	)
+
+	switch sess.Data.FileType {
+	case "photo":
+		_, err = c.Bot.SendPhoto(
+			c,
+			botapi.ID(h.applicationChatID),
+			botapi.InputFileID(sess.Data.FileID),
+			adminMsg,
+			keyboard,
+		)
+
+	case "document":
+		_, err = c.Bot.SendDocument(
+			c,
+			botapi.ID(h.applicationChatID),
+			botapi.InputFileID(sess.Data.FileID),
+			adminMsg,
+			keyboard,
+		)
+
+	default:
+		return fmt.Errorf(
+			"unknown application file type: %q",
+			sess.Data.FileType,
+		)
+	}
+
 	if err != nil {
-		return fmt.Errorf("send message: %w", err)
+		return fmt.Errorf("send application with document: %w", err)
 	}
 
 	if err := h.appFSM.Enter(
@@ -300,6 +371,7 @@ func (h *Handler) ConfirmRules(c *botapi.Context) error {
 	}
 
 	chatID, _ := c.Chat()
+
 	_, err = c.Bot.SendMessage(
 		c,
 		chatID,

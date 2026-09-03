@@ -527,10 +527,17 @@ func runApplicationBot(
 		botapi.ChatTypeIs(botapi.ChatTypePrivate),
 	)
 
+	bot.OnMessage(
+		appHandler.ProcessDocument,
+		appFSM.State(application.AppStateAwaitDocument),
+		botapi.HasText(),
+		botapi.ChatTypeIs(botapi.ChatTypePrivate),
+	)
+
 	bot.OnCallbackQuery(
 		appHandler.ConfirmRules,
 		botapi.CallbackData("app:confirm_rules"),
-		appFSM.State(application.AppStateConfirmRole),
+		appFSM.State(application.AppStateConfirmRules),
 	)
 
 	bot.OnCallbackQuery(
