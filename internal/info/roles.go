@@ -191,24 +191,7 @@ func Render(fandoms []roles.Fandom, states map[string]RoleState) (string, error)
 
 func formatCategoryName(name string) string {
 	return fmt.Sprintf(
-		"˖ ݁𖥔.  %s  .𖥔 ݁ ˖",
-		toBold(name),
+		"    ˖ ݁𖥔.  %s  .𖥔 ݁ ˖",
+		name,
 	)
-}
-
-func toBold(s string) string {
-	var b strings.Builder
-
-	for _, r := range s {
-		switch {
-		case r >= 'a' && r <= 'z':
-			b.WriteRune('𝗮' + (r - 'a'))
-		case r >= 'A' && r <= 'Z':
-			b.WriteRune('𝗔' + (r - 'A'))
-		default:
-			b.WriteRune(r)
-		}
-	}
-
-	return b.String()
 }
