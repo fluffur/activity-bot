@@ -530,7 +530,6 @@ func runApplicationBot(
 	bot.OnMessage(
 		appHandler.ProcessDocument,
 		appFSM.State(application.AppStateAwaitDocument),
-		botapi.HasText(),
 		botapi.ChatTypeIs(botapi.ChatTypePrivate),
 	)
 
