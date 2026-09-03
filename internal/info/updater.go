@@ -61,24 +61,23 @@ func (r *Updater) UpdateRolesPost(c context.Context, chatID int64, bot *botapi.B
 	if err != nil {
 		return fmt.Errorf("render role states: %w", err)
 	}
-	if err := editCaption(
+	err = editCaption(
 		c,
 		bot,
 		"H4venflood",
 		8,
 		text[0],
-	); err != nil {
-		return fmt.Errorf("update roles post 8: %w", err)
-	}
-
-	if err := editCaption(
+	)
+	err = editCaption(
 		c,
 		bot,
 		"H4venflood",
 		15,
 		text[1],
-	); err != nil {
-		return fmt.Errorf("update roles post 15: %w", err)
+	)
+
+	if err != nil {
+		return fmt.Errorf("update roles: %w", err)
 	}
 
 	return nil
