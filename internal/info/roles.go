@@ -170,8 +170,6 @@ func Render(
 		categories = append(categories, rc)
 	}
 
-	mid := (len(categories) - 3) / 2
-
 	header := `˚   𝘇 𐰁   𓆩 🗯 𓆪 ㅤ姿態哦   ૮ > . ა ✿ ꒱ . 
 
 <blockquote><a href="https://t.me/HavenGateBot?start=true">бот для заявок</a></blockquote>
@@ -180,12 +178,18 @@ func Render(
 нуждаемся – !
 `
 
-	post1, err := renderCategories(categories[:mid], header)
+	firstCount := 3
+
+	if firstCount > len(categories) {
+		firstCount = len(categories)
+	}
+
+	post1, err := renderCategories(categories[:firstCount], header)
 	if err != nil {
 		return nil, err
 	}
 
-	post2, err := renderCategories(categories[mid:], "")
+	post2, err := renderCategories(categories[firstCount:], "")
 	if err != nil {
 		return nil, err
 	}
