@@ -29,12 +29,9 @@ type RenderRole struct {
 	Status string
 }
 
-const rolesTemplate = `{{.Header}}
-{{range .Categories -}}
+const rolesTemplate = `{{.Header}}{{range .Categories}}
 {{.Name}}
-<blockquote expandable>{{.Text}}</blockquote>
-
-{{end}}`
+<blockquote expandable>{{.Text}}</blockquote>{{end}}`
 
 var rolesTmpl = template.Must(
 	template.New("roles").Parse(rolesTemplate),
