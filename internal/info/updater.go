@@ -65,7 +65,7 @@ func (r *Updater) UpdateRolesPost(c context.Context, chatID int64, bot *botapi.B
 		c,
 		bot,
 		"H4venflood",
-		15,
+		24,
 		text,
 	)
 
