@@ -58,7 +58,9 @@ func (h *Handler) Start(c *botapi.Context) error {
 		return err
 	}
 	if ok && sess.State == AppStatePending {
-		_, err := c.Reply("Пожалуйста, подождите пока вашу заявку обработают, перед тем как отправлять еще одну")
+		_, err := c.Reply(
+			"Пожалуйста, подождите пока вашу заявку обработают, перед тем как отправлять еще одну",
+		)
 		return err
 	}
 
@@ -70,8 +72,10 @@ func (h *Handler) Start(c *botapi.Context) error {
 		return err
 	}
 
-	_, err = c.Reply("Отправьте этому боту желаемую роль одним сообщением\n\n"+
-		tghtml.PatPatEmoji()+" "+tghtml.Link(h.rolesPostLink, "Роли флуда"),
+	_, err = c.Reply(
+		"Отправьте этому боту желаемую роль одним сообщением\n\n"+
+			tghtml.PatPatEmoji()+" "+
+			tghtml.Link(h.rolesPostLink, "Роли флуда"),
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
 	)
@@ -112,7 +116,6 @@ func (h *Handler) StartCallback(c *botapi.Context) error {
 		botapi.WithParseMode(botapi.ParseModeHTML),
 		botapi.DisableWebPagePreview(),
 	)
-
 	if err != nil {
 		return err
 	}
@@ -143,13 +146,20 @@ func (h *Handler) ProcessRole(c *botapi.Context) error {
 		c.Background(),
 		h.targetChatID,
 	)
-
 	if err != nil {
 		return fmt.Errorf("list chat members: %w", err)
 	}
-	foundRole, err := h.rolesRepository.GetRoleByNameOrAlias(c, h.targetChatID, "Genshin Impact", role)
+
+	foundRole, err := h.rolesRepository.GetRoleByNameOrAlias(
+		c,
+		h.targetChatID,
+		"Genshin Impact",
+		role,
+	)
 	if err != nil {
-		_, err := c.Reply("Данная роль не найдена, пожалуйста укажите в сообщении сушествующую роль")
+		_, err := c.Reply(
+			"Данная роль не найдена, пожалуйста укажите в сообщении существующую роль",
+		)
 		return err
 	}
 
@@ -165,7 +175,7 @@ func (h *Handler) ProcessRole(c *botapi.Context) error {
 
 	if err := h.appFSM.Enter(
 		c,
-		AppStateAwaitDocument,
+		AppStateAwaitBirthDate,
 		AppStateData{
 			Role: foundRole,
 		},
@@ -174,15 +184,14 @@ func (h *Handler) ProcessRole(c *botapi.Context) error {
 	}
 
 	_, err = c.Reply(
-		"Отправьте фото документа, подтверждающего ваш возраст " +
-			"(паспорт, удостоверение личности, водительские права, скрин с госуслуг и т.д.)" +
-			"\nВажно замазать всё кроме даты",
+		"Укажите вашу дату рождения.\n\n" +
+			"Формат свободный, например: 12.05.2004, 12 мая 2004 или 2004-05-12",
 	)
 
 	return err
 }
 
-func (h *Handler) ProcessDocument(c *botapi.Context) error {
+func (h *Handler) ProcessBirthDate(c *botapi.Context) error {
 	msg := c.Message()
 	if msg == nil {
 		return nil
@@ -193,28 +202,20 @@ func (h *Handler) ProcessDocument(c *botapi.Context) error {
 		return err
 	}
 
-	if !ok || sess.State != AppStateAwaitDocument {
+	if !ok || sess.State != AppStateAwaitBirthDate {
 		return nil
 	}
 
-	var fileID string
-	var fileType string
+	birthDate := strings.TrimSpace(msg.Text)
 
-	if len(msg.Photo) > 0 {
-		fileID = msg.Photo[len(msg.Photo)-1].FileID
-		fileType = "photo"
-	} else if msg.Document != nil {
-		fileID = msg.Document.FileID
-		fileType = "document"
-	} else {
+	if birthDate == "" {
 		_, err := c.Reply(
-			"Пожалуйста, отправьте фото паспорта или документ.",
+			"Пожалуйста, укажите дату рождения.",
 		)
 		return err
 	}
 
-	sess.Data.FileID = fileID
-	sess.Data.FileType = fileType
+	sess.Data.BirthDate = birthDate
 
 	if err := h.appFSM.Enter(
 		c,
@@ -226,7 +227,7 @@ func (h *Handler) ProcessDocument(c *botapi.Context) error {
 
 	_, err = c.Reply(
 		fmt.Sprintf(
-			"Документ получен.\n\nПеред отправкой заявки подтвердите, что вы ознакомились с %s",
+			"Дата рождения получена.\n\nПеред отправкой заявки подтвердите, что вы ознакомились с %s",
 			tghtml.Link("https://t.me/H4venflood", "инфо флуда"),
 		),
 		botapi.WithParseMode(botapi.ParseModeHTML),
@@ -292,8 +293,8 @@ func (h *Handler) ConfirmRules(c *botapi.Context) error {
 		return nil
 	}
 
-	if sess.Data.FileID == "" {
-		return fmt.Errorf("application document file_id is empty")
+	if sess.Data.BirthDate == "" {
+		return fmt.Errorf("application birth date is empty")
 	}
 
 	app := Application{
@@ -308,8 +309,10 @@ func (h *Handler) ConfirmRules(c *botapi.Context) error {
 	adminMsg := fmt.Sprintf(
 		"Новая заявка на вступление!\n\n"+
 			"Роль: %s\n"+
+			"Дата рождения: %s\n"+
 			"Пользователь: %s",
 		sess.Data.Role.Name,
+		sess.Data.BirthDate,
 		userRef,
 	)
 
@@ -328,34 +331,14 @@ func (h *Handler) ConfirmRules(c *botapi.Context) error {
 		),
 	)
 
-	switch sess.Data.FileType {
-	case "photo":
-		_, err = c.Bot.SendPhoto(
-			c,
-			botapi.ID(h.applicationChatID),
-			botapi.InputFileID(sess.Data.FileID),
-			adminMsg,
-			keyboard,
-		)
-
-	case "document":
-		_, err = c.Bot.SendDocument(
-			c,
-			botapi.ID(h.applicationChatID),
-			botapi.InputFileID(sess.Data.FileID),
-			adminMsg,
-			keyboard,
-		)
-
-	default:
-		return fmt.Errorf(
-			"unknown application file type: %q",
-			sess.Data.FileType,
-		)
-	}
-
+	_, err = c.Bot.SendMessage(
+		c,
+		botapi.ID(h.applicationChatID),
+		adminMsg,
+		keyboard,
+	)
 	if err != nil {
-		return fmt.Errorf("send application with document: %w", err)
+		return fmt.Errorf("send application: %w", err)
 	}
 
 	if err := h.appFSM.Enter(
@@ -400,7 +383,6 @@ func (h *Handler) Accept(c *botapi.Context) error {
 		10,
 		64,
 	)
-
 	if err != nil {
 		return fmt.Errorf("accept: %w", err)
 	}
@@ -421,7 +403,6 @@ func (h *Handler) Accept(c *botapi.Context) error {
 			h.targetChatLink,
 		),
 	)
-
 	if err != nil {
 		return fmt.Errorf("notify applicant: %w", err)
 	}
@@ -444,7 +425,12 @@ func (h *Handler) Accept(c *botapi.Context) error {
 		return err
 	}
 
-	if _, err := c.Bot.SendMessage(c, chatID, "Заявка успешно принята", botapi.ReplyTo(cq.Message.MessageID)); err != nil {
+	if _, err := c.Bot.SendMessage(
+		c,
+		chatID,
+		"Заявка успешно принята",
+		botapi.ReplyTo(cq.Message.MessageID),
+	); err != nil {
 		return err
 	}
 
@@ -466,7 +452,6 @@ func (h *Handler) Reject(c *botapi.Context) error {
 		10,
 		64,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -475,7 +460,6 @@ func (h *Handler) Reject(c *botapi.Context) error {
 		c.Background(),
 		userID,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -493,18 +477,23 @@ func (h *Handler) Reject(c *botapi.Context) error {
 	if err := h.rejectFSM.Enter(
 		c,
 		RejectStateAwaitRejectMessage,
-		RejectStateData{UserID: userID, ChatID: h.targetChatID},
+		RejectStateData{
+			UserID: userID,
+			ChatID: h.targetChatID,
+		},
 	); err != nil {
 		return err
 	}
 
 	chatID, _ := c.Chat()
+
 	_, _ = c.Bot.EditMessageReplyMarkup(
 		c,
 		botapi.ID(cq.Message.Chat.ID),
 		cq.Message.MessageID,
 		nil,
 	)
+
 	_, err = c.Bot.SendMessage(
 		c,
 		chatID,
@@ -528,13 +517,18 @@ func (h *Handler) RejectMessage(c *botapi.Context) error {
 		return nil
 	}
 
-	application, err := h.repository.Get(c, sess.Data.ChatID, sess.Data.UserID)
+	application, err := h.repository.Get(
+		c,
+		sess.Data.ChatID,
+		sess.Data.UserID,
+	)
 	if err != nil {
 		return err
 	}
 	if application == nil {
 		return nil
 	}
+
 	reason := strings.TrimSpace(msg.Text)
 
 	if reason == "" {
@@ -563,7 +557,6 @@ func (h *Handler) RejectMessage(c *botapi.Context) error {
 			),
 		),
 	)
-
 	if err != nil {
 		return fmt.Errorf("notify applicant rejection: %w", err)
 	}

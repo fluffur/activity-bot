@@ -528,8 +528,8 @@ func runApplicationBot(
 	)
 
 	bot.OnMessage(
-		appHandler.ProcessDocument,
-		appFSM.State(application.AppStateAwaitDocument),
+		appHandler.ProcessBirthDate,
+		appFSM.State(application.AppStateAwaitBirthDate),
 		botapi.ChatTypeIs(botapi.ChatTypePrivate),
 	)
 
