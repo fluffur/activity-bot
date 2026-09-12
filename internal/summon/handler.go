@@ -10,7 +10,6 @@ import (
 	"activity-bot/internal/option"
 	"activity-bot/internal/permission"
 	"activity-bot/internal/rule"
-	"sync"
 
 	fsm "github.com/fluffur/botapi-fsm"
 
@@ -29,7 +28,6 @@ const (
 type Handler struct {
 	chatService       *chat.Service
 	chatMemberService *chatmember.Service
-	activeSummons     sync.Map
 	summonFSM         *fsm.Machine[State, StateData]
 }
 
@@ -41,7 +39,6 @@ func NewHandler(
 	return &Handler{
 		chatService:       chs,
 		chatMemberService: cms,
-		activeSummons:     sync.Map{},
 		summonFSM:         summonFSM,
 	}
 }

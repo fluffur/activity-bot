@@ -82,10 +82,6 @@ func (h *Handler) RunSummon(
 	ch chat.Chat,
 	cms []chatmember.ChatMember,
 ) error {
-	if _, loaded := h.activeSummons.LoadOrStore(ch.ID, struct{}{}); loaded {
-		return nil
-	}
-
 	perMsg := int(ch.MentionsPerMessage)
 	if perMsg <= 0 {
 		perMsg = len(cms)
@@ -94,8 +90,6 @@ func (h *Handler) RunSummon(
 	groups := chunk(cms, perMsg)
 
 	go func() {
-		defer h.activeSummons.Delete(ch.ID)
-
 		if err := SendMessages(
 			ctx,
 			bot,
@@ -170,7 +164,7 @@ func SendMessages(
 	mentionTypes chat.MentionTypes,
 	groups [][]chatmember.ChatMember,
 ) error {
-	limiter := rate.NewLimiter(rate.Every(time.Second), 5)
+	limiter := rate.NewLimiter(rate.Every(1500*time.Millisecond), 3)
 
 	peer, err := bot.Peers().ResolveTDLibID(
 		ctx,
