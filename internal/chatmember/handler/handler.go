@@ -347,10 +347,10 @@ func (h *Handler) OldMembers(c *botapi.Context) error {
 	}
 
 	sb := strings.Builder{}
-	sb.WriteString("Дата вступления участников\n")
+	sb.WriteString("Даты вступления участников\n\n")
 	sb.WriteString("<blockquote expandable>")
 	for i, cm := range cms {
-		sb.WriteString(tghtml.MemberLink(loc, ch, cm) + " " + tghtml.RelativeDateTime(cm.JoinedAt, time.Now()))
+		sb.WriteString(fmt.Sprintf("%d. ", i+1) + tghtml.MemberLink(loc, ch, cm) + " " + tghtml.RelativeDateTime(cm.JoinedAt, time.Now()))
 		if i < len(cms)-1 {
 			sb.WriteString("\n")
 		}
