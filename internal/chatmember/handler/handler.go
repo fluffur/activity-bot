@@ -17,6 +17,7 @@ import (
 	"activity-bot/internal/utils/tghtml"
 	"fmt"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/gotd/botapi"
@@ -111,6 +112,13 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithAliases("др", "+др"),
 			option.WithRules(rule.User().Optional(), rule.DateTimeOrDuration()),
 			option.WithPermission(permission.StatusModerator),
+		),
+		action.NewCommand(
+			"olds",
+			h.OldMembers,
+			"Посмотреть дату входа участников во флуд",
+			CategoryChatMember,
+			option.WithAliases("олды"),
 		),
 	}
 }
@@ -317,4 +325,41 @@ func (h *Handler) SetChatMemberBirthday(c *botapi.Context) error {
 
 	return err
 
+}
+
+func (h *Handler) OldMembers(c *botapi.Context) error {
+	ch := cctx.MustChat(c)
+	loc := cctx.MustLocalizer(c)
+
+	cms, err := h.repo.List(c, chatmember.Filter{
+		ChatID: ch.ID,
+		IsBot: chatmember.OptionalBool{
+			Bool:  false,
+			Valid: true,
+		},
+		Left: chatmember.OptionalBool{
+			Bool:  false,
+			Valid: true,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("old members: %w", err)
+	}
+
+	sb := strings.Builder{}
+	sb.WriteString("Дата вступления участников\n")
+	sb.WriteString("<blockquote expandable>")
+	for i, cm := range cms {
+		sb.WriteString(tghtml.MemberLink(loc, ch, cm) + " " + tghtml.RelativeDateTime(cm.JoinedAt, time.Now()))
+		if i < len(cms)-1 {
+			sb.WriteString("\n")
+		}
+	}
+	sb.WriteString("</blockquote>")
+
+	_, err = c.Reply(sb.String(),
+		botapi.WithParseMode(botapi.ParseModeHTML),
+		botapi.DisableWebPagePreview())
+
+	return err
 }
