@@ -7,7 +7,8 @@ SELECT count(*)
 FROM moderation_actions
 WHERE chat_id = $1
   AND user_id = $2
-  AND type = 'warn';
+  AND type = 'warn'
+  AND expires_at > NOW();
 
 -- name: GetActiveWarns :many
 SELECT sqlc.embed(um), sqlc.embed(cmm), sqlc.embed(u), sqlc.embed(cm), ma.*

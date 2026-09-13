@@ -300,6 +300,7 @@ FROM moderation_actions
 WHERE chat_id = $1
   AND user_id = $2
   AND type = 'warn'
+  AND expires_at > NOW()
 `
 
 type GetActiveWarnsCountParams struct {
