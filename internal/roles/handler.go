@@ -43,7 +43,7 @@ func (h *Handler) Actions() []*command.Action {
 			i18n.Cmd.Roles.Reserve.Desc,
 			RolesCategory,
 			option.WithAliases("бронь"),
-			option.WithRules(rule.Number().Optional(), rule.Text()),
+			option.WithRules(rule.User(), rule.Text()),
 			option.WithPermission(permission.StatusAdmin),
 		),
 		action.NewCommand(
@@ -65,7 +65,7 @@ func (h *Handler) ReserveRole(c *botapi.Context) error {
 	if !ok {
 		return nil
 	}
-	number, ok := args.Number()
+	u, ok := args.User()
 	if !ok {
 		return nil
 	}
@@ -75,7 +75,7 @@ func (h *Handler) ReserveRole(c *botapi.Context) error {
 		return fmt.Errorf("reserve role: %w", err)
 	}
 
-	if err := h.repo.CreateRoleReservation(c, ch.ID, number, role.ID); err != nil {
+	if err := h.repo.CreateRoleReservation(c, ch.ID, u.ID(), role.ID); err != nil {
 		return fmt.Errorf("create role reservation: %w", err)
 	}
 
