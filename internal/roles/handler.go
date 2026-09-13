@@ -43,7 +43,7 @@ func (h *Handler) Actions() []*command.Action {
 			i18n.Cmd.Roles.Reserve.Desc,
 			RolesCategory,
 			option.WithAliases("бронь"),
-			option.WithRules(rule.User(), rule.Text()),
+			option.WithRules(rule.User().Optional(), rule.Text()),
 			option.WithPermission(permission.StatusAdmin),
 		),
 		action.NewCommand(
@@ -66,8 +66,9 @@ func (h *Handler) ReserveRole(c *botapi.Context) error {
 		return nil
 	}
 	u, ok := args.User()
-	if !ok {
-		return nil
+	var userID int64
+	if ok {
+		userID = u.ID()
 	}
 	role, err := h.repo.GetRoleByNameOrAlias(c, ch.ID, "Genshin Impact", predicate.NormalizeTag(text))
 
@@ -75,7 +76,7 @@ func (h *Handler) ReserveRole(c *botapi.Context) error {
 		return fmt.Errorf("reserve role: %w", err)
 	}
 
-	if err := h.repo.CreateRoleReservation(c, ch.ID, u.ID(), role.ID); err != nil {
+	if err := h.repo.CreateRoleReservation(c, ch.ID, userID, role.ID); err != nil {
 		return fmt.Errorf("create role reservation: %w", err)
 	}
 
