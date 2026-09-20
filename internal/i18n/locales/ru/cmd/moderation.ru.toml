@@ -163,3 +163,10 @@ can_pin_messages = "Закрепление сообщений"
 can_manage_topics = "Управление топиками"
 updated = "Права обновлены"
 update_failed = "Не удалось обновить права"
+
+[cmd.moderation.chatoff]
+desc = "Приостановить общение в чате"
+
+[cmd.moderation.chaton]
+desc = "Возобновить общение в чате"
+

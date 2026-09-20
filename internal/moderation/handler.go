@@ -248,6 +248,24 @@ func (h *Handler) Actions() []*command.Action {
 			option.WithPermission(permission.StatusAdmin),
 			option.WithAliases("-смс"),
 		),
+
+		action.NewCommand(
+			"chatoff",
+			h.OffChat,
+			i18n.Cmd.Moderation.Chatoff.Desc,
+			CategoryModeration,
+			option.WithPermission(permission.StatusSeniorAdmin),
+			option.WithAliases("-чат"),
+		),
+
+		action.NewCommand(
+			"chaton",
+			h.OnChat,
+			i18n.Cmd.Moderation.Chaton.Desc,
+			CategoryModeration,
+			option.WithPermission(permission.StatusSeniorAdmin),
+			option.WithAliases("+чат"),
+		),
 	}
 }
 
@@ -267,6 +285,58 @@ func (h *Handler) DeleteMessage(c *botapi.Context) error {
 
 	if err := c.Bot.DeleteMessage(c, chatID, msg.MessageID); err != nil {
 		return fmt.Errorf("delete current msg: %w", err)
+	}
+
+	return nil
+}
+
+func (h *Handler) OffChat(c *botapi.Context) error {
+	chatID, _ := c.Chat()
+
+	err := c.Bot.SetChatPermissions(c, chatID, botapi.ChatPermissions{
+		CanSendMessages:       false,
+		CanSendAudios:         false,
+		CanSendDocuments:      false,
+		CanSendPhotos:         false,
+		CanSendVideos:         false,
+		CanSendVideoNotes:     false,
+		CanSendVoiceNotes:     false,
+		CanSendPolls:          false,
+		CanSendOtherMessages:  false,
+		CanAddWebPagePreviews: false,
+		CanChangeInfo:         false,
+		CanInviteUsers:        false,
+		CanPinMessages:        false,
+		CanManageTopics:       false,
+	})
+	if err != nil {
+		return fmt.Errorf("off chat: %w", err)
+	}
+
+	return nil
+}
+
+func (h *Handler) OnChat(c *botapi.Context) error {
+	chatID, _ := c.Chat()
+
+	err := c.Bot.SetChatPermissions(c, chatID, botapi.ChatPermissions{
+		CanSendMessages:       true,
+		CanSendAudios:         true,
+		CanSendDocuments:      true,
+		CanSendPhotos:         true,
+		CanSendVideos:         true,
+		CanSendVideoNotes:     true,
+		CanSendVoiceNotes:     true,
+		CanSendPolls:          true,
+		CanSendOtherMessages:  true,
+		CanAddWebPagePreviews: true,
+		CanChangeInfo:         false,
+		CanInviteUsers:        false,
+		CanPinMessages:        false,
+		CanManageTopics:       false,
+	})
+	if err != nil {
+		return fmt.Errorf("on chat: %w", err)
 	}
 
 	return nil
