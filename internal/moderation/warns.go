@@ -11,6 +11,24 @@ import (
 	"github.com/gotd/botapi"
 )
 
+func parseReason(text string) (reason string, forever bool, ok bool) {
+	lines := strings.SplitN(text, "\n", 2)
+
+	if strings.EqualFold(strings.TrimSpace(lines[0]), "навсегда") {
+		if len(lines) == 2 {
+			return strings.TrimSpace(lines[1]), true, true
+		}
+
+		return "", true, true
+	}
+
+	if strings.TrimSpace(text) != "" && !strings.Contains(text, "\n") {
+		return "", false, false
+	}
+
+	return strings.TrimPrefix(text, "\n"), false, true
+}
+
 func (h *Handler) Warn(c *botapi.Context) error {
 	moderator := cctx.MustChatMember(c)
 	args := cctx.MustArgs(c)
@@ -25,16 +43,16 @@ func (h *Handler) Warn(c *botapi.Context) error {
 		until = time.Now().Add(time.Hour * 24 * 7)
 	}
 
-	reason, _ := args.Text()
-	if strings.ToLower(reason) == "навсегда" {
-		reason = ""
-		until = time.Time{}
-	}
+	reasonText, _ := args.Text()
 
-	if strings.TrimSpace(reason) != "" && !strings.Contains(reason, "\n") {
+	reason, forever, ok := parseReason(reasonText)
+	if !ok {
 		return nil
 	}
-	reason = strings.TrimPrefix(reason, "\n")
+
+	if forever {
+		until = time.Time{}
+	}
 
 	ch := cctx.MustChat(c)
 
