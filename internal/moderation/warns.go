@@ -114,7 +114,7 @@ func (h *Handler) Warn(c *botapi.Context) error {
 			loc.T(
 				i18n.Cmd.Moderation.Templates.Warns,
 				i18n.CmdModerationTemplatesWarnsData{
-					Current: warnsCount,
+					Current: warnsCount + 1,
 					Max:     ch.MaxWarns,
 				},
 			),
