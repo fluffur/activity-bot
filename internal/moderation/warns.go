@@ -26,6 +26,10 @@ func (h *Handler) Warn(c *botapi.Context) error {
 	}
 
 	reason, _ := args.Text()
+	if strings.ToLower(reason) == "навсегда" {
+		reason = ""
+		until = time.Time{}
+	}
 
 	if strings.TrimSpace(reason) != "" && !strings.Contains(reason, "\n") {
 		return nil
