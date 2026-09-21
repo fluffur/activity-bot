@@ -5,10 +5,6 @@ var Mondstadt = Category{
 	Emoji: `<tg-emoji emoji-id="5330195937803387184">🌪</tg-emoji>`,
 	Roles: []Role{
 		{
-			Name:  "Алиса",
-			Emoji: `<tg-emoji emoji-id="5289820032585467653">👩‍🦰</tg-emoji>`,
-		},
-		{
 			Name:  "Альбедо",
 			Emoji: `<tg-emoji emoji-id="5264988743588126581">🌭</tg-emoji>`,
 		},

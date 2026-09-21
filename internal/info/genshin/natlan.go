@@ -60,5 +60,9 @@ var Natlan = Category{
 			Name:  "Шилонен",
 			Emoji: `<tg-emoji emoji-id="5366591838562048159">👩</tg-emoji>`,
 		},
+		{
+			Name:  "Шбаланке",
+			Emoji: `<tg-emoji emoji-id="5265256659353112624">😞</tg-emoji>`,
+		},
 	},
 }

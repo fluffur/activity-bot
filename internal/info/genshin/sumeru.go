@@ -89,5 +89,13 @@ var Sumeru = Category{
 			Name:  "Фарузан",
 			Emoji: `<tg-emoji emoji-id="5413555961619029571">😋</tg-emoji>`,
 		},
+		{
+			Name:  "Руккхадевата",
+			Emoji: `<tg-emoji emoji-id="5267000828392148609">🙂‍↕️</tg-emoji>`,
+		},
+		{
+			Name:  "Джехт",
+			Emoji: `<tg-emoji emoji-id="5292152483295039648">🗡</tg-emoji>`,
+		},
 	},
 }

@@ -106,5 +106,21 @@ var Inazuma = Category{
 				"Мико",
 			},
 		},
+		{
+			Name:  "Кицунэ Сайгу",
+			Emoji: `<tg-emoji emoji-id="5339373492640974874">🌟</tg-emoji>`,
+		},
+		{
+			Name:  "Райдэн Макото",
+			Emoji: `<tg-emoji emoji-id="5436195077833651723">🌟</tg-emoji>`,
+			Aliases: []string{
+				"Макото",
+				"Сёгун Райдэн Макото",
+			},
+		},
+		{
+			Name:  "Микоси Тиё",
+			Emoji: `<tg-emoji emoji-id="5469894181512055087">🌟</tg-emoji>`,
+		},
 	},
 }

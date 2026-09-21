@@ -72,5 +72,9 @@ var Fontaine = Category{
 			Name:  "Эскофье",
 			Emoji: `<tg-emoji emoji-id="5413395944022500663">👩</tg-emoji>`,
 		},
+		{
+			Name:  "Эгерия",
+			Emoji: `<tg-emoji emoji-id="5267310255016022226">😏</tg-emoji>`,
+		},
 	},
 }

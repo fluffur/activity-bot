@@ -5,6 +5,10 @@ var Other = Category{
 	Emoji: "❔",
 	Roles: []Role{
 		{
+			Name:  "Алиса",
+			Emoji: `<tg-emoji emoji-id="5289820032585467653">👩‍🦰</tg-emoji>`,
+		},
+		{
 			Name:  "Дайнслейф",
 			Emoji: `<tg-emoji emoji-id="5323533640368408677">🍬</tg-emoji>`,
 		},
@@ -38,32 +42,12 @@ var Other = Category{
 			Emoji: `<tg-emoji emoji-id="5312021349898685982">👩</tg-emoji>`,
 		},
 		{
-			Name:  "Джехт",
-			Emoji: `<tg-emoji emoji-id="5292152483295039648">🗡</tg-emoji>`,
-		},
-		{
 			Name:  "Элой",
 			Emoji: `<tg-emoji emoji-id="5265055173847294483">🍗</tg-emoji>`,
 		},
 		{
 			Name:  "Ведрфельнир",
 			Emoji: `<tg-emoji emoji-id="5267053866943286181">😩</tg-emoji>`,
-		},
-		{
-			Name:  "Кицунэ Сайгу",
-			Emoji: `<tg-emoji emoji-id="5339373492640974874">🌟</tg-emoji>`,
-		},
-		{
-			Name:  "Райдэн Макото",
-			Emoji: `<tg-emoji emoji-id="5436195077833651723">🌟</tg-emoji>`,
-			Aliases: []string{
-				"Макото",
-				"Сёгун Райдэн Макото",
-			},
-		},
-		{
-			Name:  "Микоси Тиё",
-			Emoji: `<tg-emoji emoji-id="5469894181512055087">🌟</tg-emoji>`,
 		},
 		{
 			Name:  "Рэйндоттир",
@@ -99,21 +83,6 @@ var Other = Category{
 		{
 			Name:  "Хрофтатюр",
 			Emoji: `<tg-emoji emoji-id="5267430548460048798">🥹</tg-emoji>`,
-		},
-		{
-			Name:  "Руккхадевата",
-			Emoji: `<tg-emoji emoji-id="5267000828392148609">🙂‍↕️</tg-emoji>`,
-			Aliases: []string{
-				"Великая властительница Руккхадевата",
-			},
-		},
-		{
-			Name:  "Эгерия",
-			Emoji: `<tg-emoji emoji-id="5267310255016022226">😏</tg-emoji>`,
-		},
-		{
-			Name:  "Шбаланке",
-			Emoji: `<tg-emoji emoji-id="5265256659353112624">😞</tg-emoji>`,
 		},
 	},
 }
