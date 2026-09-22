@@ -93,6 +93,13 @@ func (r *Repository) CreateRoleTemplate(
 
 	q := r.queries.WithTx(tx)
 
+	if err := q.DeleteFandom(ctx, db.DeleteFandomParams{
+		ChatID: chatID,
+		Name:   fandomName,
+	}); err != nil {
+		return err
+	}
+
 	fandom, err := q.GetOrCreateFandom(ctx, db.GetOrCreateFandomParams{
 		ChatID: chatID,
 		Name:   fandomName,

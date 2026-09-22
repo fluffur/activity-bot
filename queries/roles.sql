@@ -4,6 +4,8 @@ FROM fandoms
 WHERE chat_id = $1
   AND name = $2;
 
+-- name: DeleteFandom :exec
+DELETE FROM fandoms WHERE chat_id = $1 AND name = $2;
 
 -- name: GetOrCreateFandom :one
 INSERT INTO fandoms (chat_id,

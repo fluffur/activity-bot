@@ -119,6 +119,20 @@ func (q *Queries) CreateRoleReservation(ctx context.Context, arg CreateRoleReser
 	return err
 }
 
+const deleteFandom = `-- name: DeleteFandom :exec
+DELETE FROM fandoms WHERE chat_id = $1 AND name = $2
+`
+
+type DeleteFandomParams struct {
+	ChatID int64  `db:"chat_id" json:"chatId"`
+	Name   string `db:"name" json:"name"`
+}
+
+func (q *Queries) DeleteFandom(ctx context.Context, arg DeleteFandomParams) error {
+	_, err := q.db.Exec(ctx, deleteFandom, arg.ChatID, arg.Name)
+	return err
+}
+
 const deleteRoleReservation = `-- name: DeleteRoleReservation :exec
 DELETE
 FROM role_reservations
