@@ -13,21 +13,15 @@ var Other = Category{
 			Emoji: `<tg-emoji emoji-id="5323533640368408677">🍬</tg-emoji>`,
 		},
 		{
-			Name:  "Итер",
+			Name:  "Итэр",
 			Emoji: `<tg-emoji emoji-id="5264828382394195732">☕️</tg-emoji>`,
 			Aliases: []string{
-				"Итэр",
-				"Путешественник",
+				"Итер",
 			},
 		},
 		{
 			Name:  "Люмин",
 			Emoji: `<tg-emoji emoji-id="5265138594997084424">🍩</tg-emoji>`,
-			Aliases: []string{
-				"Люмина",
-				"Путешественница",
-				"Главная героиня",
-			},
 		},
 		{
 			Name:  "Паймон",

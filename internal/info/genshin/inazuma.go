@@ -76,10 +76,10 @@ var Inazuma = Category{
 			},
 		},
 		{
-			Name:  "Райден",
+			Name:  "Райдэн",
 			Emoji: `<tg-emoji emoji-id="5265119899004444613">🧅</tg-emoji>`,
 			Aliases: []string{
-				"Райдэн",
+				"Райден",
 				"Сёгун Райдэн",
 				"Эи",
 			},

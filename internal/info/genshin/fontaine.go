@@ -21,11 +21,11 @@ var Fontaine = Category{
 			Emoji: `<tg-emoji emoji-id="5361714800118217989">🟡</tg-emoji>`,
 		},
 		{
-			Name:  "Нёвиллетт",
+			Name:  "Нёвиллет",
 			Emoji: `<tg-emoji emoji-id="5402309387890996368">😐</tg-emoji>`,
 			Aliases: []string{
 				"Невиллет",
-				"Невилетт",
+				"Невилет",
 			},
 		},
 		{

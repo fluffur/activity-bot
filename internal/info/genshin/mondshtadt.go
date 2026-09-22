@@ -32,10 +32,10 @@ var Mondstadt = Category{
 			Emoji: `<tg-emoji emoji-id="5251345578108941771">😉</tg-emoji>`,
 		},
 		{
-			Name:  "Джин",
+			Name:  "Джинн",
 			Emoji: `<tg-emoji emoji-id="5265241283370164305">🥝</tg-emoji>`,
 			Aliases: []string{
-				"Джинн",
+				"Джин",
 			},
 		},
 		{
